@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('active_status', function (Blueprint $table) {
             //cause conflict between "->primary()" and "unique" here
-            $table->integer('active_status_id');
+            $table->integer('active_status_id')->primary();
             $table->string('active_status_name', 50);
         });
     }

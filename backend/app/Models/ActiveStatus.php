@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class ActiveStatus extends Model
 {
+    use HasFactory;
     // Custom table name (non-standard, singular)
     protected $table = 'active_status';
 
@@ -35,5 +37,5 @@ class ActiveStatus extends Model
     {
         return $this->hasMany(Project::class, 'active_status_id', 'active_status_id');
     }
-    
+
 }
