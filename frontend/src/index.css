@@ -1,0 +1,59 @@
+@import "tailwindcss";
+/*@import 'primereact/resources/themes/bootstrap4-light-blue/theme.css';*/
+@import 'primereact/resources/themes/lara-light-blue/theme.css';
+
+@import 'primereact/resources/primereact.min.css';
+@import 'primeicons/primeicons.css';
+
+
+.p-inputtext, .p-dropdown, .p-multiselect {
+    border-radius: 12px;
+}
+
+.p-button {
+    height: 42px;
+    border-radius: 12px;
+}
+
+
+.p-breadcrumb {
+    background-color: transparent;
+    border: none;
+}
+
+.p-menuitem-text {
+    color: black
+}
+
+nav {
+    padding-left: 0 !important;
+}
+
+
+/*customized prime react table style*/
+
+.p-datatable-wrapper {
+    border-radius: 12px;
+}
+
+.p-datatable-header {
+    background-color: white;
+    border: none;
+}
+
+
+.p-column-title {
+    font-weight: 500;
+    padding: 5px;
+}
+
+.p-datatable-tbody {
+    font-size: 14px;
+}
+
+
+
+
+
+
+

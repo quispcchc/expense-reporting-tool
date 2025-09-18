@@ -1,0 +1,291 @@
+export const claimsData = [
+    {
+        claimId: 666666,
+        claimType: 'Petty Cash',
+        employeeName: 'Lissette Lindao',
+        position: 'Web Designer',
+        team: 'ACTT',
+        claimItems: [
+            {
+                transactionId: 23456,
+                transactionDate: 'June 21,2025',
+                program: 'Panel Size Management',
+                vendor: 'First Sevice Provider',
+                buyer: 'Lissette Lindaos',
+                costCentre: 1100,
+                accountNum: 654321,
+                amount: 45,
+                description: 'Team building food',
+                tags: ['Client Travelling'],
+                notes: 'This is a note',
+                status: 'Approved',
+            },
+            {
+                transactionId: 23457,
+                transactionDate: 'June 21,2025',
+                program: 'Panel Size Management',
+                vendor: 'Second Sevice Provider',
+                buyer: 'Lissette Lindaos',
+                costCentre: 11212,
+                accountNum: 123456,
+                amount: 55,
+                description: 'Team building food',
+                tags: ['Client Travelling'],
+                notes: 'This is a note',
+                status: 'pending',
+            },
+        ],
+        mileages: [
+            {
+                mileageDate: 'sd',
+                startEnd: 'dssf',
+                distance: 1,
+                rate: 0.5,
+                amount: 23,
+            },
+        ],
+        notes: [
+            {
+                submittedBy: 'Jane Doe',
+                date: '1-JAN-2025',
+                description: 'Lorem ipsum dolor sit amet, consectetur adipisicing elit. Doloribus error est ipsum iure optio qui tempora. A aliquam dolore ipsum molestiae quasi quibusdam, quos voluptate! Consectetur facilis illum iure magnam. ',
+            },
+
+        ],
+        attachments: '',
+        status: 'Pending',
+        totalAmount: 38,
+        createdAt: '2025-07-28',
+    },
+]
+
+export const positions = [
+    {id:1,positionName:'Software Engineer'},
+    {id:2,positionName:'Web Designer'},
+    {id:3,positionName:'Manager'},
+]
+
+export const claimTypes = [
+    { id: 1, name: 'Corporate Credit Card'},
+    { id: 2, name: 'Petty Cash' },
+    { id: 3, name:  'Reimbursement' },
+    { id: 4, name: 'Invoice from Vendor'},
+    { id: 5, name: 'Non-staff' },
+]
+
+export const claimTypesFilter = [
+    { label: 'Corporate Credit Card', value: 'Corporate Credit Card'},
+    { label: 'Petty Cash' , value: 'Petty Cash' },
+    { label: 'Reimbursement', value:  'Reimbursement' },
+    { label: 'Invoice from Vendor', value: 'Invoice from Vendor'},
+    { label: 'Non-staff', value: 'Non-staff' },
+]
+
+export const costCentres = [
+    { 'code': 2250, 'name': 'Children\'s Mental Health' },
+    { 'code': 2370, 'name': 'Early Years II' },
+    { 'code': 2400, 'name': 'Annavale Headstart Nursery School' },
+    { 'code': 2405, 'name': 'Fundraising Annavale' },
+    { 'code': 2410, 'name': 'Annavale Minor Capital' },
+    { 'code': 2425, 'name': 'SSRF - Virtual Prenatal Program' },
+    { 'code': 2426, 'name': 'SSRF - Mental Health Program' },
+]
+
+export const teams = ['ACTT', 'CS', 'CHV', 'HGD', 'HIS']
+
+export const programs = [
+    'A/P',
+    'Audit',
+    'Benefits and HOOPP',
+    'Facility',
+    'Finance',
+    'Health and Safety',
+    'IT',
+    'Payroll',
+    'Access to Primary Care Services',
+    'Adult General Counselling',
+    'Code 99 Program',
+    'Digitization of Administrative Work',
+    'Flu Clinics',
+    'Management of Complex Needs',
+    'MSAA Targets for Preventive Care',
+    'Navigation and Referrals between PHC and other teams',
+    'Panel Size Management',
+    'Primary Care Outreach to Residential Homes',
+    'Quality Improvement (QIP) Targets',
+    'Service Access for 1290 Coldrey Residents',
+    'Transitional Housing Support Program',
+    'Violence Against Women',
+    'Youth Counselling',
+    'After School Program',
+    'After The Bell',
+    'Annavale Headstart Nursery School',
+    'Baby-Friendly Initiative',
+    'Booster Program',
+    'Buns in the Oven',
+    'CHEO First Words',
+    'CHEO Special Needs Community Playgroup',
+    'Children Inclusion Support Services (CISS)',
+    'EarlyON Parent Ed Programs',
+    'EarlyON Program',
+    'Family Support Services',
+    'Managing Anxiety for New and Expectant Parents (MAP)',
+    'One on One Breastfeeding Clinical Support',
+    'Parent-Chats',
+    'Park Animation Community Project (PACT)',
+    'Partners Only Sessions',
+    'PCYS Data Collection Improvement Project',
+    'Perinatal One On One Support and Referral',
+    'Perinatal Parenting Support',
+    'Prenatal Breastfeeding Information Sessions',
+    'Prenatal Education Program',
+    'Prenatal/Perinatal Program Evaluation SNAP CACHC',
+    'School Break Activities for Youth',
+    'Snack and Chat Program',
+    'Supporting Neighborhood Caregivers',
+    'SWAG',
+    'Wrap Around Service',
+    'Youth Drop-In',
+    'Youth Focused Community Initiatives',
+    'Youth Hotmeals',
+    'Youth-Athlete Mentorship Program',
+    'Quality Improvement',
+    'Annual All Staff Satisfaction Survey',
+    'CCHC Committees',
+    'Communications and Visibility Plan',
+    'Employee Engagement and Retention Plan',
+    'Employee Engagement Committee (EEC)',
+    'Equity, Diversity, and Inclusion (EDI) Plan',
+    'French Language Services (FLS)',
+    'Fund Development Plan',
+    'Performance Evaluation Plans for All Staff',
+    'Professional Development Plans for All Staff',
+    'Recruitment & Retention Strategies',
+    'Volunteer Recruitment, Deployment, and Retention Plan',
+    'Work Health and Safety Plan',
+]
+
+export const accountNums = [
+    { 'code': '50001', 'title': 'Admin Assistant 1' },
+    { 'code': '50002', 'title': 'Admin Assistant 2' },
+    { 'code': '50003', 'title': 'Admin Assistant 3 / Executive Assistant' },
+    { 'code': '50004', 'title': 'Clinical Aide' },
+    { 'code': '50005', 'title': 'Clinical Coordinator' },
+    { 'code': '50007', 'title': 'Coordinator of Volunteers' },
+    { 'code': '50008', 'title': 'Executive Director' },
+    { 'code': '50010', 'title': 'Medical Office Administrator 1' },
+    { 'code': '50012', 'title': 'Medical Receptionist' },
+    { 'code': '50013', 'title': 'Medical Secretary 3' },
+    { 'code': '50014', 'title': 'Program Assistant' },
+    { 'code': '50015', 'title': 'Program Director' },
+    { 'code': '50016', 'title': 'Program Manager' },
+    { 'code': '50019-', 'title': 'Coordinator' },
+    { 'code': '50100-', 'title': 'FSCW Family Support Community Worker' },
+    { 'code': '50101', 'title': 'Worker - ECDW Headstart Team Leader' },
+    { 'code': '50102', 'title': 'Worker - ECDW Headstart Teacher' },
+    { 'code': '50106-', 'title': 'On-Call Allowance' },
+    { 'code': '50107', 'title': 'On-Call Worked' },
+    { 'code': '50110-', 'title': 'Nurses' },
+]
+
+export const roles = ['Super Admin', 'Admin', 'Approver', 'Regular User']
+
+export const status = ['Active', 'Inactive']
+
+export const claimStatus = [
+    { label: 'Approved', value: 'Approved' },
+    { label: 'Pending', value: 'Pending' },
+    { label: 'Rejected', value: 'Rejected' }
+];
+
+
+export const mockUsers = [
+    {
+        user_id: 1,
+        first_name: 'Vin',
+        last_name: 'Quito',
+        // team: 'Project Team',
+        teams: ['ACTT', 'CS'],
+        position: 'Project Overseer / Client Analyst',
+        // role: 'Admin',
+        roles: ['Regular User', 'Admin'],
+        status: 'Active',
+    },
+    {
+        user_id: 2,
+        first_name: 'Lissette',
+        last_name: 'Lindao Garces',
+        // team: 'Web Design',
+        teams: ['ACTT', 'CS'],
+        position: 'Project Team',
+        // role: 'Regular User',
+        roles: ['Regular User', 'Admin'],
+        status: 'Active',
+    },
+    {
+        user_id: 3,
+        first_name: 'Shan',
+        last_name: 'Xing',
+        // team: 'Frontend',
+        teams: ['ACTT', 'CS'],
+        position: 'Front-end Developer',
+        // role: 'Regular User',
+        roles: ['Regular User', 'Admin'],
+        status: 'Active',
+    },
+    {
+        user_id: 4,
+        first_name: 'Dharmkumar',
+        last_name: 'Mirani',
+        // team: 'Backend',
+        teams: ['ACTT', 'CS'],
+        position: 'Back-end Developer',
+        // role: 'Regular User',
+        roles: ['Regular User', 'Admin'],
+        status: 'Active',
+    },
+    {
+        user_id: 5,
+        first_name: 'Nguyen Dung',
+        last_name: 'Vo',
+        // team: 'Backend',
+        teams: ['ACTT', 'CS'],
+        position: 'Back-end Developer',
+        // role: 'Regular User',
+        roles: ['Regular User', 'Admin'],
+        status: 'Active',
+    },
+    {
+        user_id: 6,
+        first_name: 'Sandhra',
+        last_name: 'Stephen',
+        // team: 'Project Team',
+        teams: ['ACTT', 'CS'],
+        position: 'Client Analyst',
+        // role: 'Regular User',
+        roles: ['Regular User', 'Admin'],
+        status: 'Active',
+    },
+
+]
+
+export const mockTeams = [
+    { code: 'ACTT', name: 'Assertive Community Treatment Team', status: 'Active' },
+    { code: 'CS', name: 'Corporate Services', status: 'Active' },
+    { code: 'CHV', name: 'Community Health and Vitality', status: 'Active' },
+    { code: 'HGD', name: 'Healthy Growth and Development', status: 'Active' },
+    { code: 'HIS', name: 'Health and Support Services', status: 'Active' },
+    { code: 'Non Staff Name', name: 'External parnters who claims reimbursement', status: 'Active' },
+]
+
+export const mockCostCentres = [
+    { area: 'Corporate Services', code: 1000, status: 'Active', description: 'General Clearing Account' },
+    { area: 'Corporate Services', code: 2250, status: 'Active', description: 'Children\'s Mental Health' },
+    { area: 'Corporate Services', code: 2370, status: 'Active', description: 'Early Years II' },
+    { area: 'Corporate Services', code: 2400, status: 'Active', description: 'Annavale Headstart Nursery School' },
+    { area: 'Corporate Services', code: 2405, status: 'Active', description: 'Fundraising Annavale' },
+    { area: 'Corporate Services', code: 2410, status: 'Active', description: 'Annavale Minor Capital' },
+    { area: 'Corporate Services', code: 2425, status: 'Active', description: 'SSRF - Virtual Prenatal Program' },
+    { area: 'Corporate Services', code: 2426, status: 'Active', description: 'SSRF - Mental Health Program' },
+]
+
