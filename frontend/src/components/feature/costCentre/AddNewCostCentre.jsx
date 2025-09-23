@@ -1,22 +1,31 @@
 import React, { useState } from 'react'
 import Input from '../../common/ui/Input.jsx'
 import Select from '../../common/ui/Select.jsx'
-import { roles, costCentres, status, teams, mockTeams } from '../../../utils/mockData.js'
 import { Button } from 'primereact/button'
-import { useCostCentreDispatch } from '../../../contexts/CostCentreContext.jsx'
+import { useCostCentre } from '../../../contexts/CostCentreContext.jsx'
 import { validationSchemas } from '../../../utils/validation/schemas.js'
 import { validateForm } from '../../../utils/validation/validator.js'
+import { useLookups } from '../../../contexts/LookupContext.jsx'
+import { ProgressSpinner } from 'primereact/progressspinner'
 
 function AddNewCostCentre () {
+    const { lookups } = useLookups()
+    const { actions } = useCostCentre()
+    const { state } = useCostCentre()
+    const { loading } = state
+
+    const { createCostCentre } = actions
+
     const [errors, setErrors] = useState([])
     const [isOpen, setIsOpen] = useState(false)
-    const dispatch = useCostCentreDispatch()
-    const [costCentreFormData, setCostCentreFormData] = useState({
+
+    const initialData = {
         area: '',
         code: '',
         status: '',
         description: '',
-    })
+    }
+    const [costCentreFormData, setCostCentreFormData] = useState(initialData)
 
     const handleCostCentreFormChange = (e) => {
         const { name, value } = e.target
@@ -33,15 +42,21 @@ function AddNewCostCentre () {
         console.log(validation)
 
         if (validation.isValid) {
-            console.log(costCentreFormData)
-            dispatch({ type: 'create', payload: costCentreFormData })
+            createCostCentre(costCentreFormData)
+            setCostCentreFormData(initialData)
         }
-
         setErrors(validation.errors)
 
     }
     return (
+
         <div className="bg-white rounded-xl p-6">
+            { loading && (
+                <div className="absolute inset-0 flex justify-center items-center bg-white/50 z-10">
+                    <ProgressSpinner/>
+                </div>
+            ) }
+
             <div className="flex justify-between items-center text-gray-700">
                 <div>
                     <h4 className="text-[22px]">Add new CostCentre</h4>
@@ -50,8 +65,8 @@ function AddNewCostCentre () {
 
                 <button className={ `pi ${ isOpen ? 'pi-chevron-up' : 'pi-chevron-down' } !text-xl` }
                         onClick={ () => setIsOpen(prev => !prev) }></button>
-
             </div>
+
             { isOpen && (
                 <form className={ `my-5 grid grid-cols-1 sm:grid-cols-5 ${ errors.length === 0
                     ? 'items-end'
@@ -59,7 +74,8 @@ function AddNewCostCentre () {
                       onSubmit={ handleCostCentreFormSubmit }>
                     <div className="col-span-3">
                         <Select name="area" id="area" label="Team"
-                                options={ mockTeams.map(option => ( { label: option.name, value: option.name } )) }
+                                options={ lookups.teams.map(
+                                    option => ( { label: option.team_name, value: option.team_id } )) }
                                 value={ costCentreFormData.area } onChange={ handleCostCentreFormChange }
                                 placeholder="Please selct team" errors={ errors }/>
                     </div>
@@ -78,19 +94,20 @@ function AddNewCostCentre () {
                     </div>
 
                     <div className="col-span-2">
-                        <Select name="status" id="status" label="Status" options={ status }
+                        <Select name="status" id="status" label="Status" options={ lookups.activeStatuses.map(
+                            option => ( { label: option.active_status_name, value: option.active_status_id } )) }
                                 value={ costCentreFormData.status } onChange={ handleCostCentreFormChange }
                                 placeholder="Please selct status" errors={ errors }/>
                     </div>
 
                     <Button label="Add New" className="!h-[48px]"/>
 
-
                 </form> ) }
 
 
         </div>
+
     )
 }
 
-export default AddNewCostCentre
+    export default AddNewCostCentre

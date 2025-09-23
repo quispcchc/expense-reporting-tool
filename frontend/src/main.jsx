@@ -4,17 +4,19 @@ import './index.css'
 import App from './App.jsx'
 import { AuthProvider } from './contexts/AuthContext.jsx'
 import { ClaimProvider } from './contexts/ClaimContext.jsx'
-import { PrimeReactProvider } from 'primereact/api';
-
+import { PrimeReactProvider } from 'primereact/api'
+import { LookupProvider } from './contexts/LookupContext.jsx'
 
 createRoot(document.getElementById('root')).render(
     <StrictMode>
         <PrimeReactProvider>
-                <AuthProvider>
+            <AuthProvider>
+                <LookupProvider>
                     <ClaimProvider>
                         <App/>
                     </ClaimProvider>
-                </AuthProvider>
+                </LookupProvider>
+            </AuthProvider>
         </PrimeReactProvider>
     </StrictMode>,
 )
