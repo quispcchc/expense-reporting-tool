@@ -15,7 +15,7 @@ return new class extends Migration
             $table->integer('cost_centre_id')->nullable()->primary();
             $table->integer('cost_centre_code');
             $table->integer('active_status_id');
-            $table->string('cost_centre_account');
+            $table->string('description');
             $table->integer('team_id');
         });
     }

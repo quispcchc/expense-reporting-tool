@@ -37,13 +37,18 @@ Route::post('/logout', [LogoutController::class, 'logout'])->middleware('auth:sa
 Route::post('/admin/create-user', [CreateUserController::class, 'createUser'])->middleware(['auth:sanctum', 'role:admin']);
 
 //Admin management
-Route::middleware(['auth:sanctum', 'role:1'])->group(function () {
+Route::middleware(['auth:sanctum','role:1'])->group(function () {
     Route::post('/admin/create-user', [CreateUserController::class, 'createUser']);
     Route::get('/roles', [RoleController::class, 'index']);
     Route::post('/roles', [RoleController::class, 'store']);
     Route::put('/roles/{id}', [RoleController::class, 'update']);
     Route::delete('/roles/{id}', [RoleController::class, 'destroy']);
+
 });
+
+// Cost Centre Management (should require admin role, but temporarily left unprotected for testing)
+Route::apiResource('cost-centres',\App\Http\Controllers\CostCentreController::class)->middleware('auth:sanctum');
+
 
 //claim Details
 Route::middleware('auth:sanctum')->group(function () {
