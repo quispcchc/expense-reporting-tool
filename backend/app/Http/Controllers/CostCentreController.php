@@ -33,6 +33,7 @@ class CostCentreController extends Controller
         ]);
 
         $costCentre = CostCentre::create($validated);
+        $costCentre->load(['activeStatus', 'team']);
 
         return response()->json([
             'success' => true,
@@ -70,6 +71,7 @@ class CostCentreController extends Controller
         ]);
 
         $costCentre->update($validated);
+        $costCentre->load(['activeStatus', 'team']);
 
         return response()->json([
             'success' => true,
