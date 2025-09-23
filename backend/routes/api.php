@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\LookupController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -49,6 +50,8 @@ Route::middleware(['auth:sanctum','role:1'])->group(function () {
 // Cost Centre Management (should require admin role, but temporarily left unprotected for testing)
 Route::apiResource('cost-centres',\App\Http\Controllers\CostCentreController::class)->middleware('auth:sanctum');
 
+// Fetch lookup data (active_status, role, team, position, which will be used cross the app)
+Route::get('lookups',[LookupController::class,'index'])->middleware('auth:sanctum');
 
 //claim Details
 Route::middleware('auth:sanctum')->group(function () {
