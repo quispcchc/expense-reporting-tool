@@ -27,7 +27,7 @@ class CostCentreController extends Controller
     {
         $validated = $request->validate([
             'team_id' => 'required|integer|exists:team,team_id',
-            'cost_centre_code' => 'required|string|max:50',
+            'cost_centre_code' => 'required|integer',
             'description' => 'nullable|string|max:100',
             'active_status_id' => 'required|integer|exists:active_status,active_status_id',
         ]);
@@ -65,7 +65,7 @@ class CostCentreController extends Controller
 
         $validated = $request->validate([
             'team_id' => 'sometimes|required|integer|exists:team,team_id',
-            'cost_centre_code' => 'sometimes|required|string|max:50',
+            'cost_centre_code' => 'sometimes|required|integer',
             'description' => 'nullable|string|max:100',
             'active_status_id' => 'sometimes|required|integer|exists:active_status,active_status_id',
         ]);
