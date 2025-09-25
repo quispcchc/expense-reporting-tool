@@ -8,15 +8,15 @@ import { validateForm } from '../../../utils/validation/validator.js'
 import { useLookups } from '../../../contexts/LookupContext.jsx'
 import { ProgressSpinner } from 'primereact/progressspinner'
 
-function AddNewCostCentre ({ createdToast, errorToast }) {
+function AddNewCostCentre ({ createdToast }) {
     const { lookups } = useLookups()
-    const { actions } = useCostCentre()
-    const { state } = useCostCentre()
-    const { loading } = state
 
-    const { createCostCentre } = actions
+    const {
+        actions: { createCostCentre },
+        state: { loading }
+    } = useCostCentre()
 
-    const [errors, setErrors] = useState([])
+    const [validationErrors, setValidationErrors] = useState([])
     const [isOpen, setIsOpen] = useState(false)
 
     const initialData = {
@@ -39,23 +39,19 @@ function AddNewCostCentre ({ createdToast, errorToast }) {
         e.preventDefault()
         const schema = validationSchemas.addCostCentre
         const validation = validateForm(costCentreFormData, schema)
-        console.log(validation)
 
         if (validation.isValid) {
             const response = await createCostCentre(costCentreFormData)
+
             if (response?.success) {
                 setCostCentreFormData(initialData)
                 createdToast()
-            } else {
-                errorToast()
             }
-
         }
-        setErrors(validation.errors)
+        setValidationErrors(validation.errors)
 
     }
     return (
-
         <div className="bg-white rounded-xl p-6">
             { loading && (
                 <div className="absolute inset-0 flex justify-center items-center bg-white/50 z-10">
@@ -74,36 +70,36 @@ function AddNewCostCentre ({ createdToast, errorToast }) {
             </div>
 
             { isOpen && (
-                <form className={ `my-5 grid grid-cols-1 sm:grid-cols-12 gap-5 ${ errors.length > 0
+                <form className={ `my-5 grid grid-cols-1 sm:grid-cols-12 gap-5 ${ validationErrors.length > 0
                     ? 'items-center'
                     : 'items-end' }` }
                       onSubmit={ handleCostCentreFormSubmit }>
                     <div className="col-span-3">
-                        <Select name="area" id="area" label="Team"
+                        <Select name="area" id="area" label="Area"
                                 options={ lookups.teams.map(
                                     option => ( { label: option.team_name, value: option.team_id } )) }
                                 value={ costCentreFormData.area } onChange={ handleCostCentreFormChange }
-                                placeholder="Please selct team" errors={ errors }/>
+                                placeholder="Please selct team" errors={ validationErrors }/>
                     </div>
 
                     <div className="col-span-2">
                         <Input name="code" id="code" label="Code" value={ costCentreFormData.code }
                                onChange={ handleCostCentreFormChange } placeholder="Please enter code"
-                               errors={ errors }/>
+                               errors={ validationErrors }/>
                     </div>
 
                     <div className="col-span-3">
                         <Input name="description" id="description" label="Description"
                                value={ costCentreFormData.description }
                                onChange={ handleCostCentreFormChange } placeholder="Please enter description"
-                               errors={ errors }/>
+                               errors={ validationErrors }/>
                     </div>
 
                     <div className="col-span-2">
                         <Select name="status" id="status" label="Status" options={ lookups.activeStatuses.map(
                             option => ( { label: option.active_status_name, value: option.active_status_id } )) }
                                 value={ costCentreFormData.status } onChange={ handleCostCentreFormChange }
-                                placeholder="Please selct status" errors={ errors }/>
+                                placeholder="Please selct status" errors={ validationErrors }/>
                     </div>
                     <div className="col-span-2">
                         <Button label="Add New" className="!h-[48px]"/>
