@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import ContentHeader from '../../components/common/layout/ContentHeader.jsx'
 import AddNewCostCentre from '../../components/feature/costCentre/AddNewCostCentre.jsx'
 import { DataTable } from 'primereact/datatable'
@@ -13,11 +13,15 @@ import { InputIcon } from 'primereact/inputicon'
 import { useLookups } from '../../contexts/LookupContext.jsx'
 import { ProgressSpinner } from 'primereact/progressspinner'
 
+import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
+import { Toast } from 'primereact/toast';
+// import { Button } from 'primereact/button';
+
 function CostCentresPage () {
     const {lookups} = useLookups()
     const { state,actions } = useCostCentre()
-    const {costCentres,loading} = state
-    const {updateCostCentre} = actions
+    const {costCentres,loading,error} = state
+    const {updateCostCentre,deleteCostCentre} = actions
 
     const [globalFilterValue, setGlobalFilterValue] = useState('')
     const [filters, setFilters] = useState({
@@ -31,6 +35,18 @@ function CostCentresPage () {
 
         setFilters(_filters)
         setGlobalFilterValue(value)
+    }
+
+    const renderHeader = () => {
+        return (
+            <div className="flex justify-end">
+                <IconField iconPosition="left">
+                    <InputIcon className="pi pi-search"/>
+                    <InputText value={ globalFilterValue } onChange={ onGlobalFilterChange }
+                               placeholder="Keyword Search"/>
+                </IconField>
+            </div>
+        )
     }
 
     const renderStatus = (rowData) =>(
@@ -76,22 +92,61 @@ function CostCentresPage () {
         )
     }
 
+    const toast = useRef(null);
 
-    const onRowEditComplete = (e) => {
-        console.log('event',e)
-        console.log('new data',e.newData)
-        updateCostCentre(e.newData)
+    const toasts = {
+        created :()=>{
+            toast.current.show({ severity: 'success', summary: 'Created', detail: 'Created successfully!', life: 3000 });
+        },
+        updated:()=> {
+            toast.current.show({ severity: 'success', summary: 'Updated', detail: 'Updated successfully!', life: 3000 });
+        },
+        error:()=>{
+            toast.current.show({ severity: 'error', summary: 'Error', detail: error || 'Error occurred!', life: 3000 });
+        },
+        accept: async(costCentreId) => {
+            toast.current.show({ severity: 'success', summary: 'Deleted', detail: 'Deleted successfully!', life: 3000 });
+            await deleteCostCentre(costCentreId)
+        },
+        reject: () => {
+            toast.current.show({ severity: 'info', summary: 'Cancelled', detail: 'Cancelled', life: 3000 });
+        }
+
     }
 
-    const renderHeader = () => {
+    const onRowEditComplete = async(e) => {
+        const response = await updateCostCentre(e.newData)
+        if (response?.success) {
+            toasts.updated()
+        } else {
+            toasts.error()
+        }
+    }
+
+    const onDelete = (costCentreId) => {
+        confirmDialog({
+            message: 'Do you want to delete this record?',
+            header: 'Delete Confirmation',
+            icon: 'pi pi-info-circle',
+            defaultFocus: 'reject',
+            acceptClassName: 'p-button-danger',
+            accept:()=>toasts.accept(costCentreId),
+            reject:toasts.reject
+        });
+    };
+
+    const renderDeleteButton = (rowData) => {
+        // const isCurrentlyEditing = currentlyEditingRowId === rowData.transactionId
         return (
-            <div className="flex justify-end">
-                <IconField iconPosition="left">
-                    <InputIcon className="pi pi-search"/>
-                    <InputText value={ globalFilterValue } onChange={ onGlobalFilterChange }
-                               placeholder="Keyword Search"/>
-                </IconField>
-            </div>
+            <button
+                onClick={ ()=>onDelete(rowData.cost_centre_id)}
+                type='button'
+                className="p-2 disabled:opacity-50"
+                title="Delete this expense"
+                // disabled={ isCurrentlyEditing }
+            >
+                <i className="pi pi-trash"></i>
+            </button>
         )
     }
 
@@ -102,8 +157,10 @@ function CostCentresPage () {
                     <ProgressSpinner />
                 </div>
             )}
+            <Toast ref={toast} />
+            <ConfirmDialog />
             <ContentHeader title='Cost Centres' homePath='/admin'/>
-            <AddNewCostCentre/>
+            <AddNewCostCentre createdToast={toasts.created} errorToast={toasts.error}/>
             <div className="bg-white rounded-xl p-6 mt-5">
                 <DataTable value={ costCentres } paginator rows={ 5 } rowsPerPageOptions={ [5, 10, 25, 50] }
                            filters={ filters } globalFilterFields={ ['team.team_name"', 'cost_centre_code', 'active_status.active_status_name', 'description'] }
@@ -114,9 +171,14 @@ function CostCentresPage () {
                     <Column field="cost_centre_code" header="Code" sortable editor={ textInputEditor }></Column>
                     <Column field="active_status_id" header="Status" body={ renderStatus } sortable editor={ statusEditor }></Column>
                     <Column field="description" header="Description" sortable editor={ textInputEditor }></Column>
+
                     <Column
                         rowEditor={ true }
-                        header="Actions"
+                        header="Edit"
+                    />
+                    <Column
+                        header="Delete"
+                        body={renderDeleteButton}
                     />
                 </DataTable>
 

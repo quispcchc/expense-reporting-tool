@@ -16,7 +16,6 @@ export function LookupProvider ({ children }) {
         setLoading(true)
         try {
             const { data } = await api.get('lookups')
-            console.log(data)
             setLookups({
                 roles: data.roles,
                 teams: data.teams,

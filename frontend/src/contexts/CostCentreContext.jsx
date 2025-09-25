@@ -32,7 +32,8 @@ function costCentreReducer (state, action) {
         case 'DELETE_COST_CENTRE':
             return {
                 ...state,
-                costCentres: state.costCentres.filter(cc => cc.id !== action.payload),
+                loading: false,
+                costCentres: state.costCentres.filter(cc => cc.cost_centre_id !== action.payload),
             }
         default:
             return state
@@ -48,7 +49,6 @@ export const CostCentreProvider = ({ children }) => {
             dispatch({ type: 'SET_LOADING' })
             try {
                 const { data } = await api.get('/cost-centres')
-                console.log('cost centres data: ', data)
                 dispatch({ type: 'SET_INITIAL_DATA', payload: data.data })
             }
             catch (err) {
@@ -71,6 +71,7 @@ export const CostCentreProvider = ({ children }) => {
             try {
                 const { data } = await api.post('cost-centres', newCostCentre)
                 dispatch({ type: 'CREATE_COST_CENTRE', payload: data.data })
+                return data
             }
             catch (err) {
                 dispatch({ type: 'SET_ERROR', payload: err.message })
@@ -91,12 +92,25 @@ export const CostCentreProvider = ({ children }) => {
             try {
                 const { data } = await api.put(`cost-centres/${ newData.cost_centre_id }`, updatedCostCentre)
                 dispatch({ type: 'UPDATE_COST_CENTRE', payload: data.data })
+                return data
             }
             catch (err) {
                 dispatch({ type: 'SET_ERROR', payload: err.message })
             }
 
         },
+
+        deleteCostCentre:async(costCentreId)=>{
+            dispatch({ type: 'SET_LOADING' })
+            try {
+                const response = await api.delete(`cost-centres/${costCentreId}`)
+                dispatch({ type: 'DELETE_COST_CENTRE', payload: costCentreId })
+                return response
+
+            }catch (err) {
+                dispatch({ type: 'SET_ERROR', payload: err.message })
+            }
+        }
     }
 
     return <CostCentreContext.Provider value={ { state, actions } }>

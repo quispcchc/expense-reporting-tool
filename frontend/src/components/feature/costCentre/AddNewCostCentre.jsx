@@ -8,7 +8,7 @@ import { validateForm } from '../../../utils/validation/validator.js'
 import { useLookups } from '../../../contexts/LookupContext.jsx'
 import { ProgressSpinner } from 'primereact/progressspinner'
 
-function AddNewCostCentre () {
+function AddNewCostCentre ({ createdToast, errorToast }) {
     const { lookups } = useLookups()
     const { actions } = useCostCentre()
     const { state } = useCostCentre()
@@ -35,15 +35,21 @@ function AddNewCostCentre () {
         } ))
     }
 
-    const handleCostCentreFormSubmit = (e) => {
+    const handleCostCentreFormSubmit = async(e) => {
         e.preventDefault()
         const schema = validationSchemas.addCostCentre
         const validation = validateForm(costCentreFormData, schema)
         console.log(validation)
 
         if (validation.isValid) {
-            createCostCentre(costCentreFormData)
-            setCostCentreFormData(initialData)
+            const response = await createCostCentre(costCentreFormData)
+            if (response?.success) {
+                setCostCentreFormData(initialData)
+                createdToast()
+            } else {
+                errorToast()
+            }
+
         }
         setErrors(validation.errors)
 
@@ -68,9 +74,9 @@ function AddNewCostCentre () {
             </div>
 
             { isOpen && (
-                <form className={ `my-5 grid grid-cols-1 sm:grid-cols-5 ${ errors.length === 0
-                    ? 'items-end'
-                    : 'items-center' } gap-5` }
+                <form className={ `my-5 grid grid-cols-1 sm:grid-cols-12 gap-5 ${ errors.length > 0
+                    ? 'items-center'
+                    : 'items-end' }` }
                       onSubmit={ handleCostCentreFormSubmit }>
                     <div className="col-span-3">
                         <Select name="area" id="area" label="Team"
@@ -86,7 +92,7 @@ function AddNewCostCentre () {
                                errors={ errors }/>
                     </div>
 
-                    <div className="col-span-2">
+                    <div className="col-span-3">
                         <Input name="description" id="description" label="Description"
                                value={ costCentreFormData.description }
                                onChange={ handleCostCentreFormChange } placeholder="Please enter description"
@@ -99,8 +105,9 @@ function AddNewCostCentre () {
                                 value={ costCentreFormData.status } onChange={ handleCostCentreFormChange }
                                 placeholder="Please selct status" errors={ errors }/>
                     </div>
-
-                    <Button label="Add New" className="!h-[48px]"/>
+                    <div className="col-span-2">
+                        <Button label="Add New" className="!h-[48px]"/>
+                    </div>
 
                 </form> ) }
 
@@ -110,4 +117,4 @@ function AddNewCostCentre () {
     )
 }
 
-    export default AddNewCostCentre
+export default AddNewCostCentre
