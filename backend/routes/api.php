@@ -49,16 +49,19 @@ Route::middleware(['auth:sanctum','role:1'])->group(function () {
 });
 
 // Cost Centre Management
-// Routes for super admin (role level 4) - read, create, update, delete all data
-Route::apiResource('cost-centres', CostCentreController::class)->middleware(['auth:sanctum','role:4']);
-
-// Routes for admin (role level 3) - read, create, update, delete data for their own department
-
 // Routes for approver (role level 2) — only read access
 Route::middleware(['auth:sanctum', 'role:2'])->group(function () {
     Route::get('cost-centres', [CostCentreController::class, 'index']);
     Route::get('cost-centres/{id}', [CostCentreController::class, 'show']);
 });
+
+// Routes for admin (role level 3) - read, create, update, delete data for their own department
+
+// Routes for super admin (role level 4) - read, create, update, delete all data
+Route::apiResource('cost-centres', CostCentreController::class)->middleware(['auth:sanctum','role:4']);
+
+
+
 
 
 
