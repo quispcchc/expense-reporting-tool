@@ -49,7 +49,7 @@ export const CostCentreProvider = ({ children }) => {
             dispatch({ type: 'SET_LOADING' })
             try {
                 const { data } = await api.get('/cost-centres')
-                dispatch({ type: 'SET_INITIAL_DATA', payload: data.data })
+                dispatch({ type: 'SET_INITIAL_DATA', payload: data })
             }
             catch (err) {
                 dispatch({ type: 'SET_ERROR', payload: err.message })

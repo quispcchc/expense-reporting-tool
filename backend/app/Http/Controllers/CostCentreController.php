@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\CostCentre;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -10,22 +11,37 @@ class CostCentreController extends Controller
 {
     /**
      * Display a listing of the resource.
+     * @throws AuthorizationException
      */
-    public function index()
+    public function index(Request $request)
     {
-        $costCentres = CostCentre::with(['activeStatus', 'team'])->get();
 
-        return response()->json([
-            'success' => true,
-            'data' => $costCentres
-        ]);
+        $this->authorize('viewAny',CostCentre::class);
+        $user = $request->user();
+        $roleLevel = $user->role->role_level;
+
+        // Super admin sees everything
+        if ($roleLevel === 4) {
+            return CostCentre::with(['activeStatus', 'team'])->get();
+        }
+
+        // Admin/Approver sees only their team
+        return CostCentre::where('team_id', $user->team?->team_id)
+        ->with(['activeStatus', 'team'])
+        ->get();
+
     }
 
     /**
      * Store a newly created resource in storage.
+     * @throws AuthorizationException
      */
     public function store(Request $request)
     {
+        // // Check if current user has correct right to create CostCentre instance
+        $this->authorize('create',new CostCentre($request->all()));
+
+        // Validate request data
         $validated = $request->validate([
             'team_id' => 'required|integer|exists:team,team_id',
             'cost_centre_code' => 'required|integer|unique:cost_centre,cost_centre_code',
@@ -35,6 +51,7 @@ class CostCentreController extends Controller
             'cost_centre_code.unique' => 'The cost centre code already exists. Please use a different one.',
         ]);
 
+        // Create the record with validated data and eager load relations
         $costCentre = CostCentre::create($validated);
         $costCentre->load(['activeStatus', 'team']);
 
@@ -61,11 +78,17 @@ class CostCentreController extends Controller
 
     /**
      * Update the specified resource in storage.
+     * @throws AuthorizationException
      */
     public function update(Request $request, $id)
     {
+        // Check if current user has correct right to update CostCentre instance
+        $this->authorize('update',new CostCentre($request->all()));
+
+        // Find the CostCentre instance in database
         $costCentre = CostCentre::findOrFail($id);
 
+        // Validate request data
         $validated = $request->validate([
             'team_id' => 'sometimes|required|integer|exists:team,team_id',
             'cost_centre_code' => ['required','integer',Rule::unique('cost_centre', 'cost_centre_code')->ignore($costCentre->cost_centre_id, 'cost_centre_id'),],
@@ -75,6 +98,7 @@ class CostCentreController extends Controller
             'cost_centre_code.unique' => 'The cost centre code already exists. Please use a different one.',
         ]);
 
+        // Update the record with validated data and eager load relations
         $costCentre->update($validated);
         $costCentre->load(['activeStatus', 'team']);
 
@@ -88,10 +112,17 @@ class CostCentreController extends Controller
 
     /**
      * Remove the specified resource from storage.
+     * @throws AuthorizationException
      */
-    public function destroy($id)
+    public function destroy(Request $request,$id): \Illuminate\Http\JsonResponse
     {
+        // Find the CostCentre instance in database
         $costCentre = CostCentre::findOrFail($id);
+
+        // Check if current user has correct right to delete CostCentre instance
+        $this->authorize('delete',$costCentre);
+
+        // Delete the record in database
         $costCentre->delete();
 
         return response()->json([
