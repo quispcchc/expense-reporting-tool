@@ -20,6 +20,7 @@ function CostCentresPage () {
     const {lookups} = useLookups()
     const { state,actions } = useCostCentre()
     const {costCentres,loading,error} = state
+
     const {updateCostCentre,deleteCostCentre} = actions
 
     const [globalFilterValue, setGlobalFilterValue] = useState('')

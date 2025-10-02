@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\CostCentre;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class CostCentreController extends Controller
 {
@@ -27,9 +28,11 @@ class CostCentreController extends Controller
     {
         $validated = $request->validate([
             'team_id' => 'required|integer|exists:team,team_id',
-            'cost_centre_code' => 'required|integer',
+            'cost_centre_code' => 'required|integer|unique:cost_centre,cost_centre_code',
             'description' => 'nullable|string|max:100',
             'active_status_id' => 'required|integer|exists:active_status,active_status_id',
+        ],[
+            'cost_centre_code.unique' => 'The cost centre code already exists. Please use a different one.',
         ]);
 
         $costCentre = CostCentre::create($validated);
@@ -65,9 +68,11 @@ class CostCentreController extends Controller
 
         $validated = $request->validate([
             'team_id' => 'sometimes|required|integer|exists:team,team_id',
-            'cost_centre_code' => 'sometimes|required|integer',
-            'description' => 'nullable|string|max:100',
+            'cost_centre_code' => ['required','integer',Rule::unique('cost_centre', 'cost_centre_code')->ignore($costCentre->cost_centre_id, 'cost_centre_id'),],
+            'description' => 'required|string|max:100',
             'active_status_id' => 'sometimes|required|integer|exists:active_status,active_status_id',
+        ],[
+            'cost_centre_code.unique' => 'The cost centre code already exists. Please use a different one.',
         ]);
 
         $costCentre->update($validated);

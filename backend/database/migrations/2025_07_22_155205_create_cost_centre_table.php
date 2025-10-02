@@ -13,10 +13,11 @@ return new class extends Migration
     {
         Schema::create('cost_centre', function (Blueprint $table) {
             $table->integer('cost_centre_id')->nullable()->primary();
-            $table->integer('cost_centre_code');
+            $table->integer('cost_centre_code')->unique();
             $table->integer('active_status_id');
             $table->string('description');
             $table->integer('team_id');
+            $table->timestamps();
         });
     }
 

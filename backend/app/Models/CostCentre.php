@@ -9,7 +9,6 @@ class CostCentre extends Model
     protected $primaryKey = 'cost_centre_id';
     public $incrementing = true;
     protected $keyType = 'int';
-    public $timestamps = false;
 
     protected $fillable = [
         'cost_centre_code',
