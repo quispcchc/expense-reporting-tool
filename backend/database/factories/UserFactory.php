@@ -2,6 +2,8 @@
 
 namespace Database\Factories;
 
+use App\Models\Position;
+use App\Models\Role;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -31,9 +33,10 @@ class UserFactory extends Factory
             'user_pass' => static::$password ??= Hash::make('password'),
 //            'remember_token' => Str::random(10),
             'active_status_id'=>1,
-            'role_id'=>fake()->numberBetween(1, 4),
-            'position_id'=>fake()->numberBetween(1, 3),
-            'team_id'=>fake()->numberBetween(1,3)
+            'role_id' =>$this->faker->randomElement([1, 4]),
+            'position_id' => fake()->numberBetween(1,4),
+            'department_id'=>fake()->numberBetween(1,5),
+            'team_id'=>fake()->numberBetween(1,10)
 
         ];
     }

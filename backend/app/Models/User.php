@@ -12,7 +12,7 @@ use Laravel\Sanctum\HasApiTokens;
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasApiTokens ;
+    use HasFactory, Notifiable, HasApiTokens;
 
     /**
      * The attributes that are mass assignable.
@@ -20,7 +20,7 @@ class User extends Authenticatable implements MustVerifyEmail
      * @var list<string>
      */
 
-    public $timestamps=false;
+    public $timestamps = false;
 
     protected $primaryKey = 'user_id';
     protected $fillable = [
@@ -30,9 +30,10 @@ class User extends Authenticatable implements MustVerifyEmail
         'last_name',
         'user_pass',
         'active_status_id',
+        'department_id',
         'team_id',
-        'position_id',
         'role_id',
+        'position_id',
         'email_verified_at',
     ];
 
@@ -52,8 +53,10 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $appends = [
         'full_name',
         'role_name',
-        'team_name',
+        'department_name',
+        'position_name'
     ];
+
     //accessors to get full name, role name, and team name
     public function getFullNameAttribute()
     {
@@ -65,9 +68,14 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->role?->role_name;
     }
 
-    public function getTeamNameAttribute()
+    public function getDepartmentNameAttribute()
     {
-        return $this->team?->team_name;
+        return $this->department?->department_name;
+    }
+
+    public function getPositionNameAttribute()
+    {
+        return $this->position?->position_name;
     }
 
 
@@ -83,11 +91,17 @@ class User extends Authenticatable implements MustVerifyEmail
             'password' => 'hashed',
         ];
     }
+
     //Define relationships with other models
 
     public function role()
     {
         return $this->belongsTo(Role::class, 'role_id', 'role_id');
+    }
+
+    public function department()
+    {
+        return $this->belongsTo(Department::class, 'department_id', 'department_id');
     }
 
     public function team()
