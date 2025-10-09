@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('user_pass', 50)->nullable();
             $table->integer('active_status_id');
             $table->integer('team_id')->nullable();
+            $table->integer('department_id')->nullable();
             $table->integer('position_id')->nullable();
             $table->integer('role_id')->nullable();
             $table->timestamp('email_verified_at')->nullable();

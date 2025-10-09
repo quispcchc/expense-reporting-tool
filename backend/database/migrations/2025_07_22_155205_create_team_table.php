@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
@@ -17,6 +16,10 @@ return new class extends Migration
             $table->integer('active_status_id');
             $table->string('team_name', 50);
             $table->string('team_desc')->nullable();
+
+            // Define relationship to departments
+            $table->integer('department_id');
+            $table->foreign('department_id')->references('department_id')->on('department')->onUpdate('cascade')->onDelete('cascade');
         });
     }
 

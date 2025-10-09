@@ -16,7 +16,7 @@ return new class extends Migration
             $table->integer('cost_centre_code')->unique();
             $table->integer('active_status_id');
             $table->string('description');
-            $table->integer('team_id');
+            $table->foreignId('department_id');
             $table->timestamps();
         });
     }
