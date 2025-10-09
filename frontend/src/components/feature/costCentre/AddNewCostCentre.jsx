@@ -20,7 +20,7 @@ function AddNewCostCentre ({ createdToast }) {
     const [isOpen, setIsOpen] = useState(false)
 
     const initialData = {
-        area: '',
+        department: '',
         code: '',
         status: '',
         description: '',
@@ -61,7 +61,7 @@ function AddNewCostCentre ({ createdToast }) {
 
             <div className="flex justify-between items-center text-gray-700">
                 <div>
-                    <h4 className="text-[22px]">Add new CostCentre</h4>
+                    <h4 className="text-[22px]">Add New CostCentre</h4>
                     <p className="text-xs text-gray-500">Lorem ipsum dolor sit amet, consectetur adipisicing elit. </p>
                 </div>
 
@@ -74,15 +74,15 @@ function AddNewCostCentre ({ createdToast }) {
                     ? 'items-center'
                     : 'items-end' }` }
                       onSubmit={ handleCostCentreFormSubmit }>
-                    <div className="col-span-3">
-                        <Select name="area" id="area" label="Area"
-                                options={ lookups.teams.map(
-                                    option => ( { label: option.team_name, value: option.team_id } )) }
-                                value={ costCentreFormData.area } onChange={ handleCostCentreFormChange }
-                                placeholder="Please selct team" errors={ validationErrors }/>
+                    <div className="col-span-4">
+                        <Select name="department" id="department" label="Department"
+                                options={ lookups.departments.map(
+                                    option => ( { label: option.department_name, value: option.department_id } )) }
+                                value={ costCentreFormData.department } onChange={ handleCostCentreFormChange }
+                                placeholder="Please selct department" errors={ validationErrors }/>
                     </div>
 
-                    <div className="col-span-2">
+                    <div className="col-span-3">
                         <Input name="code" id="code" label="Code" value={ costCentreFormData.code }
                                onChange={ handleCostCentreFormChange } placeholder="Please enter code"
                                errors={ validationErrors }/>
@@ -95,12 +95,6 @@ function AddNewCostCentre ({ createdToast }) {
                                errors={ validationErrors }/>
                     </div>
 
-                    <div className="col-span-2">
-                        <Select name="status" id="status" label="Status" options={ lookups.activeStatuses.map(
-                            option => ( { label: option.active_status_name, value: option.active_status_id } )) }
-                                value={ costCentreFormData.status } onChange={ handleCostCentreFormChange }
-                                placeholder="Please selct status" errors={ validationErrors }/>
-                    </div>
                     <div className="col-span-2">
                         <Button label="Add New" className="!h-[48px]"/>
                     </div>

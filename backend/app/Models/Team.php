@@ -15,10 +15,11 @@ class Team extends Model
 
     protected $fillable = [
         'team_id',
-        'team_abbreviation',
-        'active_status_id',
         'team_name',
+        'team_abbreviation',
         'team_desc',
+        'active_status_id',
+        'department_id'
     ];
     //relationships
     public function activeStatus() {

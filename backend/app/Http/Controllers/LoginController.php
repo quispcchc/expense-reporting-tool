@@ -36,7 +36,7 @@ class LoginController extends Controller
                 'full_name' => $user->full_name,
                 'email' => $user->email,
                 'role_name' => $user->role_name,
-                'team_name' => $user->team_name,
+                'department_name' => $user->department_name,
                 'position_name' => $user->position_name,
             ]
         ]);
