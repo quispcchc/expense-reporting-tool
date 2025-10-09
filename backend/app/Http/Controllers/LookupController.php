@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 
 use App\Models\ActiveStatus;
+use App\Models\Department;
 use App\Models\Position;
 use App\Models\Role;
 use App\Models\Team;
@@ -17,12 +18,14 @@ class LookupController extends Controller
         $teams = Cache::remember('teams', 60*60, fn() => Team::all());
         $statuses = Cache::remember('active_statuses', 60*60, fn() => ActiveStatus::all());
         $positions = Cache::remember('positions',60*60,fn()=>Position::all());;
+        $departments = Cache::remember('departments',60*60,fn()=>Department::all());;
 
         return response()->json([
             'roles' => $roles,
             'teams' => $teams,
             'active_statuses' => $statuses,
-            'positions'=>$positions
+            'positions'=>$positions,
+            'departments'=>$departments,
         ]);
     }
 }

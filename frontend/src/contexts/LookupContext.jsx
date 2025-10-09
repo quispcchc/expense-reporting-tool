@@ -9,6 +9,7 @@ export function LookupProvider ({ children }) {
         teams: [],
         positions: [],
         activeStatuses: [],
+        departments:[]
     })
     const [loading, setLoading] = useState(true)
 
@@ -16,11 +17,13 @@ export function LookupProvider ({ children }) {
         setLoading(true)
         try {
             const { data } = await api.get('lookups')
+            console.log(data)
             setLookups({
                 roles: data.roles,
                 teams: data.teams,
                 activeStatuses: data.active_statuses,
-                positions:data.positions
+                positions:data.positions,
+                departments: data.departments
             })
         } finally {
             setLoading(false)
