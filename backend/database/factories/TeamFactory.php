@@ -18,6 +18,7 @@ class TeamFactory extends Factory
             'team_abbreviation' => strtoupper($this->faker->lexify('???')),
             'team_desc' => $this->faker->sentence(),
             'active_status_id' => $this->faker->randomElement([1, 2]),
+            'department_id' => $this->faker->randomElement([1,5])
         ];
     }
 }
