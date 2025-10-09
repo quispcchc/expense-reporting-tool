@@ -23,6 +23,7 @@ import { TeamProvider } from './contexts/TeamContext.jsx'
 import { CostCentreProvider } from './contexts/CostCentreContext.jsx'
 import UserCreateClaimPage from './pages/user/UserCreateClaimPage.jsx'
 
+
 const router = createBrowserRouter(
     [
         {
@@ -52,7 +53,7 @@ const router = createBrowserRouter(
         {
             path: '/user',
             element: (
-                <ProtectedRoute allowedRoles={ ['regular user','super admin', 'admin', 'approver'] }>
+                <ProtectedRoute allowedRoles={ ['regular_user','super_admin', 'admin', 'approver'] }>
                     <UserLayout/>
                 </ProtectedRoute>
             ),
@@ -82,7 +83,7 @@ const router = createBrowserRouter(
         {
             path: '/admin',
             element: (
-                <ProtectedRoute allowedRoles={ ['super admin', 'admin', 'approver'] }>
+                <ProtectedRoute allowedRoles={ ['super_admin', 'admin', 'approver'] }>
                     <AdminLayout/>
                 </ProtectedRoute>
             ),

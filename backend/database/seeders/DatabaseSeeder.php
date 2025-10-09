@@ -34,10 +34,10 @@ class DatabaseSeeder extends Seeder
 
         // --- 2. Roles ---
         $roles = [
-            'regular user' => 1,
-            'approver' => 2,
-            'admin' => 3,
-            'super admin' => 4,
+            'regular_user' => 4,
+            'approver' => 3,
+            'admin' => 2,
+            'super_admin' => 1,
         ];
 
         foreach ($roles as $roleName => $roleLevel) {

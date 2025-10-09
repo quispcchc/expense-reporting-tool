@@ -13,7 +13,7 @@ class CostCentrePolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->role->role_level >= 2; // Approver and above
+        return $user->role->role_level <= 3; // Approver and above
     }
 
     /**
@@ -21,7 +21,7 @@ class CostCentrePolicy
      */
     public function view(User $user, CostCentre $costCentre): bool
     {
-        return $user->role->role_level >= 2;
+        return $user->role->role_level <= 3;
     }
 
     /**
@@ -29,14 +29,13 @@ class CostCentrePolicy
      */
     public function create(User $user,CostCentre $costCentre): bool
     {
-//        return $user->role->role_level >= 3; // Admin and above
         // Super admin can update anything
-        if ($user->role->role_level >= 4) {
+        if ($user->role->role_level === 1) {
             return true;
         }
 
         // Admin can only update their team's cost centres
-        if ($user->role->role_level >= 3) {
+        if ($user->role->role_level <= 2) {
             return $costCentre->team_id === $user->team_id;
         }
         return false;
@@ -49,12 +48,12 @@ class CostCentrePolicy
     public function update(User $user, CostCentre $costCentre): bool
     {
         // Super admin can update anything
-        if ($user->role->role_level >= 4) {
+        if ($user->role->role_level === 1) {
             return true;
         }
 
         // Admin can only update their team's cost centres
-        if ($user->role->role_level >= 3) {
+        if ($user->role->role_level === 2) {
             return $costCentre->team_id === $user->team_id;
         }
 
@@ -67,12 +66,12 @@ class CostCentrePolicy
     public function delete(User $user, CostCentre $costCentre): bool
     {
         // Super admin can delete anything
-        if ($user->role?->role_level >= 4) {
+        if ($user->role?->role_level === 1) {
             return true;
         }
 
         // Admin can only delete their team's cost centres
-        if ($user->role?->role_level >= 3) {
+        if ($user->role?->role_level === 2) {
             return $costCentre->team_id === $user->team?->team_id;
         }
 

@@ -42,7 +42,7 @@ export const AuthProvider = ({ children }) => {
                 sessionStorage.setItem('token', access_token)
                 sessionStorage.setItem('authUser', JSON.stringify(user))
 
-                return { success: true, redirectTo: user.role_name === 'regular user' ? '/user' : '/admin', user: user }
+                return { success: true, redirectTo: user.role_name === 'regular_user' ? '/user' : '/admin', user: user }
             }
             catch (err) {
                 const errorMessage = err.message || 'Login failed. Please try again.'
