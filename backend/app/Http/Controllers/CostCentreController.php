@@ -15,20 +15,27 @@ class CostCentreController extends Controller
      */
     public function index(Request $request)
     {
-
-        $this->authorize('viewAny',CostCentre::class);
         $user = $request->user();
+        $this->authorize('viewAny', CostCentre::class);
+
         $roleLevel = $user->role->role_level;
 
         // Super admin sees everything
-        if ($roleLevel === 4) {
-            return CostCentre::with(['activeStatus', 'team'])->get();
+        if ($roleLevel === 1) {
+            return CostCentre::with(['activeStatus', 'department'])->get();
         }
 
-        // Admin/Approver sees only their team
-        return CostCentre::where('team_id', $user->team?->team_id)
-        ->with(['activeStatus', 'team'])
-        ->get();
+        // Admin only see their own department
+        if ($roleLevel === 2) {
+            return CostCentre::where('department_id', $user->department_id)
+                ->with(['activeStatus', 'department',])
+                ->get();
+        }
+
+        //  Approver sees only their team
+        return CostCentre::where('department_id', $user->team?->department_id)
+            ->with(['activeStatus', 'department'])
+            ->get();
 
     }
 
@@ -39,21 +46,22 @@ class CostCentreController extends Controller
     public function store(Request $request)
     {
         // // Check if current user has correct right to create CostCentre instance
-        $this->authorize('create',new CostCentre($request->all()));
+        $this->authorize('create', new CostCentre($request->all()));
 
         // Validate request data
         $validated = $request->validate([
-            'team_id' => 'required|integer|exists:team,team_id',
+            'department_id' => 'required|integer|exists:department,department_id',
             'cost_centre_code' => 'required|integer|unique:cost_centre,cost_centre_code',
             'description' => 'nullable|string|max:100',
             'active_status_id' => 'required|integer|exists:active_status,active_status_id',
-        ],[
+        ], [
             'cost_centre_code.unique' => 'The cost centre code already exists. Please use a different one.',
         ]);
 
+
         // Create the record with validated data and eager load relations
         $costCentre = CostCentre::create($validated);
-        $costCentre->load(['activeStatus', 'team']);
+        $costCentre->load(['activeStatus', 'department']);
 
         return response()->json([
             'success' => true,
@@ -67,7 +75,7 @@ class CostCentreController extends Controller
      */
     public function show($id)
     {
-        $costCentre = CostCentre::with(['activeStatus', 'team', 'expenses'])
+        $costCentre = CostCentre::with(['activeStatus', 'department', 'expenses'])
             ->findOrFail($id);
 
         return response()->json([
@@ -83,24 +91,24 @@ class CostCentreController extends Controller
     public function update(Request $request, $id)
     {
         // Check if current user has correct right to update CostCentre instance
-        $this->authorize('update',new CostCentre($request->all()));
+        $this->authorize('update', new CostCentre($request->all()));
 
         // Find the CostCentre instance in database
         $costCentre = CostCentre::findOrFail($id);
 
         // Validate request data
         $validated = $request->validate([
-            'team_id' => 'sometimes|required|integer|exists:team,team_id',
-            'cost_centre_code' => ['required','integer',Rule::unique('cost_centre', 'cost_centre_code')->ignore($costCentre->cost_centre_id, 'cost_centre_id'),],
+            'department_id' => 'sometimes|required|integer|exists:department,department_id',
+            'cost_centre_code' => ['required', 'integer', Rule::unique('cost_centre', 'cost_centre_code')->ignore($costCentre->cost_centre_id, 'cost_centre_id'),],
             'description' => 'required|string|max:100',
             'active_status_id' => 'sometimes|required|integer|exists:active_status,active_status_id',
-        ],[
+        ], [
             'cost_centre_code.unique' => 'The cost centre code already exists. Please use a different one.',
         ]);
 
         // Update the record with validated data and eager load relations
         $costCentre->update($validated);
-        $costCentre->load(['activeStatus', 'team']);
+        $costCentre->load(['activeStatus', 'department']);
 
         return response()->json([
             'success' => true,
@@ -114,13 +122,13 @@ class CostCentreController extends Controller
      * Remove the specified resource from storage.
      * @throws AuthorizationException
      */
-    public function destroy(Request $request,$id): \Illuminate\Http\JsonResponse
+    public function destroy(Request $request, $id): \Illuminate\Http\JsonResponse
     {
         // Find the CostCentre instance in database
         $costCentre = CostCentre::findOrFail($id);
 
         // Check if current user has correct right to delete CostCentre instance
-        $this->authorize('delete',$costCentre);
+        $this->authorize('delete', $costCentre);
 
         // Delete the record in database
         $costCentre->delete();

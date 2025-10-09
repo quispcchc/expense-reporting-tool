@@ -42,6 +42,8 @@ export const AuthProvider = ({ children }) => {
                 sessionStorage.setItem('token', access_token)
                 sessionStorage.setItem('authUser', JSON.stringify(user))
 
+                console.log(user)
+
                 return { success: true, redirectTo: user.role_name === 'regular_user' ? '/user' : '/admin', user: user }
             }
             catch (err) {

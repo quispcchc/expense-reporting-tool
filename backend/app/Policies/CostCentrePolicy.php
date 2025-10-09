@@ -21,7 +21,7 @@ class CostCentrePolicy
      */
     public function view(User $user, CostCentre $costCentre): bool
     {
-        return $user->role->role_level <= 3;
+        return $user->role->role_level <= 3; // Approver and above
     }
 
     /**
@@ -29,14 +29,14 @@ class CostCentrePolicy
      */
     public function create(User $user,CostCentre $costCentre): bool
     {
-        // Super admin can update anything
+        // Super admin can create anything
         if ($user->role->role_level === 1) {
             return true;
         }
 
-        // Admin can only update their team's cost centres
-        if ($user->role->role_level <= 2) {
-            return $costCentre->team_id === $user->team_id;
+        // Admin can only create their department's cost centres
+        if ($user->role->role_level === 2) {
+            return $costCentre->department_id === $user->department_id;
         }
         return false;
     }
@@ -52,9 +52,9 @@ class CostCentrePolicy
             return true;
         }
 
-        // Admin can only update their team's cost centres
+        // Admin can only update their department's cost centres
         if ($user->role->role_level === 2) {
-            return $costCentre->team_id === $user->team_id;
+            return $costCentre->department_id === $user->department_id;
         }
 
         return false;
@@ -72,7 +72,7 @@ class CostCentrePolicy
 
         // Admin can only delete their team's cost centres
         if ($user->role?->role_level === 2) {
-            return $costCentre->team_id === $user->team?->team_id;
+            return $costCentre->department_id === $user->department_id;
         }
 
         return false;

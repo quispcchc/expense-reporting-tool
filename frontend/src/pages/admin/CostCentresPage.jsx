@@ -55,13 +55,13 @@ function CostCentresPage () {
         <StatusTab status={ rowData.active_status?.active_status_name }/>
     )
 
-    const areaEditor = (editorOptions) => (
+    const departmentEditor = (editorOptions) => (
         <Dropdown
             value={ editorOptions.value }
             onChange={ (e) => editorOptions.editorCallback(e.value) }
-            options={ lookups.teams.map(team => ( {
-                label: team.team_name,
-                value: team.team_id,
+            options={ lookups.departments.map(department => ( {
+                label: department.department_name,
+                value: department.department_id,
             } )) }
         />
 
@@ -169,7 +169,7 @@ function CostCentresPage () {
             <div className="bg-white rounded-xl p-6 mt-5">
                 <DataTable value={ costCentres } paginator rows={ 5 } rowsPerPageOptions={ [5, 10, 25, 50] }
                            filters={ filters } globalFilterFields={ [
-                    'team.team_name"',
+                    'department.department_name',
                     'cost_centre_code',
                     'active_status.active_status_name',
                     'description',
@@ -177,8 +177,8 @@ function CostCentresPage () {
                            header={ renderHeader } emptyMessage="No results found."
                            editMode="row" onRowEditComplete={ onRowEditComplete }
                            sortMode="multiple" removableSort>
-                    <Column field="team_id" header="Area" sortable editor={ areaEditor }
-                            body={ (rowData) => rowData.team?.team_name }></Column>
+                    <Column field="department_id" header="Department" sortable editor={ departmentEditor }
+                            body={ (rowData) => rowData.department?.department_name }></Column>
                     <Column field="cost_centre_code" header="Code" sortable editor={ textInputEditor }></Column>
                     <Column field="active_status_id" header="Status" body={ renderStatus } sortable
                             editor={ statusEditor }></Column>

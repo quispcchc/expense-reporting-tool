@@ -98,7 +98,7 @@ function TeamsPage () {
     return (
         <>
             {/* Page title and navigation */}
-            <ContentHeader title="Teams" homePath="/admin" />
+            <ContentHeader title="Departments" homePath="/admin" />
             {/* Add new team form component */}
             <AddNewTeam />
             <div className="bg-white rounded-xl p-6 mt-5">

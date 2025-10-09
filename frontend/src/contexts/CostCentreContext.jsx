@@ -49,6 +49,7 @@ export const CostCentreProvider = ({ children }) => {
             dispatch({ type: 'SET_LOADING' })
             try {
                 const { data } = await api.get('/cost-centres')
+                console.log(data)
                 dispatch({ type: 'SET_INITIAL_DATA', payload: data })
             }
             catch (err) {
@@ -63,9 +64,9 @@ export const CostCentreProvider = ({ children }) => {
         createCostCentre: async(costCentre) => {
             dispatch({ type: 'SET_LOADING' })
             const newCostCentre = {
-                team_id: costCentre.area,
+                department_id: costCentre.department,
                 cost_centre_code: costCentre.code,
-                active_status_id: costCentre.status,
+                active_status_id: 1,
                 description: costCentre.description,
             }
             try {
@@ -83,7 +84,7 @@ export const CostCentreProvider = ({ children }) => {
             dispatch({ type: 'SET_LOADING' })
 
             const updatedCostCentre = {
-                team_id: newData.team_id,
+                department_id: newData.department_id,
                 cost_centre_code: newData.cost_centre_code,
                 active_status_id: newData.active_status_id,
                 description: newData.description,

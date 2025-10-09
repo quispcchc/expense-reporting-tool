@@ -50,7 +50,7 @@ export const validationSchemas = {
             { rule: 'required', message: 'Employee name is required' },
         ],
         position: [
-            { rule: 'required', message: 'Employee name is required' },
+            { rule: 'required', message: 'Position is required' },
         ],
         team: [
             { rule: 'required', message:' Team is required' },
@@ -120,15 +120,15 @@ export const validationSchemas = {
         ]
     },
     addCostCentre:{
-        area:[
-            { rule: 'required', message: 'Area is required' },
+        department:[
+            { rule: 'required', message: 'Department is required' },
         ],
         code:[
             { rule: 'required', message: 'Code is required' },
         ],
-        status:[
-            { rule: 'required', message: 'status is required' },
-        ],
+        // status:[
+        //     { rule: 'required', message: 'status is required' },
+        // ],
         description:[
             { rule: 'required', message: 'Description is required' },
         ]
