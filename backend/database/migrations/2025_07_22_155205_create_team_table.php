@@ -11,15 +11,23 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::create('team', function (Blueprint $table) {
-            $table->integer('team_id')->primary();
-            $table->string('team_abbreviation', 50);
+            $table->bigIncrements('team_id');
+            $table->string('team_abbreviation')->unique();
             $table->integer('active_status_id');
-            $table->string('team_name', 50);
+            $table->string('team_name')->unique();
             $table->string('team_desc')->nullable();
 
+            $table->foreignId('active_status_id')
+                ->constrained('active_status', 'active_status_id')
+                ->onUpdate('cascade')
+                ->onDelete('restrict');
+            $table->timestamps();
+
             // Define relationship to departments
-            $table->integer('department_id');
-            $table->foreign('department_id')->references('department_id')->on('department')->onUpdate('cascade')->onDelete('cascade');
+            $table->foreignId('department_id')
+                ->constrained('department', 'department_id')
+                ->onUpdate('cascade')
+                ->onDelete('restrict');
         });
     }
 
