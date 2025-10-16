@@ -32,8 +32,8 @@ class CostCentreController extends Controller
                 ->get();
         }
 
-        //  Approver sees only their team
-        return CostCentre::where('department_id', $user->team?->department_id)
+        //  Approver sees only their team ? department
+        return CostCentre::where('department_id', $user->department_id)
             ->with(['activeStatus', 'department'])
             ->get();
 
