@@ -1,10 +1,12 @@
 import React from 'react'
 import ComponentContainer from '../../common/ui/ComponentContainer.jsx'
-import { claimTypes, teams } from '../../../utils/mockData.js'
+// import { claimTypes, teams } from '../../../utils/mockData.js'
 import Input from '../../common/ui/Input.jsx'
 import Select from '../../common/ui/Select.jsx'
+import { useLookups } from '../../../contexts/LookupContext.jsx'
 
 function ClaimForm ({ claimFormData, onFieldChange, errors }) {
+    const {lookups:{departments,claimTypes}} = useLookups()
 
     return (
         // Main container with title and description
@@ -25,14 +27,15 @@ function ClaimForm ({ claimFormData, onFieldChange, errors }) {
 
             {/* Dropdown select for Claim Type */ }
             <Select name="claimType" id="claimType" label="Claim type" value={ claimFormData.claimType || '' }
-                    options={ claimTypes.map(option=>({label:option.name,value:option.name})) } onChange={ onFieldChange } placeholder="Select a Claim Type"
+                    options={ claimTypes.map(opt=>({label:opt.claim_type_name,value:opt.claim_type_name})) }
+                    onChange={ onFieldChange } placeholder="Select a Claim Type"
                     errors={ errors }/>
 
             {/* Dropdown select for Team */ }
-            <Select name="team" id="team" label="Team" value={ claimFormData.team }
+            <Select name="team" id="team" label="Department" value={ claimFormData.team }
                     onChange={ onFieldChange }
-                    options={ teams }
-                    placeholder="Select a team"
+                    options={ departments.map(opt=>({label:opt.department_name,value:opt.deaprtment_name})) }
+                    placeholder="Select a department"
                     errors={ errors }/>
 
             {/* Textarea input for additional notes */ }

@@ -12,7 +12,9 @@ export function LookupProvider ({ children }) {
         departments:[],
         costCentres:[],
         projects:[],
-        accountNums:[]
+        accountNums:[],
+        claimTypes:[]
+
     })
     const [loading, setLoading] = useState(true)
 
@@ -29,7 +31,8 @@ export function LookupProvider ({ children }) {
                 departments: data.departments,
                 costCentres: data.costCentres,
                 projects:data.projects,
-                accountNums:data.accountNumbers
+                accountNums:data.accountNumbers,
+                claimTypes:data.claimTypes
             })
         } finally {
             setLoading(false)

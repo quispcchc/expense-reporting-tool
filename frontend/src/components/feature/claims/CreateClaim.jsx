@@ -31,7 +31,7 @@ function CreateClaim ({navigateTo,homePath}) {
 
     const initialClaimFormData = {
         employeeName: authUser.full_name,
-        position: authUser.position,
+        position: authUser.position_name,
         claimType: '',
         note: '',
         team:'',
