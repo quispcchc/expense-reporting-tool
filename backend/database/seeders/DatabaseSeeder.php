@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\ActiveStatus;
 use App\Models\Department;
 use App\Models\Position;
+use App\Models\Project;
 use App\Models\Role;
 use App\Models\Team;
 use App\Models\User;
@@ -94,6 +95,15 @@ class DatabaseSeeder extends Seeder
                 'team_id' =>fake()->numberBetween(1,10) ,
             ]);
         }
+
+
+        // Projects
+       Project::create([
+           'active_status_id'=>1,
+           'project_name'=>'Project Test',
+           'project_desc'=>'this is a project',
+           'department_id'=>1
+       ]);
 
 
 

@@ -1,12 +1,12 @@
 import React from 'react'
 import UploadAttachment from './uploadAttchment/UploadAttachment.jsx'
 import TagInput from './TagInput.jsx'
-import { accountNums, costCentres, programs, teams } from '../../../utils/mockData.js'
 import { Button } from 'primereact/button'
 import Input from '../../common/ui/Input.jsx'
 import Select from '../../common/ui/Select.jsx'
 import EditableExpansionTable from './expansionTable/EditableExpansionTable.jsx'
 import { autoFillForm } from '../../../utils/helpers.js'
+import { useLookups } from '../../../contexts/LookupContext.jsx'
 
 function AddExpenseForm ({
     claimFormData,
@@ -21,6 +21,7 @@ function AddExpenseForm ({
     onSetFiles,
     errors,
 }) {
+    const { lookups: { costCentres, projects,accountNums } } = useLookups()
 
     return (
         <div className="bg-white h-full rounded-2xl shadow-sm">
@@ -45,7 +46,10 @@ function AddExpenseForm ({
                         {/* Program select dropdown */ }
                         <Select name="program" id="program" label="Program" value={ expenseFormData.program }
                                 onChange={ onExpenseChange }
-                                options={ programs }
+                                options={ projects.map(opt => ( {
+                                    label: `${ opt.project_name }`,
+                                    value: opt.project_name,
+                                } )) }
                                 placeholder="Select a program"
                                 errors={ errors }/>
 
@@ -61,8 +65,8 @@ function AddExpenseForm ({
                                 value={ expenseFormData.costCentre }
                                 onChange={ onExpenseChange }
                                 options={ costCentres.map((opt) => ( {
-                                    label: `${ opt.code } - ${ opt.name }`,
-                                    value: `${ opt.code } - ${ opt.name }`,
+                                    label: `${ opt.cost_centre_code } - ${ opt.description }`,
+                                    value: `${ opt.cost_centre_code } - ${ opt.description }`,
                                 } )) }
                                 placeholder="Select a cost centre"
                                 errors={ errors }/>
@@ -79,8 +83,8 @@ function AddExpenseForm ({
                                 value={ expenseFormData.accountNum }
                                 onChange={ onExpenseChange }
                                 options={ accountNums.map((opt) => ( {
-                                    label: `${ opt.code } - ${ opt.title }`,
-                                    value: `${ opt.code } - ${ opt.title }`,
+                                    label: `${ opt.account_number } - ${ opt.description }`,
+                                    value: `${ opt.account_number } - ${ opt.description }`,
                                 } )) }
                                 placeholder="Select a Account Number"
                                 errors={ errors }/>
