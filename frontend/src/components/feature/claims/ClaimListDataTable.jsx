@@ -8,15 +8,17 @@ import { FilterMatchMode } from 'primereact/api'
 import StatusTab from '../../common/ui/StatusTab.jsx'
 import { Link } from 'react-router-dom'
 import { Dropdown } from 'primereact/dropdown'
-import { claimStatus, claimTypesFilter } from '../../../utils/mockData.js'
 import { InputText } from 'primereact/inputtext'
 import { IconField } from 'primereact/iconfield'
 import { InputIcon } from 'primereact/inputicon'
 import { Button } from 'primereact/button'
 import { BUTTON_STYLE } from '../../../utils/customizeStyle.js'
 import { exportToCSVManual } from '../../../utils/helpers.js'
+import { useLookups } from '../../../contexts/LookupContext.jsx'
 
 function ClaimListDataTable ({ claims, user }) {
+    const {lookups:{claimStatus,claimTypes}} = useLookups()
+
     // State for global filter input and DataTable filters
     const [globalFilterValue, setGlobalFilterValue] = useState('')
 
@@ -68,14 +70,14 @@ function ClaimListDataTable ({ claims, user }) {
 
     const statusRowFilterTemplate = (options) => {
         return (
-            <Dropdown value={ options.value } options={ claimStatus }
+            <Dropdown value={ options.value } options={ claimStatus.map(opt=>({label:opt.claim_status_name,value:opt.claim_status_name})) }
                       onChange={ (e) => options.filterApplyCallback(e.value) } itemTemplate={ statusItemTemplate }
                       placeholder="Select" className="p-column-filter min-w-5" showClear/>
         )
     }
 
     const claimTypeFilterTemplate = (options) => (
-        <Dropdown value={ options.value } options={ claimTypesFilter }
+        <Dropdown value={ options.value } options={ claimTypes.map(opt=>({label:opt.claim_type_name,value:opt.claim_type_name})) }
                   onChange={ (e) => options.filterApplyCallback(e.value) }
                   placeholder="Select One" className="p-column-filter"/>
     )

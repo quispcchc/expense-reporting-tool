@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AccountNumber;
 use App\Models\ActiveStatus;
+use App\Models\ClaimStatus;
 use App\Models\ClaimType;
 use App\Models\CostCentre;
 use App\Models\Department;
@@ -27,6 +28,7 @@ class LookupController extends Controller
         $projects = Cache::remember('project',60*60,fn()=>Project::all());
         $accountNumbers = Cache::remember('accountNumbers',60*60,fn()=>AccountNumber::all());
         $claimTypes = Cache::remember('claimTypes',60*60,fn()=>ClaimType::all());
+        $claimStatus = Cache::remember('claimStatus',60*60,fn()=>ClaimStatus::all());
 
         return response()->json([
             'roles' => $roles,
@@ -37,7 +39,8 @@ class LookupController extends Controller
             'costCentres'=>$costCentres,
             'projects'=>$projects,
             'accountNumbers'=>$accountNumbers,
-            'claimTypes'=>$claimTypes
+            'claimTypes'=>$claimTypes,
+            'claimStatus'=>$claimStatus
         ]);
     }
 }
