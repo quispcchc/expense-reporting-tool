@@ -6,9 +6,9 @@ import { InputNumber } from 'primereact/inputnumber'
 import ClaimRowExpansion from './ClaimRowExpansion.jsx'
 import { useClaims } from '../../../../contexts/ClaimContext.jsx'
 import { Dropdown } from 'primereact/dropdown'
-import { accountNums, costCentres } from '../../../../utils/mockData.js'
 import { Button } from 'primereact/button'
 import StatusTab from '../../../common/ui/StatusTab.jsx'
+import { useLookups } from '../../../../contexts/LookupContext.jsx'
 
 function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate }) {
     const { updateClaim } = useClaims()
@@ -16,7 +16,7 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate }) {
     const [expenseItems, setExpenseItems] = useState(data || [])
     const [currentlyEditingRowId, setCurrentlyEditingRowId] = useState(null)
     const [unsavedExpansionChanges, setUnsavedExpansionChanges] = useState({})
-
+    const {lookups:{accountNums,costCentres}} = useLookups()
     useEffect(() => {
         setExpenseItems(data)
     }, [data])
@@ -180,8 +180,8 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate }) {
             value={ editorOptions.value }
             onChange={ (e) => editorOptions.editorCallback(e.target.value) }
             options={ accountNums.map((opt) => ( {
-                label: `${ opt.code } - ${ opt.title }`,
-                value: `${ opt.code } - ${ opt.title }`,
+                label: `${ opt.account_number } - ${ opt.description }`,
+                value: `${ opt.account_number } - ${ opt.description }`,
             } )) }
         />
 
@@ -192,12 +192,13 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate }) {
             value={ editorOptions.value }
             onChange={ (e) => editorOptions.editorCallback(e.target.value) }
             options={ costCentres.map((opt) => ( {
-                label: `${ opt.code } - ${ opt.name }`,
-                value: `${ opt.code } - ${ opt.name }`,
+                label: `${ opt.cost_centre_code } - ${ opt.description }`,
+                value: `${ opt.cost_centre_code } - ${ opt.description }`,
             } )) }
         />
 
     )
+
     const currencyInputEditor = (editorOptions) => (
         <InputNumber
             value={ editorOptions.value }
