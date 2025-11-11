@@ -16,7 +16,9 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate }) {
     const [expenseItems, setExpenseItems] = useState(data || [])
     const [currentlyEditingRowId, setCurrentlyEditingRowId] = useState(null)
     const [unsavedExpansionChanges, setUnsavedExpansionChanges] = useState({})
+
     const {lookups:{accountNums,costCentres}} = useLookups()
+
     useEffect(() => {
         setExpenseItems(data)
     }, [data])
@@ -175,7 +177,7 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate }) {
         />
     )
 
-    const dropdownEditor = (editorOptions) => (
+    const accountNumEditor = (editorOptions) => (
         <Dropdown
             value={ editorOptions.value }
             onChange={ (e) => editorOptions.editorCallback(e.target.value) }
@@ -303,7 +305,7 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate }) {
                     <Column
                         field="accountNum"
                         header="Account #"
-                        editor={ dropdownEditor }
+                        editor={ accountNumEditor }
                         style={ { minWidth: '200px' } }
                     />
 
