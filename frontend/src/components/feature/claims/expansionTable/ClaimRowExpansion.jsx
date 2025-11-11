@@ -2,7 +2,7 @@ import React from 'react'
 import ClaimExpansionDropdownRow from './ClaimExpansionDropdownRow.jsx'
 import ClaimExpansionInputRow from './ClaimExpansionInputRow.jsx'
 import ClaimExpansionAttachmentRow from './ClaimExpansionAttachmentRow.jsx'
-import { teams, programs } from '../../../../utils/mockData.js'
+import { useLookups } from '../../../../contexts/LookupContext.jsx'
 
 function ClaimRowExpansion({
     rowData,
@@ -11,6 +11,7 @@ function ClaimRowExpansion({
     expandedRowData,
     handleInputChange
 }) {
+    const {lookups:{departments,projects}} = useLookups()
 
     // Determine if the current row is in editing mode
     const isEditing = editingRowId === rowData.transactionId
@@ -23,6 +24,7 @@ function ClaimRowExpansion({
 
     // Merge original data with any expanded data changes
     const displayData = { ...currentData, ...expansionChanges }
+    console.log('displayData',displayData)
 
     // Convert tags array to comma-separated string or fallback to empty string
     const getTagsValue = (tags) => {
@@ -41,7 +43,7 @@ function ClaimRowExpansion({
                 <ClaimExpansionDropdownRow
                     label="Team"
                     field="team"
-                    options={teams}
+                    options={departments.map(opt=>({label:opt.department_name,value:opt.department_name}))}
                     isEditing={isEditing}
                     rowData={rowData}
                     value={displayData.team || ''}
@@ -52,7 +54,7 @@ function ClaimRowExpansion({
                 <ClaimExpansionDropdownRow
                     label="Program / Project"
                     field="program"
-                    options={programs}
+                    options={projects.map(opt=>({label:opt.project_name,value:opt.project_name}))}
                     isEditing={isEditing}
                     rowData={rowData}
                     value={displayData.program || ''}
