@@ -48,17 +48,24 @@ Route::middleware(['auth:sanctum','role:1'])->group(function () {
 
 });
 
+
 // Cost Centre Management
 Route::apiResource('cost-centres', CostCentreController::class)->middleware('auth:sanctum');
 
-// Fetch lookup data (active_status, role, team, position, which will be used cross the app)
+// Fetch lookup data (active_status, roles, departments, positions,claimTypes..., which will be used cross the app)
 Route::get('lookups',[LookupController::class,'index'])->middleware('auth:sanctum');
 
-//claim Details
-Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/claims', [ClaimController::class, 'store']);
-    Route::post('/claims/{claimId}/notify', [NotificationController::class, 'notifyClaimUpdate']);
+// Claim CRUD
+Route::apiResource('claims',ClaimController::class)->middleware('auth:sanctum');
 
-    Route::post('/expenses', [ExpenseController::class, 'store']);
-    Route::post('/mileages', [MileageController::class, 'store']);
-});
+// Expense CRUD
+Route::apiResource('expenses',ClaimController::class);
+
+//claim Details
+//Route::middleware('auth:sanctum')->group(function () {
+//    Route::post('/claims', [ClaimController::class, 'store']);
+//    Route::post('/claims/{claimId}/notify', [NotificationController::class, 'notifyClaimUpdate']);
+//
+//    Route::post('/expenses', [ExpenseController::class, 'store']);
+//    Route::post('/mileages', [MileageController::class, 'store']);
+//});

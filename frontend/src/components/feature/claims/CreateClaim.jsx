@@ -34,7 +34,7 @@ function CreateClaim ({navigateTo,homePath}) {
         position: authUser.position_name,
         claimType: '',
         note: '',
-        team:'',
+        team:authUser.department_name,
         claimItems: [],
     }
     const [claimFormData, setClaimFormData] = useState(initialClaimFormData)

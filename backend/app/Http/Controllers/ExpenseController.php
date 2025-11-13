@@ -6,6 +6,13 @@ use Illuminate\Http\Request;
 
 class ExpenseController extends Controller
 {
+    public function index (Request $request)
+    {
+        $user = $request->user();
+
+        return response()->json(Expense::all());
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([

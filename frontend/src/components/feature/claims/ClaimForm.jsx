@@ -1,6 +1,5 @@
 import React from 'react'
 import ComponentContainer from '../../common/ui/ComponentContainer.jsx'
-// import { claimTypes, teams } from '../../../utils/mockData.js'
 import Input from '../../common/ui/Input.jsx'
 import Select from '../../common/ui/Select.jsx'
 import { useLookups } from '../../../contexts/LookupContext.jsx'
@@ -32,9 +31,9 @@ function ClaimForm ({ claimFormData, onFieldChange, errors }) {
                     errors={ errors }/>
 
             {/* Dropdown select for Team */ }
-            <Select name="team" id="team" label="Department" value={ claimFormData.team }
+            <Select name="team" id="team" label="Team" value={ claimFormData.team }
                     onChange={ onFieldChange }
-                    options={ departments.map(opt=>({label:opt.department_name,value:opt.deaprtment_name})) }
+                    options={ departments.map(opt=>({label:opt.department_name,value:opt.department_name})) }
                     placeholder="Select a department"
                     errors={ errors }/>
 

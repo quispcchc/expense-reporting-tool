@@ -1,4 +1,4 @@
-<?php 
+<?php
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -7,7 +7,7 @@ class Claim extends Model
 {
     protected $table = 'claim';
     protected $primaryKey = 'claim_id';
-    public $incrementing = false;
+//    public $incrementing = false;
     protected $keyType = 'int';
     public $timestamps = false;
 
@@ -15,6 +15,7 @@ class Claim extends Model
         'claim_id',
         'user_id',
         'position_id',
+        'department_id',
         'claim_notes',
         'claim_submitted',
         'claim_type_id',
@@ -28,9 +29,14 @@ class Claim extends Model
         return $this->belongsTo(User::class, 'user_id', 'user_id');
     }
 
+
     public function claimType()
     {
         return $this->belongsTo(ClaimType::class, 'claim_type_id', 'claim_type_id');
+    }
+
+    public function department() {
+        return $this->belongsTo(Department::class,'department_id');
     }
 
     public function expenses()

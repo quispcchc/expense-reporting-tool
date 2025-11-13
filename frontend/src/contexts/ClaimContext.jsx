@@ -51,12 +51,19 @@ export function ClaimProvider({children}) {
     const actions = {
         // Create new claim with generated ID and default status/date
         createClaim:(claim)=> {
+            // const newClaim = {
+            //     claimId: generateId(),
+            //     ...claim,
+            //     status:'Pending',
+            //     createdAt: new Date().toISOString().split('T')[ 0 ],
+            // }
             const newClaim = {
                 claimId: generateId(),
                 ...claim,
                 status:'Pending',
                 createdAt: new Date().toISOString().split('T')[ 0 ],
             }
+
 
             console.log('newClaim',newClaim)
             dispatch({type:CLAIM_ACTIONS.CREATE_CLAIM, payload:newClaim})

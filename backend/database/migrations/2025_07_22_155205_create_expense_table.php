@@ -22,7 +22,7 @@ return new class extends Migration
             $table->integer('tag_id');
             $table->integer('approval_status_id');
             $table->integer('claim_id');
-            $table->integer('mileage_id');
+//            $table->integer('mileage_id');
             $table->integer('team_id');
             $table->integer('project_id');
             $table->integer('cost_centre_id');

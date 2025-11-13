@@ -15,6 +15,7 @@ return new class extends Migration
             $table->integer('claim_id')->primary();
             $table->integer('user_id');
             $table->integer('position_id');
+            $table->integer('department_id');
             $table->string('claim_notes', 50);
             $table->text('claim_submitted');
             $table->integer('claim_type_id');
