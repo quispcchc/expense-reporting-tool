@@ -18,23 +18,24 @@ const calculateTotalAmount = (formData) => {
     return claimItemsTotal
 }
 
-function CreateClaim ({navigateTo,homePath}) {
+function CreateClaim ({ navigateTo, homePath }) {
     const { authUser } = useAuth()
     const { createClaim } = useClaims()
     const navigate = useNavigate()
 
     const [tags, setTags] = useState(['Client Travelling'])
-    const [files, setFiles] = useState([])
+    const [files, setFiles] = useState({})
 
     const [expenseErrors, setExpenseErrors] = useState([])
     const [claimErrors, setClaimErrors] = useState()
 
     const initialClaimFormData = {
         employeeName: authUser.full_name,
-        position: authUser.position_name,
+        position: authUser.position_id,
         claimType: '',
         note: '',
-        team:authUser.department_name,
+        department: authUser.department_id,
+        team:null,
         claimItems: [],
     }
     const [claimFormData, setClaimFormData] = useState(initialClaimFormData)
@@ -48,7 +49,7 @@ function CreateClaim ({navigateTo,homePath}) {
         amount: '',
         buyer: '',
         description: '',
-        notes:''
+        notes: '',
     }
 
     const [expenseFormData, setExpenseFormData] = useState(initialExpenseFormData)
@@ -70,15 +71,15 @@ function CreateClaim ({navigateTo,homePath}) {
         const { name, value } = e.target
         setExpenseFormData(prev => ( {
             ...prev,
-            [ name ]:value,
+            [ name ]: value,
         } ))
     }
 
     const handleClaimItemsUpdate = (updatedClaimItems) => {
-        setClaimFormData(prev => ({
+        setClaimFormData(prev => ( {
             ...prev,
-            claimItems: updatedClaimItems
-        }))
+            claimItems: updatedClaimItems,
+        } ))
     }
 
     const handleAddExpense = () => {
@@ -89,9 +90,7 @@ function CreateClaim ({navigateTo,homePath}) {
         const completeExpenseData = {
             ...expenseFormData,
             tags: [...tags],
-            attachments: [...files],
-            transactionId:generateId(),
-            status:'Pending'
+            attachment: files,
         }
 
         if (validation.isValid) {
@@ -102,7 +101,7 @@ function CreateClaim ({navigateTo,homePath}) {
         }
     }
 
-    const handleFormSubmit = (e) => {
+    const handleFormSubmit = async(e) => {
         e.preventDefault()
         const claimSchema = validationSchemas.claim
         const validation = validateForm(claimFormData, claimSchema)
@@ -112,22 +111,68 @@ function CreateClaim ({navigateTo,homePath}) {
 
         if (!validation.isValid) return
 
-        createClaim({
-            ...claimFormData,
-            totalAmount: calculateTotalAmount(claimFormData),
-            notes: claimFormData.note === '' ? [] : [
-                {
-                    submittedBy: authUser.full_name || 'Current User',
-                    date: new Date().toISOString().split('T')[ 0 ],
-                    description: claimFormData.note,
-                },
-            ] ,
+        const formData = new FormData()
+
+        // Add claim fields
+        formData.append('position_id', claimFormData.position)
+        formData.append('claim_type_id', claimFormData.claimType)
+        formData.append('department_id', claimFormData.department)
+        formData.append('claim_notes', claimFormData.note)
+        formData.append('total_amount', calculateTotalAmount(claimFormData))
+
+        // Add expenses - properly handling files
+        claimFormData.claimItems.forEach((expense, index) => {
+            // Add all non-file fields
+            formData.append(`expenses[${index}][transaction_date]`, expense.transactionDate)
+            formData.append(`expenses[${index}][buyer_name]`, expense.buyer)
+            formData.append(`expenses[${index}][vendor_name]`, expense.vendor)
+            formData.append(`expenses[${index}][transaction_desc]`, expense.description)
+            formData.append(`expenses[${index}][expense_amount]`, expense.amount)
+            formData.append(`expenses[${index}][project_id]`, expense.program)
+            formData.append(`expenses[${index}][cost_centre_id]`, expense.costCentre)
+            formData.append(`expenses[${index}][account_number_id]`, expense.accountNum)
+
+            // if (expense.tag_id) {
+                formData.append(`expenses[${index}][tag_id]`, 1)
+            // }
+
+            // Only add file if it's a real File object
+            if (expense.attachment.file instanceof File) {
+                formData.append(`expenses[${index}][file]`, expense.attachment.file)
+            }
         })
+
+        await createClaim(formData)
+
+        // await createClaim({
+        //     position_id: claimFormData.position,
+        //     claim_type_id: claimFormData.claimType,
+        //     department_id: claimFormData.team,
+        //     claim_notes:claimFormData.note,
+        //     total_amount: calculateTotalAmount(claimFormData),
+        //
+        //     expenses: claimFormData.claimItems.map(item => ( {
+        //         transaction_date: item.transactionDate,
+        //         buyer_name: item.buyer,
+        //         vendor_name: item.vendor,
+        //         transaction_desc: item.description,
+        //         expense_amount: item.amount,
+        //         cost_centre_id: item.costCentre,
+        //         project_id:item.program,
+        //         file: item.attachment.file,
+        //         tag_id: 1,
+        //
+        //         // do we need add team(department field in expense form? or just add in claim form)
+        //         team_id: 1,
+        //     } )),
+        //
+        //
+        // })
 
         setClaimFormData(initialClaimFormData)
         setExpenseFormData(initialExpenseFormData)
         setTags([])
-        setFiles([])
+        setFiles({})
         navigate(navigateTo)
 
     }
@@ -135,7 +180,7 @@ function CreateClaim ({navigateTo,homePath}) {
     return (
         <form className="my-3" onSubmit={ handleFormSubmit }>
             <div className="flex justify-between items-center flex-wrap">
-                <ContentHeader title="Create a new claim" homePath={homePath}/>
+                <ContentHeader title="Create a new claim" homePath={ homePath }/>
                 <div className="flex gap-5">
                     <div className="flex flex-col items-end">
                         <p className="text-2xl">Total amount</p>
@@ -148,8 +193,8 @@ function CreateClaim ({navigateTo,homePath}) {
 
             <ClaimForm claimFormData={ claimFormData } onFieldChange={ handleFormFieldChange }
                        errors={ claimErrors }/>
-            <AddExpenseForm claimFormData={ claimFormData } onClaimItemsUpdate={handleClaimItemsUpdate}
-                            expenseFormData={ expenseFormData } onSetExpenseForm={setExpenseFormData}
+            <AddExpenseForm claimFormData={ claimFormData } onClaimItemsUpdate={ handleClaimItemsUpdate }
+                            expenseFormData={ expenseFormData } onSetExpenseForm={ setExpenseFormData }
                             onExpenseChange={ handleExpenseFieldChange }
 
                             onAddExpense={ handleAddExpense } tags={ tags } onSetTags={ setTags } files={ files }

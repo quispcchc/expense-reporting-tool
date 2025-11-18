@@ -1,8 +1,7 @@
 import { createContext, useContext, useReducer } from 'react'
 import { claimsData } from '../utils/mockData.js'
 import { generateId } from '../utils/helpers.js'
-
-
+import api from '../api/api.js'
 
 const ClaimContext = createContext()
 
@@ -42,63 +41,70 @@ const claimReducer = (state, action) => {
     }
 }
 
-export function ClaimProvider({children}) {
+export function ClaimProvider ({ children }) {
     const [state, dispatch] = useReducer(claimReducer, {
         claims: claimsData,
     })
 
     // Action creators to dispatch actions to the reducer
     const actions = {
+        // Fetch existing claims from database
+        fetchClaims:()=>{},
+
         // Create new claim with generated ID and default status/date
-        createClaim:(claim)=> {
-            // const newClaim = {
-            //     claimId: generateId(),
-            //     ...claim,
-            //     status:'Pending',
-            //     createdAt: new Date().toISOString().split('T')[ 0 ],
-            // }
-            const newClaim = {
-                claimId: generateId(),
-                ...claim,
-                status:'Pending',
-                createdAt: new Date().toISOString().split('T')[ 0 ],
+        createClaim: async(claim) => {
+            try {
+                // Log FormData
+                for (let [key, value] of claim.entries()) {
+                    console.log(key, value);
+                }
+                const response = await api.post('claims', claim)
+                console.log(response)
+
+                const newClaim = response.data
+
+                // Add to local state
+                // dispatch({
+                //     type: CLAIM_ACTIONS.CREATE_CLAIM,
+                //     payload: newClaim,
+                // })
             }
-
-
-            console.log('newClaim',newClaim)
-            dispatch({type:CLAIM_ACTIONS.CREATE_CLAIM, payload:newClaim})
+            catch (error) {
+                console.error('Error creating claim:', error.response?.data || error.message)
+                throw error
+            }
         },
 
         // Add updated timestamp and dispatch update action
-        updateClaim:(updatedClaim)=> {
+        updateClaim: (updatedClaim) => {
             const formattedUpdatedClaim = {
                 ...updatedClaim,
-                updatedAt:new Date().toISOString().split('T')[0]
+                updatedAt: new Date().toISOString().split('T')[ 0 ],
             }
 
-            dispatch({type: CLAIM_ACTIONS.UPDATE_CLAIM, payload:formattedUpdatedClaim})
+            dispatch({ type: CLAIM_ACTIONS.UPDATE_CLAIM, payload: formattedUpdatedClaim })
         },
 
         // Dispatch delete action with claimId
         deleteClaimById: (claimId) => {
-            dispatch({type:CLAIM_ACTIONS.DELETE_CLAIM, payload: claimId})
+            dispatch({ type: CLAIM_ACTIONS.DELETE_CLAIM, payload: claimId })
         },
 
         // Helper function to find a claim by ID
-        getClaimById:(claimId)=>{
-            return state.claims.find(claim=> claim.claimId === Number(claimId))
+        getClaimById: (claimId) => {
+            return state.claims.find(claim => claim.claimId === Number(claimId))
         },
 
     }
 
     const value = {
-        claims:state.claims,
-        ...actions
+        claims: state.claims,
+        ...actions,
     }
 
     return (
-        <ClaimContext.Provider value={value}>
-            {children}
+        <ClaimContext.Provider value={ value }>
+            { children }
         </ClaimContext.Provider>
     )
 }

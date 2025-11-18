@@ -8,7 +8,7 @@ function Select (props) {
             <label htmlFor={ id } className="block text-sm font-medium mb-2">
                 {label }
             </label>
-            <Dropdown {...props} className='w-full'/>
+            <Dropdown {...props} className='w-full'  optionLabel="label"/>
             { errors[name] && <p className="absolute text-red-500 text-sm mt-2">{ errors[name] }</p> }
         </div>
     )

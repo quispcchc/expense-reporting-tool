@@ -12,18 +12,15 @@ class Expense extends Model
     public $timestamps = false;
 
     protected $fillable = [
-//        'expense_id',
         'buyer_name',
         'vendor_name',
         'transaction_date',
         'transaction_desc',
         'expense_amount',
-
         'receipt_id',
         'tag_id',
         'approval_status_id',
         'claim_id',
-//        'mileage_id',
         'team_id',
         'project_id',
         'cost_centre_id',

@@ -21,7 +21,9 @@ function AddExpenseForm ({
     onSetFiles,
     errors,
 }) {
-    const { lookups: { costCentres, projects,accountNums } } = useLookups()
+    const { lookups: { costCentres, projects, accountNums } } = useLookups()
+
+
 
     return (
         <div className="bg-white h-full rounded-2xl shadow-sm">
@@ -47,8 +49,8 @@ function AddExpenseForm ({
                         <Select name="program" id="program" label="Program" value={ expenseFormData.program }
                                 onChange={ onExpenseChange }
                                 options={ projects.map(opt => ( {
-                                    label: `${ opt.project_name }`,
-                                    value: opt.project_name,
+                                    label: `${ opt.project_name } - ${opt.project_desc}`,
+                                    value: opt.project_id,
                                 } )) }
                                 placeholder="Select a program"
                                 errors={ errors }/>
@@ -66,7 +68,7 @@ function AddExpenseForm ({
                                 onChange={ onExpenseChange }
                                 options={ costCentres.map((opt) => ( {
                                     label: `${ opt.cost_centre_code } - ${ opt.description }`,
-                                    value: `${ opt.cost_centre_code } - ${ opt.description }`,
+                                    value: opt.cost_centre_id,
                                 } )) }
                                 placeholder="Select a cost centre"
                                 errors={ errors }/>
@@ -84,7 +86,7 @@ function AddExpenseForm ({
                                 onChange={ onExpenseChange }
                                 options={ accountNums.map((opt) => ( {
                                     label: `${ opt.account_number } - ${ opt.description }`,
-                                    value: `${ opt.account_number } - ${ opt.description }`,
+                                    value: opt.account_number_id,
                                 } )) }
                                 placeholder="Select a Account Number"
                                 errors={ errors }/>

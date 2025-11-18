@@ -52,8 +52,8 @@ export const validationSchemas = {
         position: [
             { rule: 'required', message: 'Position is required' },
         ],
-        team: [
-            { rule: 'required', message:' Team is required' },
+        department: [
+            { rule: 'required', message:' Department is required' },
         ],
         claimType: [
             { rule: 'required', message: 'Claim Type is required' },

@@ -12,7 +12,6 @@ class Claim extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'claim_id',
         'user_id',
         'position_id',
         'department_id',
@@ -20,6 +19,7 @@ class Claim extends Model
         'claim_submitted',
         'claim_type_id',
         'claim_status_id',
+        'total_amount'
     ];
 
     // Relationships

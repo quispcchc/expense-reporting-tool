@@ -22,23 +22,23 @@ class LookupController extends Controller
         $roles = Cache::remember('roles', 60*60, fn() => Role::all());
         $teams = Cache::remember('teams', 60*60, fn() => Team::all());
         $statuses = Cache::remember('active_statuses', 60*60, fn() => ActiveStatus::all());
-        $positions = Cache::remember('positions',60*60,fn()=>Position::all());;
+        $positions = Cache::remember('positions',60*60,fn()=>Position::all());
         $departments = Cache::remember('departments',60*60,fn()=>Department::all());;
         $costCentres = Cache::remember('cost_centre',60*60,fn()=>CostCentre::all());
         $projects = Cache::remember('project',60*60,fn()=>Project::all());
-        $accountNumbers = Cache::remember('accountNumbers',60*60,fn()=>AccountNumber::all());
+        $accountNums = Cache::remember('accountNums',60*60,fn()=>AccountNumber::all());
         $claimTypes = Cache::remember('claimTypes',60*60,fn()=>ClaimType::all());
         $claimStatus = Cache::remember('claimStatus',60*60,fn()=>ClaimStatus::all());
 
         return response()->json([
             'roles' => $roles,
             'teams' => $teams,
-            'active_statuses' => $statuses,
+            'activeStatuses' => $statuses,
             'positions'=>$positions,
             'departments'=>$departments,
             'costCentres'=>$costCentres,
             'projects'=>$projects,
-            'accountNumbers'=>$accountNumbers,
+            'accountNums'=>$accountNums,
             'claimTypes'=>$claimTypes,
             'claimStatus'=>$claimStatus
         ]);

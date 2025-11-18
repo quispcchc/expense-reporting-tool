@@ -14,7 +14,7 @@ function ClaimExpansionInputRow ({ label, field,value,isEditing, rowData, handle
                     <InputText
                         value={value}
                         onChange={ (e) => handleInputChange(rowData.transactionId, field, e.target.value) }
-                        className="w-50"
+                        className="w-80"
                     />
                 ) : (
                     // If not editing, display the value or a placeholder text if empty

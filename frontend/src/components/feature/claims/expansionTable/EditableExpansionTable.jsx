@@ -11,13 +11,17 @@ import StatusTab from '../../../common/ui/StatusTab.jsx'
 import { useLookups } from '../../../../contexts/LookupContext.jsx'
 
 function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate }) {
-    const { updateClaim } = useClaims()
-    const [expandedRows, setExpandedRows] = useState(null)
     const [expenseItems, setExpenseItems] = useState(data || [])
+
+    const { updateClaim } = useClaims()
+
+    const [expandedRows, setExpandedRows] = useState(null)
+
     const [currentlyEditingRowId, setCurrentlyEditingRowId] = useState(null)
+
     const [unsavedExpansionChanges, setUnsavedExpansionChanges] = useState({})
 
-    const {lookups:{accountNums,costCentres}} = useLookups()
+    const { lookups: { accountNums, costCentres } } = useLookups()
 
     useEffect(() => {
         setExpenseItems(data)
@@ -157,7 +161,7 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate }) {
         return (
             <button
                 onClick={ () => deleteExpenseItem(rowData.transactionId) }
-                type='button'
+                type="button"
                 className="p-2 disabled:opacity-50"
                 title="Delete this expense"
                 disabled={ isCurrentlyEditing }
@@ -166,6 +170,32 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate }) {
             </button>
         )
     }
+
+    // Display template for currency amounts
+    const renderCurrencyAmount = (rowData) => {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+        }).format(rowData.amount || 0)
+    }
+
+    const renderActionsButton = (rowData) => ( <div className="flex gap-2">
+        <Button label="Approve"/>
+        <Button label="Reject"/>
+    </div> )
+
+    const renderStatus = (rowData) => (
+        <StatusTab status={ rowData.status }/>
+    )
+
+    // Convert ID to label
+    const accountNumMap = Object.fromEntries(
+        accountNums.map(opt => [opt.account_number_id, `${ opt.account_number } - ${ opt.description }`]),
+    )
+
+    const costCentreMap = Object.fromEntries(
+        costCentres.map(opt => [opt.cost_centre_id, `${ opt.cost_centre_code } - ${ opt.description }`]),
+    )
 
     // Editor templates for inline editing
     const textInputEditor = (editorOptions) => (
@@ -183,7 +213,7 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate }) {
             onChange={ (e) => editorOptions.editorCallback(e.target.value) }
             options={ accountNums.map((opt) => ( {
                 label: `${ opt.account_number } - ${ opt.description }`,
-                value: `${ opt.account_number } - ${ opt.description }`,
+                value: opt.account_number_id,
             } )) }
         />
 
@@ -195,7 +225,7 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate }) {
             onChange={ (e) => editorOptions.editorCallback(e.target.value) }
             options={ costCentres.map((opt) => ( {
                 label: `${ opt.cost_centre_code } - ${ opt.description }`,
-                value: `${ opt.cost_centre_code } - ${ opt.description }`,
+                value: opt.cost_centre_id,
             } )) }
         />
 
@@ -221,26 +251,11 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate }) {
         />
     )
 
-    // Display template for currency amounts
-    const renderCurrencyAmount = (rowData) => {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: 'USD',
-        }).format(rowData.amount || 0)
-    }
-
-    const renderActionsButton = (rowData) => ( <div className="flex gap-2">
-        <Button label="Approve"/>
-        <Button label="Reject"/>
-    </div> )
-
-    const renderStatus = (rowData) => (
-        <StatusTab status={ rowData.status }/>
-    )
 
     return (
         <div className="bg-white h-full p-6">
-            {/* Expenses Header*/}
+
+            {/* Expenses Header*/ }
             <div className="flex justify-between items-center mb-4">
                 <h3 className="text-[22px] font-semibold">Expense Details</h3>
 
@@ -253,7 +268,7 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate }) {
                 </div>
             </div>
 
-            {/*Expenses Table*/}
+            {/*Expenses Table*/ }
             { expenseItems.length === 0 ? (
                 <div className="text-center py-12 text-gray-500">
                     <p className="text-lg mb-2">No expenses added yet</p>
@@ -266,23 +281,30 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate }) {
                 </div>
             ) : (
                 <DataTable
+                    // Data & Identity
                     value={ expenseItems }
+                    dataKey="transactionId"
+
+                    // Row editing event handlers
                     editMode="row"
-                    expandedRows={ expandedRows }
-                    onRowToggle={ (e) => setExpandedRows(e.data) }
                     onRowEditInit={ handleRowEditStart }
                     onRowEditCancel={ handleRowEditCancel }
                     onRowEditComplete={ handleRowSaveComplete }
+
+                    // Row Expansion
+                    expandedRows={ expandedRows }
+                    onRowToggle={ (e) => setExpandedRows(e.data) }
                     rowExpansionTemplate={ renderExpansionContent }
-                    dataKey="transactionId"
-                    tableStyle={{ minWidth: '50rem' }}
+
+                    // Pagination
                     paginator
                     rows={ 5 }
                     rowsPerPageOptions={ [10, 25, 50] }
-                    // paginatorTemplate="RowsPerPageDropdown FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink"
+
+                    //  Appearance & Behavior
+                    tableStyle={ { minWidth: '50rem' } }
                     emptyMessage="No expense items to display"
                     size="small"
-
                 >
                     <Column expander/>
                     <Column
@@ -306,6 +328,7 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate }) {
                         field="accountNum"
                         header="Account #"
                         editor={ accountNumEditor }
+                        body={ (rowData) => accountNumMap[ rowData.accountNum ] || '' }
                         style={ { minWidth: '200px' } }
                     />
 
@@ -313,6 +336,7 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate }) {
                         field="costCentre"
                         header="Cost Centre"
                         editor={ costCentreEditor }
+                        body={ (rowData) => costCentreMap[ rowData.costCentre ] || '' }
                         style={ { minWidth: '200px' } }
                     />
                     <Column
@@ -329,7 +353,7 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate }) {
                         style={ { minWidth: '120px' } }
                     />
 
-                    { mode !=='create' &&
+                    { mode !== 'create' &&
                         <Column
                             field="status"
                             header="Status"
@@ -338,14 +362,14 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate }) {
                         />
                     }
 
-                    { mode !=='view' &&
+                    { mode !== 'view' &&
                         <Column
                             rowEditor={ true }
                             header="Edit"
                         />
                     }
 
-                    { mode !=='view' && <Column
+                    { mode !== 'view' && <Column
                         body={ renderDeleteButton }
                         header="Delete"
                     />

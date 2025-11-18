@@ -9,8 +9,7 @@ function Upload ({ handleFileSelect }) {
             Upload a file
             <input
                 type="file"
-                accept='image/*,applicationpdf'
-                multiple
+                accept='image/*,application/pdf'
                 onChange={ handleFileSelect }
                 className="hidden"
             />

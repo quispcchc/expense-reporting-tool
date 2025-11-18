@@ -5,7 +5,8 @@ import Select from '../../common/ui/Select.jsx'
 import { useLookups } from '../../../contexts/LookupContext.jsx'
 
 function ClaimForm ({ claimFormData, onFieldChange, errors }) {
-    const {lookups:{departments,claimTypes}} = useLookups()
+    const {lookups:{departments,claimTypes,positions,teams}} = useLookups()
+    console.log(teams,claimFormData)
 
     return (
         // Main container with title and description
@@ -20,22 +21,33 @@ function ClaimForm ({ claimFormData, onFieldChange, errors }) {
                        value={ claimFormData.employeeName } onChange={ onFieldChange } errors={ errors }/>
 
                 {/* Position input - editable */ }
-                <Input label="Position" name="position" id="position" value={ claimFormData.position }
+                <Select name="position" id="position" label="Position" value={ claimFormData.position }
+                        options={positions.map(opt=>({label:opt.position_name,value:opt.position_id}))}
                        onChange={ onFieldChange } errors={ errors }/>
             </div>
 
             {/* Dropdown select for Claim Type */ }
             <Select name="claimType" id="claimType" label="Claim type" value={ claimFormData.claimType || '' }
-                    options={ claimTypes.map(opt=>({label:opt.claim_type_name,value:opt.claim_type_name})) }
+                    options={ claimTypes.map(opt=>({label:opt.claim_type_name,value:opt.claim_type_id})) }
                     onChange={ onFieldChange } placeholder="Select a Claim Type"
+                    errors={ errors }/>
+
+
+            {/* Dropdown select for Department */ }
+            <Select name="department" id="department" label="Department" value={ claimFormData.department }
+                    onChange={ onFieldChange }
+                    options={ departments.map(opt=>({label:opt.department_name,value:opt.department_id})) }
+                    placeholder="Select a department"
                     errors={ errors }/>
 
             {/* Dropdown select for Team */ }
             <Select name="team" id="team" label="Team" value={ claimFormData.team }
                     onChange={ onFieldChange }
-                    options={ departments.map(opt=>({label:opt.department_name,value:opt.department_name})) }
-                    placeholder="Select a department"
+                    options={ teams.filter(team=>team.department_id === claimFormData.department).map(opt=>({label:opt.team_name,value:opt.team_id})) }
+                    placeholder="Select a Team"
                     errors={ errors }/>
+
+
 
             {/* Textarea input for additional notes */ }
             <div className="mb-4">

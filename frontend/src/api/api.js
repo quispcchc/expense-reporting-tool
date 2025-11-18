@@ -3,9 +3,6 @@ import axios from 'axios'
 const api = axios.create({
     baseURL: 'http://127.0.0.1:8000/api', // Base URL for all API requests
     timeout: 10000, // Request timeout set to 10 seconds
-    headers: {
-        'Content-Type': 'application/json',
-    },
 })
 
 // Add a request interceptor to attach the Authorization header if a token exists
@@ -17,6 +14,8 @@ api.interceptors.request.use(
             const cleanToken = token.replace(/^"|"$/g, '')
             config.headers.Authorization = `Bearer ${ cleanToken }`
         }
+
+
 
         return config
     },
@@ -31,19 +30,47 @@ api.interceptors.response.use(
         return response
     },
     (error) => {
-        if (error.response?.status === 401) {
-            return Promise.reject(new Error('Email or Password is not correct. Please Try Again!'))
+        // Handle error
+        let message = "An unknown error occurred";
+
+        if (error.response) {
+            // Server responded with a status code outside 2xx
+            const status = error.response.status;
+            switch (status) {
+                case 400:
+                    message = "Bad Request – Invalid input";
+                    break;
+                case 401:
+                    message = "Unauthorized – Please login";
+                    // Optional: redirect to login page
+                    break;
+                case 403:
+                    message = "Forbidden – You don’t have permission";
+                    break;
+                case 404:
+                    message = "Not Found – Resource does not exist";
+                    break;
+                case 422:
+                    // Validation errors from Laravel
+                    message = error.response.data?.errors
+                        ? Object.values(error.response.data.errors).flat().join(", ")
+                        : "Validation error";
+                    break;
+                case 500:
+                    message = "Server error – Please try again later";
+                    break;
+                default:
+                    message = error.response.data?.message || `Error ${ status }`;
+            }
+        }else if (error.request) {
+            // Request made but no response received
+            message = "Network error – Please check your connection";
+        } else {
+            // Something else happened
+            message = error.message;
         }
 
-        if (error.response?.status === 403) {
-            return Promise.reject(new Error('Access Denied'))
-        }
-
-        const message = error.response?.data?.message ||
-            error.response?.data ||
-            error.message ||
-            'Request Failed'
-        return Promise.reject(new Error(message))
+        return Promise.reject({ message, status: error.response?.status });
     },
 )
 
