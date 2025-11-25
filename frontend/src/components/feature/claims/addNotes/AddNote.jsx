@@ -1,35 +1,29 @@
 import React, { useState } from 'react'
-import { useClaims } from '../../../../contexts/ClaimContext.jsx'
-import { useAuth } from '../../../../contexts/AuthContext.jsx'
 import { Button } from 'primereact/button'
+import api from '../../../../api/api.js'
 
 // Component to add a note to the current claim
-function AddNote ({ curClaim }) {
+function AddNote ({ curClaim,onAddNote }) {
     const [noteText, setNoteText] = useState('')
-    const { updateClaim } = useClaims()
-    const { authUser } = useAuth()
 
     // Handle form submission to add the note
-    const handleSubmit = (e) => {
+    const handleSubmit = async(e) => {
         e.preventDefault()
 
-        // Format current date as YYYY-MM-DD
-        const formattedDate = new Date().toISOString().split('T')[ 0 ]
+        try {
+            const response = await api.post('notes', {
+                noteText,
+                claim_id: curClaim.claim_id
+            })
+            const newNote = response.data
+            console.log(response)
+            onAddNote(newNote); // notify parent to update notes list
+            setNoteText('');
 
-        // Update the current claim with the new note
-        updateClaim({
-            ...curClaim,
-            notes: [
-                ...curClaim.notes, {
-                    description: noteText,
-                    submittedBy: authUser.full_name,
-                    date: formattedDate,
-                },
-            ],
-        })
+        } catch (error) {
+            console.error('Error adding note:', error);
+        }
 
-        // Clear the input field after submission
-        setNoteText('')
     }
 
     return (

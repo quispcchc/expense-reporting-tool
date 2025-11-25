@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import ContentHeader from '../../components/common/layout/ContentHeader.jsx'
 import { useParams } from 'react-router-dom'
 import ClaimDetail from '../../components/feature/claims/ClaimDetail.jsx'
@@ -6,12 +6,27 @@ import { useClaims } from '../../contexts/ClaimContext.jsx'
 import ClaimNotes from '../../components/feature/claims/addNotes/ClaimNotes.jsx'
 import ClaimStatus from '../../components/feature/claims/ClaimStatus.jsx'
 import EditableExpansionTable from '../../components/feature/claims/expansionTable/EditableExpansionTable.jsx'
+import Loader from '../../components/common/ui/Loader.jsx'
 
 function ViewClaimPage () {
     const { claimId } = useParams()
     const { getClaimById } = useClaims()
-    const curClaim = getClaimById(claimId)
+    const [curClaim, setCurClaim] = useState()
+
+    useEffect(() => {
+        const fetchClaim = async () => {
+            try {
+                const data = await getClaimById(Number(claimId))
+                setCurClaim(data)
+            } catch (error) {
+                console.error(error)
+            }
+        }
+        fetchClaim()
+    }, [claimId])
+
     console.log('cur claims',curClaim)
+    if (!curClaim) return <Loader/>
 
     return (
         <div>
@@ -28,7 +43,7 @@ function ViewClaimPage () {
                 </div>
             </div>
 
-            <EditableExpansionTable data={curClaim.claimItems} curClaim={curClaim} mode='view'/>
+            <EditableExpansionTable data={curClaim.expenses} curClaim={curClaim} mode='view'/>
 
         </div>
     )

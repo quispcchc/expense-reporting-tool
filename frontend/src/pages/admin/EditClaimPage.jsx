@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import ContentHeader from '../../components/common/layout/ContentHeader.jsx'
 import { useParams } from 'react-router-dom'
 import ClaimDetail from '../../components/feature/claims/ClaimDetail.jsx'
@@ -6,12 +6,28 @@ import { useClaims } from '../../contexts/ClaimContext.jsx'
 import ClaimNotes from '../../components/feature/claims/addNotes/ClaimNotes.jsx'
 import ClaimStatus from '../../components/feature/claims/ClaimStatus.jsx'
 import EditableExpansionTable from '../../components/feature/claims/expansionTable/EditableExpansionTable.jsx'
+import Loader from '../../components/common/ui/Loader.jsx'
 
 function EditClaimPage () {
     const { claimId } = useParams()
     const { getClaimById } = useClaims()
-    const curClaim = getClaimById(claimId)
-    console.log(curClaim)
+
+    const [curClaim, setCurClaim] = useState(null)
+
+    useEffect(() => {
+        const fetchClaim = async () => {
+            try {
+                const data = await getClaimById(Number(claimId))
+                setCurClaim(data)
+            } catch (error) {
+                console.error(error)
+            }
+        }
+        fetchClaim()
+    }, [claimId])
+
+
+    if (!curClaim) return <Loader/>
 
     return (
         <div>
@@ -23,11 +39,11 @@ function EditClaimPage () {
             <div className="flex flex-wrap gap-5 my-5">
                 <div className="flex-1"><ClaimDetail curClaim={ curClaim }/></div>
                 <div className="flex-1">
-                    <ClaimNotes notes={ curClaim.notes  } curClaim={curClaim}/>
+                    <ClaimNotes curClaim={curClaim}/>
                 </div>
             </div>
 
-            <EditableExpansionTable data={curClaim.claimItems} curClaim={curClaim} mode='edit'/>
+            <EditableExpansionTable data={curClaim.expenses} curClaim={curClaim} mode='edit'/>
 
         </div>
     )

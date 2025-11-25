@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ClaimNotesController;
 use App\Http\Controllers\CostCentreController;
 use App\Http\Controllers\LookupController;
 use Illuminate\Http\Request;
@@ -60,6 +61,9 @@ Route::apiResource('claims',ClaimController::class)->middleware('auth:sanctum');
 
 // Expense CRUD
 Route::apiResource('expenses',ClaimController::class);
+
+// Create Claim Notes
+Route::post('notes',[ClaimNotesController::class,'store'])->middleware('auth:sanctum');
 
 //claim Details
 //Route::middleware('auth:sanctum')->group(function () {
