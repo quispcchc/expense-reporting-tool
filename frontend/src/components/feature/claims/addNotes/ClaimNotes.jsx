@@ -3,7 +3,7 @@ import Note from './Note.jsx'
 import ComponentContainer from '../../../common/ui/ComponentContainer.jsx'
 import AddNote from './AddNote.jsx'
 
-function ClaimNotes ({ curClaim ,mode}) {
+function ClaimNotes ({ curClaim ,mode,toastRef}) {
     const [notes, setNotes] = useState(curClaim.claim_notes || []);
 
     const handleAddNote = (newNote) => {
@@ -19,7 +19,7 @@ function ClaimNotes ({ curClaim ,mode}) {
                           submittedBy={ note.user.full_name }/> )) ) : ( <p>No notes available</p> )
             }
 
-            {mode !=='view' && <AddNote curClaim={curClaim} onAddNote={handleAddNote}/>}
+            {mode !=='view' && <AddNote curClaim={curClaim} onAddNote={handleAddNote} toastRef={toastRef}/>}
 
         </div>
     )
