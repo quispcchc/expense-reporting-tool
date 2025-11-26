@@ -16,7 +16,7 @@ import { MultiSelect } from 'primereact/multiselect'
 function UsersPage () {
     // Get user state and dispatch from context
     const usersState = useUser()
-    const dispatch = useUserDispatch()
+    const { updateUser } = useUserDispatch()
 
     // Local state to manage the current list of users
     const [users, setUsers] = useState(null)
@@ -102,9 +102,14 @@ function UsersPage () {
 
         _users[ index ] = newData
         setUsers(_users)
-
-        // Dispatch update to user context
-        dispatch({ type: 'update', payload: newData })
+        // Persist update to backend via context action
+        ;(async () => {
+            try {
+                await updateUser(newData)
+            } catch (err) {
+                console.error('Failed to update user', err)
+            }
+        })()
     }
 
     // Render the table header, including the global search bar

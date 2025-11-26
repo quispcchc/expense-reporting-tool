@@ -29,7 +29,9 @@ class CreateUserController extends Controller
             'first_name' => $request->first_name,
             'last_name' => $request->last_name,
             'email' => $request->email,
-            'password' => null, //No password set at creation
+            // Note: the application uses `user_pass` as the stored password column in factories/models.
+            // We intentionally leave password/user_pass null so the admin triggers verification flow.
+            'password' => null,
             'role_id' => $request->role_id, // Assuming role_id is provided
             'email_verified_at' => null,
         ]);
@@ -49,8 +51,10 @@ class CreateUserController extends Controller
         // Send email with verification link
         $user->notify(new VerifyEmailNotification($token));
 
+        // Return the created user object in the response so frontend can append without re-fetching.
         return response()->json([
             'message' => 'User created. A verification email has been sent.',
-        ]);
+            'user' => $user,
+        ], 201);
     }
 }
