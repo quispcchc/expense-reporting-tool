@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import ComponentContainer from '../../common/ui/ComponentContainer.jsx'
 import { DataTable } from 'primereact/datatable'
 import { Column } from 'primereact/column'
@@ -15,9 +15,19 @@ import { Button } from 'primereact/button'
 import { BUTTON_STYLE } from '../../../utils/customizeStyle.js'
 import { exportToCSVManual } from '../../../utils/helpers.js'
 import { useLookups } from '../../../contexts/LookupContext.jsx'
+import { useClaims } from '../../../contexts/ClaimContext.jsx'
 
 function ClaimListDataTable ({ claims, user }) {
-    const {lookups:{claimStatus,claimTypes}} = useLookups()
+    const {fetchClaims}=useClaims()
+
+    useEffect(() => {
+        const fetchData = async () => {
+            await fetchClaims();
+        };
+        fetchData();
+    }, []);
+
+    const { lookups: { claimStatus, claimTypes } } = useLookups()
 
     // State for global filter input and DataTable filters
     const [globalFilterValue, setGlobalFilterValue] = useState('')
@@ -26,11 +36,11 @@ function ClaimListDataTable ({ claims, user }) {
 
     const [filters, setFilters] = useState({
         global: { value: null, matchMode: FilterMatchMode.CONTAINS },
-        claimId: { value: null, matchMode: FilterMatchMode.STARTS_WITH },
-        claimType: { value: null, matchMode: FilterMatchMode.STARTS_WITH },
-        totalAmount: { value: null, matchMode: FilterMatchMode.BETWEEN },
-        createdAt: { value: null, matchMode: FilterMatchMode.BETWEEN },
-        status: { value: null, matchMode: FilterMatchMode.EQUALS },
+        claim_id: { value: null, matchMode: FilterMatchMode.STARTS_WITH },
+        'claim_type.claim_type_name': { value: null, matchMode: FilterMatchMode.STARTS_WITH },
+        total_amount: { value: null, matchMode: FilterMatchMode.BETWEEN },
+        claim_submitted: { value: null, matchMode: FilterMatchMode.BETWEEN },
+        'status.claim_status_name': { value: null, matchMode: FilterMatchMode.EQUALS },
     })
 
     // Handle global search input changes
@@ -45,19 +55,19 @@ function ClaimListDataTable ({ claims, user }) {
     }
 
     const statusBodyTemplate = (rowData) => (
-        <StatusTab status={ rowData.status }/>
+        <StatusTab status={ rowData.status.claim_status_name }/>
     )
 
     const totalAmountBodyTemplate = (rowData) => (
-        <>${ rowData.totalAmount.toFixed(2) }</>
+        <>${ rowData.total_amount }</>
     )
 
     const actionBodyTemplate = (rowData) => (
         <>
-            {user === "admin" ?
-                <Link to={ `${ rowData.claimId }/edit-claim` }>
+            { user === 'admin' ?
+                <Link to={ `${ rowData.claim_id }/edit-claim` }>
                     <button className="pi pi-pencil cursor-pointer"></button>
-                </Link> :  <Link to={ `${ rowData.claimId }/view-claim` }>
+                </Link> : <Link to={ `${ rowData.claim_id }/view-claim` }>
                     <button className="pi pi-eye cursor-pointer"></button>
                 </Link> }
 
@@ -70,14 +80,16 @@ function ClaimListDataTable ({ claims, user }) {
 
     const statusRowFilterTemplate = (options) => {
         return (
-            <Dropdown value={ options.value } options={ claimStatus.map(opt=>({label:opt.claim_status_name,value:opt.claim_status_name})) }
+            <Dropdown value={ options.value } options={ claimStatus.map(
+                opt => ( { label: opt.claim_status_name, value: opt.claim_status_name } )) }
                       onChange={ (e) => options.filterApplyCallback(e.value) } itemTemplate={ statusItemTemplate }
                       placeholder="Select" className="p-column-filter min-w-5" showClear/>
         )
     }
 
     const claimTypeFilterTemplate = (options) => (
-        <Dropdown value={ options.value } options={ claimTypes.map(opt=>({label:opt.claim_type_name,value:opt.claim_type_name})) }
+        <Dropdown value={ options.value }
+                  options={ claimTypes.map(opt => ( { label: opt.claim_type_name, value: opt.claim_type_name } )) }
                   onChange={ (e) => options.filterApplyCallback(e.value) }
                   placeholder="Select One" className="p-column-filter"/>
     )
@@ -149,28 +161,36 @@ function ClaimListDataTable ({ claims, user }) {
                        paginatorTemplate="RowsPerPageDropdown FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink"
                        currentPageReportTemplate="{first} to {last} of {totalRecords}"
                        filters={ filters } filterDisplay="row"
-                       globalFilterFields={ ['claimId', 'claimType', 'totalAmount', 'createdAt', 'status'] }
+                       globalFilterFields={ [
+                           'claim_id',
+                           'claim_type.claim_type_name',
+                           'total_amount',
+                           'claim_submitted',
+                           'status.claim_status_name'
+                       ] }
                        selectionMode="checkbox"
                        selection={ selectedClaims } onSelectionChange={ (e) => setSelectedClaims(e.value) }
             >
 
                 <Column selectionMode="multiple" headerStyle={ { width: '3rem', textAlign: 'center' } }></Column>
 
-                <Column field="claimId" header="Request #" filter filterElement={ customTextFilter }
+                <Column field="claim_id" header="Request #" sortable filter filterElement={ customTextFilter }
                         showFilterMenu={ false }></Column>
 
-                <Column field="claimType" header="Claim type" filter filterElement={ claimTypeFilterTemplate }
+                <Column field="claim_type.claim_type_name" header="Claim type" filter sortable
+                        filterElement={ claimTypeFilterTemplate }
                         showFilterMenu={ false }></Column>
 
-                <Column field="totalAmount" header="Total Amount" body={ totalAmountBodyTemplate } filter
+                <Column field="total_amount" header="Total Amount" body={ totalAmountBodyTemplate } sortable filter
                         filterElement={ (options) => <AmountRangeFilter options={ options }/> }
                         showFilterMenu={ false }></Column>
 
-                <Column field="createdAt" header="Submitted At" filter
-                        filterElement={ (options) => <DateRangeFilter options={ options }/> }
+                <Column field="claim_submitted" header="Submitted At" sortable
+                        filter filterElement={ (options) => <DateRangeFilter options={ options }/> }
                         showFilterMenu={ false }></Column>
 
-                <Column field="status" header="Status" body={ statusBodyTemplate } filter showFilterMenu={ false }
+                <Column field="status.claim_status_name" header="Status" body={ statusBodyTemplate } sortable filter
+                        showFilterMenu={ false }
                         filterElement={ statusRowFilterTemplate }></Column>
 
                 <Column header="Action" body={ actionBodyTemplate }></Column>

@@ -17,20 +17,21 @@ function ClaimExpansionAttachmentRow ({ label, file, isEditing, rowData, handleI
             url: fileUrl,
         };
 
+        console.log('selected',selectedFile)
+
         if (selectedFile) {
             // Notify parent(claimFormData in create claim page) to update attachments for this row
-            handleInputChange(rowData.transactionId, 'attachments', selectedFile)
+            handleInputChange(rowData.transactionId, 'attachment', selectedFile)
         }
     }
 
     // Remove a file by its filename from the attachments list
     const handleRemoveFile = () => {
-        handleInputChange(rowData.transactionId, 'attachments', null)
+        handleInputChange(rowData.transactionId, 'attachment', null)
     }
 
     // Render the list of attachments or show message if none exist
-    const renderAttachmentList = (file, showRemoveButton) => {
-        console.log('file',file)
+    const renderAttachment = (file, showRemoveButton) => {
         if (!file) {
             return <p className="text-sm text-[#888888]">No attachments available.</p>
         }
@@ -45,15 +46,16 @@ function ClaimExpansionAttachmentRow ({ label, file, isEditing, rowData, handleI
                 { label }
             </label>
             <div className="flex-1">
-                { isEditing ? (
+
+                {isEditing ? (
                     <>
                         {/* Show upload button and allow removal if editing */ }
                         <Upload handleFileSelect={ handleFileSelect }/>
-                        { renderAttachmentList(file, true) }
+                        { renderAttachment(file, true) }
                     </>
                 ) : (
                     // Just show attachments without remove option if not editing
-                    renderAttachmentList(file, false)
+                    renderAttachment(file, false)
                 ) }
             </div>
         </div>

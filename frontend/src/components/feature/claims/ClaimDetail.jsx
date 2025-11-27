@@ -4,6 +4,7 @@ import ComponentContainer from '../../common/ui/ComponentContainer.jsx'
 
 // ClaimDetail component shows details of a single claim
 // Used in both view and edit claim pages
+
 function ClaimDetail ({ curClaim }) {
     return (
 
@@ -14,11 +15,12 @@ function ClaimDetail ({ curClaim }) {
 
             <table className="table-auto w-full text-left">
                 <tbody>
-                    <ClaimDetailRow title="Claim type:" value={ curClaim.claimType }/>
-                    <ClaimDetailRow title="Date submitted:" value={ curClaim.createdAt || curClaim.dateSubmitted }/>
-                    <ClaimDetailRow title="Employee:" value={ curClaim.employeeName }/>
-                    <ClaimDetailRow title="Position:" value={ curClaim.position }/>
-                    <ClaimDetailRow title="Team:" value={ curClaim.team }/>
+                    <ClaimDetailRow title="Claim type:" value={ curClaim.claim_type.claim_type_name }/>
+                    <ClaimDetailRow title="Date submitted:" value={ curClaim.claim_submitted}/>
+                    <ClaimDetailRow title="Employee:" value={ curClaim.user.full_name }/>
+                    <ClaimDetailRow title="Position:" value={ curClaim.position.position_name}/>
+                    <ClaimDetailRow title="Department:" value={ curClaim.department.department_name }/>
+                    <ClaimDetailRow title="Team:" value={ curClaim.team.team_name }/>
                 </tbody>
             </table>
         </ComponentContainer>

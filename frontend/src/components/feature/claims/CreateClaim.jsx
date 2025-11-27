@@ -5,7 +5,6 @@ import { Button } from 'primereact/button'
 import ClaimForm from './ClaimForm.jsx'
 import { validateForm } from '../../../utils/validation/validator.js'
 import { validationSchemas } from '../../../utils/validation/schemas.js'
-import { generateId } from '../../../utils/helpers.js'
 import { useNavigate } from 'react-router-dom'
 import { useClaims } from '../../../contexts/ClaimContext.jsx'
 import { useAuth } from '../../../contexts/AuthContext.jsx'
@@ -18,7 +17,7 @@ const calculateTotalAmount = (formData) => {
     return claimItemsTotal
 }
 
-function CreateClaim ({ navigateTo, homePath }) {
+function CreateClaim ({ navigateTo, homePath,toastRef }) {
     const { authUser } = useAuth()
     const { createClaim } = useClaims()
     const navigate = useNavigate()
@@ -35,7 +34,7 @@ function CreateClaim ({ navigateTo, homePath }) {
         claimType: '',
         note: '',
         department: authUser.department_id,
-        team:null,
+        team: null,
         claimItems: [],
     }
     const [claimFormData, setClaimFormData] = useState(initialClaimFormData)
@@ -56,7 +55,7 @@ function CreateClaim ({ navigateTo, homePath }) {
 
     useEffect(() => {
         console.log(claimFormData)
-        console.log(expenseFormData)
+        console.log('expenseFormData', expenseFormData)
     }, [claimFormData, expenseFormData, tags])
 
     const handleFormFieldChange = (e) => {
@@ -92,16 +91,16 @@ function CreateClaim ({ navigateTo, homePath }) {
             tags: [...tags],
             attachment: files,
         }
+        if (!validation.isValid) return alert('Please fill in all required fields!')
 
-        if (validation.isValid) {
-            setClaimFormData(prev => ( {
-                ...prev,
-                claimItems: [...prev.claimItems, completeExpenseData],
-            } ))
-        }
+        setClaimFormData(prev => ( {
+            ...prev,
+            claimItems: [...prev.claimItems, completeExpenseData],
+        } ))
+
     }
 
-    const handleFormSubmit = async(e) => {
+    const handleClaimSubmit = async(e) => {
         e.preventDefault()
         const claimSchema = validationSchemas.claim
         const validation = validateForm(claimFormData, claimSchema)
@@ -109,7 +108,7 @@ function CreateClaim ({ navigateTo, homePath }) {
 
         if (claimFormData.claimItems.length <= 0) return alert('please add at least one expense!')
 
-        if (!validation.isValid) return
+        if (!validation.isValid) return alert('Please fill in all required fields!')
 
         const formData = new FormData()
 
@@ -117,57 +116,33 @@ function CreateClaim ({ navigateTo, homePath }) {
         formData.append('position_id', claimFormData.position)
         formData.append('claim_type_id', claimFormData.claimType)
         formData.append('department_id', claimFormData.department)
+        formData.append('team_id', claimFormData.team)
         formData.append('claim_notes', claimFormData.note)
         formData.append('total_amount', calculateTotalAmount(claimFormData))
 
         // Add expenses - properly handling files
         claimFormData.claimItems.forEach((expense, index) => {
+            console.log('expense',expense)
             // Add all non-file fields
-            formData.append(`expenses[${index}][transaction_date]`, expense.transactionDate)
-            formData.append(`expenses[${index}][buyer_name]`, expense.buyer)
-            formData.append(`expenses[${index}][vendor_name]`, expense.vendor)
-            formData.append(`expenses[${index}][transaction_desc]`, expense.description)
-            formData.append(`expenses[${index}][expense_amount]`, expense.amount)
-            formData.append(`expenses[${index}][project_id]`, expense.program)
-            formData.append(`expenses[${index}][cost_centre_id]`, expense.costCentre)
-            formData.append(`expenses[${index}][account_number_id]`, expense.accountNum)
+            formData.append(`expenses[${ index }][transaction_date]`, expense.transactionDate)
+            formData.append(`expenses[${ index }][buyer_name]`, expense.buyer)
+            formData.append(`expenses[${ index }][vendor_name]`, expense.vendor)
+            formData.append(`expenses[${ index }][transaction_desc]`, expense.description)
+            formData.append(`expenses[${ index }][expense_amount]`, expense.amount)
+            formData.append(`expenses[${ index }][project_id]`, expense.program)
+            formData.append(`expenses[${ index }][cost_centre_id]`, expense.costCentre)
+            formData.append(`expenses[${ index }][account_number_id]`, expense.accountNum)
+            formData.append(`expenses[${ index }][tags]`, expense.tags)
+            formData.append(`expenses[${ index }][transaction_notes]`, expense.notes)
 
-            // if (expense.tag_id) {
-                formData.append(`expenses[${index}][tag_id]`, 1)
-            // }
 
             // Only add file if it's a real File object
             if (expense.attachment.file instanceof File) {
-                formData.append(`expenses[${index}][file]`, expense.attachment.file)
+                formData.append(`expenses[${ index }][file]`, expense.attachment.file)
             }
         })
 
         await createClaim(formData)
-
-        // await createClaim({
-        //     position_id: claimFormData.position,
-        //     claim_type_id: claimFormData.claimType,
-        //     department_id: claimFormData.team,
-        //     claim_notes:claimFormData.note,
-        //     total_amount: calculateTotalAmount(claimFormData),
-        //
-        //     expenses: claimFormData.claimItems.map(item => ( {
-        //         transaction_date: item.transactionDate,
-        //         buyer_name: item.buyer,
-        //         vendor_name: item.vendor,
-        //         transaction_desc: item.description,
-        //         expense_amount: item.amount,
-        //         cost_centre_id: item.costCentre,
-        //         project_id:item.program,
-        //         file: item.attachment.file,
-        //         tag_id: 1,
-        //
-        //         // do we need add team(department field in expense form? or just add in claim form)
-        //         team_id: 1,
-        //     } )),
-        //
-        //
-        // })
 
         setClaimFormData(initialClaimFormData)
         setExpenseFormData(initialExpenseFormData)
@@ -178,7 +153,7 @@ function CreateClaim ({ navigateTo, homePath }) {
     }
 
     return (
-        <form className="my-3" onSubmit={ handleFormSubmit }>
+        <form className="my-3" onSubmit={ handleClaimSubmit }>
             <div className="flex justify-between items-center flex-wrap">
                 <ContentHeader title="Create a new claim" homePath={ homePath }/>
                 <div className="flex gap-5">
@@ -198,7 +173,9 @@ function CreateClaim ({ navigateTo, homePath }) {
                             onExpenseChange={ handleExpenseFieldChange }
 
                             onAddExpense={ handleAddExpense } tags={ tags } onSetTags={ setTags } files={ files }
-                            onSetFiles={ setFiles } errors={ expenseErrors }/>
+                            onSetFiles={ setFiles } errors={ expenseErrors }
+                            toastRef={toastRef}
+            />
         </form>
 
     )

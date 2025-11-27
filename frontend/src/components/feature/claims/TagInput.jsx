@@ -9,8 +9,13 @@ const TagInput = ({ tags, onSetTags, placeholder = 'Type here to add tags...' })
     const addTag = (tagText) => {
         const trimmedTag = tagText.trim()
 
-        if (trimmedTag && !tags.includes(trimmedTag)) {
-            onSetTags([...tags, trimmedTag])
+        const capitalizedTag = trimmedTag
+        .split(' ')                    // split the string into words
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1)) // capitalize first letter
+            .join(' ');
+
+        if (capitalizedTag && !tags.includes(capitalizedTag)) {
+            onSetTags([...tags, capitalizedTag])
             setInputValue('') // Clear input after adding
         }
     }

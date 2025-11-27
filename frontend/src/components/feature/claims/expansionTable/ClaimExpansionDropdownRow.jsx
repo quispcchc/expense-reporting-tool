@@ -24,7 +24,7 @@ function ClaimExpansionDropdownRow ({ label, field, value, options, placeholder,
                 ) : (
                     // If not editing, just display the value as text
                     <p className="text-sm text-[#888888]">
-                        { options.find(opt => opt.value === value)?.label || '' }
+                        { options.find(opt => opt.value === value)?.label || 'dd' }
                     </p>
                 )
                 }

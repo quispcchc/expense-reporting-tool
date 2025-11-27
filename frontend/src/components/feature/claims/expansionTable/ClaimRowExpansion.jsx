@@ -9,29 +9,37 @@ function ClaimRowExpansion({
     editingRowId,
     claimItems,
     expandedRowData,
-    handleInputChange
+    handleInputChange,
+    mode
 }) {
-    const {lookups:{departments,projects}} = useLookups()
+    const {lookups:{projects}} = useLookups()
 
     // Determine if the current row is in editing mode
     const isEditing = editingRowId === rowData.transactionId
 
     // Get the original claim item data for this row
     const currentData = claimItems.find(item => item.transactionId === rowData.transactionId) || rowData
-    console.log('claimItems',claimItems)
-    console.log('current data',currentData)
+    // console.log('claimItems',claimItems)
+    // console.log('current data',currentData)
 
     // Get any changes made in the expanded row for this transactionId
     const expansionChanges = expandedRowData[rowData.transactionId] || {}
 
     // Merge original data with any expanded data changes
     const displayData = { ...currentData, ...expansionChanges }
+    console.log('displayData',displayData)
 
     // Convert tags array to comma-separated string or fallback to empty string
     const getTagsValue = (tags) => {
         if (!tags) return ''
-        if (Array.isArray(tags)) return tags.join(',')
-        return String(tags)
+
+        if (mode ==='create') {
+            if (Array.isArray(tags)) return tags.join(', ')
+            return String(tags)
+        } else {
+            return tags.map(tag=>tag.tag_name).join(', ')
+        }
+
     }
 
     return (
@@ -40,22 +48,10 @@ function ClaimRowExpansion({
             className="px-18"
         >
             <div className="grid grid-cols-1 gap-4">
-                 {/*Dropdown to select team*/}
-                <ClaimExpansionDropdownRow
-                    label="Team"
-                    field="team"
-                    placeholder='Please select the team'
-                    options={departments.map(opt=>({label:opt.department_name,value:opt.department_id}))}
-                    isEditing={isEditing}
-                    rowData={rowData}
-                    value={displayData.team || ''}
-                    handleInputChange={handleInputChange}
-                />
-
                 {/* Dropdown to select program/project */}
                 <ClaimExpansionDropdownRow
                     label="Program / Project"
-                    field="program"
+                    field="project"
                     placeholder='Please select the program'
                     options={projects.map(opt=>({label:`${opt.project_name} - ${opt.project_desc}`,value:opt.project_id}))}
                     isEditing={isEditing}
@@ -101,6 +97,7 @@ function ClaimRowExpansion({
                     file={displayData.attachment || null}
                     rowData={rowData}
                     handleInputChange={handleInputChange}
+                    mode={mode}
                 />
             </div>
         </div>

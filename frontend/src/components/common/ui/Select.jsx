@@ -9,7 +9,7 @@ function Select (props) {
                 {label }
             </label>
             <Dropdown {...props} className='w-full'  optionLabel="label"/>
-            { errors[name] && <p className="absolute text-red-500 text-sm mt-2">{ errors[name] }</p> }
+            { errors[name] && <p className="text-red-500 text-sm mt-2">{ errors[name] }</p> }
         </div>
     )
 }

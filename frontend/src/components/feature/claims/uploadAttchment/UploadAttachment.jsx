@@ -2,11 +2,10 @@ import React from 'react'
 import Upload from './Upload.jsx'
 import AttachmentList from './AttchmentList.jsx'
 
-function UploadAttachment ({ files, onSetFiles }) {
+function UploadAttachment ({ files, onSetFiles,errors }) {
 
     const handleFileSelect = (e) => {
         const file = e.target.files[ 0 ]
-        if (!file) return;
 
         const fileUrl = URL.createObjectURL(file);
         const selectedFile = {
@@ -30,6 +29,7 @@ function UploadAttachment ({ files, onSetFiles }) {
                 <Upload handleFileSelect={ handleFileSelect }/>
             </div>
             <AttachmentList selectedFile={ files } handleRemoveFile={ handleRemoveFile }/>
+            <p className='text-red-500 text-sm mt-2'>{ errors.attachment }</p>
 
 
         </div>

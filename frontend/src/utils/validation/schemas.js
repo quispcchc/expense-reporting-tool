@@ -59,7 +59,6 @@ export const validationSchemas = {
             { rule: 'required', message: 'Claim Type is required' },
         ],
 
-
     },
 
     expense: {
@@ -84,6 +83,10 @@ export const validationSchemas = {
         buyer: [
             { rule: 'required', message: 'Buyer is required' },
         ],
+        description:[
+            {rule:'required',message:'Description is required'}
+        ],
+
 
     },
 

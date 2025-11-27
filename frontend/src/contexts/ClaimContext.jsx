@@ -1,11 +1,10 @@
-import { createContext, useContext, useReducer } from 'react'
-import { claimsData } from '../utils/mockData.js'
-import { generateId } from '../utils/helpers.js'
+import { createContext, useContext, useEffect, useReducer } from 'react'
 import api from '../api/api.js'
 
 const ClaimContext = createContext()
 
 const CLAIM_ACTIONS = {
+    SET_CLAIMS: 'SET_CLAIMS',
     CREATE_CLAIM: 'CREATE_CLAIM',
     UPDATE_CLAIM: 'UPDATE_CLAIM',
     DELETE_CLAIM: 'DELETE_CLAIM',
@@ -15,6 +14,11 @@ const CLAIM_ACTIONS = {
 const claimReducer = (state, action) => {
     switch (action.type) {
         // Add new claim to existing claims array
+        case CLAIM_ACTIONS.SET_CLAIMS:
+            return {
+                ...state,
+                claims: action.payload,
+            }
         case CLAIM_ACTIONS.CREATE_CLAIM:
             return {
                 ...state,
@@ -26,7 +30,7 @@ const claimReducer = (state, action) => {
             return {
                 ...state,
                 claims: state.claims.map(claim =>
-                    claim.claimId === action.payload.claimId ? action.payload : claim,
+                    claim.claim_id === action.payload.claim_id ? action.payload : claim,
                 ),
             }
 
@@ -35,7 +39,7 @@ const claimReducer = (state, action) => {
             return {
                 ...state,
                 claims: state.claims.filter(claim =>
-                    claim.claimId !== action.payload.claimId,
+                    claim.claim_id !== action.payload.claim_id,
                 ),
             }
     }
@@ -43,31 +47,37 @@ const claimReducer = (state, action) => {
 
 export function ClaimProvider ({ children }) {
     const [state, dispatch] = useReducer(claimReducer, {
-        claims: claimsData,
+        claims: [],
     })
+
+    console.log(state)
 
     // Action creators to dispatch actions to the reducer
     const actions = {
         // Fetch existing claims from database
-        fetchClaims:()=>{},
+        fetchClaims: async () => {
+            try {
+                const response = await api.get('/claims')
+                console.log('fetch claims',response)
+                dispatch({
+                    type: CLAIM_ACTIONS.SET_CLAIMS,
+                    payload: response.data,
+                })
+            } catch (error) {
+                console.error("Error fetching claims:", error)
+            }
+        },
 
-        // Create new claim with generated ID and default status/date
         createClaim: async(claim) => {
             try {
-                // Log FormData
-                for (let [key, value] of claim.entries()) {
-                    console.log(key, value);
-                }
                 const response = await api.post('claims', claim)
                 console.log(response)
 
-                const newClaim = response.data
-
-                // Add to local state
-                // dispatch({
-                //     type: CLAIM_ACTIONS.CREATE_CLAIM,
-                //     payload: newClaim,
-                // })
+                // Add to local state for UI display
+                dispatch({
+                    type: CLAIM_ACTIONS.CREATE_CLAIM,
+                    payload: response.data.claim,
+                })
             }
             catch (error) {
                 console.error('Error creating claim:', error.response?.data || error.message)
@@ -91,8 +101,10 @@ export function ClaimProvider ({ children }) {
         },
 
         // Helper function to find a claim by ID
-        getClaimById: (claimId) => {
-            return state.claims.find(claim => claim.claimId === Number(claimId))
+        getClaimById: async(claimId) => {
+            const response = await api.get(`claims/${claimId}`)
+            console.log('fetch single claim',response.data)
+            return response.data
         },
 
     }
@@ -101,6 +113,8 @@ export function ClaimProvider ({ children }) {
         claims: state.claims,
         ...actions,
     }
+
+
 
     return (
         <ClaimContext.Provider value={ value }>

@@ -6,7 +6,6 @@ import { useLookups } from '../../../contexts/LookupContext.jsx'
 
 function ClaimForm ({ claimFormData, onFieldChange, errors }) {
     const {lookups:{departments,claimTypes,positions,teams}} = useLookups()
-    console.log(teams,claimFormData)
 
     return (
         // Main container with title and description

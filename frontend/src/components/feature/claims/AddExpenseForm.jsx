@@ -20,10 +20,9 @@ function AddExpenseForm ({
     files,
     onSetFiles,
     errors,
+    toastRef
 }) {
     const { lookups: { costCentres, projects, accountNums } } = useLookups()
-
-
 
     return (
         <div className="bg-white h-full rounded-2xl shadow-sm">
@@ -125,6 +124,7 @@ function AddExpenseForm ({
                             className="w-full border border-gray-300 rounded-md p-3 text-sm"
                             onChange={ onExpenseChange }
                         />
+                        <p className="text-red-500 text-sm mt-2">{ errors.description }</p>
                     </div>
 
                     {/* Notes textarea */ }
@@ -143,7 +143,8 @@ function AddExpenseForm ({
                     </div>
 
                     {/* File upload component */ }
-                    <UploadAttachment files={ files } onSetFiles={ onSetFiles }/>
+                    <UploadAttachment files={ files } onSetFiles={ onSetFiles } errors={errors}/>
+
 
                     {/* Tag input component */ }
                     <TagInput tags={ tags } onSetTags={ onSetTags }/>
@@ -160,7 +161,7 @@ function AddExpenseForm ({
 
             {/* Expansion table showing claim items in create mode */ }
             <EditableExpansionTable data={ claimFormData.claimItems } onClaimItemsUpdate={ onClaimItemsUpdate }
-                                    mode="create"/>
+                                    mode="create" toastRef={toastRef}/>
 
         </div>
     )

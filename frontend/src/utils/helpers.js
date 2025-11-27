@@ -2,19 +2,23 @@ export const generateId = () => {
     return Math.floor(100000 + Math.random() * 900000)
 }
 
+export const showToast = (toastRef, { severity = 'info', summary = '', detail = '', life = 3000 }) => {
+    if (toastRef?.current) {
+        toastRef.current.show({ severity, summary, detail, life })
+    }
+}
+
 export function autoFillForm (setFormData) {
     setFormData({
-        team: 'ACTT',
-        program: 'Audit',
+        program: 1,
         transactionDate: '2025-07-01',
-        costCentre: '2400 - Annavale Headstart Nursery School',
+        costCentre: 1,
         vendor: 'Food Basics',
-        accountNum: '50004 - Clinical Aide',
-        amount: '33',
+        accountNum: 1,
+        amount: 33,
         buyer: 'Shan',
         description: 'This is for test',
         notes: 'This is for test',
-
     })
 }
 
@@ -108,3 +112,4 @@ export const exportToCSVManual = (claims) => {
         alert('Error exporting CSV. Please try again.')
     }
 }
+

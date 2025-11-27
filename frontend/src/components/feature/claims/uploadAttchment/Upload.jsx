@@ -8,6 +8,8 @@ function Upload ({ handleFileSelect }) {
             className="p-button p-component p-button-outlined p-2 cursor-pointer flex items-center gap-2">
             Upload a file
             <input
+                name='attachment'
+                id='attachment'
                 type="file"
                 accept='image/*,application/pdf'
                 onChange={ handleFileSelect }
