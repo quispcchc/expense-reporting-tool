@@ -124,7 +124,6 @@ function AddExpenseForm ({
                             className="w-full border border-gray-300 rounded-md p-3 text-sm"
                             onChange={ onExpenseChange }
                         />
-                        <p className="text-red-500 text-sm mt-2">{ errors.description }</p>
                     </div>
 
                     {/* Notes textarea */ }
