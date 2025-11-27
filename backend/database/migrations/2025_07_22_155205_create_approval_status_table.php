@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('approval_status', function (Blueprint $table) {
             //same here too, using "primary()" and "unique" make a conflict
-            $table->integer('approval_status_id')->primary();
+            $table->id('approval_status_id');
             $table->string('approval_status_name', 50);
             $table->string('approval_status_desc')->nullable();
         });

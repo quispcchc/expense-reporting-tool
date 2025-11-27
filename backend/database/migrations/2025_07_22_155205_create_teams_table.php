@@ -11,7 +11,7 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::create('teams', function (Blueprint $table) {
-            $table->bigIncrements('team_id');
+            $table->id('team_id');
             $table->string('team_abbreviation')->unique();
             $table->string('team_name')->unique();
             $table->string('team_desc')->nullable();

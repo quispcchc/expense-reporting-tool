@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('roles', function (Blueprint $table) {
-            $table->id('role_id')->primary();
+            $table->id('role_id');
             $table->integer('active_status_id');
             $table->string('role_name', 50);
             $table->integer('role_level'); // Lower value = more privilege
