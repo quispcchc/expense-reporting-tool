@@ -39,7 +39,7 @@ Route::post('/admin/create-user', [CreateUserController::class, 'createUser'])->
 
 //Admin management
 //Admin management
-// During testing we avoid applying the RoleCheck middleware to make controller tests simpler.
+// Please restore RoleCheck middleware when not testing. --- IGNORE ---
 if (app()->environment('testing')) {
     Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/admin/create-user', [CreateUserController::class, 'createUser']);

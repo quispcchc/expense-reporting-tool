@@ -40,6 +40,7 @@ function AddNewUser () {
         const validation = validateForm(updatedUser, schema)
 
         console.log(validation)
+        
         console.log(updatedUser)
 
         if (validation.isValid) {

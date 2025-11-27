@@ -9,22 +9,17 @@ use Illuminate\Support\Facades\Validator;
 
 class UserController extends Controller
 {
-    /**
-     * List users (admin)
-     */
+    
     public function index(Request $request)
     {
         $perPage = (int) $request->query('per_page', 15);
 
-        // Use pagination to avoid returning a huge result set
         $users = User::with(['role', 'team', 'position', 'activeStatus'])->paginate($perPage);
 
         return response()->json($users);
     }
 
-    /**
-     * Update an existing user (admin)
-     */
+    
     public function update(Request $request, $id)
     {
         $user = User::where('user_id', $id)->firstOrFail();
@@ -52,9 +47,7 @@ class UserController extends Controller
         return response()->json(['user' => $user]);
     }
 
-    /**
-     * Delete a user (admin)
-     */
+    
     public function destroy(Request $request, $id)
     {
         $user = User::where('user_id', $id)->firstOrFail();
