@@ -9,8 +9,9 @@ import { Dropdown } from 'primereact/dropdown'
 import { Button } from 'primereact/button'
 import StatusTab from '../../../common/ui/StatusTab.jsx'
 import { useLookups } from '../../../../contexts/LookupContext.jsx'
+import { showToast } from '../../../../utils/helpers.js'
 
-function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate }) {
+function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate, toastRef }) {
     const [expenseItems, setExpenseItems] = useState(data || [])
 
     const { updateClaim } = useClaims()
@@ -24,8 +25,42 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate }) {
     const { lookups: { accountNums, costCentres } } = useLookups()
 
     useEffect(() => {
-        setExpenseItems(data)
+        if (!data) return
+
+        if (mode === 'create') {
+            let frontendId = 1
+            // Create mode: data is already in frontend form shape, no mapping needed
+            setExpenseItems(data.map(item => ( {
+                ...item,
+                transactionId: frontendId++,
+            } )))
+
+        } else {
+
+            // Map backend fields to frontend form fields
+            setExpenseItems(
+                data.map(expense => ( {
+                    transactionId: expense.expense_id,
+                    buyer: expense.buyer_name,
+                    vendor: expense.vendor_name,
+                    transactionDate: expense.transaction_date,
+                    accountNum: expense.account_number_id,
+                    costCentre: expense.cost_centre_id,
+                    amount: expense.expense_amount,
+                    description: expense.transaction_desc,
+                    notes:expense.transaction_notes,
+                    tags: expense.tags,
+                    status: expense.approval_status_id,
+                    program: expense.project_id,
+                    attachment: expense.receipt_url,
+
+
+
+                } )),
+            )
+        }
     }, [data])
+    console.log(expenseItems)
 
     const handleExpansionFieldChange = (expenseId, fieldName, newValue) => {
         // Update the local expense items immediately for UI responsiveness
@@ -35,10 +70,12 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate }) {
                     ? {
                         ...expense,
                         [ fieldName ]: fieldName === 'tags' ? [...newValue.split(',')] : newValue,
+
                     }
                     : expense,
             ),
         )
+
 
         // Store the changes temporarily until the row edit is completed
         setUnsavedExpansionChanges(previousChanges => ( {
@@ -57,6 +94,7 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate }) {
         if (mode === 'create' && onClaimItemsUpdate) {
             // In create mode: notify parent component of changes
             onClaimItemsUpdate(updatedExpenseItems)
+
         } else
             if (mode === 'edit' && curClaim && updateClaim) {
                 // In edit mode: update the claim in global context
@@ -69,6 +107,7 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate }) {
                     claimItems: updatedExpenseItems,
                     totalAmount: recalculatedTotal,
                 })
+
             }
     }
 
@@ -80,6 +119,7 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate }) {
                 claimItems={ expenseItems }
                 expandedRowData={ unsavedExpansionChanges }
                 handleInputChange={ handleExpansionFieldChange }
+                mode={ mode }
             />
         )
     }
@@ -107,6 +147,7 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate }) {
 
         // Save all changes to parent
         saveExpenseItemsToParent(updatedExpenseItems)
+        showToast(toastRef, { severity: 'success', summary: 'Updated', detail: 'Updated successfully!' })
     }
 
     // Handle starting to edit a row
@@ -143,6 +184,7 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate }) {
         })
 
         setCurrentlyEditingRowId(null)
+        showToast(toastRef, { severity: 'info', summary: 'Info', detail: 'Edit cancelled!' })
     }
 
     // Delete an expense item
@@ -184,8 +226,14 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate }) {
         <Button label="Reject"/>
     </div> )
 
+    function mapClaimStatus (statusId) {
+        const status = { 1: 'Pending', 2: 'Approved', 3: 'Rejected' }
+        console.log(statusId)
+        return status[ statusId ]
+    }
+
     const renderStatus = (rowData) => (
-        <StatusTab status={ rowData.status }/>
+        <StatusTab status={ mapClaimStatus(rowData.status) }/>
     )
 
     // Convert ID to label
@@ -250,7 +298,6 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate }) {
             className="w-full"
         />
     )
-
 
     return (
         <div className="bg-white h-full p-6">

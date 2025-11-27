@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import ContentHeader from '../../components/common/layout/ContentHeader.jsx'
 import { useParams } from 'react-router-dom'
 import ClaimDetail from '../../components/feature/claims/ClaimDetail.jsx'
@@ -7,6 +7,8 @@ import ClaimNotes from '../../components/feature/claims/addNotes/ClaimNotes.jsx'
 import ClaimStatus from '../../components/feature/claims/ClaimStatus.jsx'
 import EditableExpansionTable from '../../components/feature/claims/expansionTable/EditableExpansionTable.jsx'
 import Loader from '../../components/common/ui/Loader.jsx'
+import { Toast } from 'primereact/toast'
+import { ConfirmDialog } from 'primereact/confirmdialog'
 
 function EditClaimPage () {
     const { claimId } = useParams()
@@ -26,11 +28,15 @@ function EditClaimPage () {
         fetchClaim()
     }, [claimId])
 
+    const toast = useRef(null)
 
     if (!curClaim) return <Loader/>
 
     return (
         <div>
+            <Toast ref={ toast }/>
+            <ConfirmDialog/>
+
             <div className="flex justify-between items-center flex-wrap">
                 <ContentHeader title={ `Claim #${ claimId }` } homePath="/admin"/>
                 <ClaimStatus curClaim={ curClaim }/>
@@ -39,11 +45,11 @@ function EditClaimPage () {
             <div className="flex flex-wrap gap-5 my-5">
                 <div className="flex-1"><ClaimDetail curClaim={ curClaim }/></div>
                 <div className="flex-1">
-                    <ClaimNotes curClaim={curClaim}/>
+                    <ClaimNotes curClaim={curClaim} toastRef={toast}/>
                 </div>
             </div>
 
-            <EditableExpansionTable data={curClaim.expenses} curClaim={curClaim} mode='edit'/>
+            <EditableExpansionTable data={curClaim.expenses} curClaim={curClaim} mode='edit' toastRef={toast}/>
 
         </div>
     )
