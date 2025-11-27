@@ -11,11 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('tag', function (Blueprint $table) {
-            $table->integer('tag_id')->primary();
+        Schema::create('roles', function (Blueprint $table) {
+            $table->id('role_id')->primary();
             $table->integer('active_status_id');
-            $table->string('tag_name', 50);
-            $table->string('tag_desc')->nullable();
+            $table->string('role_name', 50);
+            $table->integer('role_level'); // Lower value = more privilege
+            $table->string('role_desc')->nullable();
         });
     }
 
@@ -24,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('tag');
+        Schema::dropIfExists('roles');
     }
 };

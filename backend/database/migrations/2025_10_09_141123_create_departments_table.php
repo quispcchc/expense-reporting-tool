@@ -11,11 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('claim_type', function (Blueprint $table) {
-            $table->integer('claim_type_id')->primary();
-            $table->integer('active_status_id');
-            $table->string('claim_type_name', 50);
-            $table->string('claim_type_desc')->nullable();
+        Schema::create('departments', function (Blueprint $table) {
+            $table->id('department_id');
+            $table->string('department_name', 50);
+            $table->string('department_abbreviation', 50);
+            $table->timestamps();
         });
     }
 
@@ -24,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('claim_type');
+        Schema::dropIfExists('departments');
     }
 };

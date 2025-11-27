@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Position extends Model
 {
     use HasFactory;
-    protected $table = 'position';
+    protected $table = 'positions';
     protected $primaryKey = 'position_id';
     public $incrementing = false;
     protected $keyType = 'int';

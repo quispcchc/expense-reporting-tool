@@ -11,11 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('position', function (Blueprint $table) {
-            $table->integer('position_id')->primary();
-            $table->integer('active_status_id');
-            $table->string('position_name', 50);
-            $table->integer('position_desc')->nullable();
+        Schema::create('tags', function (Blueprint $table) {
+            $table->id('tag_id');
+            $table->string('tag_name', 50);
+            $table->timestamps();
         });
     }
 
@@ -24,6 +23,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('position');
+        Schema::dropIfExists('tags');
     }
 };

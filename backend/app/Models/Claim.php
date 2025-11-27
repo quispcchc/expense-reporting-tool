@@ -1,21 +1,24 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
 class Claim extends Model
 {
-    protected $table = 'claim';
+    protected $table = 'claims';
     protected $primaryKey = 'claim_id';
-//    public $incrementing = false;
     protected $keyType = 'int';
-    public $timestamps = false;
+
+    const STATUS_PENDING = 1;
+    const STATUS_APPROVED = 2;
+    const STATUS_REJECTED = 3;
 
     protected $fillable = [
         'user_id',
         'position_id',
         'department_id',
-        'claim_notes',
+        'team_id',
         'claim_submitted',
         'claim_type_id',
         'claim_status_id',
@@ -35,8 +38,14 @@ class Claim extends Model
         return $this->belongsTo(ClaimType::class, 'claim_type_id', 'claim_type_id');
     }
 
-    public function department() {
-        return $this->belongsTo(Department::class,'department_id');
+    public function department()
+    {
+        return $this->belongsTo(Department::class, 'department_id');
+    }
+
+    public function team()
+    {
+        return $this->belongsTo(Team::class, 'team_id');
     }
 
     public function expenses()
@@ -52,5 +61,15 @@ class Claim extends Model
     public function status()
     {
         return $this->belongsTo(ClaimStatus::class, 'claim_status_id', 'claim_status_id');
+    }
+
+    public function position()
+    {
+        return $this->belongsTo(Position::class, 'position_id');
+    }
+
+    public function claimNotes()
+    {
+        return $this->hasMany(ClaimNote::class, 'claim_id');
     }
 }

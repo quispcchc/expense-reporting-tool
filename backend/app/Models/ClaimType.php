@@ -5,7 +5,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class ClaimType extends Model
 {
-    protected $table = 'claim_type';
+    protected $table = 'claim_types';
     protected $primaryKey = 'claim_type_id';
     public $incrementing = false;
     protected $keyType = 'int';

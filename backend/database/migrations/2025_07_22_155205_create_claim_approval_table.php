@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('claim_approval', function (Blueprint $table) {
             //same issue
-            $table->integer('claim_approval_id')->primary();
+            $table->id('claim_approval_id');
             $table->integer('claim_id');
             $table->string('claim_approval_details', 500);
             $table->integer('approval_status_id');

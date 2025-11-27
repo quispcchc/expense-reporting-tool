@@ -12,8 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('active_status', function (Blueprint $table) {
-            //cause conflict between "->primary()" and "unique" here
-            $table->integer('active_status_id')->primary();
+            $table->id('active_status_id');
             $table->string('active_status_name', 50);
         });
     }

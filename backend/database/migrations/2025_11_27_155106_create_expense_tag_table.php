@@ -10,16 +10,17 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('claim_notes', function (Blueprint $table) {
-            $table->id('claim_note_id');
-            $table->text('claim_note_text');
-            $table->foreignId('user_id')->constrained('users', 'user_id');
+        Schema::create('expense_tag', function (Blueprint $table) {
+            $table->id();
 
-            $table->foreignId('claim_id')
-                ->constrained('claims', 'claim_id')
+            $table->foreignId('expense_id')
+                ->constrained('expenses', 'expense_id')
                 ->onDelete('cascade');
 
-            $table->timestamps();
+            $table->foreignId('tag_id')
+                ->constrained('tags', 'tag_id')
+                ->onDelete('cascade');
+
         });
     }
 
@@ -28,6 +29,6 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::dropIfExists('claim_notes');
+        Schema::dropIfExists('expense_tag');
     }
 };

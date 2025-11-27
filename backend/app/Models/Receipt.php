@@ -5,9 +5,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Receipt extends Model
 {
-    protected $table = 'receipt';
+    protected $table = 'receipts';
     protected $primaryKey = 'receipt_id';
-//    public $incrementing = false;
     protected $keyType = 'int';
     public $timestamps = false;
 
@@ -15,11 +14,14 @@ class Receipt extends Model
         'receipt_name',
         'receipt_desc',
         'receipt_path',
+        'expense_id'
     ];
     //relationships
-    public function expenses() {
-        return $this->hasMany(Expense::class, 'receipt_id', 'receipt_id');
+    public function expense()
+    {
+        return $this->belongsTo(Expense::class, 'expense_id', 'expense_id');
     }
+
     public function mileages() {
         return $this->hasMany(Mileage::class, 'receipt_id', 'receipt_id');
     }

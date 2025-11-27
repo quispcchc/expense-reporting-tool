@@ -10,10 +10,9 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('team', function (Blueprint $table) {
+        Schema::create('teams', function (Blueprint $table) {
             $table->bigIncrements('team_id');
             $table->string('team_abbreviation')->unique();
-            $table->integer('active_status_id');
             $table->string('team_name')->unique();
             $table->string('team_desc')->nullable();
 
@@ -25,7 +24,7 @@ return new class extends Migration {
 
             // Define relationship to departments
             $table->foreignId('department_id')
-                ->constrained('department', 'department_id')
+                ->constrained('departments', 'department_id')
                 ->onUpdate('cascade')
                 ->onDelete('restrict');
         });

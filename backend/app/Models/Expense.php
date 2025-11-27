@@ -2,12 +2,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 class Expense extends Model
 {
-    protected $table = 'expense';
+    protected $table = 'expenses';
     protected $primaryKey = 'expense_id';
-    public $incrementing = false;
     protected $keyType = 'int';
     public $timestamps = false;
 
@@ -15,27 +15,25 @@ class Expense extends Model
         'buyer_name',
         'vendor_name',
         'transaction_date',
-        'transaction_desc',
         'expense_amount',
-        'receipt_id',
-        'tag_id',
+        'transaction_desc',
+        'transaction_notes',
         'approval_status_id',
         'claim_id',
-        'team_id',
         'project_id',
         'cost_centre_id',
+        'account_number_id'
     ];
-
 
     //Relationships
     public function receipt()
     {
-        return $this->belongsTo(Receipt::class, 'receipt_id', 'receipt_id');
+        return $this->hasOne(Receipt::class, 'receipt_id', 'receipt_id');
     }
 
-    public function tag()
+    public function tags()
     {
-        return $this->belongsTo(Tag::class, 'tag_id', 'tag_id');
+        return $this->belongsToMany(Tag::class,  'expense_tag', 'expense_id', 'tag_id');
     }
 
     public function approvalStatus()
@@ -47,15 +45,13 @@ class Expense extends Model
     {
         return $this->belongsTo(Claim::class, 'claim_id', 'claim_id');
     }
-//
-//    public function mileage()
-//    {
-//        return $this->belongsTo(Mileage::class, 'mileage_id', 'mileage_id');
-//    }
 
     public function team()
     {
         return $this->belongsTo(Team::class, 'team_id', 'team_id');
+    }
+    public function accountNumber() {
+        return $this->hasOne(AccountNumber::class,'account_number_id','account_number_id');
     }
 
     public function project()

@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('receipt', function (Blueprint $table) {
-            //
-            $table->integer('receipt_id')->autoIncrement()->change();
+        Schema::create('positions', function (Blueprint $table) {
+            $table->id('position_id');
+            $table->integer('active_status_id');
+            $table->string('position_name', 50);
+            $table->string('position_desc')->nullable();
         });
     }
 
@@ -22,8 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('receipt', function (Blueprint $table) {
-            //
-        });
+        Schema::dropIfExists('positions');
     }
 };

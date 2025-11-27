@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Team extends Model
 {
     use HasFactory;
-    protected $table = 'team';
+    protected $table = 'teams';
     protected $primaryKey = 'team_id';
     public $incrementing = false;
     protected $keyType = 'int';

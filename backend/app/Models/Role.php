@@ -9,7 +9,7 @@ class Role extends Model
 {
     use HasFactory;
     // Use the exact table name
-    protected $table = 'role';
+    protected $table = 'roles';
 
     // Use your custom primary key
     protected $primaryKey = 'role_id';

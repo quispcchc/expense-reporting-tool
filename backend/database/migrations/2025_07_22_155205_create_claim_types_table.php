@@ -11,11 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('receipt', function (Blueprint $table) {
-            $table->integer('receipt_id')->primary();
-            $table->string('receipt_name', 50);
-            $table->string('receipt_desc')->nullable();
-            $table->string('receipt_path', 500)->nullable();
+        Schema::create('claim_types', function (Blueprint $table) {
+            $table->id('claim_type_id');
+            $table->integer('active_status_id');
+            $table->string('claim_type_name', 50);
+            $table->string('claim_type_desc')->nullable();
         });
     }
 
@@ -24,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('receipt');
+        Schema::dropIfExists('claim_types');
     }
 };

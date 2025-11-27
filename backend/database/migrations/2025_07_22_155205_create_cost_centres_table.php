@@ -11,12 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('cost_centre', function (Blueprint $table) {
-            $table->integer('cost_centre_id')->nullable()->primary();
+        Schema::create('cost_centres', function (Blueprint $table) {
+            $table->id('cost_centre_id');
             $table->integer('cost_centre_code')->unique();
-            $table->integer('active_status_id');
             $table->string('description');
-            $table->foreignId('department_id');
+            $table->foreignId('active_status_id')->constrained('active_status','active_status_id');
+            $table->foreignId('department_id')->constrained('departments','department_id');
             $table->timestamps();
         });
     }
@@ -26,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('cost_centre');
+        Schema::dropIfExists('cost_centres');
     }
 };

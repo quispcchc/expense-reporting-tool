@@ -5,7 +5,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class CostCentre extends Model
 {
-    protected $table = 'cost_centre';
+    protected $table = 'cost_centres';
     protected $primaryKey = 'cost_centre_id';
     public $incrementing = true;
     protected $keyType = 'int';
