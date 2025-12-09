@@ -9,6 +9,7 @@ use App\Models\Mileage;
 use App\Models\Receipt;
 use App\Models\Tag;
 use App\Models\User;
+use Exception;
 use Illuminate\Support\Facades\DB;
 
 class ClaimService
@@ -76,7 +77,7 @@ class ClaimService
                     'receipt_path' => $path,
                     'receipt_name' => $file->getClientOriginalName(),
                     'receipt_desc' => $file->getClientMimeType(),
-                    'expense_id'=>$expense->expense_id
+                    'expense_id' => $expense->expense_id
                 ]);
             }
 
@@ -95,5 +96,67 @@ class ClaimService
         }
     }
 
+
+    /**
+     * Approve or reject selected claims
+     */
+    public function bulkApproveClaim(array $claimIds): void
+    {
+        foreach ($claimIds as $claimId) {
+            $this->updateClaimStatus($claimId, 2);
+        }
+    }
+
+    public function bulkRejectClaim(array $claimIds): void
+    {
+        foreach ($claimIds as $claimId) {
+            $this->updateClaimStatus($claimId, 3);
+        }
+    }
+
+    /**
+     * Shared logic for approving/rejecting with error handling
+     */
+    private function updateClaimStatus(int $claimId, int $newStatusId)
+    {
+        DB::beginTransaction();
+
+        try {
+            $claim = Claim::with('expenses')->find($claimId);
+
+            if (!$claim) {
+                throw new Exception("Claim not found.", 404);
+            }
+
+            // Prevent double-approving or double-rejecting
+            if ($claim->claim_status_id == $newStatusId) {
+                throw new Exception("Claim is already in this status.", 400);
+            }
+
+            // Prevent approving rejected or rejecting approved
+            if ($claim->claim_status_id !== 1) {  // 1 = Pending
+                throw new Exception("Only pending claims can be updated.", 400);
+            }
+
+            // Update claim status
+            $claim->update([
+                'claim_status_id' => $newStatusId
+            ]);
+
+            // Update all expenses
+            foreach ($claim->expenses as $expense) {
+                $expense->update([
+                    'approval_status_id' => $newStatusId
+                ]);
+            }
+
+            DB::commit();
+            return $claim;
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+    }
 
 }

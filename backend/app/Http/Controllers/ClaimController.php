@@ -5,16 +5,9 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreClaimRequest;
 use App\Http\Resources\ClaimResource;
 use App\Models\Claim;
-use App\Models\ClaimNote;
-use App\Models\Expense;
-use App\Models\Mileage;
-use App\Models\Receipt;
-use App\Models\User;
 use App\Services\ClaimService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use Throwable;
+
 
 class ClaimController extends Controller
 {
@@ -114,9 +107,11 @@ class ClaimController extends Controller
         }
     }
 
-    public function update(Request $request) {
-
+    public function bulkApproveClaim(Request $request) {
+        $this->claimService->bulkApproveClaim($request->claimIds);
     }
 
-
+    public function bulkRejectClaim(Request $request) {
+        $this->claimService->bulkRejectClaim($request->claimIds);
+    }
 }

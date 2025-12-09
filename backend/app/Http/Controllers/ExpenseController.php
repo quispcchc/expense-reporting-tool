@@ -1,38 +1,53 @@
 <?php
+
 namespace App\Http\Controllers;
 
+use App\Models\Claim;
 use App\Models\Expense;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ExpenseController extends Controller
 {
-    public function index (Request $request)
+    public function index(Request $request)
     {
-        $user = $request->user();
-
         return response()->json(Expense::all());
     }
 
-    public function store(Request $request)
+    public function approveExpense(int $expenseId)
     {
-        $validated = $request->validate([
-            'claim_id' => 'required|integer|exists:claim,claim_id',
-            'buyer_name' => 'required|string',
-            'vendor_name' => 'required|string',
-            'transaction_date' => 'required|date',
-            'transaction_desc' => 'nullable|string',
-            'expense_amount' => 'required|numeric',
-            'receipt_id' => 'nullable|integer',
-            'tag_id' => 'nullable|integer',
-            'approval_status_id' => 'required|integer',
-            'mileage_id' => 'nullable|integer',
-            'team_id' => 'nullable|integer',
-            'project_id' => 'nullable|integer',
-            'cost_centre_id' => 'nullable|integer',
-        ]);
+        DB::transaction(function () use ($expenseId) {
+        $expense = Expense::findOrFail($expenseId);
 
-        $expense = Expense::create($validated);
+        $expense->update(['approval_status_id' => 2]);
 
-        return response()->json(['message' => 'Expense added', 'expense' => $expense]);
+        $this->updateClaimStatus($expense->claim_id);
+        });
+    }
+
+    public function rejectExpense(int $expenseId)
+    {
+        DB::transaction(function () use ($expenseId) {
+            $expense = Expense::findOrFail($expenseId);
+
+            $expense->update(['approval_status_id' => 3]); // 3 = Rejected
+
+            $this->updateClaimStatus($expense->claim_id);
+        });
+    }
+
+    private function updateClaimStatus($claimId)
+    {
+        $claim = Claim::with('expenses')->findOrFail($claimId);
+
+        if ($claim->expenses->every(fn($expense) => $expense->approval_status_id == 2)) {
+            $claim->update(['claim_status_id' => 2]); // All approved
+
+        } elseif ($claim->expenses->contains(fn($e) => $e->approval_status_id == 3)) {
+            $claim->update(['claim_status_id' => 3]); // Any rejected
+
+        } else {
+            $claim->update(['claim_status_id' => 1]); // Pending
+        }
     }
 }

@@ -56,14 +56,23 @@ Route::apiResource('cost-centres', CostCentreController::class)->middleware('aut
 // Fetch lookup data (active_status, roles, departments, positions,claimTypes..., which will be used cross the app)
 Route::get('lookups',[LookupController::class,'index'])->middleware('auth:sanctum');
 
-// Claim CRUD
+// Claim API
 Route::apiResource('claims',ClaimController::class)->middleware('auth:sanctum');
-
-// Expense CRUD
-Route::apiResource('expenses',ClaimController::class);
 
 // Create Claim Notes
 Route::post('notes',[ClaimNotesController::class,'store'])->middleware('auth:sanctum');
+
+// Approve and Reject
+Route::post('claims/bulk-approve',[ClaimController::class,'bulkApproveClaim'])->middleware('auth:sanctum');
+Route::post('claims/bulk-reject',[ClaimController::class,'bulkRejectClaim'])->middleware('auth:sanctum');
+
+// Expense API
+Route::apiResource('expenses',ClaimController::class)->middleware('auth:sanctum');
+Route::post('expenses/{expenseId}/approve', [ExpenseController::class, 'approveExpense'])->middleware('auth:sanctum');
+Route::post('expenses/{expenseId}/reject', [ExpenseController::class, 'rejectExpense'])->middleware('auth:sanctum');
+
+
+
 
 //claim Details
 //Route::middleware('auth:sanctum')->group(function () {

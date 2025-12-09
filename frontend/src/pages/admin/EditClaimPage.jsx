@@ -16,15 +16,17 @@ function EditClaimPage () {
 
     const [curClaim, setCurClaim] = useState(null)
 
-    useEffect(() => {
-        const fetchClaim = async () => {
-            try {
-                const data = await getClaimById(Number(claimId))
-                setCurClaim(data)
-            } catch (error) {
-                console.error(error)
-            }
+    const fetchClaim = async() => {
+        try {
+            const data = await getClaimById(Number(claimId))
+            setCurClaim(data)
         }
+        catch (error) {
+            console.error(error)
+        }
+    }
+
+    useEffect(() => {
         fetchClaim()
     }, [claimId])
 
@@ -45,11 +47,13 @@ function EditClaimPage () {
             <div className="flex flex-wrap gap-5 my-5">
                 <div className="flex-1"><ClaimDetail curClaim={ curClaim }/></div>
                 <div className="flex-1">
-                    <ClaimNotes curClaim={curClaim} toastRef={toast}/>
+                    <ClaimNotes curClaim={ curClaim } toastRef={ toast }/>
                 </div>
             </div>
 
-            <EditableExpansionTable data={curClaim.expenses} curClaim={curClaim} mode='edit' toastRef={toast}/>
+            <EditableExpansionTable data={ curClaim.expenses } curClaim={ curClaim } mode="edit" toastRef={ toast }
+                                    onClaimUpdated={ fetchClaim }
+            />
 
         </div>
     )

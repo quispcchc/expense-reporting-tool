@@ -12,20 +12,22 @@ import { InputText } from 'primereact/inputtext'
 import { IconField } from 'primereact/iconfield'
 import { InputIcon } from 'primereact/inputicon'
 import { Button } from 'primereact/button'
-import { BUTTON_STYLE } from '../../../utils/customizeStyle.js'
-import { exportToCSVManual } from '../../../utils/helpers.js'
+import { BUTTON_STYLE, STATUS_STYLES } from '../../../utils/customizeStyle.js'
+import { exportToCSVManual, showToast } from '../../../utils/helpers.js'
 import { useLookups } from '../../../contexts/LookupContext.jsx'
 import { useClaims } from '../../../contexts/ClaimContext.jsx'
+import api from '../../../api/api.js'
+import { confirmDialog } from 'primereact/confirmdialog'
 
-function ClaimListDataTable ({ claims, user }) {
-    const {fetchClaims}=useClaims()
+function ClaimListDataTable ({ claims, user, toastRef }) {
+    const { fetchClaims } = useClaims()
 
     useEffect(() => {
-        const fetchData = async () => {
-            await fetchClaims();
-        };
-        fetchData();
-    }, []);
+        const fetchData = async() => {
+            await fetchClaims()
+        }
+        fetchData()
+    }, [])
 
     const { lookups: { claimStatus, claimTypes } } = useLookups()
 
@@ -33,6 +35,7 @@ function ClaimListDataTable ({ claims, user }) {
     const [globalFilterValue, setGlobalFilterValue] = useState('')
 
     const [selectedClaims, setSelectedClaims] = useState(null)
+    const isDisabled = !selectedClaims || selectedClaims.length === 0;
 
     const [filters, setFilters] = useState({
         global: { value: null, matchMode: FilterMatchMode.CONTAINS },
@@ -54,9 +57,13 @@ function ClaimListDataTable ({ claims, user }) {
         setGlobalFilterValue(value)
     }
 
-    const statusBodyTemplate = (rowData) => (
-        <StatusTab status={ rowData.status.claim_status_name }/>
-    )
+    // Column Render Template
+    const statusBodyTemplate = (rowData) => {
+        console.log(rowData.claim_status_id)
+        return (
+            <StatusTab status={ rowData.claim_status_id }/>
+        )
+    }
 
     const totalAmountBodyTemplate = (rowData) => (
         <>${ rowData.total_amount }</>
@@ -75,9 +82,14 @@ function ClaimListDataTable ({ claims, user }) {
     )
 
     const statusItemTemplate = (option) => {
-        return <StatusTab status={ option.value }/>
+        return <div
+            className={ `rounded-lg p-1 text-center text-sm font-medium w-21 ${ STATUS_STYLES[ option.value ] }` }>
+            { option.value }
+        </div>
+
     }
 
+    // Filter Template
     const statusRowFilterTemplate = (options) => {
         return (
             <Dropdown value={ options.value } options={ claimStatus.map(
@@ -105,6 +117,58 @@ function ClaimListDataTable ({ claims, user }) {
         )
     }
 
+
+     function bulkApproveClaim () {
+        const claimIds = selectedClaims.map(claim => claim.claim_id)
+        const payload = {claimIds}
+
+        confirmDialog({
+            message: 'Do you want to approve all selected claims?',
+            header: 'Bulk Approve Confirmation',
+            icon: 'pi pi-info-circle',
+            defaultFocus: 'reject',
+            acceptClassName: 'p-button-info',
+            accept: async() => {
+                try {
+                    await api.post('claims/bulk-approve', payload)
+                    await fetchClaims()
+                    showToast(toastRef, { severity: 'success', summary: 'Success', detail: 'Selected Claims has been Approved Successfully!' })
+                }
+                catch (error) {
+                    showToast(toastRef, { severity: 'error', summary: 'Error', detail: error.message })
+                }
+            },
+            reject: ()=>{ return showToast(toastRef, { severity: 'info', summary: 'Cancell', detail:'Bulk Approve Cancelled' })},
+        })
+
+    }
+
+    async function bulkRejectClaim () {
+        const claimIds = selectedClaims.map(claim => claim.claim_id)
+        const payload = {claimIds}
+
+        confirmDialog({
+            message: 'Do you want to reject all selected claims?',
+            header: 'Bulk Reject Confirmation',
+            icon: 'pi pi-info-circle',
+            defaultFocus: 'reject',
+            acceptClassName: 'p-button-info',
+            accept: async() => {
+                try {
+                    await api.post('claims/bulk-reject', payload)
+                    await fetchClaims()
+                    showToast(toastRef, { severity: 'Success', summary: 'Success', detail: 'Selected Claims has been Rejected Successfully!' })
+                }
+                catch (error) {
+                    showToast(toastRef, { severity: 'error', summary: 'Error', detail: error.message })
+                }
+            },
+            reject: ()=>{ return showToast(toastRef, { severity: 'info', summary: 'Cancel', detail:'Bulk Reject Cancelled' })},
+        })
+
+
+    }
+
     const adminHeaderTemplate = () => (
         <div className="flex justify-between items-center flex-wrap gap-2">
             <div className="flex justify-end">
@@ -119,10 +183,12 @@ function ClaimListDataTable ({ claims, user }) {
             </div>
 
             <div className="flex gap-2 flex-wrap">
-                <Button label="Approve" outlined className={ BUTTON_STYLE.success } icon="pi pi-check" iconPos="right"/>
-                <Button label="Reject" outlined className={ BUTTON_STYLE.danger } icon="pi pi-times" iconPos="right"/>
+                <Button label="Approve" outlined className={ BUTTON_STYLE.success } icon="pi pi-check" iconPos="right"
+                        onClick={ bulkApproveClaim } disabled={isDisabled}/>
+                <Button label="Reject" outlined className={ BUTTON_STYLE.danger } icon="pi pi-times" iconPos="right"
+                        onClick={ bulkRejectClaim } disabled={isDisabled}/>
                 <Button label="Export" outlined icon="pi pi-file-export" iconPos="right"
-                        onClick={ () => exportToCSVManual(selectedClaims) }/>
+                        onClick={ () => exportToCSVManual(selectedClaims) } disabled={isDisabled}/>
                 <Link to="/admin/claims/create-claim">
                     <Button label="New Claim" icon="pi pi-plus" iconPos="right"/>
                 </Link>
@@ -166,7 +232,7 @@ function ClaimListDataTable ({ claims, user }) {
                            'claim_type.claim_type_name',
                            'total_amount',
                            'claim_submitted',
-                           'status.claim_status_name'
+                           'status.claim_status_name',
                        ] }
                        selectionMode="checkbox"
                        selection={ selectedClaims } onSelectionChange={ (e) => setSelectedClaims(e.value) }

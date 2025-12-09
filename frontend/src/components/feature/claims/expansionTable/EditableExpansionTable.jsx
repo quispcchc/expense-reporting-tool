@@ -10,8 +10,10 @@ import { Button } from 'primereact/button'
 import StatusTab from '../../../common/ui/StatusTab.jsx'
 import { useLookups } from '../../../../contexts/LookupContext.jsx'
 import { showToast } from '../../../../utils/helpers.js'
+import api from '../../../../api/api.js'
+import { BUTTON_STYLE } from '../../../../utils/customizeStyle.js'
 
-function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate, toastRef }) {
+function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate, toastRef, onClaimUpdated }) {
     const [expenseItems, setExpenseItems] = useState(data || [])
 
     const { updateClaim } = useClaims()
@@ -48,19 +50,18 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate, toa
                     costCentre: expense.cost_centre_id,
                     amount: expense.expense_amount,
                     description: expense.transaction_desc,
-                    notes:expense.transaction_notes,
+                    notes: expense.transaction_notes,
                     tags: expense.tags,
                     status: expense.approval_status_id,
                     program: expense.project_id,
                     attachment: expense.receipt_url,
 
-
-
                 } )),
             )
         }
     }, [data])
-    console.log(expenseItems)
+
+    console.log('expense items', expenseItems)
 
     const handleExpansionFieldChange = (expenseId, fieldName, newValue) => {
         // Update the local expense items immediately for UI responsiveness
@@ -75,7 +76,6 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate, toa
                     : expense,
             ),
         )
-
 
         // Store the changes temporarily until the row edit is completed
         setUnsavedExpansionChanges(previousChanges => ( {
@@ -221,19 +221,65 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate, toa
         }).format(rowData.amount || 0)
     }
 
-    const renderActionsButton = (rowData) => ( <div className="flex gap-2">
-        <Button label="Approve"/>
-        <Button label="Reject"/>
-    </div> )
+    // Approve and Reject a single expense item
+    async function approveExpense (expenseId) {
+        try {
+            await api.post(`expenses/${ expenseId }/approve`)
 
-    function mapClaimStatus (statusId) {
-        const status = { 1: 'Pending', 2: 'Approved', 3: 'Rejected' }
-        console.log(statusId)
-        return status[ statusId ]
+            // Update local state in table
+            setExpenseItems(prev =>
+                prev.map(item =>
+                    item.transactionId === expenseId ? { ...item, status: 2 } : item,
+                ),
+            )
+            if (onClaimUpdated) onClaimUpdated()
+
+            showToast(toastRef, { severity: 'success', summary: 'Success', detail: 'Approved successfully!' })
+
+        }
+        catch (error) {
+            console.log(error)
+            showToast(
+                toastRef, { severity: 'error', summary: 'Error', detail: 'Ops, something went wrong!' })
+        }
+    }
+
+    async function rejectExpense (expenseId) {
+        try {
+
+            await api.post(`expenses/${ expenseId }/reject`)
+
+            // update local state
+            setExpenseItems(prev =>
+                prev.map(item =>
+                    item.transactionId === expenseId ? { ...item, status: 3 } : item,
+                ),
+            )
+
+            if (onClaimUpdated) onClaimUpdated()
+
+            showToast(toastRef, { severity: 'success', summary: 'Success', detail: 'Rejected successfully!' })
+        }
+        catch (error) {
+            console.log(error)
+        }
+    }
+
+    const renderActionsButton = (rowData) => {
+        const isProcessed = rowData.status === 2 || rowData.status === 3 // 2=Approved, 3=Rejected
+
+        return (
+            <div className="flex gap-2">
+                <Button label="Approve" outlined className={ BUTTON_STYLE.success } icon="pi pi-check" iconPos="right"
+                        onClick={ () => approveExpense(rowData.transactionId) } disabled={ isProcessed }/>
+                <Button label="Reject" outlined className={ BUTTON_STYLE.danger } icon="pi pi-times" iconPos="right"
+                        onClick={ () => rejectExpense(rowData.transactionId) } disabled={ isProcessed }/>
+            </div>
+        )
     }
 
     const renderStatus = (rowData) => (
-        <StatusTab status={ mapClaimStatus(rowData.status) }/>
+        <StatusTab status={ rowData.status }/>
     )
 
     // Convert ID to label
