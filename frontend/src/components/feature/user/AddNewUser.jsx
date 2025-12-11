@@ -15,7 +15,7 @@ function AddNewUser () {
 
     const [selectedTeams, setSelectedTeams] = useState(null)
     const [selectedRoles, setSelectedRoles] = useState(null)
-    const dispatch = useUserDispatch()
+    const { createUser } = useUserDispatch()
     const [userFormData, setUserFormData] = useState({
         first_name: '',
         last_name: '',
@@ -40,11 +40,28 @@ function AddNewUser () {
         const validation = validateForm(updatedUser, schema)
 
         console.log(validation)
+        
         console.log(updatedUser)
 
         if (validation.isValid) {
-            console.log(updatedUser)
-            dispatch({ type: 'create', payload: updatedUser })
+            ;(async () => {
+                try {
+                    await createUser({
+                        first_name: updatedUser.first_name,
+                        last_name: updatedUser.last_name,
+                        email: updatedUser.email || '',
+                        role_id: updatedUser.roles?.[0] || null,
+                        team_id: updatedUser.teams?.[0] || null,
+                    })
+                    // Optionally clear form on success
+                    setUserFormData({ first_name: '', last_name: '', position: '', status: '' })
+                    setSelectedRoles(null)
+                    setSelectedTeams(null)
+                } catch (err) {
+                    console.error('Failed to create user', err)
+                    setErrors(prev => ({ ...prev, form: err.message }))
+                }
+            })()
         }
 
         console.log(selectedTeams, selectedRoles)

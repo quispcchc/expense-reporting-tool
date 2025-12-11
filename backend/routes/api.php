@@ -3,6 +3,7 @@
 use App\Http\Controllers\ClaimNotesController;
 use App\Http\Controllers\CostCentreController;
 use App\Http\Controllers\LookupController;
+use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -42,10 +43,18 @@ Route::post('/admin/create-user', [CreateUserController::class, 'createUser'])->
 //Admin management
 Route::middleware(['auth:sanctum','role:1'])->group(function () {
     Route::post('/admin/create-user', [CreateUserController::class, 'createUser']);
+
+    Route::post('/admin/create-user', [CreateUserController::class, 'createUser']);
+    // Admin user management
+    Route::get('/admin/users', [UserController::class, 'index']);
+    Route::put('/admin/users/{id}', [UserController::class, 'update']);
+    Route::delete('/admin/users/{id}', [UserController::class, 'destroy']);
+
     Route::get('/roles', [RoleController::class, 'index']);
     Route::post('/roles', [RoleController::class, 'store']);
     Route::put('/roles/{id}', [RoleController::class, 'update']);
     Route::delete('/roles/{id}', [RoleController::class, 'destroy']);
+
 
 });
 
