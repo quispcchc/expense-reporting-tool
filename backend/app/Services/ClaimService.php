@@ -9,11 +9,54 @@ use App\Models\Mileage;
 use App\Models\Receipt;
 use App\Models\Tag;
 use App\Models\User;
+use App\Notifications\ClaimUpdatedNotification;
 use Exception;
 use Illuminate\Support\Facades\DB;
 
 class ClaimService
 {
+    public function getAllClaims(User $user)
+    {
+        $role_level = $user->role->role_level;
+
+        $query = Claim::with(['expenses', 'claimType', 'department', 'team', 'status']);
+
+        if ($role_level === 2) {
+            // Department-level access
+            $query->where('department_id', $user->department_id);
+
+        } elseif ($role_level === 3) {
+            // Team-level access or own claims
+            $query->where('team_id', $user->team_id);
+
+        } elseif ($role_level === 4) {
+            // User-level access
+            $query->where('user_id', $user->user_id);
+        }
+
+        // else role_level 1 or super admin sees all claims
+
+        $claims = $query->get();
+
+        return $claims;
+    }
+
+    public function getClaimsByUserId(User $user)
+    {
+        return Claim::with(['expenses', 'claimType', 'department', 'team', 'status'])
+            ->where('user_id', $user->user_id)->get();
+    }
+
+
+    public function getClaimById(int $claimId)
+    {
+        return Claim::with(['expenses.tags', 'claimType', 'status', 'position', 'user', 'department', 'team', 'claimNotes.user'])
+            ->where('claim_id', $claimId)
+            ->first();
+    }
+
+
+
     public function createClaim(array $data, $user): Claim
     {
         return DB::transaction(function () use ($data, $user) {
@@ -103,14 +146,14 @@ class ClaimService
     public function bulkApproveClaim(array $claimIds): void
     {
         foreach ($claimIds as $claimId) {
-            $this->updateClaimStatus($claimId, 2);
+            $this->updateClaimStatus($claimId, 2); // 2 for approved
         }
     }
 
     public function bulkRejectClaim(array $claimIds): void
     {
         foreach ($claimIds as $claimId) {
-            $this->updateClaimStatus($claimId, 3);
+            $this->updateClaimStatus($claimId, 3); // 3 for rejected
         }
     }
 
@@ -151,6 +194,10 @@ class ClaimService
             }
 
             DB::commit();
+
+            // Send email to the claim owner
+            $claim->user->notify(new ClaimUpdatedNotification($claim));
+
             return $claim;
 
         } catch (Exception $e) {
@@ -158,5 +205,6 @@ class ClaimService
             throw $e;
         }
     }
+
 
 }

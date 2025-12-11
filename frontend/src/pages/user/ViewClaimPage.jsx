@@ -7,11 +7,15 @@ import ClaimNotes from '../../components/feature/claims/addNotes/ClaimNotes.jsx'
 import ClaimStatus from '../../components/feature/claims/ClaimStatus.jsx'
 import EditableExpansionTable from '../../components/feature/claims/expansionTable/EditableExpansionTable.jsx'
 import Loader from '../../components/common/ui/Loader.jsx'
+import { useAuth } from '../../contexts/AuthContext.jsx'
 
 function ViewClaimPage () {
     const { claimId } = useParams()
     const { getClaimById } = useClaims()
     const [curClaim, setCurClaim] = useState()
+
+    const { authUser } = useAuth()
+    const path = authUser.role_name === 'regular_user' ? '/user' : '/admin'
 
     useEffect(() => {
         const fetchClaim = async () => {
@@ -25,13 +29,12 @@ function ViewClaimPage () {
         fetchClaim()
     }, [claimId])
 
-    console.log('cur claims',curClaim)
     if (!curClaim) return <Loader/>
 
     return (
         <div>
             <div className="flex justify-between items-center flex-wrap">
-                <ContentHeader title={ `Claim #${ claimId }` } homePath="/user"/>
+                <ContentHeader title={ `Claim #${ claimId }` } homePath={path}/>
                 <ClaimStatus curClaim={ curClaim }/>
             </div>
 

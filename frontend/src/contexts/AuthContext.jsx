@@ -9,6 +9,7 @@ export const AuthProvider = ({ children }) => {
     const [token, setToken] = useState(null)
     const [error, setError] = useState(null)
     const [isLoading, setIsLoading] = useState(true)
+    const [path, setPath] = useState()
 
     // On component mount, initialize auth state from sessionStorage
     useEffect(() => {
@@ -42,9 +43,9 @@ export const AuthProvider = ({ children }) => {
                 sessionStorage.setItem('token', access_token)
                 sessionStorage.setItem('authUser', JSON.stringify(user))
 
-                console.log(user)
+                const path = user.role_name === 'regular_user' ? '/user' : '/admin'
 
-                return { success: true, redirectTo: user.role_name === 'regular_user' ? '/user' : '/admin', user: user }
+                return { success: true, redirectTo: path, user: user }
             }
             catch (err) {
                 const errorMessage = err.message || 'Login failed. Please try again.'
@@ -130,7 +131,7 @@ export const AuthProvider = ({ children }) => {
 
     // Context value with all auth-related state and methods to expose to consumers
     const value = {
-        token, authUser, isLoading, error, setError,
+        token, authUser, isLoading, error, setError,path,
         ...actions
     }
 

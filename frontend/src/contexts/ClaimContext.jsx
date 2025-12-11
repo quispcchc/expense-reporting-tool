@@ -50,8 +50,6 @@ export function ClaimProvider ({ children }) {
         claims: [],
     })
 
-    console.log(state)
-
     // Action creators to dispatch actions to the reducer
     const actions = {
         // Fetch existing claims from database

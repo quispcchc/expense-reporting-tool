@@ -2,19 +2,20 @@
 
 namespace App\Notifications;
 
+use App\Models\Claim;
 use Illuminate\Notifications\Notification;
 use Illuminate\Notifications\Messages\MailMessage;
 
 class ClaimUpdatedNotification extends Notification
 {
-    protected $message;
+    protected Claim $claim;
 
     /**
      * Create a new notification instance.
      */
-    public function __construct($message)
+    public function __construct(Claim $claim)
     {
-        $this->message = $message;
+        $this->claim = $claim;
     }
 
     /**
@@ -30,10 +31,14 @@ class ClaimUpdatedNotification extends Notification
      */
     public function toMail($notifiable)
     {
+
         return (new MailMessage)
-            ->subject('Claim Updated')
-            ->line($this->message)
-            ->action('View Claim', url('/claims')) // Adjust the URL to point to your claims page
+            ->subject("Claim #{$this->claim->claim_id} Updated")
+            ->line("Your claim status has been updated to: **{$this->claim->status->claim_status_name}**.")
+            ->line("Total Amount: {$this->claim->total_amount}")
+            ->action(
+                'View Claim',
+                url("/user/claims/{$this->claim->claim_id}/view-claim"))
             ->line('Thank you for using our application!');
     }
 }

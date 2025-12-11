@@ -97,12 +97,20 @@ const router = createBrowserRouter(
                     element: <AllClaimsPage/>,
                 },
                 {
+                    path: 'my-claims',
+                    element: <MyClaimPage/>,
+                },
+                {
                     path: 'claims/create-claim',
                     element: <CreateClaimPage/>,
                 },
                 {
                     path: 'claims/:claimId/edit-claim',
                     element: <EditClaimPage/>,
+                },
+                {
+                    path: 'my-claims/:claimId/view-claim',
+                    element: <ViewClaimPage/>,
                 },
                 {
                     path: 'users',

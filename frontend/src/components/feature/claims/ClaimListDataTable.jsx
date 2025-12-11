@@ -19,7 +19,7 @@ import { useClaims } from '../../../contexts/ClaimContext.jsx'
 import api from '../../../api/api.js'
 import { confirmDialog } from 'primereact/confirmdialog'
 
-function ClaimListDataTable ({ claims, user, toastRef }) {
+function ClaimListDataTable ({ claims ,user,path, toastRef }) {
     const { fetchClaims } = useClaims()
 
     useEffect(() => {
@@ -58,28 +58,14 @@ function ClaimListDataTable ({ claims, user, toastRef }) {
     }
 
     // Column Render Template
-    const statusBodyTemplate = (rowData) => {
-        console.log(rowData.claim_status_id)
-        return (
+    const statusBodyTemplate = (rowData) => (
             <StatusTab status={ rowData.claim_status_id }/>
         )
-    }
 
     const totalAmountBodyTemplate = (rowData) => (
         <>${ rowData.total_amount }</>
     )
 
-    const actionBodyTemplate = (rowData) => (
-        <>
-            { user === 'admin' ?
-                <Link to={ `${ rowData.claim_id }/edit-claim` }>
-                    <button className="pi pi-pencil cursor-pointer"></button>
-                </Link> : <Link to={ `${ rowData.claim_id }/view-claim` }>
-                    <button className="pi pi-eye cursor-pointer"></button>
-                </Link> }
-
-        </>
-    )
 
     const statusItemTemplate = (option) => {
         return <div
@@ -117,6 +103,17 @@ function ClaimListDataTable ({ claims, user, toastRef }) {
         )
     }
 
+    const actionBodyTemplate = (rowData) => (
+        <>
+            { user === 'admin' ?
+                <Link to={ `${ rowData.claim_id }/edit-claim` }>
+                    <button className="pi pi-pencil cursor-pointer"></button>
+                </Link> : <Link to={ `${ rowData.claim_id }/view-claim` }>
+                    <button className="pi pi-eye cursor-pointer"></button>
+                </Link> }
+
+        </>
+    )
 
      function bulkApproveClaim () {
         const claimIds = selectedClaims.map(claim => claim.claim_id)
@@ -132,14 +129,16 @@ function ClaimListDataTable ({ claims, user, toastRef }) {
                 try {
                     await api.post('claims/bulk-approve', payload)
                     await fetchClaims()
-                    showToast(toastRef, { severity: 'success', summary: 'Success', detail: 'Selected Claims has been Approved Successfully!' })
+                    showToast(toastRef, { severity: 'success', summary: 'Success', detail: 'Selected claims has been approved successfully!' })
                 }
                 catch (error) {
                     showToast(toastRef, { severity: 'error', summary: 'Error', detail: error.message })
                 }
             },
-            reject: ()=>{ return showToast(toastRef, { severity: 'info', summary: 'Cancell', detail:'Bulk Approve Cancelled' })},
+            reject: ()=>{ return showToast(toastRef, { severity: 'success', summary: 'Success', detail:'Bulk Approve Cancelled' })},
         })
+
+         setSelectedClaims([])
 
     }
 
@@ -157,7 +156,7 @@ function ClaimListDataTable ({ claims, user, toastRef }) {
                 try {
                     await api.post('claims/bulk-reject', payload)
                     await fetchClaims()
-                    showToast(toastRef, { severity: 'Success', summary: 'Success', detail: 'Selected Claims has been Rejected Successfully!' })
+                    showToast(toastRef, { severity: 'success', summary: 'Success', detail: 'Selected claims has been rejected successfully!' })
                 }
                 catch (error) {
                     showToast(toastRef, { severity: 'error', summary: 'Error', detail: error.message })
@@ -165,6 +164,8 @@ function ClaimListDataTable ({ claims, user, toastRef }) {
             },
             reject: ()=>{ return showToast(toastRef, { severity: 'info', summary: 'Cancel', detail:'Bulk Reject Cancelled' })},
         })
+
+        setSelectedClaims([])
 
 
     }
@@ -189,7 +190,7 @@ function ClaimListDataTable ({ claims, user, toastRef }) {
                         onClick={ bulkRejectClaim } disabled={isDisabled}/>
                 <Button label="Export" outlined icon="pi pi-file-export" iconPos="right"
                         onClick={ () => exportToCSVManual(selectedClaims) } disabled={isDisabled}/>
-                <Link to="/admin/claims/create-claim">
+                <Link to={`${path}claims/create-claim`}>
                     <Button label="New Claim" icon="pi pi-plus" iconPos="right"/>
                 </Link>
 
@@ -212,7 +213,7 @@ function ClaimListDataTable ({ claims, user, toastRef }) {
             </div>
 
             <div className="flex gap-2">
-                <Link to="/user/claims/create-claim">
+                <Link to={`${path}/claims/create-claim`}>
                     <Button label="New Claim" icon="pi pi-plus" iconPos="right"/>
                 </Link>
             </div>

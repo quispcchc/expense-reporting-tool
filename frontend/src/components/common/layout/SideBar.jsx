@@ -12,6 +12,7 @@ const sidebarData = [
         title: 'CLAIMS',
         items: [
             { icon: IoDocumentTextOutline, label: 'All Claims', path: '/admin/claims' },
+            { icon: IoDocumentTextOutline, label: 'My Claims', path: 'my-claims' },
             { icon: IoCreateOutline, label: 'New Claim', path: '/admin/claims/create-claim' },
         ],
     },

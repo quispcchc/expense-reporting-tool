@@ -7,6 +7,8 @@ use App\Http\Resources\ClaimResource;
 use App\Models\Claim;
 use App\Services\ClaimService;
 use Illuminate\Http\Request;
+use Log;
+use Throwable;
 
 
 class ClaimController extends Controller
@@ -24,10 +26,7 @@ class ClaimController extends Controller
      */
     public function show($claimId)
     {
-        $claim = Claim::with(['expenses.tags', 'claimType', 'status', 'position', 'user', 'department', 'team', 'claimNotes.user'])
-            ->where('claim_id', $claimId)
-            ->first();
-
+        $claim = $this->claimService->getClaimById($claimId);
 
         return response()->json($claim);
     }
@@ -38,26 +37,19 @@ class ClaimController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $role_level = $user->role->role_level;
 
-        $query = Claim::with(['expenses', 'claimType', 'department', 'team', 'status']);
-
-        if ($role_level === 2) {
-            // Department-level access
-            $query->where('department_id', $user->department_id);
-        } elseif ($role_level === 3) {
-            // Team-level access or own claims
-            $query->where('team_id', $user->team_id)
-                ->orWhere('user_id', $user->user_id);
-        } elseif ($role_level === 4) {
-            // User-level access
-            $query->where('user_id', $user->user_id);
-        }
-        // else role_level 1 or super admin sees all claims
-
-        $claims = $query->get();
+        $claims = $this->claimService->getAllClaims($user);
 
         return response()->json($claims);
+    }
+
+    public function getClaimsByUser(Request $request) {
+
+        $user = $request->user();
+
+        $myClaims = $this->claimService->getClaimsByUserId($user);
+
+        return response()->json($myClaims);
     }
 
 
@@ -88,8 +80,6 @@ class ClaimController extends Controller
             'expenses.*.file' => 'nullable|file|max:5120|mimes:jpg,jpeg,png,pdf',
             'expenses.*.cost_centre_id' => 'required_with:expenses|integer',
             'expenses.*.tags' => 'nullable|string',
-
-
             'mileage' => 'nullable|array',
         ]);
 
@@ -101,17 +91,46 @@ class ClaimController extends Controller
                 'claim' => $claim
             ], 201);
 
-        } catch (\Throwable $e) {
-            \Log::error('Error creating claim: ' . $e->getMessage());
+        } catch (Throwable $e) {
+            Log::error('Error creating claim: ' . $e->getMessage());
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
-    public function bulkApproveClaim(Request $request) {
-        $this->claimService->bulkApproveClaim($request->claimIds);
+
+    public function bulkApproveClaim(Request $request)
+    {
+        $user = $request->user();
+        $claimIds = $request->claimIds;
+
+        $claims = Claim::whereIn('claim_id', $claimIds)->get();
+
+        foreach ($claims as $claim) {
+            if ($user->cannot('approve', $claim)) {
+                return response()->json([
+                    'message' => "Not authorized to approve claim ID {$claim->claim_id}."
+                ], 403);
+            }
+        }
+        $this->claimService->bulkApproveClaim($claimIds);
     }
 
-    public function bulkRejectClaim(Request $request) {
-        $this->claimService->bulkRejectClaim($request->claimIds);
+    public function bulkRejectClaim(Request $request)
+    {
+        $user = $request->user();
+        $claimIds = $request->claimIds;
+
+        $claims = Claim::whereIn('claim_id', $claimIds)->get();
+
+        foreach ($claims as $claim) {
+            if ($user->cannot('reject', $claim)) {
+                return response()->json([
+                    'message' => "Not authorized to reject claim ID {$claim->claim_id}."
+                ], 403);
+            }
+
+            $this->claimService->bulkRejectClaim($claimIds);
+        }
     }
+
 }

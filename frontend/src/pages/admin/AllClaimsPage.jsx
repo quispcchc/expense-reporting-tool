@@ -9,6 +9,7 @@ import { ConfirmDialog } from 'primereact/confirmdialog'
 function AllClaimsPage () {
     const { claims } = useClaims()
     const toast = useRef()
+    console.log('claims',claims)
 
 
     return (
