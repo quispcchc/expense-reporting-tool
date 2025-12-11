@@ -4,7 +4,6 @@ import AddNewCostCentre from '../../components/feature/costCentre/AddNewCostCent
 import { DataTable } from 'primereact/datatable'
 import { Column } from 'primereact/column'
 import { useCostCentre } from '../../contexts/CostCentreContext.jsx'
-import StatusTab from '../../components/common/ui/StatusTab.jsx'
 import { InputText } from 'primereact/inputtext'
 import { Dropdown } from 'primereact/dropdown'
 import { FilterMatchMode } from 'primereact/api'
@@ -15,6 +14,7 @@ import { ProgressSpinner } from 'primereact/progressspinner'
 
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog'
 import { Toast } from 'primereact/toast'
+import ActiveStatusTab from '../../components/common/ui/ActiveStatusTab.jsx'
 
 function CostCentresPage () {
     const { lookups } = useLookups()
@@ -52,7 +52,7 @@ function CostCentresPage () {
     }
 
     const renderStatus = (rowData) => (
-        <StatusTab status={ rowData.active_status?.active_status_name }/>
+        <ActiveStatusTab status={ rowData.active_status_id}/>
     )
 
     const departmentEditor = (editorOptions) => (

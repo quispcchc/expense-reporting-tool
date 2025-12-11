@@ -27,7 +27,7 @@ class CostCentrePolicy
     /**
      * Determine whether the user can create models.
      */
-    public function create(User $user,CostCentre $costCentre): bool
+    public function create(User $user, CostCentre $costCentre): bool
     {
         // Super admin can create anything
         if ($user->role->role_level === 1) {
@@ -38,6 +38,7 @@ class CostCentrePolicy
         if ($user->role->role_level === 2) {
             return $costCentre->department_id === $user->department_id;
         }
+
         return false;
     }
 

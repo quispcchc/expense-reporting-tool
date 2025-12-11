@@ -50,8 +50,8 @@ class CostCentreController extends Controller
 
         // Validate request data
         $validated = $request->validate([
-            'department_id' => 'required|integer|exists:department,department_id',
-            'cost_centre_code' => 'required|integer|unique:cost_centre,cost_centre_code',
+            'department_id' => 'required|integer|exists:departments,department_id',
+            'cost_centre_code' => 'required|integer|unique:cost_centres,cost_centre_code',
             'description' => 'nullable|string|max:100',
             'active_status_id' => 'required|integer|exists:active_status,active_status_id',
         ], [
@@ -98,8 +98,8 @@ class CostCentreController extends Controller
 
         // Validate request data
         $validated = $request->validate([
-            'department_id' => 'sometimes|required|integer|exists:department,department_id',
-            'cost_centre_code' => ['required', 'integer', Rule::unique('cost_centre', 'cost_centre_code')->ignore($costCentre->cost_centre_id, 'cost_centre_id'),],
+            'department_id' => 'sometimes|required|integer|exists:departments,department_id',
+            'cost_centre_code' => ['required', 'integer', Rule::unique('cost_centres', 'cost_centre_code')->ignore($costCentre->cost_centre_id, 'cost_centre_id'),],
             'description' => 'required|string|max:100',
             'active_status_id' => 'sometimes|required|integer|exists:active_status,active_status_id',
         ], [
