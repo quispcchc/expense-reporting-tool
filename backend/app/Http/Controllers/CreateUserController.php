@@ -20,7 +20,7 @@ class CreateUserController extends Controller
         $request->validate([
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
-            'role_id' => 'required|exists:roles,id', // Assuming roles are managed in a roles table
+            'role_id' => 'required|exists:roles,role_id', // Assuming roles are managed in a roles table
             'email' => 'required|email|unique:users,email',
         ]);
 
@@ -31,8 +31,10 @@ class CreateUserController extends Controller
             'email' => $request->email,
             // Note: the application uses `user_pass` as the stored password column in factories/models.
             // We intentionally leave password/user_pass null so the admin triggers verification flow.
+
             'password' => null,
             'role_id' => $request->role_id, // Assuming role_id is provided
+            'active_status_id'=>1,
             'email_verified_at' => null,
         ]);
 
@@ -40,13 +42,13 @@ class CreateUserController extends Controller
         $token = Str::random(64);
 
         // Store the token
-        DB::table('email_verification_tokens')->updateOrInsert(
-            ['email' => $user->email],
-            [
-                'token' => bcrypt($token),
-                'created_at' => now(),
-            ]
-        );
+//        DB::table('email_verification_tokens')->updateOrInsert(
+//            ['email' => $user->email],
+//            [
+//                'token' => bcrypt($token),
+//                'created_at' => now(),
+//            ]
+//        );
 
         // Send email with verification link
         $user->notify(new VerifyEmailNotification($token));

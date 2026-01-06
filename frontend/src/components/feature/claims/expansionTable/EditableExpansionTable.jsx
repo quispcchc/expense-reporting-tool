@@ -12,6 +12,7 @@ import { useLookups } from '../../../../contexts/LookupContext.jsx'
 import { showToast } from '../../../../utils/helpers.js'
 import api from '../../../../api/api.js'
 import { BUTTON_STYLE } from '../../../../utils/customizeStyle.js'
+import { confirmDialog } from 'primereact/confirmdialog'
 
 function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate, toastRef, onClaimUpdated }) {
     const [expenseItems, setExpenseItems] = useState(data || [])
@@ -61,8 +62,6 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate, toa
         }
     }, [data])
 
-    console.log('expense items', expenseItems)
-
     const handleExpansionFieldChange = (expenseId, fieldName, newValue) => {
         // Update the local expense items immediately for UI responsiveness
         setExpenseItems(previousItems =>
@@ -71,7 +70,6 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate, toa
                     ? {
                         ...expense,
                         [ fieldName ]: fieldName === 'tags' ? [...newValue.split(',')] : newValue,
-
                     }
                     : expense,
             ),
@@ -124,34 +122,32 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate, toa
         )
     }
 
-    const handleRowSaveComplete = (editEvent) => {
-        const updatedExpenseItems = [...expenseItems]
-        const expenseId = editEvent.newData.transactionId
-        const changesFromExpansion = unsavedExpansionChanges[ expenseId ] || {}
-
-        // Merge the row edits with any expansion area changes
-        updatedExpenseItems[ editEvent.index ] = {
-            ...expenseItems[ editEvent.index ],
-            ...editEvent.newData,
-            ...changesFromExpansion,
-        }
-
-        setCurrentlyEditingRowId(null)
-
-        // Clear the temporary expansion changes for this row
-        setUnsavedExpansionChanges(previousChanges => {
-            const cleanedChanges = { ...previousChanges }
-            delete cleanedChanges[ expenseId ]
-            return cleanedChanges
-        })
-
-        // Save all changes to parent
-        saveExpenseItemsToParent(updatedExpenseItems)
-        showToast(toastRef, { severity: 'success', summary: 'Updated', detail: 'Updated successfully!' })
-    }
-
-    // Handle starting to edit a row
+// Handle starting to edit a row
     const handleRowEditStart = (editEvent) => { // Was: onRowEditInit
+
+        if (editEvent.data.status !== 1) { // 1 for pending
+            confirmDialog({
+                message: 'Do you want to edit an expense which has already been approved or rejected?',
+                header: 'Edit Expense',
+                icon: 'pi pi-info-circle',
+                defaultFocus: 'reject',
+                rejectClassName: 'p-button-danger',
+                accept: () => {
+                    setCurrentlyEditingRowId(editEvent.data.transactionId)
+                    // Clear any existing unsaved changes for this row when starting fresh
+                    setUnsavedExpansionChanges(previousChanges => {
+                        const cleanedChanges = { ...previousChanges }
+                        delete cleanedChanges[ editEvent.data.transactionId ]
+                        return cleanedChanges
+                    })
+                },
+                reject: () => {
+                    showToast(toastRef, { severity: 'info', summary: 'Info', detail: 'Edit cancelled' })
+                },
+            })
+
+        }
+        //
         setCurrentlyEditingRowId(editEvent.data.transactionId)
 
         // Clear any existing unsaved changes for this row when starting fresh
@@ -162,9 +158,10 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate, toa
         })
     }
 
-    // Handle canceling row edit
+// Handle canceling row edit
     const handleRowEditCancel = (editEvent) => {
         const expenseId = editEvent.data.transactionId
+        setCurrentlyEditingRowId(null)
 
         // Restore the original data for this row
         setExpenseItems(previousItems => {
@@ -183,20 +180,80 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate, toa
             return cleanedChanges
         })
 
-        setCurrentlyEditingRowId(null)
         showToast(toastRef, { severity: 'info', summary: 'Info', detail: 'Edit cancelled!' })
     }
 
-    // Delete an expense item
-    const deleteExpenseItem = (transactionId) => {
-        setExpenseItems(currentItems => {
-            const updatedExpenseItems = currentItems.filter(expense => expense.transactionId !== transactionId)
-            saveExpenseItemsToParent(updatedExpenseItems)
-            return updatedExpenseItems
+// Handle saving row edit
+    const handleRowSaveComplete = async(editEvent) => {
+        const updatedExpenseItems = [...expenseItems]
+        const expenseId = editEvent.newData.transactionId
+        const changesFromExpansion = unsavedExpansionChanges[ expenseId ] || {}
+
+        console.log('changes', changesFromExpansion)
+
+        // Merge the row edits with any expansion area changes
+        const updated = updatedExpenseItems[ editEvent.index ] = {
+            ...expenseItems[ editEvent.index ],
+            ...editEvent.newData,
+            ...changesFromExpansion,
+        }
+
+        console.log(updated)
+
+        const updatedExpense = {
+            buyer_name: updated.buyer,
+            vendor_name: updated.vendor,
+            expense_amount: updated.amount,
+            transaction_date: updated.transactionDate,
+            transaction_desc: updated.description,
+            transaction_notes: updated.notes,
+            approval_status_id: updated.status,
+            project_id: updated.program,
+            cost_centre_id: updated.costCentre,
+            account_number_id: updated.accountNum,
+            tags: Array.isArray(updated.tags)
+                ? (typeof updated.tags[0] === 'string'
+                    ? updated.tags.join(',')
+                    : updated.tags.map(tag => tag.tag_name).join(','))
+                : ''
+        }
+
+        setCurrentlyEditingRowId(null)
+        await api.put(`expenses/${ expenseId }`, updatedExpense)
+
+        // Clear the temporary expansion changes for this row
+        setUnsavedExpansionChanges(previousChanges => {
+            const cleanedChanges = { ...previousChanges }
+            delete cleanedChanges[ expenseId ]
+            return cleanedChanges
         })
+
+        // Save all changes to parent
+        saveExpenseItemsToParent(updatedExpenseItems)
+        showToast(toastRef, { severity: 'success', summary: 'Updated', detail: 'Updated successfully!' })
     }
 
-    // Render delete button for each row
+// Delete an expense item
+    const deleteExpenseItem = (transactionId) => {
+        confirmDialog({
+            message: 'Do you want to delete an expense?',
+            header: 'Delete Expense',
+            icon: 'pi pi-info-circle',
+            defaultFocus: 'reject',
+            rejectClassName: 'p-button-danger',
+            accept: () => setExpenseItems(currentItems => {
+                const updatedExpenseItems = currentItems.filter(expense => expense.transactionId !== transactionId)
+                saveExpenseItemsToParent(updatedExpenseItems)
+                return updatedExpenseItems
+            }),
+            reject: () => {
+                showToast(toastRef, { severity: 'info', summary: 'Info', detail: 'Delete Cancelled' })
+            },
+        })
+
+    }
+
+// Render delete button for each row
     const renderDeleteButton = (rowData) => {
         const isCurrentlyEditing = currentlyEditingRowId === rowData.transactionId
 
@@ -213,7 +270,7 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate, toa
         )
     }
 
-    // Display template for currency amounts
+// Display template for currency amounts
     const renderCurrencyAmount = (rowData) => {
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
@@ -221,7 +278,7 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate, toa
         }).format(rowData.amount || 0)
     }
 
-    // Approve and Reject a single expense item
+// Approve and Reject a single expense item
     async function approveExpense (expenseId) {
         try {
             await api.post(`expenses/${ expenseId }/approve`)
@@ -282,7 +339,7 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate, toa
         <StatusTab status={ rowData.status }/>
     )
 
-    // Convert ID to label
+// Convert ID to label
     const accountNumMap = Object.fromEntries(
         accountNums.map(opt => [opt.account_number_id, `${ opt.account_number } - ${ opt.description }`]),
     )
@@ -291,7 +348,7 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate, toa
         costCentres.map(opt => [opt.cost_centre_id, `${ opt.cost_centre_code } - ${ opt.description }`]),
     )
 
-    // Editor templates for inline editing
+// Editor templates for inline editing
     const textInputEditor = (editorOptions) => (
         <InputText
             type="text"
@@ -479,6 +536,7 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate, toa
             }
         </div>
     )
+
 }
 
 export default EditableExpansionTable

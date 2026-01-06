@@ -54,7 +54,7 @@ function CreateClaim ({ navigateTo, homePath,toastRef }) {
     const [expenseFormData, setExpenseFormData] = useState(initialExpenseFormData)
 
     useEffect(() => {
-        console.log(claimFormData)
+        console.log('claimFormData',claimFormData)
         console.log('expenseFormData', expenseFormData)
     }, [claimFormData, expenseFormData, tags])
 

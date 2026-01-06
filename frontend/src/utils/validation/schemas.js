@@ -97,18 +97,21 @@ export const validationSchemas = {
         last_name:[
             { rule: 'required', message: 'Please enter last name' },
         ],
-        teams:[
+        email:[
+            { rule: 'required', message: 'Please enter email' },
+        ],
+        department:[
+            { rule: 'required', message: 'Please select department'},
+        ],
+        team:[
             { rule: 'required', message: 'Please select team'},
         ],
         position:[
             { rule: 'required', message: 'Please enter position' },
         ],
-        roles:[
+        role:[
             { rule: 'required', message: 'Please choose role' },
         ],
-        status:[
-            { rule: 'required', message: 'Please choose status' },
-        ]
     },
 
     addTeam:{

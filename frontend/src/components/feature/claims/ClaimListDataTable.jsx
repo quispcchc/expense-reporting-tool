@@ -66,7 +66,6 @@ function ClaimListDataTable ({ claims ,user,path, toastRef }) {
         <>${ rowData.total_amount }</>
     )
 
-
     const statusItemTemplate = (option) => {
         return <div
             className={ `rounded-lg p-1 text-center text-sm font-medium w-21 ${ STATUS_STYLES[ option.value ] }` }>
@@ -142,7 +141,7 @@ function ClaimListDataTable ({ claims ,user,path, toastRef }) {
 
     }
 
-    async function bulkRejectClaim () {
+     function bulkRejectClaim () {
         const claimIds = selectedClaims.map(claim => claim.claim_id)
         const payload = {claimIds}
 
@@ -190,7 +189,7 @@ function ClaimListDataTable ({ claims ,user,path, toastRef }) {
                         onClick={ bulkRejectClaim } disabled={isDisabled}/>
                 <Button label="Export" outlined icon="pi pi-file-export" iconPos="right"
                         onClick={ () => exportToCSVManual(selectedClaims) } disabled={isDisabled}/>
-                <Link to={`${path}claims/create-claim`}>
+                <Link to={`${path}/claims/create-claim`}>
                     <Button label="New Claim" icon="pi pi-plus" iconPos="right"/>
                 </Link>
 

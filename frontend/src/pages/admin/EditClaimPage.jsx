@@ -45,7 +45,7 @@ function EditClaimPage () {
             </div>
 
             <div className="flex flex-wrap gap-5 my-5">
-                <div className="flex-1"><ClaimDetail curClaim={ curClaim }/></div>
+                <div className="flex-1"><ClaimDetail curClaim={ curClaim } toastRef={toast}/></div>
                 <div className="flex-1">
                     <ClaimNotes curClaim={ curClaim } toastRef={ toast }/>
                 </div>

@@ -77,7 +77,7 @@ Route::post('claims/bulk-approve',[ClaimController::class,'bulkApproveClaim'])->
 Route::post('claims/bulk-reject',[ClaimController::class,'bulkRejectClaim'])->middleware('auth:sanctum');
 
 // Expense API
-Route::apiResource('expenses',ClaimController::class)->middleware('auth:sanctum');
+Route::apiResource('expenses',ExpenseController::class)->middleware('auth:sanctum');
 Route::post('expenses/{expenseId}/approve', [ExpenseController::class, 'approveExpense'])->middleware('auth:sanctum');
 Route::post('expenses/{expenseId}/reject', [ExpenseController::class, 'rejectExpense'])->middleware('auth:sanctum');
 

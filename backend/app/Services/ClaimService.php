@@ -23,11 +23,13 @@ class ClaimService
 
         if ($role_level === 2) {
             // Department-level access
-            $query->where('department_id', $user->department_id);
+            $query->where('department_id', $user->department_id)
+                ->where('user_id', '!=', $user->user_id);
 
         } elseif ($role_level === 3) {
             // Team-level access or own claims
-            $query->where('team_id', $user->team_id);
+            $query->where('team_id', $user->team_id)
+                ->where('user_id', '!=', $user->user_id);
 
         } elseif ($role_level === 4) {
             // User-level access
@@ -54,7 +56,6 @@ class ClaimService
             ->where('claim_id', $claimId)
             ->first();
     }
-
 
 
     public function createClaim(array $data, $user): Claim
@@ -139,6 +140,27 @@ class ClaimService
         }
     }
 
+
+    public function updateClaim(array $data,$claimId)
+    {
+        $claim = Claim::find($claimId);
+
+        if (!$claim) {
+            return response()->json(['message' => 'Claim not found'], 404);
+        }
+
+
+        // Update the claim
+        $claim->claim_type_id = $data['claim_type_id'];
+        $claim->team_id = $data['team_id'];
+        $claim->save();
+
+        return response()->json([
+            'message' => 'Claim updated successfully',
+            'claim' => $claim
+        ]);
+
+    }
 
     /**
      * Approve or reject selected claims
