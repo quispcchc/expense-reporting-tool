@@ -9,6 +9,7 @@ use App\Services\ClaimService;
 use Illuminate\Http\Request;
 use Log;
 use Throwable;
+use function Symfony\Component\String\s;
 
 
 class ClaimController extends Controller
@@ -95,6 +96,15 @@ class ClaimController extends Controller
             Log::error('Error creating claim: ' . $e->getMessage());
             return response()->json(['error' => $e->getMessage()], 500);
         }
+    }
+
+    public function update(Request $request,$id) {
+        $validated = $request->validate([
+            'claim_type_id' => 'required|exists:claim_types,claim_type_id',
+            'team_id' => 'required|exists:teams,team_id',
+        ]);
+
+        $this->claimService->updateClaim($validated,$id);
     }
 
 
