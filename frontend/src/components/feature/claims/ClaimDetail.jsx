@@ -41,12 +41,57 @@ function ClaimDetail ({ curClaim, toastRef }) {
         return lookups.teams?.find(t => t.team_id === id)?.team_name
     }
 
+    // Export PDF function
+    async function handleExportPdf () {
+        try {
+            const response = await api.get(`/claims/${curClaim.claim_id}/export-pdf`, {
+                responseType: 'blob', // Important: get binary data
+            })
+
+            // Create a download link
+            const url = window.URL.createObjectURL(new Blob([response.data]))
+            const link = document.createElement('a')
+            link.href = url
+            link.setAttribute('download', `claim_${curClaim.claim_id}_${new Date().toISOString().split('T')[0]}.pdf`)
+            document.body.appendChild(link)
+            link.click()
+            link.remove()
+            window.URL.revokeObjectURL(url)
+
+            showToast(toastRef, { severity: 'success', summary: 'Success', detail: 'PDF exported successfully' })
+        } catch (error) {
+            console.error('Error exporting PDF:', error)
+            showToast(toastRef, { 
+                severity: 'error', 
+                summary: 'Error', 
+                detail: 'Failed to export PDF. Please try again.' 
+            })
+        }
+    }
+
+    // Safe getter for claimType with null checks
+    const claimTypeName = curClaim?.claim_type?.claim_type_name || curClaim?.claimType?.claim_type_name
+    const position = curClaim?.user?.position?.position_name || curClaim?.position?.position_name
+    const department = curClaim?.user?.department?.dept_name || curClaim?.department?.department_name
+    const teamName = curClaim?.user?.team?.team_name || curClaim?.team?.team_name
+    const fullName = curClaim?.user?.user_full_name || curClaim?.user?.full_name
+    const submittedDate = curClaim?.date_submitted || curClaim?.claim_submitted
+
     return (
 
         <ComponentContainer>
             <div className="flex justify-between">
                 <h5 className="text-[22px] mb-2">Claim Detail</h5>
-                <div>
+                <div className="flex gap-2">
+                    {/* Export PDF Button */}
+                    <Button
+                        label="Export PDF"
+                        icon="pi pi-file-pdf"
+                        severity="secondary"
+                        outlined
+                        onClick={handleExportPdf}
+                    />
+                    
                     { !isEditing && <Button
                         rounded
                         icon="pi pi-pencil"
@@ -90,7 +135,7 @@ function ClaimDetail ({ curClaim, toastRef }) {
                         value={
                             isEditing
                                 ? claimDetail.claim_type_id
-                                : getDepartmentName(claimDetail.claim_type_id) ?? curClaim.claimType.claim_type_name
+                                : claimTypeName
                         }
                         isEdit={ isEditing }
                         options={ lookups.claimTypes?.map(c => ( {
@@ -100,17 +145,16 @@ function ClaimDetail ({ curClaim, toastRef }) {
                         onChange={ (value) => handleSelectChange('claim_type_id', value) }
                     />
 
-                    <ClaimDetailRow title="Date Submitted:" value={ curClaim.claim_submitted }/>
-                    <ClaimDetailRow title="Employee:" value={ curClaim.user.full_name }/>
-                    <ClaimDetailRow title="Position:" value={ curClaim.position.position_name }/>
-                    <ClaimDetailRow title="Department:" value={ curClaim.department.department_name }/>
+                    <ClaimDetailRow title="Date Submitted:" value={ submittedDate }/>
+                    <ClaimDetailRow title="Employee:" value={ fullName }/>
+                    <ClaimDetailRow title="Position:" value={ position }/>
+                    <ClaimDetailRow title="Department:" value={ department }/>
 
                     <ClaimDetailRow
                         title="Team:"
-                        value={ isEditing ? claimDetail.team_id : getTeamName(claimDetail.team_id) ??
-                            curClaim.team?.team_name }
+                        value={ isEditing ? claimDetail.team_id : teamName }
                         isEdit={ isEditing }
-                        options={ lookups.teams.filter(team => team.department_id === curClaim.department_id).map(
+                        options={ lookups.teams?.filter(team => team.department_id === (curClaim?.department_id || curClaim?.user?.department_id)).map(
                             team => ( { label: team.team_name, value: team.team_id } )) }
                         onChange={ (value) => handleSelectChange('team_id', value) }
                     />

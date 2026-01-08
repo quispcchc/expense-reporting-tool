@@ -31,6 +31,11 @@ class Expense extends Model
         return $this->hasOne(Receipt::class, 'receipt_id', 'receipt_id');
     }
 
+    public function receipts()
+    {
+        return $this->hasMany(Receipt::class, 'expense_id', 'expense_id');
+    }
+
     public function tags()
     {
         return $this->belongsToMany(Tag::class,  'expense_tag', 'expense_id', 'tag_id');
