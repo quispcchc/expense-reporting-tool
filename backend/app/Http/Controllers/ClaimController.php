@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Log;
 use Throwable;
 use function Symfony\Component\String\s;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 
 class ClaimController extends Controller
@@ -141,6 +142,35 @@ class ClaimController extends Controller
 
             $this->claimService->bulkRejectClaim($claimIds);
         }
+    }
+
+    /**
+     * Export claim as PDF with all expenses and receipts
+     */
+    public function exportPdf($claimId)
+    {
+        // Load claim with all necessary relationships
+        $claim = Claim::with([
+            'claimType',
+            'user.position',
+            'user.department',
+            'user.team',
+            'expenses.accountNumber',
+            'expenses.costCentre',
+            'expenses.approvalStatus',
+            'expenses.receipts',
+            'notes.user'
+        ])->findOrFail($claimId);
+
+        // Generate PDF from blade template
+        $pdf = Pdf::loadView('pdf.claim', ['claim' => $claim])
+            ->setPaper('a4', 'portrait')
+            ->setOption('isHtml5ParserEnabled', true)
+            ->setOption('isRemoteEnabled', true)
+            ->setOption('chroot', storage_path('app/public'));
+
+        // Download PDF with claim ID in filename
+        return $pdf->download('claim_' . $claimId . '_' . now()->format('Y-m-d') . '.pdf');
     }
 
 }

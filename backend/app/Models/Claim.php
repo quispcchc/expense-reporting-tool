@@ -72,4 +72,9 @@ class Claim extends Model
     {
         return $this->hasMany(ClaimNote::class, 'claim_id');
     }
+
+    public function notes()
+    {
+        return $this->hasMany(ClaimNote::class, 'claim_id', 'claim_id');
+    }
 }
