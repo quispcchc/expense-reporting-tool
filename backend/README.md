@@ -1,61 +1,104 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Volunteering Expense & Revenue Reporting Tool - Backend
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build StatusTab"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Laravel 12 (PHP 8.2+) backend for volunteering expense management system.
 
-## About Laravel
+## Quick Start
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+### Local Development
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+```bash
+# Install dependencies
+composer install
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+# Setup environment
+cp .env.example .env
+php artisan key:generate
 
-## Learning Laravel
+# Database setup
+touch database/database.sqlite
+php artisan migrate
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+# Run all services (server + queue + logs + vite)
+composer dev
+```
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+Backend runs at http://127.0.0.1:8000
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### Docker Development
 
-## Laravel Sponsors
+```bash
+# From project root directory
+docker-compose up -d
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+# Run migrations (first time only)
+docker-compose exec backend php artisan migrate
 
-### Premium Partners
+# View logs
+docker-compose logs -f backend
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+# Stop all services
+docker-compose down
+```
 
-## Contributing
+Services:
+- Backend API: http://localhost:8000
+- Frontend: http://localhost:5173
+- Queue Worker: Runs automatically
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### Available Commands
 
-## Code of Conduct
+```bash
+# Run tests
+composer test
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+# View routes
+php artisan route:list
 
-## Security Vulnerabilities
+# Interactive shell
+php artisan tinker
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+# Watch logs
+php artisan pail
+```
+
+## Project Structure
+
+```
+app/
+	├── Http/Controllers/    # Request handlers
+	├── Models/              # Eloquent models (custom primary keys!)
+	├── Policies/            # Authorization logic
+	└── Services/            # Business logic layer
+routes/api.php             # All API endpoints
+database/
+	├── migrations/          # Database schema
+	└── seeders/             # Test data
+```
+
+## Key Conventions
+
+- Primary Keys: Models use custom keys like claim_id, user_id (not id)
+- Service Pattern: Controllers delegate to Services for business logic
+- Eager Loading: Always use ::with() for relationships
+- Transactions: Wrap multi-step operations in DB::transaction()
+
+## Authentication
+
+Uses Laravel Sanctum for API token authentication:
+- Login endpoint: POST /api/login (returns token)
+- Protected routes require Authorization: Bearer {token} header
+- Token stored in frontend sessionStorage
+
+## Role-Based Access Control
+
+Based on role_level (lower = more privilege):
+1. Super Admin (level 1): Full access
+2. Admin (level 2): Department-level
+3. Approver (level 3): Team-level
+4. Regular User (level 4): Own claims only
+
+See app/Policies/ClaimPolicy.php for authorization rules.
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+The Laravel framework is open-sourced software licensed under the MIT license.
