@@ -1,1 +1,8 @@
 .idea
+.github
+.vscode
+node_modules
+vendor/
+dist/
+.git/
+.gitignore
