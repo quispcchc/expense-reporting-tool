@@ -23,6 +23,14 @@ export function LookupProvider({ children }) {
     const fetchLookups = useCallback(async () => {
         try {
             setError(null)
+
+            // Require auth token before fetching
+            const token = sessionStorage.getItem('token')
+            if (!token) {
+                setError('Not authenticated')
+                return false
+            }
+
             const { data } = await api.get('lookups')
 
             // Check if data is actually available
@@ -65,6 +73,12 @@ export function LookupProvider({ children }) {
         const retryDelay = 2000 // 2 seconds
 
         const fetchWithRetry = async () => {
+            const hasToken = sessionStorage.getItem('token')
+            if (!hasToken) {
+                setLoading(false)
+                return
+            }
+
             const success = await fetchLookups()
 
             if (!success && retryCount < maxRetries) {

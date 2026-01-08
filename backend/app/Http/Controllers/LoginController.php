@@ -29,7 +29,7 @@ class LoginController extends Controller
         //generate token
         $token= $user->createToken('api_token')->plainTextToken;
 
-        return response()->json([
+        $response = response()->json([
             'access_token'=>$token,
             'token_type' => 'Bearer',
 //            'user'=>$user,
@@ -40,9 +40,14 @@ class LoginController extends Controller
                 'department_id'=>$user->department_id,
                 'position_id' => $user->position->position_id,
             ]
+        ])->withHeaders([
+            'Access-Control-Allow-Origin' => $request->headers->get('Origin', '*'),
+            'Access-Control-Expose-Headers' => 'Authorization',
+            'Vary' => 'Origin',
         ]);
+
+        return $response;
     }
 }
-?>
 
 
