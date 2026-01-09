@@ -79,7 +79,7 @@ class ClaimController extends Controller
             'expenses.*.transaction_notes' => 'nullable|string',
             'expenses.*.expense_amount' => 'required_with:expenses|integer',
             'expenses.*.project_id' => 'required_with:expenses|integer|exists:projects,project_id',
-            'expenses.*.file' => 'nullable|file|max:5120|mimes:jpg,jpeg,png,pdf',
+            'expenses.*.file.*' => 'file|mimes:pdf,png,jpg,jpeg|max:20480',
             'expenses.*.cost_centre_id' => 'required_with:expenses|integer',
             'expenses.*.tags' => 'nullable|string',
             'mileage' => 'nullable|array',
@@ -94,7 +94,6 @@ class ClaimController extends Controller
             ], 201);
 
         } catch (Throwable $e) {
-            Log::error('Error creating claim: ' . $e->getMessage());
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }

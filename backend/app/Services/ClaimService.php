@@ -52,7 +52,7 @@ class ClaimService
 
     public function getClaimById(int $claimId)
     {
-        return Claim::with(['expenses.tags', 'claimType', 'status', 'position', 'user', 'department', 'team', 'claimNotes.user'])
+        return Claim::with(['expenses.tags','expenses.receipts' ,'claimType', 'status', 'position', 'user', 'department', 'team', 'claimNotes.user'])
             ->where('claim_id', $claimId)
             ->first();
     }
@@ -90,7 +90,7 @@ class ClaimService
                 $claim->update(['mileage_id' => $mileage->mileage_id]);
             }
 
-            return $claim->load(['expenses', 'claimType', 'department', 'team', 'status']);
+            return $claim->load(['expenses', 'claimType', 'department', 'team', 'status','expenses.receipts']);
         });
     }
 
@@ -115,15 +115,17 @@ class ClaimService
             $expense = Expense::create($expenseData);
 
             // Handle file upload
-            if ($file) {
-                $path = $file->store('receipts', 'public');
-                Receipt::create([
-                    'receipt_path' => $path,
-                    'receipt_name' => $file->getClientOriginalName(),
-                    'receipt_desc' => $file->getClientMimeType(),
-                    'expense_id' => $expense->expense_id
-                ]);
-            }
+                foreach ($file as $f) {
+                    if ($f) {
+                        $path = $f->store('receipts', 'public');
+                        Receipt::create([
+                            'receipt_path' => $path,
+                            'receipt_name' => $f->getClientOriginalName(),
+                            'receipt_desc' => $f->getClientMimeType(),
+                            'expense_id' => $expense->expense_id
+                        ]);
+                    }
+                }
 
             // Handle tags
             if (!empty($expenseData['tags'])) {
@@ -141,7 +143,7 @@ class ClaimService
     }
 
 
-    public function updateClaim(array $data,$claimId)
+    public function updateClaim(array $data, $claimId)
     {
         $claim = Claim::find($claimId);
 
