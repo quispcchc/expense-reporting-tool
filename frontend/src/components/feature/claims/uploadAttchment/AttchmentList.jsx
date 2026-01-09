@@ -2,51 +2,44 @@ import React from 'react'
 import { getFileIcon } from './getFileIcon.jsx'
 
 // Component to display a list of attached files with optional remove button
-function AttachmentList({ files, showRemoveButton = true, handleRemoveFile }) {
+function AttachmentList ({ selectedFile, showRemoveButton = true, handleRemoveFile }) {
+
+    // Check if there's a file - either a new upload or an existing file from backend
+    if (!selectedFile || (!selectedFile.file && !selectedFile.url && !selectedFile.path)) return null
+
+    console.log('selectedFile', selectedFile)
+
+    // For new uploads: selectedFile has .file property
+    // For existing files from backend: selectedFile has .url and .name but no .file
+    const fileName = selectedFile.file ? selectedFile.file.name : (selectedFile.name || 'Attachment')
+    const fileType = selectedFile.file ? selectedFile.file.type : 'application/octet-stream'
+    const fileUrl = selectedFile.url || selectedFile.path
+
+    // Don't render if there's no URL/path to access the file
+    if (!fileUrl) return null
+
     return (
-        <ul className="mt-4 text-sm text-gray-700">
-            {files && files.map((f, idx) => {
-                const BASE_URL = 'http://localhost:8000'
-                const isUploadedFile = !!f.file
+        <div className="mt-4 text-sm text-gray-700 flex items-center gap-2">
 
-                const fileName = isUploadedFile
-                    ? f.file.name
-                    : f.receipt_name
+            { getFileIcon(fileType) }
 
-                const mimeType = isUploadedFile
-                    ? f.file.type
-                    : f.receipt_desc
+            {/* Download link for the file */ }
+            <a
+                href={ fileUrl }
+                download={ fileName }
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline"
+            >
+                { fileName }
+            </a>
 
-                const fileUrl = isUploadedFile
-                    ? f.url
-                    : `${BASE_URL}/storage/${f.receipt_path}`
-
-                    console.log('files',fileName,fileUrl);
-                    
-
-                return (
-                    <li key={idx} className="flex items-center gap-2">
-                        {/* Display file type icon based on the file's MIME type */}
-                        {getFileIcon(mimeType)}
-
-                        {/* Download link for the file */}
-                        <a
-                            href={fileUrl}
-                            download={fileName}
-                            className="text-blue-600 hover:underline"
-                        >
-                            {fileName}
-                        </a>
-
-                        {/* Conditionally show remove button */}
-                        {showRemoveButton && (
-                            <button type='button' onClick={() => handleRemoveFile(fileName)}
-                                className="cursor-pointer text-red-500">X
-                            </button>)}
-                    </li>
-                )
-            })}
-        </ul>
+            {/* Conditionally show remove button */ }
+            { showRemoveButton && (
+                <button type="button" onClick={ handleRemoveFile }
+                        className="cursor-pointer text-red-500 ml-2 font-bold hover:text-red-700">X
+                </button> ) }
+        </div>
     )
 }
 

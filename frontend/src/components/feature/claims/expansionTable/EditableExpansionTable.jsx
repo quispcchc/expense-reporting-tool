@@ -10,7 +10,7 @@ import { Button } from 'primereact/button'
 import StatusTab from '../../../common/ui/StatusTab.jsx'
 import { useLookups } from '../../../../contexts/LookupContext.jsx'
 import { showToast } from '../../../../utils/helpers.js'
-import api from '../../../../api/api.js'
+import api, { API_BASE_URL } from '../../../../api/api.js'
 import { BUTTON_STYLE } from '../../../../utils/customizeStyle.js'
 import { confirmDialog } from 'primereact/confirmdialog'
 
@@ -22,6 +22,8 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
     const [expandedRows, setExpandedRows] = useState(null)
 
     const [currentlyEditingRowId, setCurrentlyEditingRowId] = useState(null)
+
+    const [originalExpenseData, setOriginalExpenseData] = useState({})
 
     const [unsavedExpansionChanges, setUnsavedExpansionChanges] = useState({})
 
@@ -42,7 +44,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
 
             // Map backend fields to frontend form fields
             setExpenseItems(
-                data.map(expense => ({
+                data.map(expense => ( {
                     transactionId: expense.expense_id,
                     buyer: expense.buyer_name,
                     vendor: expense.vendor_name,
@@ -55,26 +57,27 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                     tags: expense.tags,
                     status: expense.approval_status_id,
                     program: expense.project_id,
-                    attachment: expense.receipts.map(receipt => ({
-                        receipt_id: receipt.receipt_id,
-                        receipt_name: receipt.receipt_name,
-                        receipt_path: receipt.receipt_path,
-                        receipt_desc: receipt.receipt_desc
-                    }))
+                    attachment: expense.receipt_url,
 
-                })),
+                } )),
             )
         }
     }, [data])
 
     const handleExpansionFieldChange = (expenseId, fieldName, newValue) => {
+        // For tags, handle special processing
+        let processedValue = newValue;
+        if (fieldName === 'tags' && newValue && typeof newValue === 'string') {
+            processedValue = newValue.split(',').map(tag => tag.trim());
+        }
+
         // Update the local expense items immediately for UI responsiveness
         setExpenseItems(previousItems =>
             previousItems.map(expense =>
                 expense.transactionId === expenseId
                     ? {
                         ...expense,
-                        [fieldName]: fieldName === 'tags' ? [...newValue.split(',')] : newValue,
+                        [ fieldName ]: fieldName === 'tags' ? [...newValue.split(',')] : newValue,
                     }
                     : expense,
             ),
@@ -83,9 +86,9 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
         // Store the changes temporarily until the row edit is completed
         setUnsavedExpansionChanges(previousChanges => ({
             ...previousChanges,
-            [expenseId]: {
-                ...previousChanges[expenseId],
-                [fieldName]: fieldName === 'tags' ? [...newValue.split(',')] : newValue,
+            [ expenseId ]: {
+                ...previousChanges[ expenseId ],
+                [ fieldName ]: fieldName === 'tags' ? [...newValue.split(',')] : newValue,
             },
         }))
     }
@@ -126,6 +129,14 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                 rejectClassName: 'p-button-danger',
                 accept: () => {
                     setCurrentlyEditingRowId(editEvent.data.transactionId)
+                    // Save original data when starting edit
+                    const expenseIndex = expenseItems.findIndex(e => e.transactionId === editEvent.data.transactionId)
+                    if (expenseIndex >= 0) {
+                        setOriginalExpenseData(prev => ({
+                            ...prev,
+                            [editEvent.data.transactionId]: { ...expenseItems[expenseIndex] }
+                        }))
+                    }
                     // Clear any existing unsaved changes for this row when starting fresh
                     setUnsavedExpansionChanges(previousChanges => {
                         const cleanedChanges = { ...previousChanges }
@@ -141,6 +152,15 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
         }
         //
         setCurrentlyEditingRowId(editEvent.data.transactionId)
+
+        // Save original data when starting edit
+        const expenseIndex = expenseItems.findIndex(e => e.transactionId === editEvent.data.transactionId)
+        if (expenseIndex >= 0) {
+            setOriginalExpenseData(prev => ({
+                ...prev,
+                [editEvent.data.transactionId]: { ...expenseItems[expenseIndex] }
+            }))
+        }
 
         // Clear any existing unsaved changes for this row when starting fresh
         setUnsavedExpansionChanges(previousChanges => {
@@ -160,7 +180,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
             const restoredItems = [...previousItems]
             const originalExpense = expenseItems.find(expense => expense.transactionId === expenseId)
             if (originalExpense) {
-                restoredItems[editEvent.index] = { ...originalExpense }
+                restoredItems[ editEvent.index ] = { ...originalExpense }
             }
             return restoredItems
         })
@@ -179,91 +199,42 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
     const handleRowSaveComplete = async (editEvent) => {
         const updatedExpenseItems = [...expenseItems]
         const expenseId = editEvent.newData.transactionId
-        const changesFromExpansion = unsavedExpansionChanges[expenseId] || {}
+        const changesFromExpansion = unsavedExpansionChanges[ expenseId ] || {}
 
-        console.log('changes', changesFromExpansion)
+        console.log('=== SAVE ROW EDIT START ===')
+        console.log('expenseId:', expenseId)
+        console.log('changesFromExpansion:', changesFromExpansion)
+        console.log('originalExpense (saved):', originalExpense)
 
         // Merge the row edits with any expansion area changes
-        const updated = updatedExpenseItems[editEvent.index] = {
-            ...expenseItems[editEvent.index],
+        const updated = updatedExpenseItems[ editEvent.index ] = {
+            ...expenseItems[ editEvent.index ],
             ...editEvent.newData,
             ...changesFromExpansion,
         }
 
-        console.log('updated', updated)
+        console.log(updated)
 
-        // Prepare FormData to handle file uploads
-        const formData = new FormData()
-        
-        // Add regular fields
-        formData.append('buyer_name', updated.buyer)
-        formData.append('vendor_name', updated.vendor)
-        formData.append('expense_amount', updated.amount)
-        formData.append('transaction_date', updated.transactionDate)
-        formData.append('transaction_desc', updated.description)
-        formData.append('transaction_notes', updated.notes)
-        formData.append('approval_status_id', updated.status)
-        formData.append('project_id', updated.program)
-        formData.append('cost_centre_id', updated.costCentre)
-        formData.append('account_number_id', updated.accountNum)
-        formData.append('tags', Array.isArray(updated.tags)
-            ? (typeof updated.tags[0] === 'string'
-                ? updated.tags.join(',')
-                : updated.tags.map(tag => tag.tag_name).join(','))
-            : '')
-
-        // Track deleted receipts (those with receipt_id but removed from list)
-        const deletedReceiptIds = []
-        
-        const originalAttachment = editEvent.newData.attachment
-        console.log('originalAttachment', originalAttachment)
-        if (Array.isArray(originalAttachment)) {
-            const currentReceiptIds = new Set(
-                updated.attachment
-                    .filter(att => att.receipt_id)
-                    .map(att => att.receipt_id)
-            )
-            
-            originalAttachment.forEach(att => {
-                if (att.receipt_id && !currentReceiptIds.has(att.receipt_id)) {
-                    deletedReceiptIds.push(att.receipt_id)
-                }
-            })
+        const updatedExpense = {
+            buyer_name: updated.buyer,
+            vendor_name: updated.vendor,
+            expense_amount: updated.amount,
+            transaction_date: updated.transactionDate,
+            transaction_desc: updated.description,
+            transaction_notes: updated.notes,
+            approval_status_id: updated.status,
+            project_id: updated.program,
+            cost_centre_id: updated.costCentre,
+            account_number_id: updated.accountNum,
+            tags: Array.isArray(updated.tags)
+                ? (typeof updated.tags[0] === 'string'
+                    ? updated.tags.join(',')
+                    : updated.tags.map(tag => tag.tag_name).join(','))
+                : ''
         }
 
-        console.log('deletedReceiptIds', deletedReceiptIds)
-
-        // Add deleted receipt IDs to FormData
-        if (deletedReceiptIds.length > 0) {
-            formData.append('deleted_receipts', JSON.stringify(deletedReceiptIds))
-        }
-
-        // Add new files
-        const newFiles = updated.attachment.filter(att => att.file)
-        newFiles.forEach((att) => {
-            formData.append('file[]', att.file)
-        })
-
-        // Add method override for Laravel (POST with _method=PUT for FormData compatibility)
-        formData.append('_method', 'PUT')
-
-        // Log FormData contents for debugging
-        console.log('FormData being sent:')
-        for (let [key, value] of formData.entries()) {
-            console.log(`  ${key}:`, value instanceof File ? `File(${value.name})` : value)
-        }
-
-        try {
-            setCurrentlyEditingRowId(null)
-            if (mode === 'edit') {
-                console.log('DEBUG: About to send request with FormData')
-                console.log('DEBUG: expenseId =', expenseId)
-                console.log('DEBUG: updated object =', updated)
-                
-                // Test 1: Send as FormData (with _method=PUT)
-                const response = await api.post(`expenses/${expenseId}`, formData)
-                console.log('Update response:', response.data)
-            }
+        setCurrentlyEditingRowId(null)
+        await api.put(`expenses/${ expenseId }`, updatedExpense)
 
             // Clear the temporary expansion changes for this row
             setUnsavedExpansionChanges(previousChanges => {
@@ -272,17 +243,9 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                 return cleanedChanges
             })
 
-            // Save all changes to parent
-            saveExpenseItemsToParent(updatedExpenseItems)
-            showToast(toastRef, { severity: 'success', summary: 'Updated', detail: 'Updated successfully!' })
-        } catch (error) {
-            console.error('Error updating expense:', error)
-            showToast(toastRef, { 
-                severity: 'error', 
-                summary: 'Error', 
-                detail: error.response?.data?.message || 'Failed to update expense' 
-            })
-        }
+        // Save all changes to parent
+        saveExpenseItemsToParent(updatedExpenseItems)
+        showToast(toastRef, { severity: 'success', summary: 'Updated', detail: 'Updated successfully!' })
     }
 
     // Delete an expense item

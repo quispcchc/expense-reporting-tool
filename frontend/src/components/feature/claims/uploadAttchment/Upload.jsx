@@ -15,6 +15,7 @@ function Upload ({ handleFileSelect }) {
                 accept='image/*,application/pdf'
                 onChange={ handleFileSelect }
                 className="hidden"
+                            multiple
             />
             <i className="pi pi-cloud-upload"></i>
         </label>

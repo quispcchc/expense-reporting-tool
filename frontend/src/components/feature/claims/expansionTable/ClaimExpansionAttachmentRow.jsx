@@ -3,76 +3,84 @@ import Upload from '../uploadAttchment/Upload.jsx'
 import AttachmentList from '../uploadAttchment/AttchmentList.jsx'
 
 // Customized expanded row: attachment editing dropdown in datatable
-function ClaimExpansionAttachmentRow({ label, files, isEditing, rowData, handleInputChange }) {
+function ClaimExpansionAttachmentRow ({ label, file, isEditing, rowData, handleInputChange, mode }) {
 
+    // Handle new files selected by user (supports multiple files)
     const handleFileSelect = (e) => {
+        const selectedFiles = Array.from(e.target.files);
 
-        // Convert FileList to array and create preview URLs
-        const selectedFiles = Array.from(e.target.files).map(file => ({
-            file,
+        if (!selectedFiles || selectedFiles.length === 0) return;
+
+        // Convert File objects to our format with URLs
+        const fileObjects = selectedFiles.map(file => ({
+            file: file,
             url: URL.createObjectURL(file),
-        }))
+            name: file.name,
+            isNew: true  // Mark as new upload
+        }));
 
-        if (selectedFiles.length > 0) {
-            // Merge newly selected files with existing ones
-            const currentFiles = files || []
-            const newFiles = [...currentFiles, ...selectedFiles]
+        console.log('selected files:', fileObjects);
 
-            // Notify parent to update attachments for this row
-            handleInputChange(rowData.transactionId, 'attachment', newFiles)
-        }
+        // Get existing attachments (could be array or single object)
+        const currentAttachments = Array.isArray(file) ? file : (file ? [file] : []);
+        
+        // Append new files to existing ones
+        const updatedAttachments = [...currentAttachments, ...fileObjects];
+
+        // Notify parent to update attachments for this row
+        handleInputChange(rowData.transactionId, 'attachment', updatedAttachments);
     }
 
-
-    // Remove a file by its filename from the attachments list
-    const handleRemoveFile = (filename) => {
-        if (!Array.isArray(files)) return
-
-        const updatedFiles = files.filter(f => {
-            // Uploaded file
-            if (f.file) {
-                return f.file.name !== filename
-            }
-
-            // Backend receipt
-            return f.receipt_name !== filename
-        })
-
-        handleInputChange(
-            rowData.transactionId,
-            'attachment',
-            updatedFiles.length > 0 ? updatedFiles : []
-        )
+    // Remove a file by its index from the attachments list
+    const handleRemoveFile = (indexToRemove) => {
+        console.log('Removing file at index:', indexToRemove, 'for transaction ID:', rowData.transactionId);
+        
+        const currentAttachments = Array.isArray(file) ? file : (file ? [file] : []);
+        const updatedAttachments = currentAttachments.filter((_, index) => index !== indexToRemove);
+        
+        // If no files left, set to null instead of empty array
+        handleInputChange(rowData.transactionId, 'attachment', updatedAttachments.length > 0 ? updatedAttachments : null);
     }
-
 
     // Render the list of attachments or show message if none exist
-    const renderAttachment = (files, showRemoveButton) => {
-        if (Array.isArray(files) && files.length === 0) {
+    const renderAttachment = (file, showRemoveButton) => {
+        const attachments = Array.isArray(file) ? file : (file ? [file] : []);
+        
+        if (attachments.length === 0) {
             return <p className="text-sm text-[#888888]">No attachments available.</p>
         }
 
-        return <AttachmentList files={files} handleRemoveFile={handleRemoveFile}
-            showRemoveButton={showRemoveButton} />
+        return (
+            <div className="space-y-2">
+                {attachments.map((attachment, index) => (
+                    <AttachmentList 
+                        key={index}
+                        selectedFile={attachment} 
+                        handleRemoveFile={() => handleRemoveFile(index)}
+                        showRemoveButton={showRemoveButton}
+                    />
+                ))}
+            </div>
+        );
     }
 
     return (
         <div className="flex items-start gap-4">
             <label className="text-sm font-semibold text-gray-700 min-w-[150px] pt-2">
-                {label}
+                { label }
             </label>
             <div className="flex-1">
 
                 {isEditing ? (
                     <>
-                        {/* Show upload button and allow removal if editing */}
-                        <Upload handleFileSelect={handleFileSelect} />
-                        {renderAttachment(files, true)}
+                        {/* Show upload button and allow removal if editing */ }
+                        <Upload handleFileSelect={ handleFileSelect }/>
+                        { renderAttachment(file, true) }
                     </>
                 ) : (
                     // Just show attachments without remove option if not editing
-                    renderAttachment(files, false)
-                )}
+                    renderAttachment(file, false)
+                ) }
             </div>
         </div>
     )

@@ -19,7 +19,7 @@ class ClaimService
     {
         $role_level = $user->role->role_level;
 
-        $query = Claim::with(['expenses', 'claimType', 'department', 'team', 'status']);
+        $query = Claim::with(['expenses.receipts', 'expenses', 'claimType', 'department', 'team', 'status']);
 
         if ($role_level === 2) {
             // Department-level access
@@ -45,14 +45,14 @@ class ClaimService
 
     public function getClaimsByUserId(User $user)
     {
-        return Claim::with(['expenses', 'claimType', 'department', 'team', 'status'])
+        return Claim::with(['expenses.receipts', 'expenses', 'claimType', 'department', 'team', 'status'])
             ->where('user_id', $user->user_id)->get();
     }
 
 
     public function getClaimById(int $claimId)
     {
-        return Claim::with(['expenses.tags','expenses.receipts' ,'claimType', 'status', 'position', 'user', 'department', 'team', 'claimNotes.user'])
+        return Claim::with(['expenses.tags', 'expenses.receipts', 'claimType', 'status', 'position', 'user', 'department', 'team', 'claimNotes.user'])
             ->where('claim_id', $claimId)
             ->first();
     }
@@ -90,7 +90,7 @@ class ClaimService
                 $claim->update(['mileage_id' => $mileage->mileage_id]);
             }
 
-            return $claim->load(['expenses', 'claimType', 'department', 'team', 'status','expenses.receipts']);
+            return $claim->load(['expenses.receipts', 'expenses', 'claimType', 'department', 'team', 'status']);
         });
     }
 
@@ -115,17 +115,15 @@ class ClaimService
             $expense = Expense::create($expenseData);
 
             // Handle file upload
-                foreach ($file as $f) {
-                    if ($f) {
-                        $path = $f->store('receipts', 'public');
-                        Receipt::create([
-                            'receipt_path' => $path,
-                            'receipt_name' => $f->getClientOriginalName(),
-                            'receipt_desc' => $f->getClientMimeType(),
-                            'expense_id' => $expense->expense_id
-                        ]);
-                    }
-                }
+            if ($file) {
+                $path = $file->store('receipts', 'public');
+                Receipt::create([
+                    'receipt_path' => $path,
+                    'receipt_name' => $file->getClientOriginalName(),
+                    'receipt_desc' => $file->getClientMimeType(),
+                    'expense_id' => $expense->expense_id
+                ]);
+            }
 
             // Handle tags
             if (!empty($expenseData['tags'])) {
@@ -143,7 +141,7 @@ class ClaimService
     }
 
 
-    public function updateClaim(array $data, $claimId)
+    public function updateClaim(array $data,$claimId)
     {
         $claim = Claim::find($claimId);
 
