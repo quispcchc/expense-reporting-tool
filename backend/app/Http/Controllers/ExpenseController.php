@@ -24,6 +24,13 @@ class ExpenseController extends Controller
 
     public function update(Request $request, $id)
     {
+        Log::info('=== EXPENSE UPDATE REQUEST ===');
+        Log::info('Request method: ' . $request->method());
+        Log::info('Request content type: ' . $request->header('Content-Type'));
+        Log::info('All request data: ', $request->all());
+        Log::info('deleteAttachment value: ' . $request->input('deleteAttachment', 'NOT SET'));
+        Log::info('deleteAttachment type: ' . gettype($request->input('deleteAttachment')));
+
         $validated = $request->validate([
             'transaction_date' => 'nullable|date',
             'account_number_id' => 'nullable|integer|exists:account_numbers,account_number_id',
@@ -33,14 +40,23 @@ class ExpenseController extends Controller
             'transaction_notes' => 'nullable|string',
             'expense_amount' => 'nullable|numeric|min:0',
             'project_id' => 'nullable|integer|exists:projects,project_id',
-            'file' => 'nullable|file|max:5120|mimes:jpg,jpeg,png,pdf',
+            'files' => 'nullable|array',  // Accept multiple files
+            'files.*' => 'file|max:5120|mimes:jpg,jpeg,png,pdf',
             'cost_centre_id' => 'nullable|integer',
-
             'tags' => 'nullable|string',
-            ]);
+            'deleteAttachment' => 'nullable',
+            'deleteReceiptIds' => 'nullable|string',  // Comma-separated receipt IDs to delete
+        ]);
 
+        // Ensure uploaded files are read from request and passed along
+        $payload = $validated;
+        $payload['files'] = $request->file('files') ?? [];
+        $payload['deleteReceiptIds'] = $request->input('deleteReceiptIds', $payload['deleteReceiptIds'] ?? null);
+        $payload['deleteAttachment'] = $request->input('deleteAttachment', $payload['deleteAttachment'] ?? null);
 
-        $updatedExpense = $this->expenseService->updateExpense($validated, $id);
+        Log::info('Validated data (sanitized). files count: ' . (is_array($payload['files']) ? count($payload['files']) : 0));
+
+        $updatedExpense = $this->expenseService->updateExpense($payload, $id);
         return response()->json($updatedExpense);
 
     }

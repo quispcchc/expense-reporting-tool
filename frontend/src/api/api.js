@@ -1,7 +1,10 @@
 import axios from 'axios'
 
+// Export the base URL for use in other components
+export const API_BASE_URL = 'http://127.0.0.1:8000'
+
 const api = axios.create({
-    baseURL: 'http://127.0.0.1:8000/api', // Base URL for all API requests
+    baseURL: `${API_BASE_URL}/api`, // Base URL for all API requests
     timeout: 10000, // Request timeout set to 10 seconds
 })
 

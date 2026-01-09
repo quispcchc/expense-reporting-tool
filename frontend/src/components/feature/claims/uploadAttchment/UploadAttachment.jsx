@@ -7,6 +7,8 @@ function UploadAttachment ({ files, onSetFiles,errors }) {
     const handleFileSelect = (e) => {
         const file = e.target.files[ 0 ]
 
+        if (!file) return
+
         const fileUrl = URL.createObjectURL(file);
         const selectedFile = {
             file,
@@ -17,7 +19,9 @@ function UploadAttachment ({ files, onSetFiles,errors }) {
     }
 
     const handleRemoveFile = () => {
-        if (files?.url) URL.revokeObjectURL(files.url);
+        if (files?.url && files.url.startsWith('blob:')) {
+            URL.revokeObjectURL(files.url);
+        }
         onSetFiles({})
     }
 

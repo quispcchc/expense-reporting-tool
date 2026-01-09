@@ -37,32 +37,91 @@ class ExpenseService
     public function updateExpense(array $updatedExpense, int $expenseId)
     {
         return DB::transaction(function () use ($expenseId, $updatedExpense) {
+            \Log::info('=== UPDATE EXPENSE START ===');
+            \Log::info('Expense ID: ' . $expenseId);
+            \Log::info('Updated data keys: ' . implode(', ', array_keys($updatedExpense)));
+            \Log::info('RAW deleteAttachment value: ' . print_r($updatedExpense['deleteAttachment'] ?? 'NOT SET', true));
+
             $expense = Expense::findOrFail($expenseId);
 
-            // Handle file separately
-            $file = $updatedExpense['file'] ?? null;
-            unset($updatedExpense['file']);
+            // Handle files separately
+            $files = $updatedExpense['files'] ?? null;
+            $deleteReceiptIds = $updatedExpense['deleteReceiptIds'] ?? null;
+
+            // Convert deleteAttachment to boolean - handle both string "true"/"false" and actual boolean
+            $deleteAttachment = false;
+            if (isset($updatedExpense['deleteAttachment'])) {
+                $value = $updatedExpense['deleteAttachment'];
+                if (is_string($value)) {
+                    $deleteAttachment = ($value === 'true' || $value === '1');
+                } else {
+                    $deleteAttachment = (bool)$value;
+                }
+            }
+
+            \Log::info('Files present: ' . (is_array($files) ? count($files) : 'no'));
+            \Log::info('Delete attachment flag (converted): ' . ($deleteAttachment ? 'TRUE' : 'FALSE'));
+            \Log::info('Delete receipt IDs: ' . ($deleteReceiptIds ?? 'none'));
+
+            unset($updatedExpense['files']);
+            unset($updatedExpense['deleteAttachment']);
+            unset($updatedExpense['deleteReceiptIds']);
 
             // Update expense fields
             $expense->update($updatedExpense);
+            \Log::info('Expense updated');
 
+            // Handle individual receipt deletion by IDs
+            if ($deleteReceiptIds) {
+                $receiptIdsArray = array_map('trim', explode(',', $deleteReceiptIds));
+                \Log::info('🗑️ DELETING specific receipts: ' . implode(', ', $receiptIdsArray));
 
-            // Handle file upload (replace old receipt if exists)
-            if ($file) {
-                // Optional: delete old receipt file
-                if ($expense->receipt) {
-                    Storage::disk('public')->delete($expense->receipt->receipt_path);
-                    $expense->receipt()->delete();
+                foreach ($receiptIdsArray as $receiptId) {
+                    $receipt = Receipt::find($receiptId);
+                    if ($receipt && $receipt->expense_id == $expenseId) {
+                        \Log::info('Deleting receipt file: ' . $receipt->receipt_path);
+                        Storage::disk('public')->delete($receipt->receipt_path);
+                        $receipt->delete();
+                        \Log::info('✅ Receipt deleted successfully');
+                    }
                 }
+            }
 
-                $path = $file->store('receipts', 'public');
+            // Handle file deletion or upload
+            if ($deleteAttachment) {
+                \Log::info('🗑️ DELETING ALL attachments for expense: ' . $expenseId);
+                $receiptsCount = $expense->receipts()->count();
+                \Log::info('Found ' . $receiptsCount . ' receipts to delete');
 
-                Receipt::create([
-                    'receipt_path' => $path,
-                    'receipt_name' => $file->getClientOriginalName(),
-                    'receipt_desc' => $file->getClientMimeType(),
-                    'expense_id' => $expense->expense_id,
-                ]);
+                // Delete ALL existing receipts
+                if ($expense->receipts()->exists()) {
+                    foreach ($expense->receipts as $receipt) {
+                        \Log::info('Deleting receipt file: ' . $receipt->receipt_path);
+                        Storage::disk('public')->delete($receipt->receipt_path);
+                        $receipt->delete();
+                        \Log::info('✅ Receipt deleted successfully');
+                    }
+                } else {
+                    \Log::info('⚠️ No receipts found to delete');
+                }
+            }
+
+            // Upload new files (append to existing receipts)
+            if (is_array($files) && count($files) > 0) {
+                \Log::info('📎 Uploading ' . count($files) . ' new file(s) for expense: ' . $expenseId);
+
+                foreach ($files as $file) {
+                    $path = $file->store('receipts', 'public');
+                    \Log::info('File stored at: ' . $path);
+
+                    Receipt::create([
+                        'receipt_path' => $path,
+                        'receipt_name' => $file->getClientOriginalName(),
+                        'receipt_desc' => $file->getClientMimeType(),
+                        'expense_id' => $expense->expense_id,
+                    ]);
+                    \Log::info('✅ Receipt created: ' . $file->getClientOriginalName());
+                }
             }
 
             // Handle tags
@@ -83,7 +142,9 @@ class ExpenseService
                 }
             }
 
-            return $expense->fresh(['tags', 'receipt']);
+            $result = $expense->fresh(['tags', 'receipts']);
+            \Log::info('=== UPDATE EXPENSE END ===');
+            return $result;
         });
 
     }
