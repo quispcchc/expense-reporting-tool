@@ -34,7 +34,7 @@ export const UserProvider = ({ children }) => {
     const getUsers = async () => {
         try {
             const res = await api.get('/admin/users')
-            dispatch({ type: 'set', payload: res.data.users })
+            dispatch({ type: 'set', payload: res.data })
         } catch (err) {
             console.error('Failed to fetch users', err)
         }

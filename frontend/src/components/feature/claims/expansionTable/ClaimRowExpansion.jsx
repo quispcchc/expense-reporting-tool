@@ -106,7 +106,7 @@ function ClaimRowExpansion ({
                 <ClaimExpansionAttachmentRow
                     label="Attachment"
                     isEditing={ isEditing }
-                    file={ displayData.attachment || null }
+                    files={ displayData.attachment || null }
                     rowData={ rowData }
                     handleInputChange={ handleInputChange }
                     mode={ mode }

@@ -26,9 +26,9 @@ class Expense extends Model
     ];
 
     //Relationships
-    public function receipt()
+    public function receipts()
     {
-        return $this->hasOne(Receipt::class, 'receipt_id', 'receipt_id');
+        return $this->hasMany(Receipt::class, 'expense_id', 'expense_id');
     }
 
     public function tags()

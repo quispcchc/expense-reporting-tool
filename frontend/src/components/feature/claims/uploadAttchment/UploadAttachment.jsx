@@ -5,20 +5,24 @@ import AttachmentList from './AttchmentList.jsx'
 function UploadAttachment ({ files, onSetFiles,errors }) {
 
     const handleFileSelect = (e) => {
-        const file = e.target.files[ 0 ]
-
-        const fileUrl = URL.createObjectURL(file);
-        const selectedFile = {
+        const selectedFiles = Array.from(e.target.files).map(file => ( {
             file,
-            url: fileUrl,
-        };
-        onSetFiles(selectedFile)
+            url: URL.createObjectURL(file),
+        } ))
 
+        if (selectedFiles.length > 0) {
+            onSetFiles(prev => ( [
+                ...prev,
+                ...selectedFiles,
+            ] ))
+        }
     }
 
-    const handleRemoveFile = () => {
-        if (files?.url) URL.revokeObjectURL(files.url);
-        onSetFiles({})
+
+    const handleRemoveFile = (filename) => {
+        onSetFiles(prev =>
+            prev.filter(file => file.file.name !== filename),
+        )
     }
 
     return (
@@ -28,7 +32,7 @@ function UploadAttachment ({ files, onSetFiles,errors }) {
             <div className="flex justify-center items-center border border-gray-300 rounded-md p-5">
                 <Upload handleFileSelect={ handleFileSelect }/>
             </div>
-            <AttachmentList selectedFile={ files } handleRemoveFile={ handleRemoveFile }/>
+            <AttachmentList files={ files } handleRemoveFile={ handleRemoveFile }/>
             <p className='text-red-500 text-sm mt-2'>{ errors.attachment }</p>
 
 
