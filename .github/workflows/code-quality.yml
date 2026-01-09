@@ -1,0 +1,145 @@
+name: Code Quality Checks
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  backend-code-quality:
+    runs-on: ubuntu-latest
+    name: Backend Code Quality (Laravel Pint)
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, xml, ctype, iconv
+
+      - name: Get Composer Cache Directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache Composer Dependencies
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('backend/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install Backend Dependencies
+        working-directory: ./backend
+        run: composer install --prefer-dist --no-progress
+
+      - name: Check Code Style with Laravel Pint
+        working-directory: ./backend
+        run: composer pint --test
+        continue-on-error: true
+
+      - name: Run Pest Tests
+        working-directory: ./backend
+        run: composer test
+        continue-on-error: true
+
+  frontend-code-quality:
+    runs-on: ubuntu-latest
+    name: Frontend Code Quality (ESLint)
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Run ESLint
+        working-directory: ./frontend
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Check for Console Warnings
+        working-directory: ./frontend
+        run: |
+          npm run build 2>&1 | tee build.log
+          if grep -i "warning" build.log; then
+            echo "Build warnings found"
+          fi
+        continue-on-error: true
+
+  code-coverage:
+    runs-on: ubuntu-latest
+    name: Code Coverage Report
+
+    services:
+      sqlite:
+        image: alpine:latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, xml, ctype, iconv
+          coverage: xdebug
+
+      - name: Get Composer Cache Directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache Composer Dependencies
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('backend/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install Backend Dependencies
+        working-directory: ./backend
+        run: composer install --prefer-dist --no-progress
+
+      - name: Setup Environment File
+        working-directory: ./backend
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Create SQLite Database
+        working-directory: ./backend
+        run: touch database/database.sqlite
+
+      - name: Run Migrations
+        working-directory: ./backend
+        run: php artisan migrate --env=testing
+
+      - name: Generate Code Coverage
+        working-directory: ./backend
+        run: |
+          php -d xdebug.mode=coverage ./vendor/bin/phpunit --coverage-clover coverage.xml
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
+
+      - name: Upload Coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./backend/coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false

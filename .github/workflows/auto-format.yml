@@ -1,0 +1,90 @@
+name: Auto Format Code
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  format-backend:
+    runs-on: ubuntu-latest
+    name: Format Backend Code (Laravel Pint)
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, xml, ctype, iconv
+
+      - name: Get Composer Cache Directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache Composer Dependencies
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('backend/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install Backend Dependencies
+        working-directory: ./backend
+        run: composer install --prefer-dist --no-progress
+
+      - name: Format code with Laravel Pint
+        working-directory: ./backend
+        run: composer pint
+
+      - name: Commit and push changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "style: format code with Laravel Pint"
+          file_pattern: "backend/**/*.php"
+          commit_user_name: "github-actions[bot]"
+          commit_user_email: "github-actions[bot]@users.noreply.github.com"
+
+  format-frontend:
+    runs-on: ubuntu-latest
+    name: Format Frontend Code (ESLint Auto-fix)
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Format code with ESLint
+        working-directory: ./frontend
+        run: npm run lint -- --fix
+        continue-on-error: true
+
+      - name: Commit and push changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "style: format code with ESLint"
+          file_pattern: "frontend/**/*.{js,jsx,ts,tsx}"
+          commit_user_name: "github-actions[bot]"
+          commit_user_email: "github-actions[bot]@users.noreply.github.com"

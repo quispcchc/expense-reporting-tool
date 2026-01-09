@@ -1,0 +1,125 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+    name: Backend Tests (Laravel/PHP)
+
+    services:
+      sqlite:
+        image: alpine:latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, xml, ctype, iconv
+          coverage: xdebug
+
+      - name: Get Composer Cache Directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache Composer Dependencies
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('backend/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install Backend Dependencies
+        working-directory: ./backend
+        run: composer install --prefer-dist --no-progress --no-suggest
+
+      - name: Setup Environment File
+        working-directory: ./backend
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Create SQLite Database
+        working-directory: ./backend
+        run: touch database/database.sqlite
+
+      - name: Run Migrations
+        working-directory: ./backend
+        run: php artisan migrate --env=testing
+
+      - name: Run Laravel Tests
+        working-directory: ./backend
+        run: composer test
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
+
+  frontend-tests:
+    runs-on: ubuntu-latest
+    name: Frontend Tests & Build (React/Vite)
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Lint Frontend Code
+        working-directory: ./frontend
+        run: npm run lint
+
+      - name: Run Frontend Tests
+        working-directory: ./frontend
+        run: npm test
+
+      - name: Build Frontend
+        working-directory: ./frontend
+        run: npm run build
+
+  docker-build:
+    runs-on: ubuntu-latest
+    name: Docker Build Verification
+    needs: [backend-tests, frontend-tests]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Backend Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build Frontend Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
