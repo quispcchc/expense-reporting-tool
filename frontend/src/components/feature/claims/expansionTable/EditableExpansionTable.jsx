@@ -42,22 +42,38 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate, toa
 
             // Map backend fields to frontend form fields
             setExpenseItems(
-                data.map(expense => ( {
-                    transactionId: expense.expense_id,
-                    buyer: expense.buyer_name,
-                    vendor: expense.vendor_name,
-                    transactionDate: expense.transaction_date,
-                    accountNum: expense.account_number_id,
-                    costCentre: expense.cost_centre_id,
-                    amount: expense.expense_amount,
-                    description: expense.transaction_desc,
-                    notes: expense.transaction_notes,
-                    tags: expense.tags,
-                    status: expense.approval_status_id,
-                    program: expense.project_id,
-                    attachment: expense.receipt_url,
+                data.map(expense => {
+                    // Get the first receipt if available
+                    const receipt = expense.receipts && expense.receipts.length > 0 
+                        ? expense.receipts[0] 
+                        : null;
+                    
+                    // Create attachment object if receipt exists
+                    const attachment = receipt 
+                        ? {
+                            url: `/storage/${receipt.receipt_path}`,
+                            file: null,
+                            name: receipt.receipt_name,
+                            path: receipt.receipt_path
+                          }
+                        : null;
 
-                } )),
+                    return {
+                        transactionId: expense.expense_id,
+                        buyer: expense.buyer_name,
+                        vendor: expense.vendor_name,
+                        transactionDate: expense.transaction_date,
+                        accountNum: expense.account_number_id,
+                        costCentre: expense.cost_centre_id,
+                        amount: expense.expense_amount,
+                        description: expense.transaction_desc,
+                        notes: expense.transaction_notes,
+                        tags: expense.tags,
+                        status: expense.approval_status_id,
+                        program: expense.project_id,
+                        attachment: attachment,
+                    };
+                }),
             )
         }
     }, [data])

@@ -98,6 +98,11 @@ function CreateClaim ({ navigateTo, homePath,toastRef }) {
             claimItems: [...prev.claimItems, completeExpenseData],
         } ))
 
+        // Reset form data and files after adding expense
+        setExpenseFormData(initialExpenseFormData)
+        setFiles({})
+        setTags(['Client Travelling'])
+
     }
 
     const handleClaimSubmit = async(e) => {
