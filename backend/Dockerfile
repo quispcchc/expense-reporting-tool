@@ -21,6 +21,9 @@ RUN rm -rf /var/cache/apk/*
 # Install PHP extensions
 RUN docker-php-ext-install pdo pdo_sqlite mbstring exif pcntl bcmath gd
 
+# Install zip extension
+RUN apk add --no-cache libzip-dev && docker-php-ext-install zip
+
 # Get latest Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 

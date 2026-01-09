@@ -87,24 +87,23 @@
         .expense-table tr {
             page-break-inside: avoid;
         }
-        .expense-detail {
-            background-color: #fafafa;
-            padding: 8px;
-            margin-bottom: 8px;
-            border-left: 3px solid #999;
+        .attachment-section {
+            margin-top: 20px;
             page-break-inside: avoid;
         }
-        .expense-detail div {
-            margin-bottom: 3px;
-        }
-        .expense-detail strong {
+        .receipt-image {
+            max-width: 300px;
+            max-height: 400px;
+            margin: 10px;
+            border: 1px solid #ddd;
+            padding: 5px;
             display: inline-block;
-            width: 110px;
-            font-size: 9px;
         }
-        .expense-detail-value {
-            display: inline;
+        .receipt-label {
             font-size: 9px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #666;
         }
         .notes-section {
             border: 1px solid #ddd;
@@ -274,35 +273,6 @@
             </tbody>
         </table>
 
-        <!-- ===== EXPENSE DETAILS SECTION ===== -->
-        @if(optional($claim)->expenses && count(optional($claim)->expenses) > 0)
-            <div class="section-title">EXPENSE DETAILS</div>
-            @foreach(optional($claim)->expenses ?? [] as $index => $expense)
-                <div class="expense-detail">
-                    <div><strong>Expense #:</strong> <span class="expense-detail-value">{{ $index + 1 }} (ID: {{ optional($expense)->expense_id ?? 'N/A' }})</span></div>
-                    <div><strong>Buyer:</strong> <span class="expense-detail-value">{{ optional($expense)->buyer_name ?? 'N/A' }}</span></div>
-                    <div><strong>Vendor:</strong> <span class="expense-detail-value">{{ optional($expense)->vendor_name ?? 'N/A' }}</span></div>
-                    <div><strong>Date:</strong> <span class="expense-detail-value">{{ optional($expense)->transaction_date ?? 'N/A' }}</span></div>
-                    <div><strong>Description:</strong> <span class="expense-detail-value">{{ optional($expense)->transaction_desc ?? 'N/A' }}</span></div>
-                    <div><strong>Amount:</strong> <span class="expense-detail-value">${{ number_format(optional($expense)->expense_amount ?? 0, 2) }}</span></div>
-                    <div><strong>Account #:</strong> <span class="expense-detail-value">{{ optional($expense->accountNumber)->account_number ?? 'N/A' }}</span></div>
-                    <div><strong>Cost Centre:</strong> <span class="expense-detail-value">{{ optional($expense->costCentre)->cost_centre_code ?? 'N/A' }}</span></div>
-                    @if(optional($expense)->transaction_notes)
-                        <div><strong>Notes:</strong> <span class="expense-detail-value">{{ optional($expense)->transaction_notes ?? 'N/A' }}</span></div>
-                    @endif
-                    @if(optional($expense)->project || optional($expense)->project_id)
-                        <div><strong>Program/Project:</strong> <span class="expense-detail-value">{{ optional($expense->project)->project_name ?? 'N/A' }}</span></div>
-                    @endif
-                    @if(optional($expense)->tags)
-                        <div><strong>Tags:</strong> <span class="expense-detail-value">{{ optional($expense)->tags ?? 'N/A' }}</span></div>
-                    @endif
-                    @if(optional($expense)->receipts && count(optional($expense)->receipts) > 0)
-                        <div><strong>Receipts:</strong> <span class="expense-detail-value">{{ count(optional($expense)->receipts) }} file(s) attached</span></div>
-                    @endif
-                </div>
-            @endforeach
-        @endif
-
         <!-- ===== NOTES SECTION ===== -->
         <div class="section-title">CLAIM NOTES</div>
         <div class="notes-section">
@@ -329,6 +299,49 @@
                 </tr>
             </table>
         </div>
+
+        <!-- ===== ATTACHMENTS SECTION ===== -->
+        @php
+            $hasReceipts = false;
+            if(optional($claim)->expenses) {
+                foreach(optional($claim)->expenses as $expense) {
+                    if(optional($expense)->receipts && count(optional($expense)->receipts) > 0) {
+                        $hasReceipts = true;
+                        break;
+                    }
+                }
+            }
+        @endphp
+
+        @if($hasReceipts)
+            <div class="attachment-section">
+                <div class="section-title">ATTACHMENTS</div>
+                @foreach(optional($claim)->expenses ?? [] as $expense)
+                    @if(optional($expense)->receipts && count(optional($expense)->receipts) > 0)
+                        @foreach(optional($expense)->receipts as $receipt)
+                            <div style="margin-bottom: 15px;">
+                                <div class="receipt-label">
+                                    Expense #{{ optional($expense)->expense_id ?? 'N/A' }} - {{ optional($expense)->vendor_name ?? 'N/A' }}
+                                </div>
+                                @if(optional($receipt)->receipt_url)
+                                    @php
+                                        $imagePath = storage_path('app/public/' . optional($receipt)->receipt_url);
+                                        $imageExists = file_exists($imagePath);
+                                    @endphp
+                                    @if($imageExists)
+                                        <img src="{{ $imagePath }}" class="receipt-image" alt="Receipt">
+                                    @else
+                                        <p style="color: #999; font-size: 9px;">Receipt file not found: {{ optional($receipt)->receipt_url }}</p>
+                                    @endif
+                                @else
+                                    <p style="color: #999; font-size: 9px;">No receipt file path available</p>
+                                @endif
+                            </div>
+                        @endforeach
+                    @endif
+                @endforeach
+            </div>
+        @endif
     </div>
 </body>
 </html>
