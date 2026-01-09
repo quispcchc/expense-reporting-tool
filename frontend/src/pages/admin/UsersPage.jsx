@@ -12,6 +12,7 @@ import { FilterMatchMode } from 'primereact/api'
 import { InputIcon } from 'primereact/inputicon'
 import { IconField } from 'primereact/iconfield'
 import { MultiSelect } from 'primereact/multiselect'
+import { useLookups } from '../../contexts/LookupContext.jsx'
 
 function UsersPage () {
     // Get user state and dispatch from context
@@ -20,6 +21,9 @@ function UsersPage () {
 
     // Local state to manage the current list of users
     const [users, setUsers] = useState(null)
+
+    const { lookups } = useLookups()
+    console.log(lookups)
 
     // Sync local users state whenever the context state changes
     useEffect(() => {
@@ -139,7 +143,7 @@ function UsersPage () {
             {/* User data table */ }
             <div className="bg-white rounded-xl p-6 mt-5">
                 <DataTable
-                    value={ users }
+                    value={ usersState }
                     paginator
                     rows={ 10 }
                     rowsPerPageOptions={ [5, 10, 25, 50] }
@@ -160,9 +164,9 @@ function UsersPage () {
                     <Column field="first_name" header="First Name" sortable editor={ textInputEditor }/>
                     <Column field="last_name" header="Last Name" sortable editor={ textInputEditor }/>
                     <Column field="teams" header="Team" body={ renderTeams } sortable editor={ teamEditor }/>
-                    <Column field="position" header="Position" sortable editor={ textInputEditor }/>
-                    <Column field="roles" header="Role" body={ renderRoles } sortable editor={ roleEditor }/>
-                    <Column field="status" header="Status" body={ renderStatus } sortable editor={ statusEditor }/>
+                    {/*<Column field="position" header="Position" sortable editor={ textInputEditor }/>*/}
+                    {/*<Column field="roles" header="Role" body={ renderRoles } sortable editor={ roleEditor }/>*/}
+                    {/*<Column field="status" header="Status" body={ renderStatus } sortable editor={ statusEditor }/>*/}
 
                     {/* Edit/save button column */ }
                     <Column rowEditor header="Actions"/>

@@ -11,6 +11,7 @@ function Upload ({ handleFileSelect }) {
                 name='attachment'
                 id='attachment'
                 type="file"
+                multiple
                 accept='image/*,application/pdf'
                 onChange={ handleFileSelect }
                 className="hidden"

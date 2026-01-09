@@ -17,13 +17,13 @@ const calculateTotalAmount = (formData) => {
     return claimItemsTotal
 }
 
-function CreateClaim ({ navigateTo, homePath,toastRef }) {
+function CreateClaim ({ navigateTo, homePath, toastRef }) {
     const { authUser } = useAuth()
     const { createClaim } = useClaims()
     const navigate = useNavigate()
 
     const [tags, setTags] = useState(['Client Travelling'])
-    const [files, setFiles] = useState({})
+    const [files, setFiles] = useState([])
 
     const [expenseErrors, setExpenseErrors] = useState([])
     const [claimErrors, setClaimErrors] = useState()
@@ -54,7 +54,7 @@ function CreateClaim ({ navigateTo, homePath,toastRef }) {
     const [expenseFormData, setExpenseFormData] = useState(initialExpenseFormData)
 
     useEffect(() => {
-        console.log('claimFormData',claimFormData)
+        console.log('claimFormData', claimFormData)
         console.log('expenseFormData', expenseFormData)
     }, [claimFormData, expenseFormData, tags])
 
@@ -89,7 +89,7 @@ function CreateClaim ({ navigateTo, homePath,toastRef }) {
         const completeExpenseData = {
             ...expenseFormData,
             tags: [...tags],
-            attachment: files,
+            attachment: [...files],
         }
         if (!validation.isValid) return alert('Please fill in all required fields!')
 
@@ -127,7 +127,7 @@ function CreateClaim ({ navigateTo, homePath,toastRef }) {
 
         // Add expenses - properly handling files
         claimFormData.claimItems.forEach((expense, index) => {
-            console.log('expense',expense)
+            console.log('expense', expense)
             // Add all non-file fields
             formData.append(`expenses[${ index }][transaction_date]`, expense.transactionDate)
             formData.append(`expenses[${ index }][buyer_name]`, expense.buyer)
@@ -140,10 +140,22 @@ function CreateClaim ({ navigateTo, homePath,toastRef }) {
             formData.append(`expenses[${ index }][tags]`, expense.tags)
             formData.append(`expenses[${ index }][transaction_notes]`, expense.notes)
 
-
             // Only add file if it's a real File object
-            if (expense.attachment.file instanceof File) {
-                formData.append(`expenses[${ index }][file]`, expense.attachment.file)
+            // if (expense.attachment.file instanceof File) {
+            //     formData.append(`expenses[${ index }][file]`, expense.attachment.file)
+            // }
+
+            // MULTIPLE ATTACHMENTS: { attachment: [{file, url}] }
+            if (Array.isArray(expense.attachment)) {
+                expense.attachment.forEach((att, attIndex) => {
+                    // only append if there's an actual File object
+                    if (att?.file instanceof File) {
+                        formData.append(
+                            `expenses[${index}][file][${attIndex}]`,
+                            att.file
+                        )
+                    }
+                })
             }
         })
 
@@ -152,7 +164,7 @@ function CreateClaim ({ navigateTo, homePath,toastRef }) {
         setClaimFormData(initialClaimFormData)
         setExpenseFormData(initialExpenseFormData)
         setTags([])
-        setFiles({})
+        setFiles([])
         navigate(navigateTo)
 
     }
@@ -179,7 +191,7 @@ function CreateClaim ({ navigateTo, homePath,toastRef }) {
 
                             onAddExpense={ handleAddExpense } tags={ tags } onSetTags={ setTags } files={ files }
                             onSetFiles={ setFiles } errors={ expenseErrors }
-                            toastRef={toastRef}
+                            toastRef={ toastRef }
             />
         </form>
 

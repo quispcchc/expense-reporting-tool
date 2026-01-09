@@ -15,7 +15,7 @@ api.interceptors.request.use(
 
         if (token) {
             const cleanToken = token.replace(/^"|"$/g, '')
-            config.headers.Authorization = `Bearer ${ cleanToken }`
+            config.headers.Authorization = `Bearer ${cleanToken}`
         }
         return config
     },
@@ -34,40 +34,7 @@ api.interceptors.response.use(
         let message = "An unknown error occurred";
 
         if (error.response) {
-        //     // Server responded with a status code outside 2xx
-        //     const status = error.response.status;
-            // switch (status) {
-            //     case 400:
-            //         message = "Bad Request – Invalid input";
-            //         break;
-        //         case 401:
-        //             message = "Unauthorized – Please login";
-        //             // Optional: redirect to login page
-        //             break;
-        //         case 403:
-        //             message = "Forbidden – You don’t have permission";
-        //             break;
-        //         case 404:
-        //             message = "Not Found – Resource does not exist";
-        //             break;
-        //         case 422:
-        //             // Validation errors from Laravel
-        //             message = error.response.data?.errors
-        //                 ? Object.values(error.response.data.errors).flat().join(", ")
-        //                 : "Validation error";
-        //             break;
-        //         case 500:
-        //             message = "Server error – Please try again later";
-        //             break;
-        //         default:
-                    message = error.response.data?.message
-            // }
-        // }else if (error.request) {
-        //     // Request made but no response received
-        //     message = "Network error – Please check your connection";
-        // } else {
-        //     // Something else happened
-        //     message = error.message;
+            message = error.response.data?.message
         }
 
         return Promise.reject({ message, status: error.response?.status });

@@ -14,7 +14,7 @@ import api, { API_BASE_URL } from '../../../../api/api.js'
 import { BUTTON_STYLE } from '../../../../utils/customizeStyle.js'
 import { confirmDialog } from 'primereact/confirmdialog'
 
-function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate, toastRef, onClaimUpdated }) {
+function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toastRef, onClaimUpdated }) {
     const [expenseItems, setExpenseItems] = useState(data || [])
 
     const { updateClaim } = useClaims()
@@ -35,45 +35,31 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate, toa
         if (mode === 'create') {
             let frontendId = 1
             // Create mode: data is already in frontend form shape, no mapping needed
-            setExpenseItems(data.map(item => ( {
+            setExpenseItems(data.map(item => ({
                 ...item,
                 transactionId: frontendId++,
-            } )))
+            })))
 
-        } else {
+        } else if (mode === 'edit') {
 
             // Map backend fields to frontend form fields
             setExpenseItems(
-                data.map(expense => {
-                    // Map all receipts to attachments array (supports multiple)
-                                        const attachments = Array.isArray(expense.receipts) && expense.receipts.length > 0
-                        ? expense.receipts.map(r => ({
-                            url: `${API_BASE_URL}/storage/${r.receipt_path}`,
-                            file: null,
-                            name: r.receipt_name,
-                            path: r.receipt_path,
-                            receipt_id: r.receipt_id,
-                          }))
-                        : [];
+                data.map(expense => ( {
+                    transactionId: expense.expense_id,
+                    buyer: expense.buyer_name,
+                    vendor: expense.vendor_name,
+                    transactionDate: expense.transaction_date,
+                    accountNum: expense.account_number_id,
+                    costCentre: expense.cost_centre_id,
+                    amount: expense.expense_amount,
+                    description: expense.transaction_desc,
+                    notes: expense.transaction_notes,
+                    tags: expense.tags,
+                    status: expense.approval_status_id,
+                    program: expense.project_id,
+                    attachment: expense.receipt_url,
 
-                                        console.log('[Map] expense', expense.expense_id, 'receipts:', expense.receipts ? expense.receipts.length : 0, '→ attachments:', attachments.length)
-
-                    return {
-                        transactionId: expense.expense_id,
-                        buyer: expense.buyer_name,
-                        vendor: expense.vendor_name,
-                        transactionDate: expense.transaction_date,
-                        accountNum: expense.account_number_id,
-                        costCentre: expense.cost_centre_id,
-                        amount: expense.expense_amount,
-                        description: expense.transaction_desc,
-                        notes: expense.transaction_notes,
-                        tags: expense.tags,
-                        status: expense.approval_status_id,
-                        program: expense.project_id,
-                        attachment: attachments, // maintain property name for compatibility
-                    };
-                }),
+                } )),
             )
         }
     }, [data])
@@ -91,20 +77,20 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate, toa
                 expense.transactionId === expenseId
                     ? {
                         ...expense,
-                        [ fieldName ]: processedValue,
+                        [ fieldName ]: fieldName === 'tags' ? [...newValue.split(',')] : newValue,
                     }
                     : expense,
             ),
         )
 
         // Store the changes temporarily until the row edit is completed
-        setUnsavedExpansionChanges(previousChanges => ( {
+        setUnsavedExpansionChanges(previousChanges => ({
             ...previousChanges,
             [ expenseId ]: {
                 ...previousChanges[ expenseId ],
-                [ fieldName ]: processedValue,
+                [ fieldName ]: fieldName === 'tags' ? [...newValue.split(',')] : newValue,
             },
-        } ))
+        }))
     }
 
     const saveExpenseItemsToParent = (updatedExpenseItems) => {
@@ -115,36 +101,23 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate, toa
             // In create mode: notify parent component of changes
             onClaimItemsUpdate(updatedExpenseItems)
 
-        } else
-            if (mode === 'edit' && curClaim && updateClaim) {
-                // In edit mode: update the claim in global context
-                const recalculatedTotal = updatedExpenseItems.reduce(
-                    (totalAmount, expense) => totalAmount + ( parseFloat(expense.amount) || 0 ),
-                    0,
-                )
-                updateClaim({
-                    ...curClaim,
-                    claimItems: updatedExpenseItems,
-                    totalAmount: recalculatedTotal,
-                })
-
-            }
+        }
     }
 
     const renderExpansionContent = (rowData) => {
         return (
             <ClaimRowExpansion
-                rowData={ rowData }
-                editingRowId={ currentlyEditingRowId }
-                claimItems={ expenseItems }
-                expandedRowData={ unsavedExpansionChanges }
-                handleInputChange={ handleExpansionFieldChange }
-                mode={ mode }
+                rowData={rowData}
+                editingRowId={currentlyEditingRowId}
+                claimItems={expenseItems}
+                expandedRowData={unsavedExpansionChanges}
+                handleInputChange={handleExpansionFieldChange}
+                mode={mode}
             />
         )
     }
 
-// Handle starting to edit a row
+    // Handle starting to edit a row
     const handleRowEditStart = (editEvent) => { // Was: onRowEditInit
 
         if (editEvent.data.status !== 1) { // 1 for pending
@@ -167,7 +140,7 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate, toa
                     // Clear any existing unsaved changes for this row when starting fresh
                     setUnsavedExpansionChanges(previousChanges => {
                         const cleanedChanges = { ...previousChanges }
-                        delete cleanedChanges[ editEvent.data.transactionId ]
+                        delete cleanedChanges[editEvent.data.transactionId]
                         return cleanedChanges
                     })
                 },
@@ -192,53 +165,41 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate, toa
         // Clear any existing unsaved changes for this row when starting fresh
         setUnsavedExpansionChanges(previousChanges => {
             const cleanedChanges = { ...previousChanges }
-            delete cleanedChanges[ editEvent.data.transactionId ]
+            delete cleanedChanges[editEvent.data.transactionId]
             return cleanedChanges
         })
     }
 
-// Handle canceling row edit
+    // Handle canceling row edit
     const handleRowEditCancel = (editEvent) => {
         const expenseId = editEvent.data.transactionId
         setCurrentlyEditingRowId(null)
 
-        // Restore the original data for this row from saved state
-        const originalExpense = originalExpenseData[expenseId]
-        if (originalExpense) {
-            setExpenseItems(previousItems => {
-                const restoredItems = [...previousItems]
-                const expenseIndex = restoredItems.findIndex(e => e.transactionId === expenseId)
-                if (expenseIndex >= 0) {
-                    restoredItems[expenseIndex] = { ...originalExpense }
-                }
-                return restoredItems
-            })
-        }
-
-        // Clear original expense data
-        setOriginalExpenseData(prev => {
-            const updated = { ...prev }
-            delete updated[expenseId]
-            return updated
+        // Restore the original data for this row
+        setExpenseItems(previousItems => {
+            const restoredItems = [...previousItems]
+            const originalExpense = expenseItems.find(expense => expense.transactionId === expenseId)
+            if (originalExpense) {
+                restoredItems[ editEvent.index ] = { ...originalExpense }
+            }
+            return restoredItems
         })
 
         // Clear any unsaved expansion changes for this row
         setUnsavedExpansionChanges(previousChanges => {
             const cleanedChanges = { ...previousChanges }
-            delete cleanedChanges[ expenseId ]
+            delete cleanedChanges[expenseId]
             return cleanedChanges
         })
 
         showToast(toastRef, { severity: 'info', summary: 'Info', detail: 'Edit cancelled!' })
     }
 
-// Handle saving row edit
-    const handleRowSaveComplete = async(editEvent) => {
+    // Handle saving row edit
+    const handleRowSaveComplete = async (editEvent) => {
         const updatedExpenseItems = [...expenseItems]
         const expenseId = editEvent.newData.transactionId
-        const expenseIndex = editEvent.index
         const changesFromExpansion = unsavedExpansionChanges[ expenseId ] || {}
-        const originalExpense = originalExpenseData[expenseId] || expenseItems[expenseIndex]
 
         console.log('=== SAVE ROW EDIT START ===')
         console.log('expenseId:', expenseId)
@@ -246,123 +207,48 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate, toa
         console.log('originalExpense (saved):', originalExpense)
 
         // Merge the row edits with any expansion area changes
-        const updated = updatedExpenseItems[ expenseIndex ] = {
-            ...expenseItems[ expenseIndex ],
+        const updated = updatedExpenseItems[ editEvent.index ] = {
+            ...expenseItems[ editEvent.index ],
             ...editEvent.newData,
             ...changesFromExpansion,
         }
 
-        console.log('merged updated:', updated)
+        console.log(updated)
 
-        // Create FormData for request
-        const formData = new FormData()
-        formData.append('buyer_name', updated.buyer || '')
-        formData.append('vendor_name', updated.vendor || '')
-        formData.append('expense_amount', updated.amount || '')
-        formData.append('transaction_date', updated.transactionDate || '')
-        formData.append('transaction_desc', updated.description || '')
-        formData.append('transaction_notes', updated.notes || '')
-        formData.append('approval_status_id', updated.status || '')
-        formData.append('project_id', updated.program || '')
-        formData.append('cost_centre_id', updated.costCentre || '')
-        formData.append('account_number_id', updated.accountNum || '')
-        
-        const tagsValue = Array.isArray(updated.tags)
-            ? (typeof updated.tags[0] === 'string'
-                ? updated.tags.join(',')
-                : updated.tags.map(tag => tag.tag_name).join(','))
-            : ''
-        formData.append('tags', tagsValue)
-        
-        // Handle multiple attachments - use ORIGINAL expense data
-        const originalAttachments = Array.isArray(originalExpense?.attachment) 
-            ? originalExpense.attachment 
-            : (originalExpense?.attachment ? [originalExpense.attachment] : [])
-        
-        const updatedAttachments = Array.isArray(updated.attachment) 
-            ? updated.attachment 
-            : (updated.attachment ? [updated.attachment] : [])
-        
-        console.log('originalAttachments (from saved):', originalAttachments)
-        console.log('updatedAttachments:', updatedAttachments)
-        
-        // Find deleted receipts (original receipts that are not in updated)
-        const deletedReceiptIds = originalAttachments
-            .filter(original => original.receipt_id) // Only existing receipts have receipt_id
-            .filter(original => !updatedAttachments.some(updated => 
-                updated.receipt_id && updated.receipt_id === original.receipt_id
-            ))
-            .map(r => r.receipt_id)
-        
-        if (deletedReceiptIds.length > 0) {
-            console.log('🗑️ MARKING RECEIPTS FOR DELETION:', deletedReceiptIds)
-            formData.append('deleteReceiptIds', deletedReceiptIds.join(','))
-        }
-        
-        // Delete ALL if updated is empty (backward compatibility)
-        if (originalAttachments.length > 0 && updatedAttachments.length === 0) {
-            console.log('🗑️ MARKING ALL FOR DELETION')
-            formData.append('deleteAttachment', 'true')
-        }
-
-        // Find new files to upload (files with isNew flag or File instance)
-        const newFiles = updatedAttachments.filter(attachment => 
-            attachment.isNew || attachment.file instanceof File
-        )
-
-        if (newFiles.length > 0) {
-            console.log('📎 APPENDING NEW FILES:', newFiles.length)
-            newFiles.forEach((attachment) => {
-                if (attachment.file instanceof File) {
-                    // Use files[] so Laravel treats it as an array
-                    formData.append('files[]', attachment.file)
-                }
-            })
-        }
-        
-        // Laravel requires _method field for PUT with multipart/form-data
-        formData.append('_method', 'PUT')
-        
-        // Log FormData contents
-        console.log('FormData contents:')
-        for (let [key, value] of formData.entries()) {
-            console.log(`  ${key}:`, value instanceof File ? `File: ${value.name}` : value)
+        const updatedExpense = {
+            buyer_name: updated.buyer,
+            vendor_name: updated.vendor,
+            expense_amount: updated.amount,
+            transaction_date: updated.transactionDate,
+            transaction_desc: updated.description,
+            transaction_notes: updated.notes,
+            approval_status_id: updated.status,
+            project_id: updated.program,
+            cost_centre_id: updated.costCentre,
+            account_number_id: updated.accountNum,
+            tags: Array.isArray(updated.tags)
+                ? (typeof updated.tags[0] === 'string'
+                    ? updated.tags.join(',')
+                    : updated.tags.map(tag => tag.tag_name).join(','))
+                : ''
         }
 
         setCurrentlyEditingRowId(null)
-        
-        // Clear original expense data
-        setOriginalExpenseData(prev => {
-            const updated = { ...prev }
-            delete updated[expenseId]
-            return updated
-        })
-        
-        try {
-            console.log('🚀 Sending POST request (method spoofing PUT) to expenses/' + expenseId)
-            // Use POST with _method=PUT for multipart/form-data
-            await api.post(`expenses/${ expenseId }`, formData)
-            console.log('✅ POST request successful')
-            if (onClaimUpdated) onClaimUpdated()
-        } catch (error) {
-            console.error('❌ POST request failed:', error)
-            throw error
-        }
+        await api.put(`expenses/${ expenseId }`, updatedExpense)
 
-        // Clear the temporary expansion changes for this row
-        setUnsavedExpansionChanges(previousChanges => {
-            const cleanedChanges = { ...previousChanges }
-            delete cleanedChanges[ expenseId ]
-            return cleanedChanges
-        })
+            // Clear the temporary expansion changes for this row
+            setUnsavedExpansionChanges(previousChanges => {
+                const cleanedChanges = { ...previousChanges }
+                delete cleanedChanges[expenseId]
+                return cleanedChanges
+            })
 
         // Save all changes to parent
         saveExpenseItemsToParent(updatedExpenseItems)
         showToast(toastRef, { severity: 'success', summary: 'Updated', detail: 'Updated successfully!' })
-        console.log('=== SAVE ROW EDIT END ===')
     }
 
-// Delete an expense item
+    // Delete an expense item
     const deleteExpenseItem = (transactionId) => {
         confirmDialog({
             message: 'Do you want to delete an expense?',
@@ -382,24 +268,24 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate, toa
 
     }
 
-// Render delete button for each row
+    // Render delete button for each row
     const renderDeleteButton = (rowData) => {
         const isCurrentlyEditing = currentlyEditingRowId === rowData.transactionId
 
         return (
             <button
-                onClick={ () => deleteExpenseItem(rowData.transactionId) }
+                onClick={() => deleteExpenseItem(rowData.transactionId)}
                 type="button"
                 className="p-2 disabled:opacity-50"
                 title="Delete this expense"
-                disabled={ isCurrentlyEditing }
+                disabled={isCurrentlyEditing}
             >
                 <i className="pi pi-trash"></i>
             </button>
         )
     }
 
-// Display template for currency amounts
+    // Display template for currency amounts
     const renderCurrencyAmount = (rowData) => {
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
@@ -407,10 +293,10 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate, toa
         }).format(rowData.amount || 0)
     }
 
-// Approve and Reject a single expense item
-    async function approveExpense (expenseId) {
+    // Approve and Reject a single expense item
+    async function approveExpense(expenseId) {
         try {
-            await api.post(`expenses/${ expenseId }/approve`)
+            await api.post(`expenses/${expenseId}/approve`)
 
             // Update local state in table
             setExpenseItems(prev =>
@@ -430,10 +316,10 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate, toa
         }
     }
 
-    async function rejectExpense (expenseId) {
+    async function rejectExpense(expenseId) {
         try {
 
-            await api.post(`expenses/${ expenseId }/reject`)
+            await api.post(`expenses/${expenseId}/reject`)
 
             // update local state
             setExpenseItems(prev =>
@@ -456,65 +342,65 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate, toa
 
         return (
             <div className="flex gap-2">
-                <Button label="Approve" outlined className={ BUTTON_STYLE.success } icon="pi pi-check" iconPos="right"
-                        onClick={ () => approveExpense(rowData.transactionId) } disabled={ isProcessed }/>
-                <Button label="Reject" outlined className={ BUTTON_STYLE.danger } icon="pi pi-times" iconPos="right"
-                        onClick={ () => rejectExpense(rowData.transactionId) } disabled={ isProcessed }/>
+                <Button label="Approve" outlined className={BUTTON_STYLE.success} icon="pi pi-check" iconPos="right"
+                    onClick={() => approveExpense(rowData.transactionId)} disabled={isProcessed} />
+                <Button label="Reject" outlined className={BUTTON_STYLE.danger} icon="pi pi-times" iconPos="right"
+                    onClick={() => rejectExpense(rowData.transactionId)} disabled={isProcessed} />
             </div>
         )
     }
 
     const renderStatus = (rowData) => (
-        <StatusTab status={ rowData.status }/>
+        <StatusTab status={rowData.status} />
     )
 
-// Convert ID to label
+    // Convert ID to label
     const accountNumMap = Object.fromEntries(
-        accountNums.map(opt => [opt.account_number_id, `${ opt.account_number } - ${ opt.description }`]),
+        accountNums.map(opt => [opt.account_number_id, `${opt.account_number} - ${opt.description}`]),
     )
 
     const costCentreMap = Object.fromEntries(
-        costCentres.map(opt => [opt.cost_centre_id, `${ opt.cost_centre_code } - ${ opt.description }`]),
+        costCentres.map(opt => [opt.cost_centre_id, `${opt.cost_centre_code} - ${opt.description}`]),
     )
 
-// Editor templates for inline editing
+    // Editor templates for inline editing
     const textInputEditor = (editorOptions) => (
         <InputText
             type="text"
-            value={ editorOptions.value || '' }
-            onChange={ (e) => editorOptions.editorCallback(e.target.value) }
+            value={editorOptions.value || ''}
+            onChange={(e) => editorOptions.editorCallback(e.target.value)}
             className="w-full"
         />
     )
 
     const accountNumEditor = (editorOptions) => (
         <Dropdown
-            value={ editorOptions.value }
-            onChange={ (e) => editorOptions.editorCallback(e.target.value) }
-            options={ accountNums.map((opt) => ( {
-                label: `${ opt.account_number } - ${ opt.description }`,
+            value={editorOptions.value}
+            onChange={(e) => editorOptions.editorCallback(e.target.value)}
+            options={accountNums.map((opt) => ({
+                label: `${opt.account_number} - ${opt.description}`,
                 value: opt.account_number_id,
-            } )) }
+            }))}
         />
 
     )
 
     const costCentreEditor = (editorOptions) => (
         <Dropdown
-            value={ editorOptions.value }
-            onChange={ (e) => editorOptions.editorCallback(e.target.value) }
-            options={ costCentres.map((opt) => ( {
-                label: `${ opt.cost_centre_code } - ${ opt.description }`,
+            value={editorOptions.value}
+            onChange={(e) => editorOptions.editorCallback(e.target.value)}
+            options={costCentres.map((opt) => ({
+                label: `${opt.cost_centre_code} - ${opt.description}`,
                 value: opt.cost_centre_id,
-            } )) }
+            }))}
         />
 
     )
 
     const currencyInputEditor = (editorOptions) => (
         <InputNumber
-            value={ editorOptions.value }
-            onValueChange={ (e) => editorOptions.editorCallback(e.value) }
+            value={editorOptions.value}
+            onValueChange={(e) => editorOptions.editorCallback(e.value)}
             mode="currency"
             currency="USD"
             locale="en-US"
@@ -525,8 +411,8 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate, toa
     const dateInputEditor = (editorOptions) => (
         <InputText
             type="date"
-            value={ editorOptions.value || '' }
-            onChange={ (e) => editorOptions.editorCallback(e.target.value) }
+            value={editorOptions.value || ''}
+            onChange={(e) => editorOptions.editorCallback(e.target.value)}
             className="w-full"
         />
     )
@@ -534,25 +420,25 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate, toa
     return (
         <div className="bg-white h-full p-6">
 
-            {/* Expenses Header*/ }
+            {/* Expenses Header*/}
             <div className="flex justify-between items-center mb-4">
                 <h3 className="text-[22px] font-semibold">Expense Details</h3>
 
                 <div className="text-sm text-gray-600">
-                    { expenseItems.length } { expenseItems.length === 1 ? 'item' : 'items' } •
-                    Total: { new Intl.NumberFormat('en-US', {
-                    style: 'currency',
-                    currency: 'USD',
-                }).format(expenseItems.reduce((sum, item) => sum + ( parseFloat(item.amount) || 0 ), 0)) }
+                    {expenseItems.length} {expenseItems.length === 1 ? 'item' : 'items'} •
+                    Total: {new Intl.NumberFormat('en-US', {
+                        style: 'currency',
+                        currency: 'USD',
+                    }).format(expenseItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0))}
                 </div>
             </div>
 
-            {/*Expenses Table*/ }
-            { expenseItems.length === 0 ? (
+            {/*Expenses Table*/}
+            {expenseItems.length === 0 ? (
                 <div className="text-center py-12 text-gray-500">
                     <p className="text-lg mb-2">No expenses added yet</p>
                     <p className="text-sm">
-                        { mode === 'create'
+                        {mode === 'create'
                             ? 'Add your first expense using the form above.'
                             : 'This claim contains no expense items.'
                         }
@@ -561,31 +447,31 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate, toa
             ) : (
                 <DataTable
                     // Data & Identity
-                    value={ expenseItems }
+                    value={expenseItems}
                     dataKey="transactionId"
 
                     // Row editing event handlers
                     editMode="row"
-                    onRowEditInit={ handleRowEditStart }
-                    onRowEditCancel={ handleRowEditCancel }
-                    onRowEditComplete={ handleRowSaveComplete }
+                    onRowEditInit={handleRowEditStart}
+                    onRowEditCancel={handleRowEditCancel}
+                    onRowEditComplete={handleRowSaveComplete}
 
                     // Row Expansion
-                    expandedRows={ expandedRows }
-                    onRowToggle={ (e) => setExpandedRows(e.data) }
-                    rowExpansionTemplate={ renderExpansionContent }
+                    expandedRows={expandedRows}
+                    onRowToggle={(e) => setExpandedRows(e.data)}
+                    rowExpansionTemplate={renderExpansionContent}
 
                     // Pagination
                     paginator
-                    rows={ 5 }
-                    rowsPerPageOptions={ [10, 25, 50] }
+                    rows={5}
+                    rowsPerPageOptions={[10, 25, 50]}
 
                     //  Appearance & Behavior
-                    tableStyle={ { minWidth: '50rem' } }
+                    tableStyle={{ minWidth: '50rem' }}
                     emptyMessage="No expense items to display"
                     size="small"
                 >
-                    <Column expander/>
+                    <Column expander />
                     <Column
                         field="transactionId"
                         header="ID"
@@ -593,73 +479,73 @@ function EditableExpansionTable ({ data, curClaim, mode, onClaimItemsUpdate, toa
                     <Column
                         field="transactionDate"
                         header="Transaction Date"
-                        editor={ dateInputEditor }
-                        style={ { minWidth: '150px' } }
+                        editor={dateInputEditor}
+                        style={{ minWidth: '150px' }}
                     />
 
                     <Column
                         field="vendor"
                         header="Vendor"
-                        editor={ textInputEditor }
-                        style={ { minWidth: '120px' } }
+                        editor={textInputEditor}
+                        style={{ minWidth: '120px' }}
                     />
                     <Column
                         field="accountNum"
                         header="Account #"
-                        editor={ accountNumEditor }
-                        body={ (rowData) => accountNumMap[ rowData.accountNum ] || '' }
-                        style={ { minWidth: '200px' } }
+                        editor={accountNumEditor}
+                        body={(rowData) => accountNumMap[rowData.accountNum] || ''}
+                        style={{ minWidth: '200px' }}
                     />
 
                     <Column
                         field="costCentre"
                         header="Cost Centre"
-                        editor={ costCentreEditor }
-                        body={ (rowData) => costCentreMap[ rowData.costCentre ] || '' }
-                        style={ { minWidth: '200px' } }
+                        editor={costCentreEditor}
+                        body={(rowData) => costCentreMap[rowData.costCentre] || ''}
+                        style={{ minWidth: '200px' }}
                     />
                     <Column
                         field="amount"
                         header="Amount"
-                        body={ renderCurrencyAmount }
-                        editor={ currencyInputEditor }
-                        style={ { minWidth: '120px' } }
+                        body={renderCurrencyAmount}
+                        editor={currencyInputEditor}
+                        style={{ minWidth: '120px' }}
                     />
                     <Column
                         field="buyer"
                         header="Buyer"
-                        editor={ textInputEditor }
-                        style={ { minWidth: '120px' } }
+                        editor={textInputEditor}
+                        style={{ minWidth: '120px' }}
                     />
 
-                    { mode !== 'create' &&
+                    {mode !== 'create' &&
                         <Column
                             field="status"
                             header="Status"
-                            body={ renderStatus }
-                            style={ { minWidth: '120px' } }
+                            body={renderStatus}
+                            style={{ minWidth: '120px' }}
                         />
                     }
 
-                    { mode !== 'view' &&
+                    {mode !== 'view' &&
                         <Column
-                            rowEditor={ true }
+                            rowEditor={true}
                             header="Edit"
                         />
                     }
 
-                    { mode !== 'view' && <Column
-                        body={ renderDeleteButton }
+                    {mode !== 'view' && <Column
+                        body={renderDeleteButton}
                         header="Delete"
                     />
                     }
 
-                    { mode === 'edit' && (
+                    {mode === 'edit' && (
                         <Column
-                            body={ renderActionsButton }
+                            body={renderActionsButton}
                             header="Action"
                         />
-                    ) }
+                    )}
                 </DataTable>
             )
             }
