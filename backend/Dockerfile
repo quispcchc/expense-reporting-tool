@@ -44,14 +44,18 @@ RUN mkdir -p /var/www/html/database && \
     mkdir -p /var/www/html/storage/logs && \
     mkdir -p /var/www/html/storage/framework/{cache,sessions,views} && \
     mkdir -p /var/www/html/bootstrap/cache && \
+    mkdir -p /var/www/html/public/storage && \
     touch /var/www/html/database/database.sqlite
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html && \
-    chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/database
+    chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/database /var/www/html/public/storage
 
 # Generate application key if not already present
 RUN php artisan key:generate --force
+
+# Create storage symlink for public/storage
+RUN php artisan storage:link --force || true
 
 # Expose port 8000
 EXPOSE 8000
