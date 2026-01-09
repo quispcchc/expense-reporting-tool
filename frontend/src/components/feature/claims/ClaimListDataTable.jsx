@@ -36,6 +36,7 @@ function ClaimListDataTable ({ claims ,user,path, toastRef }) {
 
     const [selectedClaims, setSelectedClaims] = useState(null)
     const isDisabled = !selectedClaims || selectedClaims.length === 0;
+    const [isExporting, setIsExporting] = useState(false)
 
     const [filters, setFilters] = useState({
         global: { value: null, matchMode: FilterMatchMode.CONTAINS },
@@ -169,6 +170,76 @@ function ClaimListDataTable ({ claims ,user,path, toastRef }) {
 
     }
 
+    async function handleExportPdf() {
+        if (!selectedClaims || selectedClaims.length === 0) {
+            showToast(toastRef, { 
+                severity: 'warn', 
+                summary: 'Warning', 
+                detail: 'Please select at least one claim to export' 
+            })
+            return
+        }
+
+        setIsExporting(true)
+
+        try {
+            // Single claim - direct PDF download
+            if (selectedClaims.length === 1) {
+                const claimId = selectedClaims[0].claim_id
+                const response = await api.get(`/claims/${claimId}/export-pdf`, {
+                    responseType: 'blob',
+                })
+
+                const url = window.URL.createObjectURL(new Blob([response.data]))
+                const link = document.createElement('a')
+                link.href = url
+                link.setAttribute('download', `claim_${claimId}_${new Date().toISOString().split('T')[0]}.pdf`)
+                document.body.appendChild(link)
+                link.click()
+                link.remove()
+                window.URL.revokeObjectURL(url)
+
+                showToast(toastRef, { 
+                    severity: 'success', 
+                    summary: 'Success', 
+                    detail: 'PDF exported successfully' 
+                })
+            } 
+            // Multiple claims - ZIP download
+            else {
+                const claimIds = selectedClaims.map(claim => claim.claim_id)
+                const response = await api.post('/claims/export-multiple-pdf', 
+                    { claimIds },
+                    { responseType: 'blob' }
+                )
+
+                const url = window.URL.createObjectURL(new Blob([response.data]))
+                const link = document.createElement('a')
+                link.href = url
+                link.setAttribute('download', `claims_export_${new Date().toISOString().split('T')[0]}.zip`)
+                document.body.appendChild(link)
+                link.click()
+                link.remove()
+                window.URL.revokeObjectURL(url)
+
+                showToast(toastRef, { 
+                    severity: 'success', 
+                    summary: 'Success', 
+                    detail: `${selectedClaims.length} claims exported as ZIP file` 
+                })
+            }
+        } catch (error) {
+            console.error('Error exporting PDF:', error)
+            showToast(toastRef, { 
+                severity: 'error', 
+                summary: 'Error', 
+                detail: 'Failed to export PDF. Please try again.' 
+            })
+        } finally {
+            setIsExporting(false)
+        }
+    }
+
     const adminHeaderTemplate = () => (
         <div className="flex justify-between items-center flex-wrap gap-2">
             <div className="flex justify-end">
@@ -184,11 +255,18 @@ function ClaimListDataTable ({ claims ,user,path, toastRef }) {
 
             <div className="flex gap-2 flex-wrap">
                 <Button label="Approve" outlined className={ BUTTON_STYLE.success } icon="pi pi-check" iconPos="right"
-                        onClick={ bulkApproveClaim } disabled={isDisabled}/>
+                        onClick={ bulkApproveClaim } disabled={isDisabled || isExporting}/>
                 <Button label="Reject" outlined className={ BUTTON_STYLE.danger } icon="pi pi-times" iconPos="right"
-                        onClick={ bulkRejectClaim } disabled={isDisabled}/>
-                <Button label="Export" outlined icon="pi pi-file-export" iconPos="right"
-                        onClick={ () => exportToCSVManual(selectedClaims) } disabled={isDisabled}/>
+                        onClick={ bulkRejectClaim } disabled={isDisabled || isExporting}/>
+                <Button 
+                    label={isExporting ? "Exporting..." : "Export"} 
+                    outlined 
+                    icon={isExporting ? "pi pi-spin pi-spinner" : "pi pi-file-export"} 
+                    iconPos="right"
+                    onClick={ handleExportPdf } 
+                    disabled={isDisabled || isExporting}
+                    loading={isExporting}
+                />
                 <Link to={`${path}/claims/create-claim`}>
                     <Button label="New Claim" icon="pi pi-plus" iconPos="right"/>
                 </Link>

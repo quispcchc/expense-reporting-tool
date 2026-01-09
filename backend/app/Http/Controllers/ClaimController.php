@@ -173,4 +173,92 @@ class ClaimController extends Controller
         return $pdf->download('claim_' . $claimId . '_' . now()->format('Y-m-d') . '.pdf');
     }
 
+    /**
+     * Export multiple claims as a single ZIP file
+     */
+    public function exportMultiplePdf(Request $request)
+    {
+        $claimIds = $request->input('claimIds', []);
+        
+        if (empty($claimIds)) {
+            return response()->json(['error' => 'No claim IDs provided'], 400);
+        }
+
+        // Create temporary directory for PDFs
+        $tempDir = storage_path('app/temp_pdfs_' . uniqid());
+        if (!file_exists($tempDir)) {
+            mkdir($tempDir, 0755, true);
+        }
+
+        $pdfFiles = [];
+
+        try {
+            // Generate PDF for each claim
+            foreach ($claimIds as $claimId) {
+                $claim = Claim::with([
+                    'claimType',
+                    'user.position',
+                    'user.department',
+                    'user.team',
+                    'expenses.accountNumber',
+                    'expenses.costCentre',
+                    'expenses.approvalStatus',
+                    'expenses.receipts',
+                    'notes.user'
+                ])->find($claimId);
+
+                if ($claim) {
+                    $pdf = Pdf::loadView('pdf.claim', ['claim' => $claim])
+                        ->setPaper('a4', 'portrait')
+                        ->setOption('isHtml5ParserEnabled', true)
+                        ->setOption('isRemoteEnabled', true)
+                        ->setOption('chroot', storage_path('app/public'));
+
+                    $filename = 'claim_' . $claimId . '.pdf';
+                    $filepath = $tempDir . '/' . $filename;
+                    $pdf->save($filepath);
+                    $pdfFiles[] = $filepath;
+                }
+            }
+
+            // Create ZIP file
+            $zipFilename = 'claims_export_' . now()->format('Y-m-d_His') . '.zip';
+            $zipPath = storage_path('app/' . $zipFilename);
+
+            $zip = new \ZipArchive();
+            if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) === true) {
+                foreach ($pdfFiles as $file) {
+                    $zip->addFile($file, basename($file));
+                }
+                $zip->close();
+            }
+
+            // Clean up temporary PDF files
+            foreach ($pdfFiles as $file) {
+                if (file_exists($file)) {
+                    unlink($file);
+                }
+            }
+            if (file_exists($tempDir)) {
+                rmdir($tempDir);
+            }
+
+            // Return ZIP file for download and delete after sending
+            return response()->download($zipPath, $zipFilename)->deleteFileAfterSend(true);
+
+        } catch (\Exception $e) {
+            // Clean up on error
+            foreach ($pdfFiles as $file) {
+                if (file_exists($file)) {
+                    unlink($file);
+                }
+            }
+            if (file_exists($tempDir)) {
+                rmdir($tempDir);
+            }
+
+            return response()->json(['error' => 'Failed to generate ZIP file: ' . $e->getMessage()], 500);
+        }
+    }
+
 }

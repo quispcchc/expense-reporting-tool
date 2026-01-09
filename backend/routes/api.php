@@ -69,6 +69,7 @@ Route::get('lookups',[LookupController::class,'index'])->middleware('auth:sanctu
 Route::apiResource('claims',ClaimController::class)->middleware('auth:sanctum');
 Route::get('my-claims',[ClaimController::class,'getClaimsByUser'])->middleware('auth:sanctum');
 Route::get('claims/{claimId}/export-pdf', [ClaimController::class, 'exportPdf'])->middleware('auth:sanctum');
+Route::post('claims/export-multiple-pdf', [ClaimController::class, 'exportMultiplePdf'])->middleware('auth:sanctum');
 
 // Create Claim Notes
 Route::post('notes',[ClaimNotesController::class,'store'])->middleware('auth:sanctum');

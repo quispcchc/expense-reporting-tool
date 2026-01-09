@@ -41,34 +41,6 @@ function ClaimDetail ({ curClaim, toastRef }) {
         return lookups.teams?.find(t => t.team_id === id)?.team_name
     }
 
-    // Export PDF function
-    async function handleExportPdf () {
-        try {
-            const response = await api.get(`/claims/${curClaim.claim_id}/export-pdf`, {
-                responseType: 'blob', // Important: get binary data
-            })
-
-            // Create a download link
-            const url = window.URL.createObjectURL(new Blob([response.data]))
-            const link = document.createElement('a')
-            link.href = url
-            link.setAttribute('download', `claim_${curClaim.claim_id}_${new Date().toISOString().split('T')[0]}.pdf`)
-            document.body.appendChild(link)
-            link.click()
-            link.remove()
-            window.URL.revokeObjectURL(url)
-
-            showToast(toastRef, { severity: 'success', summary: 'Success', detail: 'PDF exported successfully' })
-        } catch (error) {
-            console.error('Error exporting PDF:', error)
-            showToast(toastRef, { 
-                severity: 'error', 
-                summary: 'Error', 
-                detail: 'Failed to export PDF. Please try again.' 
-            })
-        }
-    }
-
     // Safe getter for claimType with null checks
     const claimTypeName = curClaim?.claim_type?.claim_type_name || curClaim?.claimType?.claim_type_name
     const position = curClaim?.user?.position?.position_name || curClaim?.position?.position_name
@@ -83,15 +55,6 @@ function ClaimDetail ({ curClaim, toastRef }) {
             <div className="flex justify-between">
                 <h5 className="text-[22px] mb-2">Claim Detail</h5>
                 <div className="flex gap-2">
-                    {/* Export PDF Button */}
-                    <Button
-                        label="Export PDF"
-                        icon="pi pi-file-pdf"
-                        severity="secondary"
-                        outlined
-                        onClick={handleExportPdf}
-                    />
-                    
                     { !isEditing && <Button
                         rounded
                         icon="pi pi-pencil"
