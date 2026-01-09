@@ -2,7 +2,7 @@ name: Auto Format Code
 
 on:
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main, dev ]
   workflow_dispatch:
 
 permissions:
