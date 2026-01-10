@@ -6,3 +6,5 @@ backend/storage/logs/*
 backend/bootstrap/cache/*
 .env
 .env.example
+CONTEXT.md
+.github
