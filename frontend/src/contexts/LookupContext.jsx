@@ -1,9 +1,11 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import api from '../api/api.js'
+import { useAuth } from './AuthContext.jsx'
 
 const LookupContext = createContext()
 
 export function LookupProvider({ children }) {
+    const { isAuthenticated } = useAuth()
     const [lookups, setLookups] = useState({
         roles: [],
         teams: [],
@@ -25,9 +27,10 @@ export function LookupProvider({ children }) {
             setError(null)
 
             // Require auth token before fetching
-            const token = sessionStorage.getItem('token')
-            if (!token) {
-                setError('Not authenticated')
+            // Use AuthContext to check authentication status
+            if (!isAuthenticated()) {
+                // If not authenticated, we shouldn't necessarily error out loudly, just don't fetch
+                console.log('LookupContext: Not authenticated, skipping fetch.')
                 return false
             }
 
@@ -55,8 +58,9 @@ export function LookupProvider({ children }) {
                 return true // Indicate success
             } else {
                 // Data is empty, might need to retry
-                setError('No lookup data available')
-                return false
+                console.warn('LookupContext: Data fetched but seems empty.')
+                // setError('No lookup data available') // Don't block UI with error for empty lookups maybe?
+                return true // Treated as success but empty
             }
         } catch (err) {
             setError(err.message || 'Failed to fetch lookups')
@@ -65,7 +69,7 @@ export function LookupProvider({ children }) {
         } finally {
             setLoading(false)
         }
-    }, [])
+    }, [isAuthenticated])
 
     // Initial fetch with retry logic
     useEffect(() => {
@@ -73,8 +77,7 @@ export function LookupProvider({ children }) {
         const retryDelay = 2000 // 2 seconds
 
         const fetchWithRetry = async () => {
-            const hasToken = sessionStorage.getItem('token')
-            if (!hasToken) {
+            if (!isAuthenticated()) {
                 setLoading(false)
                 return
             }
@@ -82,15 +85,18 @@ export function LookupProvider({ children }) {
             const success = await fetchLookups()
 
             if (!success && retryCount < maxRetries) {
-                setTimeout(() => {
-                    setRetryCount(prev => prev + 1)
-                    setLoading(true)
-                }, retryDelay)
+                // Only retry if we are still authenticated
+                if (isAuthenticated()) {
+                    setTimeout(() => {
+                        setRetryCount(prev => prev + 1)
+                        setLoading(true)
+                    }, retryDelay)
+                }
             }
         }
 
         fetchWithRetry()
-    }, [retryCount, fetchLookups])
+    }, [isAuthenticated, retryCount, fetchLookups])
 
     const value = {
         lookups,

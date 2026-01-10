@@ -24,123 +24,125 @@ import { CostCentreProvider } from './contexts/CostCentreContext.jsx'
 import UserCreateClaimPage from './pages/user/UserCreateClaimPage.jsx'
 
 
+import RootRedirect from './components/feature/auth/RootRedirect.jsx'
+
 const router = createBrowserRouter(
     [
         {
             path: '/',
-            element: <Navigate to="/login"/>,
+            element: <RootRedirect />,
         },
         {
             path: '/login',
-            element: <LoginPage/>,
+            element: <LoginPage />,
         },
         {
             path: '/forgot-password',
-            element: <ForgotPassword/>,
+            element: <ForgotPassword />,
         },
         {
             path: '/reset-password',
-            element: <ResetPassword/>,
+            element: <ResetPassword />,
         },
         {
             path: '/update-password',
-            element: <UpdatePassword/>,
+            element: <UpdatePassword />,
         },
         {
             path: '/unauthorized',
-            element: <Unauthorized/>,
+            element: <Unauthorized />,
         },
         {
             path: '/user',
             element: (
-                <ProtectedRoute allowedRoles={ ['regular_user','super_admin', 'admin', 'approver'] }>
-                    <UserLayout/>
+                <ProtectedRoute allowedRoles={['regular_user', 'super_admin', 'admin', 'approver']}>
+                    <UserLayout />
                 </ProtectedRoute>
             ),
             children: [
                 {
                     index: true,
-                    element: <Navigate to="claims" replace/>,
+                    element: <Navigate to="claims" replace />,
                 },
                 {
                     path: 'claims',
-                    element: <MyClaimPage/>,
+                    element: <MyClaimPage />,
                 },
                 {
                     path: 'claims/create-claim',
-                    element: <UserCreateClaimPage/>,
+                    element: <UserCreateClaimPage />,
                 },
                 {
                     path: 'claims/:claimId/view-claim',
-                    element: <ViewClaimPage/>,
+                    element: <ViewClaimPage />,
                 },
                 {
                     path: '*',
-                    element: <NotFound/>,
+                    element: <NotFound />,
                 },
             ],
         },
         {
             path: '/admin',
             element: (
-                <ProtectedRoute allowedRoles={ ['super_admin', 'admin', 'approver'] }>
-                    <AdminLayout/>
+                <ProtectedRoute allowedRoles={['super_admin', 'admin', 'approver']}>
+                    <AdminLayout />
                 </ProtectedRoute>
             ),
             children: [
                 {
                     index: true,
-                    element: <Navigate to="claims" replace/>,
+                    element: <Navigate to="claims" replace />,
                 },
                 {
                     path: 'claims',
-                    element: <AllClaimsPage/>,
+                    element: <AllClaimsPage />,
                 },
                 {
                     path: 'my-claims',
-                    element: <MyClaimPage/>,
+                    element: <MyClaimPage />,
                 },
                 {
                     path: 'claims/create-claim',
-                    element: <CreateClaimPage/>,
+                    element: <CreateClaimPage />,
                 },
                 {
                     path: 'claims/:claimId/edit-claim',
-                    element: <EditClaimPage/>,
+                    element: <EditClaimPage />,
                 },
                 {
                     path: 'my-claims/:claimId/view-claim',
-                    element: <ViewClaimPage/>,
+                    element: <ViewClaimPage />,
                 },
                 {
                     path: 'users',
-                    element: <UserProvider><UsersPage/></UserProvider>,
+                    element: <UserProvider><UsersPage /></UserProvider>,
                 },
                 {
                     path: 'teams',
-                    element: <TeamProvider><TeamsPage/></TeamProvider> ,
+                    element: <TeamProvider><TeamsPage /></TeamProvider>,
                 },
                 {
                     path: 'cost-centre',
-                    element: <CostCentreProvider><CostCentresPage/></CostCentreProvider> ,
+                    element: <CostCentreProvider><CostCentresPage /></CostCentreProvider>,
                 },
                 {
                     path: 'tags',
-                    element: <TagsPage/>,
+                    element: <TagsPage />,
                 },
                 {
                     path: 'settings',
-                    element: <SettingsPage/>,
+                    element: <SettingsPage />,
                 },
                 {
                     path: '*',
-                    element: <NotFound/>,
+                    element: <NotFound />,
                 },
             ],
         },
         {
             path: '*',
-            element: <NotFound/>,
+            element: <NotFound />,
         },
     ],
 )
