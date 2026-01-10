@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>Volunteer Expense Claim - {{ optional($claim)->claim_id ?? 'Report' }}</title>
     <style>
         * {
@@ -10,31 +11,37 @@
             padding: 0;
             box-sizing: border-box;
         }
+
         body {
-            font-family: 'DejaVu Sans', sans-serif;
+            font-family: 'notosanscjk', 'DejaVu Sans', sans-serif;
             color: #333;
             line-height: 1.4;
             font-size: 11px;
         }
+
         .container {
             margin: 20px;
             max-width: 900px;
         }
+
         .header {
             text-align: center;
             margin-bottom: 20px;
             border-bottom: 2px solid #000;
             padding-bottom: 10px;
         }
+
         .header h1 {
             margin: 0 0 5px 0;
             font-size: 22px;
             font-weight: bold;
         }
+
         .header p {
             margin: 3px 0;
             font-size: 10px;
         }
+
         .section-title {
             font-size: 12px;
             font-weight: bold;
@@ -43,26 +50,32 @@
             margin-top: 12px;
             margin-bottom: 8px;
         }
+
         .info-grid {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 12px;
         }
+
         .info-grid tr {
             page-break-inside: avoid;
         }
+
         .info-grid td {
             padding: 6px 8px;
             border: 1px solid #ddd;
             font-size: 10px;
         }
+
         .info-grid td:nth-child(odd) {
             background-color: #f9f9f9;
         }
+
         .label {
             font-weight: bold;
             width: 30%;
         }
+
         .expense-table {
             width: 100%;
             border-collapse: collapse;
@@ -70,9 +83,11 @@
             margin-bottom: 12px;
             font-size: 9px;
         }
+
         .expense-table thead {
             background-color: #e8e8e8;
         }
+
         .expense-table th {
             border: 1px solid #ddd;
             padding: 6px;
@@ -80,18 +95,22 @@
             font-weight: bold;
             font-size: 9px;
         }
+
         .expense-table td {
             border: 1px solid #ddd;
             padding: 5px 6px;
             font-size: 9px;
         }
+
         .expense-table tr {
             page-break-inside: avoid;
         }
+
         .attachment-section {
             margin-top: 20px;
             page-break-inside: avoid;
         }
+
         .receipt-image {
             max-width: 300px;
             max-height: 400px;
@@ -100,12 +119,14 @@
             padding: 5px;
             display: inline-block;
         }
+
         .receipt-label {
             font-size: 9px;
             font-weight: bold;
             margin-bottom: 5px;
             color: #666;
         }
+
         .notes-section {
             border: 1px solid #ddd;
             padding: 8px;
@@ -114,33 +135,40 @@
             margin-bottom: 12px;
             font-size: 9px;
         }
+
         .note-item {
             margin-bottom: 6px;
             padding-bottom: 6px;
             border-bottom: 1px solid #eee;
             page-break-inside: avoid;
         }
+
         .note-item:last-child {
             border-bottom: none;
             margin-bottom: 0;
         }
+
         .note-header {
             font-weight: bold;
             font-size: 9px;
             margin-bottom: 2px;
         }
+
         .note-text {
             margin: 2px 0 0 0;
             font-size: 9px;
         }
+
         .signature-section {
             margin-top: 30px;
             page-break-inside: avoid;
         }
+
         .signature-line {
             width: 100%;
             border-collapse: collapse;
         }
+
         .signature-line td {
             width: 50%;
             text-align: center;
@@ -148,9 +176,11 @@
             border-top: 1px solid #000;
             font-size: 10px;
         }
+
         .amount {
             text-align: right;
         }
+
         .status-badge {
             display: inline-block;
             padding: 2px 5px;
@@ -158,24 +188,29 @@
             font-size: 8px;
             font-weight: bold;
         }
+
         .status-pending {
             background-color: #fff3cd;
             color: #856404;
         }
+
         .status-approved {
             background-color: #d4edda;
             color: #155724;
         }
+
         .status-rejected {
             background-color: #f8d7da;
             color: #721c24;
         }
+
         .total-row {
             background-color: #e8e8e8;
             font-weight: bold;
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <!-- ===== HEADER ===== -->
@@ -213,7 +248,8 @@
         <table class="info-grid">
             <tr>
                 <td class="label">Employee Name:</td>
-                <td>{{ optional($claim->user)->user_first_name ?? 'N/A' }} {{ optional($claim->user)->user_last_name ?? '' }}</td>
+                <td>{{ optional($claim->user)->user_first_name ?? 'N/A' }}
+                    {{ optional($claim->user)->user_last_name ?? '' }}</td>
                 <td class="label">Position:</td>
                 <td>{{ optional($claim->user->position)->position_name ?? 'N/A' }}</td>
             </tr>
@@ -267,7 +303,8 @@
                 @if(optional($claim)->expenses && count(optional($claim)->expenses) > 0)
                     <tr class="total-row">
                         <td colspan="6" style="text-align: right; padding-right: 8px;">TOTAL</td>
-                        <td class="amount">${{ number_format(optional($claim)->expenses->sum('expense_amount') ?? 0, 2) }}</td>
+                        <td class="amount">${{ number_format(optional($claim)->expenses->sum('expense_amount') ?? 0, 2) }}
+                        </td>
                         <td></td>
                     </tr>
                 @endif
@@ -279,7 +316,10 @@
         <div class="notes-section">
             @forelse(optional($claim)->notes ?? [] as $note)
                 <div class="note-item">
-                    <div class="note-header">{{ optional($note->user)->user_first_name ?? 'Unknown' }} {{ optional($note->user)->user_last_name ?? '' }} ({{ optional($note)->created_at ? optional($note)->created_at->format('Y-m-d H:i') : 'N/A' }}):</div>
+                    <div class="note-header">{{ optional($note->user)->user_first_name ?? 'Unknown' }}
+                        {{ optional($note->user)->user_last_name ?? '' }}
+                        ({{ optional($note)->created_at ? optional($note)->created_at->format('Y-m-d H:i') : 'N/A' }}):
+                    </div>
                     <div class="note-text">{{ optional($note)->claim_note_text ?? 'N/A' }}</div>
                 </div>
             @empty
@@ -295,8 +335,10 @@
                     <td>Approver Signature</td>
                 </tr>
                 <tr>
-                    <td style="border: none; padding-top: 5px;"><span style="font-size: 9px;">Date: _______________</span></td>
-                    <td style="border: none; padding-top: 5px;"><span style="font-size: 9px;">Date: _______________</span></td>
+                    <td style="border: none; padding-top: 5px;"><span style="font-size: 9px;">Date:
+                            _______________</span></td>
+                    <td style="border: none; padding-top: 5px;"><span style="font-size: 9px;">Date:
+                            _______________</span></td>
                 </tr>
             </table>
         </div>
@@ -304,9 +346,9 @@
         <!-- ===== ATTACHMENTS SECTION ===== -->
         @php
             $hasReceipts = false;
-            if(optional($claim)->expenses) {
-                foreach(optional($claim)->expenses as $expense) {
-                    if(optional($expense)->receipts && count(optional($expense)->receipts) > 0) {
+            if (optional($claim)->expenses) {
+                foreach (optional($claim)->expenses as $expense) {
+                    if (optional($expense)->receipts && count(optional($expense)->receipts) > 0) {
                         $hasReceipts = true;
                         break;
                     }
@@ -322,7 +364,8 @@
                         @foreach(optional($expense)->receipts as $receipt)
                             <div style="margin-bottom: 15px;">
                                 <div class="receipt-label">
-                                    Expense #{{ optional($expense)->expense_id ?? 'N/A' }} - {{ optional($expense)->vendor_name ?? 'N/A' }}
+                                    Expense #{{ optional($expense)->expense_id ?? 'N/A' }} -
+                                    {{ optional($expense)->vendor_name ?? 'N/A' }}
                                 </div>
                                 @if(optional($receipt)->receipt_path)
                                     @php
@@ -345,4 +388,5 @@
         @endif
     </div>
 </body>
+
 </html>

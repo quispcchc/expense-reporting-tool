@@ -14,10 +14,17 @@ RUN apk add --no-cache \
     sqlite-dev \
     nodejs \
     npm \
-    ttf-dejavu
+    ttf-dejavu \
+    fontconfig
 
 # Clear cache
 RUN rm -rf /var/cache/apk/*
+
+# Download Noto Sans CJK font for PDF CJK character support
+RUN mkdir -p /usr/share/fonts/noto-cjk && \
+    curl -L -o /usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc \
+    "https://raw.githubusercontent.com/notofonts/noto-cjk/main/Sans/OTC/NotoSansCJK-Regular.ttc" && \
+    fc-cache -fv
 
 # Install PHP extensions
 RUN docker-php-ext-install pdo pdo_sqlite mbstring exif pcntl bcmath gd
@@ -34,11 +41,14 @@ WORKDIR /var/www/html
 # Copy entire application directory, excluding public/storage which will be created as symlink
 COPY --chown=www-data:www-data . .
 
+# Clean Laravel cache files that may contain old package references
+RUN rm -f /var/www/html/bootstrap/cache/packages.php /var/www/html/bootstrap/cache/services.php
+
 # Ensure public directory exists (public/storage might not be in context since it's gitignored)
 RUN mkdir -p /var/www/html/public
 
-# Install PHP dependencies with retry logic (include dev deps for seeding/factories)
-RUN composer install --no-interaction --optimize-autoloader || composer install --no-interaction --optimize-autoloader
+# Install PHP dependencies (using update to sync lock file with new packages)
+RUN composer update --no-interaction --optimize-autoloader
 
 # Install Node dependencies (for Vite)
 RUN npm install --legacy-peer-deps
@@ -63,8 +73,8 @@ RUN php artisan key:generate --force
 # First ensure the public directory exists
 RUN mkdir -p /var/www/html/public/storage && \
     if [ ! -L /var/www/html/public/storage ]; then \
-      rm -rf /var/www/html/public/storage && \
-      ln -s /var/www/html/storage/app/public /var/www/html/public/storage; \
+    rm -rf /var/www/html/public/storage && \
+    ln -s /var/www/html/storage/app/public /var/www/html/public/storage; \
     fi || true
 
 

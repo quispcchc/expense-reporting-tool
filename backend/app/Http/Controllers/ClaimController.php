@@ -10,7 +10,10 @@ use Illuminate\Http\Request;
 use Log;
 use Throwable;
 use function Symfony\Component\String\s;
-use Barryvdh\DomPDF\Facade\Pdf;
+use Mpdf\Mpdf;
+use Mpdf\Config\ConfigVariables;
+use Mpdf\Config\FontVariables;
+
 
 
 class ClaimController extends Controller
@@ -45,7 +48,8 @@ class ClaimController extends Controller
         return response()->json($claims);
     }
 
-    public function getClaimsByUser(Request $request) {
+    public function getClaimsByUser(Request $request)
+    {
 
         $user = $request->user();
 
@@ -108,13 +112,14 @@ class ClaimController extends Controller
         }
     }
 
-    public function update(Request $request,$id) {
+    public function update(Request $request, $id)
+    {
         $validated = $request->validate([
             'claim_type_id' => 'required|exists:claim_types,claim_type_id',
             'team_id' => 'required|exists:teams,team_id',
         ]);
 
-        $this->claimService->updateClaim($validated,$id);
+        $this->claimService->updateClaim($validated, $id);
     }
 
 
@@ -160,12 +165,12 @@ class ClaimController extends Controller
     {
         try {
             \Log::info('PDF Export Started for Claim: ' . $claimId);
-            
+
             // Set mbstring encoding for proper UTF-8 handling
             mb_internal_encoding('UTF-8');
             mb_http_output('UTF-8');
             mb_regex_encoding('UTF-8');
-            
+
             // Load claim with all necessary relationships
             $claim = Claim::with([
                 'claimType',
@@ -180,7 +185,7 @@ class ClaimController extends Controller
             ])->findOrFail($claimId);
 
             \Log::info('Claim loaded. Expenses count: ' . count($claim->expenses ?? []));
-            
+
             // Log receipt files
             foreach ($claim->expenses ?? [] as $expense) {
                 foreach ($expense->receipts ?? [] as $receipt) {
@@ -189,22 +194,24 @@ class ClaimController extends Controller
                 }
             }
 
-            // Generate PDF from blade template
-            $pdf = Pdf::loadView('pdf.claim', ['claim' => $claim])
-                ->setPaper('a4', 'portrait')
-                ->setOption('isHtml5ParserEnabled', true)
-                ->setOption('isRemoteEnabled', true)
-                ->setOption('chroot', storage_path('app/public'))
-                ->setOption('enable_php', false)
-                ->setOption('enable_javascript', false)
-                ->setOption('debugKeepTemp', false)
-                ->setOption('isUnicode', true)
-                ->setOption('isFontSubsettingEnabled', true);
+            // Create mPDF instance with CJK font support
+            $mpdf = $this->createMpdfInstance();
+
+            // Render blade template to HTML
+            $html = view('pdf.claim', ['claim' => $claim])->render();
+
+            // Write HTML to PDF
+            $mpdf->WriteHTML($html);
 
             \Log::info('PDF generated successfully for Claim: ' . $claimId);
-            
-            // Download PDF with claim ID in filename
-            return $pdf->download('claim_' . $claimId . '_' . now()->format('Y-m-d') . '.pdf');
+
+            // Generate filename
+            $filename = 'claim_' . $claimId . '_' . now()->format('Y-m-d') . '.pdf';
+
+            // Return PDF as download
+            return response($mpdf->Output($filename, \Mpdf\Output\Destination::STRING_RETURN))
+                ->header('Content-Type', 'application/pdf')
+                ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
         } catch (\Exception $e) {
             \Log::error('PDF Export Error for Claim ' . $claimId . ': ' . $e->getMessage() . ' | Stack: ' . $e->getTraceAsString());
             return response()->json(['error' => 'Failed to generate PDF: ' . $e->getMessage()], 500);
@@ -217,7 +224,7 @@ class ClaimController extends Controller
     public function exportMultiplePdf(Request $request)
     {
         $claimIds = $request->input('claimIds', []);
-        
+
         if (empty($claimIds)) {
             return response()->json(['error' => 'No claim IDs provided'], 400);
         }
@@ -246,20 +253,18 @@ class ClaimController extends Controller
                 ])->find($claimId);
 
                 if ($claim) {
-                    $pdf = Pdf::loadView('pdf.claim', ['claim' => $claim])
-                        ->setPaper('a4', 'portrait')
-                        ->setOption('isHtml5ParserEnabled', true)
-                        ->setOption('isRemoteEnabled', true)
-                        ->setOption('chroot', storage_path('app/public'))
-                        ->setOption('enable_php', false)
-                        ->setOption('enable_javascript', false)
-                        ->setOption('debugKeepTemp', false)
-                        ->setOption('isUnicode', true)
-                        ->setOption('isFontSubsettingEnabled', true);
+                    // Create mPDF instance with CJK font support
+                    $mpdf = $this->createMpdfInstance();
+
+                    // Render blade template to HTML
+                    $html = view('pdf.claim', ['claim' => $claim])->render();
+
+                    // Write HTML to PDF
+                    $mpdf->WriteHTML($html);
 
                     $filename = 'claim_' . $claimId . '.pdf';
                     $filepath = $tempDir . '/' . $filename;
-                    $pdf->save($filepath);
+                    $mpdf->Output($filepath, \Mpdf\Output\Destination::FILE);
                     $pdfFiles[] = $filepath;
                 }
             }
@@ -291,7 +296,7 @@ class ClaimController extends Controller
 
         } catch (\Exception $e) {
             \Log::error('PDF Export (Multiple) Error: ' . $e->getMessage() . ' | Stack: ' . $e->getTraceAsString());
-            
+
             // Clean up on error
             foreach ($pdfFiles as $file) {
                 if (file_exists($file)) {
@@ -304,6 +309,56 @@ class ClaimController extends Controller
 
             return response()->json(['error' => 'Failed to generate ZIP file: ' . $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * Create mPDF instance with CJK font support
+     */
+    private function createMpdfInstance(): Mpdf
+    {
+        // Get default font configuration
+        $defaultConfig = (new ConfigVariables())->getDefaults();
+        $fontDirs = $defaultConfig['fontDir'];
+
+        $defaultFontConfig = (new FontVariables())->getDefaults();
+        $fontData = $defaultFontConfig['fontdata'];
+
+        // Create mPDF temp directory if not exists
+        $tempDir = storage_path('app/mpdf');
+        if (!file_exists($tempDir)) {
+            mkdir($tempDir, 0755, true);
+        }
+
+        // Add CJK font to font data with TTC configuration
+        $customFontData = [
+            'notosanscjk' => [
+                'R' => 'NotoSansCJK-Regular.ttc',
+                'TTCfontID' => [
+                    'R' => 3, // Index 3 is Simplified Chinese, 2 is Japanese, 1 is Korean, 0 is Traditional Chinese
+                ],
+                'useOTL' => 0xFF,
+            ],
+        ];
+
+        // mPDF configuration with CJK font support
+        $mpdf = new Mpdf([
+            'mode' => 'utf-8',
+            'format' => 'A4',
+            'orientation' => 'P',
+            'tempDir' => $tempDir,
+            'fontDir' => array_merge($fontDirs, [
+                '/usr/share/fonts/noto-cjk',
+            ]),
+            'fontdata' => $fontData + $customFontData,
+            'default_font' => 'dejavusans', // Use built-in font as default
+            'default_font_size' => 11,
+            'autoScriptToLang' => true,
+            'autoLangToFont' => true,
+            // Map CJK scripts to our custom font
+            'backupSIPFont' => 'notosanscjk',
+        ]);
+
+        return $mpdf;
     }
 
 }
