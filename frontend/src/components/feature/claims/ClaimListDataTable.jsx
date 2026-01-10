@@ -230,10 +230,20 @@ function ClaimListDataTable ({ claims ,user,path, toastRef }) {
             }
         } catch (error) {
             console.error('Error exporting PDF:', error)
+            let errorDetail = 'Failed to export PDF. Please try again.';
+            
+            if (error?.message) {
+                errorDetail = error.message;
+            } else if (error?.response?.status === 500) {
+                errorDetail = 'Server error during PDF generation. Check the server logs for details.';
+            } else if (error?.response?.status === 408) {
+                errorDetail = 'Request timeout. The PDF generation took too long. Please try again.';
+            }
+            
             showToast(toastRef, { 
                 severity: 'error', 
                 summary: 'Error', 
-                detail: 'Failed to export PDF. Please try again.' 
+                detail: errorDetail 
             })
         } finally {
             setIsExporting(false)
