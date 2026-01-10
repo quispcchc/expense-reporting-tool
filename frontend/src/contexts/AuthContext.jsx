@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import Cookies from 'js-cookie'
 import api from '../api/api.js'
 
 const AuthContext = createContext()
@@ -11,15 +12,39 @@ export const AuthProvider = ({ children }) => {
     const [isLoading, setIsLoading] = useState(true)
     const [path, setPath] = useState()
 
-    // On component mount, initialize auth state from sessionStorage
+    // On component mount, initialize auth state from Cookies and verify with server
     useEffect(() => {
-        const initializeAuth = () => {
-            const storedToken = sessionStorage.getItem('token')
-            const storedUser = sessionStorage.getItem('authUser')
+        const initializeAuth = async () => {
+            const storedToken = Cookies.get('token')
+            const storedUser = Cookies.get('authUser')
 
             if (storedToken && storedUser) {
-                setToken(storedToken)
-                setAuthUser(JSON.parse(storedUser))
+                try {
+                    // Verify token with server
+                    // We need to manually set the header here because the interceptor might not pick up the cookie yet if api.js is not updated/reloaded context
+                    // But api.js reads from storage on every request, so we just need to ensure we use valid logic there too.
+                    // For now, let's just attempt to fetch user.
+                    await api.get('/user')
+
+                    setToken(storedToken)
+                    setAuthUser(JSON.parse(storedUser))
+                } catch (err) {
+                    console.log('Session check failed:', err)
+                    // Only clear session if strictly 401 (Unauthorized)
+                    // Network errors or 500s should NOT log the user out immediately
+                    if (err.status === 401 || err.response?.status === 401) {
+                        console.log('Session expired (401), logging out.');
+                        Cookies.remove('token', { path: '/' })
+                        Cookies.remove('authUser', { path: '/' })
+                        setAuthUser(null)
+                        setToken(null)
+                    } else {
+                        console.warn('Server validation failed but not 401. Keeping local session for now.');
+                        // We keep the local state. If the token is truly invalid, the next API call will trigger the 401 interceptor in api.js
+                        setToken(storedToken)
+                        setAuthUser(JSON.parse(storedUser))
+                    }
+                }
             }
             setIsLoading(false)
         }
@@ -28,7 +53,7 @@ export const AuthProvider = ({ children }) => {
 
     const actions = {
         // Login function - sends credentials, receives token and user info
-        login: async(credentials) => {
+        login: async (credentials) => {
             setIsLoading(true)
             setError(null)
             try {
@@ -37,11 +62,12 @@ export const AuthProvider = ({ children }) => {
 
                 console.log(response)
 
-                // Update auth state and persist to sessionStorage
+                // Update auth state and persist to Cookies
+                // No expires option means it's a session cookie (removed on browser close)
                 setAuthUser(user)
                 setToken(access_token)
-                sessionStorage.setItem('token', access_token)
-                sessionStorage.setItem('authUser', JSON.stringify(user))
+                Cookies.set('token', access_token)
+                Cookies.set('authUser', JSON.stringify(user))
 
                 const path = user.role_name === 'regular_user' ? '/user' : '/admin'
 
@@ -58,29 +84,28 @@ export const AuthProvider = ({ children }) => {
             }
         },
 
-        // Logout function - calls API and clears auth state & sessionStorage
-        logout: async() => {
+        // Logout function - calls API and clears auth state & Cookies
+        logout: async () => {
             setIsLoading(true)
             try {
-                const response = await api.post('/logout')
-                setAuthUser(null)
-                setToken(null)
-                setError(null)
-                sessionStorage.removeItem('authUser')
-                sessionStorage.removeItem('token')
-                console.log(response)
-                return { success: true, message: 'Log out successfully!' }
+                await api.post('/logout')
             }
             catch (err) {
                 console.error('Logout error:', err)
-                return { success: false, error: 'Logout failed' }
             } finally {
+                // Clear state regardless of server response
+                setAuthUser(null)
+                setToken(null)
+                setError(null)
+                Cookies.remove('authUser')
+                Cookies.remove('token')
                 setIsLoading(false)
+                return { success: true, message: 'Log out successfully!' }
             }
         },
 
         // Request password reset
-        forgetPassword: async(email) => {
+        forgetPassword: async (email) => {
             setError(null)
             setIsLoading(true)
             try {
@@ -97,7 +122,7 @@ export const AuthProvider = ({ children }) => {
         },
 
         // Reset password
-        resetPassword: async(info)=>{
+        resetPassword: async (info) => {
             const response = await api.post('/reset-password', info)
             console.log(response)
 
@@ -105,7 +130,7 @@ export const AuthProvider = ({ children }) => {
         },
 
         // Update password
-        updatePassword: async(password) => {
+        updatePassword: async (password) => {
             setError(null)
             setIsLoading(true)
             try {
@@ -122,22 +147,22 @@ export const AuthProvider = ({ children }) => {
             }
         },
 
-        // Helper function to check if user is authenticated by checking state or sessionStorage
+        // Helper function to check if user is authenticated by checking state or Cookies
         isAuthenticated: () => {
-            return !!( token && authUser ) ||
-                !!( sessionStorage.getItem('token') && sessionStorage.getItem('authUser') )
+            return !!(token && authUser) ||
+                !!(Cookies.get('token') && Cookies.get('authUser'))
         }
     }
 
     // Context value with all auth-related state and methods to expose to consumers
     const value = {
-        token, authUser, isLoading, error, setError,path,
+        token, authUser, isLoading, error, setError, path,
         ...actions
     }
 
     return (
-        <AuthContext.Provider value={ value }>
-            { children }
+        <AuthContext.Provider value={value}>
+            {children}
         </AuthContext.Provider>
     )
 }

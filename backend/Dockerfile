@@ -1,6 +1,9 @@
 # Use PHP 8.2 FPM Alpine for smaller image size
 FROM php:8.2-fpm-alpine
 
+# Copy custom php.ini configuration
+COPY php.ini /usr/local/etc/php/conf.d/custom.ini
+
 # Install system dependencies
 RUN apk add --no-cache \
     git \
