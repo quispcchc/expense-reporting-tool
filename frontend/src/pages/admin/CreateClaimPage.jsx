@@ -1,13 +1,15 @@
 import React, { useRef } from 'react'
 import CreateClaim from '../../components/feature/claims/CreateClaim.jsx'
 import { Toast } from 'primereact/toast'
+import { ConfirmDialog } from 'primereact/confirmdialog'
 
-function CreateClaimPage () {
+function CreateClaimPage() {
     const toast = useRef()
     return (
         <div>
-            <Toast ref={toast}/>
-            <CreateClaim navigateTo='/admin/claims' homePath='/admin/claims' toastRef={toast}/>
+            <Toast ref={toast} />
+            <ConfirmDialog />
+            <CreateClaim navigateTo='/admin/claims' homePath='/admin/claims' toastRef={toast} />
         </div>
 
     )
