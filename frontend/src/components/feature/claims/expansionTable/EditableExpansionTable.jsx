@@ -12,7 +12,7 @@ import { useLookups } from '../../../../contexts/LookupContext.jsx'
 import { showToast } from '../../../../utils/helpers.js'
 import api, { API_BASE_URL } from '../../../../api/api.js'
 import { BUTTON_STYLE } from '../../../../utils/customizeStyle.js'
-import { confirmDialog, ConfirmDialog } from 'primereact/confirmdialog'
+import { confirmDialog } from 'primereact/confirmdialog'
 
 function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toastRef, onClaimUpdated }) {
     const [expenseItems, setExpenseItems] = useState(data || [])
@@ -26,6 +26,10 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
     const [originalExpenseData, setOriginalExpenseData] = useState({})
 
     const [unsavedExpansionChanges, setUnsavedExpansionChanges] = useState({})
+
+
+
+    const [pendingDeletions, setPendingDeletions] = useState([]) // Store items waiting to be permanently deleted
 
     const { lookups: { accountNums, costCentres } } = useLookups()
 
@@ -44,7 +48,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
 
             // Map backend fields to frontend form fields
             setExpenseItems(
-                data.map(expense => ( {
+                data.map(expense => ({
                     transactionId: expense.expense_id,
                     buyer: expense.buyer_name,
                     vendor: expense.vendor_name,
@@ -63,7 +67,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                         receipt_id: receipt.receipt_id,
                     })) : [],
 
-                } )),
+                })),
             )
         }
     }, [data])
@@ -90,7 +94,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                 expense.transactionId === expenseId
                     ? {
                         ...expense,
-                        [ fieldName ]: fieldName === 'tags' ? [...newValue.split(',')] : newValue,
+                        [fieldName]: fieldName === 'tags' ? [...newValue.split(',')] : newValue,
                     }
                     : expense,
             ),
@@ -100,9 +104,9 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
         setUnsavedExpansionChanges(previousChanges => {
             const updated = {
                 ...previousChanges,
-                [ expenseId ]: {
-                    ...previousChanges[ expenseId ],
-                    [ fieldName ]: fieldName === 'tags' ? [...newValue.split(',')] : processedValue,
+                [expenseId]: {
+                    ...previousChanges[expenseId],
+                    [fieldName]: fieldName === 'tags' ? [...newValue.split(',')] : processedValue,
                 },
             }
             console.log(`✅ Updated unsavedExpansionChanges for ${expenseId}:`, updated[expenseId])
@@ -137,7 +141,8 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
     // Handle starting to edit a row
     const handleRowEditStart = (editEvent) => { // Was: onRowEditInit
 
-        if (editEvent.data.status !== 1) { // 1 for pending
+        // Only show warning if NOT in create mode AND status is not pending (1)
+        if (mode !== 'create' && editEvent.data.status !== 1) {
             confirmDialog({
                 message: 'Do you want to edit an expense which has already been approved or rejected?',
                 header: 'Edit Expense',
@@ -197,7 +202,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
             const restoredItems = [...previousItems]
             const originalExpense = expenseItems.find(expense => expense.transactionId === expenseId)
             if (originalExpense) {
-                restoredItems[ editEvent.index ] = { ...originalExpense }
+                restoredItems[editEvent.index] = { ...originalExpense }
             }
             return restoredItems
         })
@@ -216,15 +221,15 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
     const handleRowSaveComplete = async (editEvent) => {
         const updatedExpenseItems = [...expenseItems]
         const expenseId = editEvent.newData.transactionId
-        const changesFromExpansion = unsavedExpansionChanges[ expenseId ] || {}
+        const changesFromExpansion = unsavedExpansionChanges[expenseId] || {}
 
         console.log('=== SAVE ROW EDIT START ===')
         console.log('expenseId:', expenseId)
         console.log('changesFromExpansion:', changesFromExpansion)
 
         // Merge the row edits with any expansion area changes
-        const updated = updatedExpenseItems[ editEvent.index ] = {
-            ...expenseItems[ editEvent.index ],
+        const updated = updatedExpenseItems[editEvent.index] = {
+            ...expenseItems[editEvent.index],
             ...editEvent.newData,
             ...changesFromExpansion,
         }
@@ -250,21 +255,21 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
         }
 
         setCurrentlyEditingRowId(null)
-        
+
         // Use FormData to support file uploads
         const formData = new FormData()
         Object.keys(updatedExpense).forEach(key => {
             formData.append(key, updatedExpense[key])
         })
-        
+
         // Handle attachments and deleted receipts
         const deletedReceiptIds = updated.deletedReceiptIds || []
         const newAttachments = updated.attachment || []
-        
+
         console.log('🔍 Processing attachments:')
         console.log('  newAttachments:', newAttachments)
         console.log('  deletedReceiptIds from form:', deletedReceiptIds)
-        
+
         // Append new files
         newAttachments.forEach((att, index) => {
             if (att?.file instanceof File) {
@@ -272,7 +277,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                 formData.append(`files[${index}]`, att.file)
             }
         })
-        
+
         // Append deleted receipt IDs (supports array, string, or single number)
         if (Array.isArray(deletedReceiptIds) && deletedReceiptIds.length > 0) {
             console.log('  Appending deleteReceiptIds[] items:', deletedReceiptIds)
@@ -296,10 +301,10 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
             console.log('  Appending deleteAttachment: true (clear all)')
             formData.append('deleteAttachment', 'true')
         }
-        
+
         // Laravel PUT workaround: add _method field to make POST work as PUT
         formData.append('_method', 'PUT')
-        
+
         // Debug: log FormData contents to verify payload
         try {
             for (const [k, v] of formData.entries()) {
@@ -309,7 +314,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
             console.log('  FormData logging failed:', e)
         }
 
-        const response = await api.post(`expenses/${ expenseId }`, formData)
+        const response = await api.post(`expenses/${expenseId}`, formData)
         console.log('✅ PUT request successful for expense', expenseId)
 
         // Sync attachments and tags from backend response
@@ -322,10 +327,10 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                     receipt_id: r.receipt_id,
                 }))
                 : []
-            updatedExpenseItems[ editEvent.index ] = {
-                ...updatedExpenseItems[ editEvent.index ],
+            updatedExpenseItems[editEvent.index] = {
+                ...updatedExpenseItems[editEvent.index],
                 attachment: mappedReceipts,
-                tags: serverExpense.tags || updatedExpenseItems[ editEvent.index ].tags,
+                tags: serverExpense.tags || updatedExpenseItems[editEvent.index].tags,
             }
         }
 
@@ -341,24 +346,82 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
         showToast(toastRef, { severity: 'success', summary: 'Updated', detail: 'Updated successfully!' })
     }
 
-    // Delete an expense item
+    // Delete an expense item (Soft Delete)
     const deleteExpenseItem = (transactionId) => {
+        // Find the item to delete
+        const itemToDelete = expenseItems.find(item => item.transactionId === transactionId)
+
+        if (itemToDelete) {
+            // Add to pending deletions
+            setPendingDeletions(prev => [...prev, itemToDelete])
+
+            // Remove from current view
+            setExpenseItems(currentItems => {
+                const updatedItems = currentItems.filter(item => item.transactionId !== transactionId)
+                saveExpenseItemsToParent(updatedItems)
+                return updatedItems
+            })
+        }
+    }
+
+    // Trigger Final Confirmation
+    const triggerConfirmDeletions = () => {
         confirmDialog({
-            message: 'Are you sure you want to delete this item? This action cannot be undone.',
-            header: 'Delete Item',
-            icon: 'pi pi-info-circle',
-            defaultFocus: 'reject',
-            rejectClassName: 'p-button-danger',
-            accept: () => setExpenseItems(currentItems => {
-                const updatedExpenseItems = currentItems.filter(expense => expense.transactionId !== transactionId)
-                saveExpenseItemsToParent(updatedExpenseItems)
-                return updatedExpenseItems
-            }),
-            reject: () => {
-                showToast(toastRef, { severity: 'info', summary: 'Info', detail: 'Delete Cancelled' })
-            },
+            message: mode === 'create'
+                ? `Are you sure you want to remove these ${pendingDeletions.length} items from the list?`
+                : `Are you sure you want to delete these ${pendingDeletions.length} items permanently? This action cannot be undone.`,
+            header: mode === 'create' ? 'Remove Items' : 'Delete Items',
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: mode === 'create' ? 'Yes, Remove' : 'Yes, Delete',
+            rejectLabel: 'Cancel',
+            acceptClassName: 'p-button-danger',
+            accept: handleConfirmDeletions,
+        })
+    }
+
+    // Execute Final Deletion (Backend API Call)
+    const handleConfirmDeletions = async () => {
+        try {
+            // Process all pending deletions
+            const deletePromises = pendingDeletions.map(async (item) => {
+                // Only call API if in edit mode (where we have real backend IDs)
+                if (mode === 'edit' && item.transactionId) {
+                    await api.delete(`expenses/${item.transactionId}`)
+                }
+            })
+
+            await Promise.all(deletePromises)
+
+            // Success - Clear pending list
+            setPendingDeletions([])
+
+            // Notify parent to refresh data if needed
+            if (onClaimUpdated && mode === 'edit') onClaimUpdated()
+
+            showToast(toastRef, { severity: 'success', summary: 'Success', detail: 'Items deleted permanently' })
+
+        } catch (error) {
+            console.error('Batch Delete failed:', error)
+            showToast(toastRef, { severity: 'error', summary: 'Error', detail: 'Failed to delete some items' })
+
+            // Optional: You might want to restore items if they failed, 
+            // but for now we assume partial success or user will refresh.
+        }
+    }
+
+    // Cancel Deletion (Restore Items)
+    const handleCancelDeletions = () => {
+        // Restore items back to the list
+        setExpenseItems(prev => {
+            const restored = [...prev, ...pendingDeletions]
+            // Optional: Sort logic could be added here if order matters
+            saveExpenseItemsToParent(restored)
+            return restored
         })
 
+        // Clear pending list
+        setPendingDeletions([])
+        showToast(toastRef, { severity: 'info', summary: 'Info', detail: 'Deletion cancelled, items restored' })
     }
 
     // Render delete button for each row
@@ -512,18 +575,53 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
 
     return (
         <div className="bg-white h-full p-6">
-            <ConfirmDialog/>
+
+
 
             {/* Expenses Header*/}
             <div className="flex justify-between items-center mb-4">
-                <h3 className="text-[22px] font-semibold">Expense Details</h3>
+                <div className="flex items-center gap-4">
+                    <h3 className="text-[22px] font-semibold">Expense Details</h3>
+
+                    {/* deferred deletion control buttons */}
+                    {pendingDeletions.length > 0 && (
+                        <div className="flex items-center gap-2 animate-fadeIn">
+                            <Button
+                                icon="pi pi-check"
+                                rounded
+                                text
+                                severity="success"
+                                aria-label="Confirm Delete"
+                                onClick={triggerConfirmDeletions}
+                                tooltip="Confirm Deletion"
+                                type="button"
+                            />
+                            <Button
+                                icon="pi pi-times"
+                                rounded
+                                text
+                                severity="danger"
+                                aria-label="Cancel Delete"
+                                onClick={handleCancelDeletions}
+                                tooltip="Cancel Deletion"
+                                type="button"
+                            />
+                            <span className="text-sm text-red-500 font-medium">
+                                ({pendingDeletions.length} to delete)
+                            </span>
+                        </div>
+                    )}
+                </div>
 
                 <div className="text-sm text-gray-600">
-                    {expenseItems.length} {expenseItems.length === 1 ? 'item' : 'items'} •
-                    Total: {new Intl.NumberFormat('en-US', {
-                        style: 'currency',
-                        currency: 'USD',
-                    }).format(expenseItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0))}
+
+                    <div className="text-sm text-gray-600">
+                        {expenseItems.length} {expenseItems.length === 1 ? 'item' : 'items'} •
+                        Total: {new Intl.NumberFormat('en-US', {
+                            style: 'currency',
+                            currency: 'USD',
+                        }).format(expenseItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0))}
+                    </div>
                 </div>
             </div>
 

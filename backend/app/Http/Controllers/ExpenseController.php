@@ -54,11 +54,11 @@ class ExpenseController extends Controller
         // Ensure uploaded files are read from request and passed along
         $payload = $validated;
         $payload['files'] = $request->file('files') ?? [];
-        
+
         // Read deleteReceiptIds directly from request (validation may strip it)
         $deleteIdsInput = $request->input('deleteReceiptIds', $payload['deleteReceiptIds'] ?? null);
         Log::info('RAW deleteReceiptIds from request: ' . print_r($deleteIdsInput, true));
-        
+
         // Normalize deleteReceiptIds to comma string if array
         if (is_array($deleteIdsInput)) {
             $deleteIdsInput = implode(',', array_map('trim', $deleteIdsInput));
@@ -82,6 +82,12 @@ class ExpenseController extends Controller
     public function rejectExpense(int $expenseId)
     {
         $this->expenseService->rejectExpense($expenseId);
+    }
+
+    public function destroy($id)
+    {
+        $this->expenseService->deleteExpense($id);
+        return response()->noContent();
     }
 
 

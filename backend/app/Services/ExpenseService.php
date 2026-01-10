@@ -9,6 +9,7 @@ use App\Models\Tag;
 use App\Notifications\ClaimUpdatedNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class ExpenseService
 {
@@ -59,7 +60,7 @@ class ExpenseService
                 if (is_string($value)) {
                     $deleteAttachment = ($value === 'true' || $value === '1');
                 } else {
-                    $deleteAttachment = (bool)$value;
+                    $deleteAttachment = (bool) $value;
                 }
             }
 
@@ -158,16 +159,38 @@ class ExpenseService
     {
         $claim = Claim::with('expenses')->findOrFail($claimId);
 
-        if ($claim->expenses->every(fn($expense) => $expense->approval_status_id == 2)) {
+        if ($claim->expenses->isEmpty()) {
+            $claim->update(['claim_status_id' => 1]); // Pending (Empty)
+        } elseif ($claim->expenses->every(fn($expense) => $expense->approval_status_id == 2)) {
             $claim->update(['claim_status_id' => 2]); // All approved
-
         } elseif ($claim->expenses->contains(fn($e) => $e->approval_status_id == 3)) {
             $claim->update(['claim_status_id' => 3]); // Any rejected
-
         } else {
             $claim->update(['claim_status_id' => 1]); // Pending
         }
         $claim->user->notify(new ClaimUpdatedNotification($claim));
+    }
+
+    public function deleteExpense(int $expenseId)
+    {
+        DB::transaction(function () use ($expenseId) {
+            $expense = Expense::findOrFail($expenseId);
+
+            // Delete receipt files
+            if ($expense->receipts()->exists()) {
+                foreach ($expense->receipts as $receipt) {
+                    if ($receipt->receipt_path) {
+                        Storage::disk('public')->delete($receipt->receipt_path);
+                    }
+                    $receipt->delete();
+                }
+            }
+
+            $claimId = $expense->claim_id;
+            $expense->delete();
+
+            $this->updateClaimStatus($claimId);
+        });
     }
 
 }
