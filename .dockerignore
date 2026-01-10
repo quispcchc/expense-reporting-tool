@@ -2,5 +2,7 @@ node_modules
 .git
 .dockerignore
 README.md
-storage/logs/*
-bootstrap/cache/*
+backend/storage/logs/*
+backend/bootstrap/cache/*
+.env
+.env.example

@@ -30,8 +30,11 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Set working directory
 WORKDIR /var/www/html
 
-# Copy entire application directory (now includes .env from .dockerignore removal)
-COPY . .
+# Copy entire application directory, excluding public/storage which will be created as symlink
+COPY --chown=www-data:www-data . .
+
+# Ensure public directory exists (public/storage might not be in context since it's gitignored)
+RUN mkdir -p /var/www/html/public
 
 # Install PHP dependencies with retry logic (include dev deps for seeding/factories)
 RUN composer install --no-interaction --optimize-autoloader || composer install --no-interaction --optimize-autoloader
@@ -41,10 +44,12 @@ RUN npm install --legacy-peer-deps
 
 # Create necessary directories with proper permissions
 RUN mkdir -p /var/www/html/database && \
+    mkdir -p /var/www/html/public && \
     mkdir -p /var/www/html/storage/logs && \
     mkdir -p /var/www/html/storage/framework/{cache,sessions,views} && \
     mkdir -p /var/www/html/bootstrap/cache && \
     touch /var/www/html/database/database.sqlite
+
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html && \
@@ -54,7 +59,13 @@ RUN chown -R www-data:www-data /var/www/html && \
 RUN php artisan key:generate --force
 
 # Create storage symlink for public/storage
-RUN php artisan storage:link --force || true
+# First ensure the public directory exists
+RUN mkdir -p /var/www/html/public/storage && \
+    if [ ! -L /var/www/html/public/storage ]; then \
+      rm -rf /var/www/html/public/storage && \
+      ln -s /var/www/html/storage/app/public /var/www/html/public/storage; \
+    fi || true
+
 
 # Expose port 8000
 EXPOSE 8000
