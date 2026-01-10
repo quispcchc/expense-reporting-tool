@@ -2,11 +2,11 @@ vendor/
 node_modules/
 .git/
 .gitignore
+*.log
+.DS_Store
+Thumbs.db
 storage/logs/*
 storage/framework/cache/*
 storage/framework/sessions/*
 storage/framework/views/*
 bootstrap/cache/*
-*.log
-.DS_Store
-Thumbs.db

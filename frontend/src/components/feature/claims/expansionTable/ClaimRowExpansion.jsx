@@ -27,7 +27,6 @@ function ClaimRowExpansion ({
 
     // Merge original data with any expanded data changes
     const displayData = { ...currentData, ...expansionChanges }
-    console.log('displayData', displayData)
 
     // Convert tags array to comma-separated string or fallback to empty string
     const getTagsValue = (tags) => {
@@ -106,7 +105,7 @@ function ClaimRowExpansion ({
                 <ClaimExpansionAttachmentRow
                     label="Attachment"
                     isEditing={ isEditing }
-                    files={ displayData.attachment || null }
+                    file={ displayData.attachment || null }
                     rowData={ rowData }
                     handleInputChange={ handleInputChange }
                     mode={ mode }

@@ -132,8 +132,8 @@ function CostCentresPage () {
 
     const onDelete = (costCentreId) => {
         confirmDialog({
-            message: 'Do you want to delete this record?',
-            header: 'Delete Confirmation',
+            message: 'Are you sure you want to delete this item? This action cannot be undone.',
+            header: 'Delete Item',
             icon: 'pi pi-info-circle',
             defaultFocus: 'reject',
             acceptClassName: 'p-button-danger',

@@ -19,7 +19,7 @@ function ClaimExpansionAttachmentRow ({ label, file, isEditing, rowData, handleI
             isNew: true  // Mark as new upload
         }));
 
-        console.log('selected files:', fileObjects);
+        console.log('📤 selected files:', fileObjects);
 
         // Get existing attachments (could be array or single object)
         const currentAttachments = Array.isArray(file) ? file : (file ? [file] : []);
@@ -27,19 +27,45 @@ function ClaimExpansionAttachmentRow ({ label, file, isEditing, rowData, handleI
         // Append new files to existing ones
         const updatedAttachments = [...currentAttachments, ...fileObjects];
 
+        console.log(`📎 Updated attachments for transaction ${rowData.transactionId}:`, updatedAttachments)
+
         // Notify parent to update attachments for this row
         handleInputChange(rowData.transactionId, 'attachment', updatedAttachments);
     }
 
     // Remove a file by its index from the attachments list
     const handleRemoveFile = (indexToRemove) => {
-        console.log('Removing file at index:', indexToRemove, 'for transaction ID:', rowData.transactionId);
+        console.log('🗑️ Removing file at index:', indexToRemove, 'for transaction ID:', rowData.transactionId);
         
         const currentAttachments = Array.isArray(file) ? file : (file ? [file] : []);
-        const updatedAttachments = currentAttachments.filter((_, index) => index !== indexToRemove);
+        console.log('Current attachments before removal:', currentAttachments)
         
-        // If no files left, set to null instead of empty array
-        handleInputChange(rowData.transactionId, 'attachment', updatedAttachments.length > 0 ? updatedAttachments : null);
+        // For existing files (with receipt_id), mark them for deletion instead of removing
+        const fileToRemove = currentAttachments[indexToRemove];
+        let updatedAttachments;
+        let deletedReceiptId = null;
+        
+        if (fileToRemove?.receipt_id) {
+            // Existing file from backend - track the receipt_id for deletion
+            deletedReceiptId = fileToRemove.receipt_id;
+            updatedAttachments = currentAttachments.filter((_, index) => index !== indexToRemove);
+            console.log('Deleted file from backend. Receipt ID to delete:', deletedReceiptId, 'new array:', updatedAttachments)
+        } else {
+            // New file - just remove it
+            updatedAttachments = currentAttachments.filter((_, index) => index !== indexToRemove);
+            console.log('Deleted new file - new array:', updatedAttachments)
+        }
+        
+        // If no files left, set to empty array (not null, so FormData processes it)
+        const finalAttachments = updatedAttachments.length > 0 ? updatedAttachments : []
+        console.log(`Final attachments for transaction ${rowData.transactionId}:`, finalAttachments)
+        handleInputChange(rowData.transactionId, 'attachment', finalAttachments);
+        
+        // If a backend file was deleted, also track the deleted receipt ID
+        if (deletedReceiptId) {
+            // Let parent accumulate deleted IDs
+            handleInputChange(rowData.transactionId, 'deletedReceiptIds', deletedReceiptId);
+        }
     }
 
     // Render the list of attachments or show message if none exist

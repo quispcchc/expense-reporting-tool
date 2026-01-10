@@ -30,6 +30,9 @@ class ExpenseController extends Controller
         Log::info('All request data: ', $request->all());
         Log::info('deleteAttachment value: ' . $request->input('deleteAttachment', 'NOT SET'));
         Log::info('deleteAttachment type: ' . gettype($request->input('deleteAttachment')));
+        Log::info('deleteReceiptIds value: ' . ($request->input('deleteReceiptIds') ?? 'NOT SET'));
+        $dIds = $request->input('deleteReceiptIds');
+        Log::info('deleteReceiptIds type: ' . (is_array($dIds) ? 'array' : gettype($dIds)));
 
         $validated = $request->validate([
             'transaction_date' => 'nullable|date',
@@ -45,13 +48,23 @@ class ExpenseController extends Controller
             'cost_centre_id' => 'nullable|integer',
             'tags' => 'nullable|string',
             'deleteAttachment' => 'nullable',
-            'deleteReceiptIds' => 'nullable|string',  // Comma-separated receipt IDs to delete
+            'deleteReceiptIds' => 'nullable',  // Accept both string and array
         ]);
 
         // Ensure uploaded files are read from request and passed along
         $payload = $validated;
         $payload['files'] = $request->file('files') ?? [];
-        $payload['deleteReceiptIds'] = $request->input('deleteReceiptIds', $payload['deleteReceiptIds'] ?? null);
+        
+        // Read deleteReceiptIds directly from request (validation may strip it)
+        $deleteIdsInput = $request->input('deleteReceiptIds', $payload['deleteReceiptIds'] ?? null);
+        Log::info('RAW deleteReceiptIds from request: ' . print_r($deleteIdsInput, true));
+        
+        // Normalize deleteReceiptIds to comma string if array
+        if (is_array($deleteIdsInput)) {
+            $deleteIdsInput = implode(',', array_map('trim', $deleteIdsInput));
+        }
+        $payload['deleteReceiptIds'] = $deleteIdsInput;
+        Log::info('Normalized payload.deleteReceiptIds: ' . ($payload['deleteReceiptIds'] ?? 'NULL'));
         $payload['deleteAttachment'] = $request->input('deleteAttachment', $payload['deleteAttachment'] ?? null);
 
         Log::info('Validated data (sanitized). files count: ' . (is_array($payload['files']) ? count($payload['files']) : 0));

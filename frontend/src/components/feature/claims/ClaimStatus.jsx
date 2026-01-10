@@ -3,7 +3,6 @@ import StatusTab from '../../common/ui/StatusTab.jsx'
 
 // Display the status of the claim
 function ClaimStatus ({curClaim}) {
-    console.log('curclaim',curClaim)
     return (
         <div className='flex justify-between gap-4'>
             <p className="text-2xl">Status: </p>
