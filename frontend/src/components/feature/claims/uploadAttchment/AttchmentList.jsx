@@ -7,8 +7,6 @@ function AttachmentList ({ selectedFile, showRemoveButton = true, handleRemoveFi
     // Check if there's a file - either a new upload or an existing file from backend
     if (!selectedFile || (!selectedFile.file && !selectedFile.url && !selectedFile.path)) return null
 
-    console.log('selectedFile', selectedFile)
-
     // For new uploads: selectedFile has .file property
     // For existing files from backend: selectedFile has .url and .name but no .file
     const fileName = selectedFile.file ? selectedFile.file.name : (selectedFile.name || 'Attachment')

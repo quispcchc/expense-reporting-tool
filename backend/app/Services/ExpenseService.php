@@ -47,6 +47,10 @@ class ExpenseService
             // Handle files separately
             $files = $updatedExpense['files'] ?? null;
             $deleteReceiptIds = $updatedExpense['deleteReceiptIds'] ?? null;
+            // Normalize if array form (e.g., deleteReceiptIds[])
+            if (is_array($deleteReceiptIds)) {
+                $deleteReceiptIds = implode(',', array_map('trim', $deleteReceiptIds));
+            }
 
             // Convert deleteAttachment to boolean - handle both string "true"/"false" and actual boolean
             $deleteAttachment = false;

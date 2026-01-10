@@ -86,6 +86,11 @@ class ClaimController extends Controller
         ]);
 
         try {
+            Log::info('Incoming claim create request', [
+                'user_id' => $request->user()?->user_id,
+                'payload' => $validated,
+            ]);
+
             $claim = $this->claimService->createClaim($validated, $request->user());
 
             return response()->json([
@@ -94,6 +99,11 @@ class ClaimController extends Controller
             ], 201);
 
         } catch (Throwable $e) {
+            Log::error('Claim create failed', [
+                'user_id' => $request->user()?->user_id,
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }

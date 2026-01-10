@@ -5,24 +5,25 @@ import AttachmentList from './AttchmentList.jsx'
 function UploadAttachment ({ files, onSetFiles,errors }) {
 
     const handleFileSelect = (e) => {
-        const file = e.target.files[ 0 ]
+        const selectedFiles = Array.from(e.target.files)
 
-        if (!file) return
+        if (selectedFiles.length === 0) return
 
-        const fileUrl = URL.createObjectURL(file);
-        const selectedFile = {
+        const newFiles = selectedFiles.map(file => ({
             file,
-            url: fileUrl,
-        };
-        onSetFiles(selectedFile)
+            url: URL.createObjectURL(file),
+        }))
 
+        // Add new files to existing files array
+        onSetFiles([...files, ...newFiles])
     }
 
-    const handleRemoveFile = () => {
-        if (files?.url && files.url.startsWith('blob:')) {
-            URL.revokeObjectURL(files.url);
+    const handleRemoveFile = (indexToRemove) => {
+        const fileToRemove = files[indexToRemove]
+        if (fileToRemove?.url && fileToRemove.url.startsWith('blob:')) {
+            URL.revokeObjectURL(fileToRemove.url)
         }
-        onSetFiles({})
+        onSetFiles(files.filter((_, index) => index !== indexToRemove))
     }
 
     return (
@@ -32,10 +33,15 @@ function UploadAttachment ({ files, onSetFiles,errors }) {
             <div className="flex justify-center items-center border border-gray-300 rounded-md p-5">
                 <Upload handleFileSelect={ handleFileSelect }/>
             </div>
-            <AttachmentList selectedFile={ files } handleRemoveFile={ handleRemoveFile }/>
+            {/* Render each attached file */}
+            {files && files.length > 0 && files.map((file, index) => (
+                <AttachmentList 
+                    key={index} 
+                    selectedFile={file} 
+                    handleRemoveFile={() => handleRemoveFile(index)}
+                />
+            ))}
             <p className='text-red-500 text-sm mt-2'>{ errors.attachment }</p>
-
-
         </div>
     )
 }

@@ -109,20 +109,35 @@ class ClaimService
             $expenseData['claim_id'] = $claim->claim_id;
             $expenseData['approval_status_id'] = 1;
 
-            $file = $expenseData['file'] ?? null;
+            // Extract files array (can be single or multiple files)
+            $files = $expenseData['file'] ?? [];
             unset($expenseData['file']);
+
+            \Log::info('Adding expense', [
+                'expense_index' => $index,
+                'has_files' => !empty($files),
+                'file_count' => is_array($files) ? count($files) : (empty($files) ? 0 : 1)
+            ]);
 
             $expense = Expense::create($expenseData);
 
-            // Handle file upload
-            if ($file) {
-                $path = $file->store('receipts', 'public');
-                Receipt::create([
-                    'receipt_path' => $path,
-                    'receipt_name' => $file->getClientOriginalName(),
-                    'receipt_desc' => $file->getClientMimeType(),
-                    'expense_id' => $expense->expense_id
-                ]);
+            // Handle file uploads (support both single file and array of files)
+            if (!empty($files)) {
+                // Normalize to array if single file
+                $fileArray = is_array($files) ? $files : [$files];
+                
+                foreach ($fileArray as $file) {
+                    if ($file && $file instanceof \Illuminate\Http\UploadedFile) {
+                        $path = $file->store('receipts', 'public');
+                        Receipt::create([
+                            'receipt_path' => $path,
+                            'receipt_name' => $file->getClientOriginalName(),
+                            'receipt_desc' => $file->getClientMimeType(),
+                            'expense_id' => $expense->expense_id
+                        ]);
+                        \Log::info('Receipt created', ['path' => $path]);
+                    }
+                }
             }
 
             // Handle tags
@@ -134,9 +149,7 @@ class ClaimService
                     $tagIds[] = $tag->tag_id;
                 }
                 $expense->tags()->sync($tagIds);
-
             }
-
         }
     }
 

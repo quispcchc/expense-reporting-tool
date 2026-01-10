@@ -12,7 +12,7 @@ import { useLookups } from '../../../../contexts/LookupContext.jsx'
 import { showToast } from '../../../../utils/helpers.js'
 import api, { API_BASE_URL } from '../../../../api/api.js'
 import { BUTTON_STYLE } from '../../../../utils/customizeStyle.js'
-import { confirmDialog } from 'primereact/confirmdialog'
+import { confirmDialog, ConfirmDialog } from 'primereact/confirmdialog'
 
 function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toastRef, onClaimUpdated }) {
     const [expenseItems, setExpenseItems] = useState(data || [])
@@ -57,7 +57,11 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                     tags: expense.tags,
                     status: expense.approval_status_id,
                     program: expense.project_id,
-                    attachment: expense.receipt_url,
+                    attachment: expense.receipts ? expense.receipts.map(receipt => ({
+                        url: `${API_BASE_URL}/storage/${receipt.receipt_path}`,
+                        name: receipt.receipt_name,
+                        receipt_id: receipt.receipt_id,
+                    })) : [],
 
                 } )),
             )
@@ -70,6 +74,15 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
         if (fieldName === 'tags' && newValue && typeof newValue === 'string') {
             processedValue = newValue.split(',').map(tag => tag.trim());
         }
+
+        // For deletedReceiptIds, accumulate values across multiple deletions
+        if (fieldName === 'deletedReceiptIds') {
+            const existing = unsavedExpansionChanges[expenseId]?.deletedReceiptIds || []
+            const incoming = Array.isArray(newValue) ? newValue : [newValue]
+            processedValue = [...existing, ...incoming]
+        }
+
+        console.log(`📝 handleExpansionFieldChange: expenseId=${expenseId}, fieldName=${fieldName}, newValue=`, newValue)
 
         // Update the local expense items immediately for UI responsiveness
         setExpenseItems(previousItems =>
@@ -84,13 +97,17 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
         )
 
         // Store the changes temporarily until the row edit is completed
-        setUnsavedExpansionChanges(previousChanges => ({
-            ...previousChanges,
-            [ expenseId ]: {
-                ...previousChanges[ expenseId ],
-                [ fieldName ]: fieldName === 'tags' ? [...newValue.split(',')] : newValue,
-            },
-        }))
+        setUnsavedExpansionChanges(previousChanges => {
+            const updated = {
+                ...previousChanges,
+                [ expenseId ]: {
+                    ...previousChanges[ expenseId ],
+                    [ fieldName ]: fieldName === 'tags' ? [...newValue.split(',')] : processedValue,
+                },
+            }
+            console.log(`✅ Updated unsavedExpansionChanges for ${expenseId}:`, updated[expenseId])
+            return updated
+        })
     }
 
     const saveExpenseItemsToParent = (updatedExpenseItems) => {
@@ -204,7 +221,6 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
         console.log('=== SAVE ROW EDIT START ===')
         console.log('expenseId:', expenseId)
         console.log('changesFromExpansion:', changesFromExpansion)
-        console.log('originalExpense (saved):', originalExpense)
 
         // Merge the row edits with any expansion area changes
         const updated = updatedExpenseItems[ editEvent.index ] = {
@@ -234,14 +250,91 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
         }
 
         setCurrentlyEditingRowId(null)
-        await api.put(`expenses/${ expenseId }`, updatedExpense)
+        
+        // Use FormData to support file uploads
+        const formData = new FormData()
+        Object.keys(updatedExpense).forEach(key => {
+            formData.append(key, updatedExpense[key])
+        })
+        
+        // Handle attachments and deleted receipts
+        const deletedReceiptIds = updated.deletedReceiptIds || []
+        const newAttachments = updated.attachment || []
+        
+        console.log('🔍 Processing attachments:')
+        console.log('  newAttachments:', newAttachments)
+        console.log('  deletedReceiptIds from form:', deletedReceiptIds)
+        
+        // Append new files
+        newAttachments.forEach((att, index) => {
+            if (att?.file instanceof File) {
+                console.log(`  Appending new file [${index}]:`, att.file.name)
+                formData.append(`files[${index}]`, att.file)
+            }
+        })
+        
+        // Append deleted receipt IDs (supports array, string, or single number)
+        if (Array.isArray(deletedReceiptIds) && deletedReceiptIds.length > 0) {
+            console.log('  Appending deleteReceiptIds[] items:', deletedReceiptIds)
+            // Append both array form and comma string for maximum compatibility
+            deletedReceiptIds.forEach(id => formData.append('deleteReceiptIds[]', String(id)))
+            const receiptIdsStr = deletedReceiptIds.join(',')
+            formData.append('deleteReceiptIds', receiptIdsStr)
+            console.log('  Appending deleteReceiptIds (string):', receiptIdsStr)
+        } else {
+            const receiptIdsStr = (deletedReceiptIds ?? '').toString()
+            if (receiptIdsStr.length > 0) {
+                console.log('  Appending deleteReceiptIds:', receiptIdsStr)
+                formData.append('deleteReceiptIds', receiptIdsStr)
+            }
+        }
 
-            // Clear the temporary expansion changes for this row
-            setUnsavedExpansionChanges(previousChanges => {
-                const cleanedChanges = { ...previousChanges }
-                delete cleanedChanges[expenseId]
-                return cleanedChanges
-            })
+        // If attachments were explicitly cleared in expansion area, signal full deletion
+        const hasAttachmentChange = Object.prototype.hasOwnProperty.call(changesFromExpansion, 'attachment')
+        const deleteAll = hasAttachmentChange && newAttachments.length === 0 && deletedReceiptIds.length === 0
+        if (deleteAll) {
+            console.log('  Appending deleteAttachment: true (clear all)')
+            formData.append('deleteAttachment', 'true')
+        }
+        
+        // Laravel PUT workaround: add _method field to make POST work as PUT
+        formData.append('_method', 'PUT')
+        
+        // Debug: log FormData contents to verify payload
+        try {
+            for (const [k, v] of formData.entries()) {
+                console.log('  FormData entry:', k, v)
+            }
+        } catch (e) {
+            console.log('  FormData logging failed:', e)
+        }
+
+        const response = await api.post(`expenses/${ expenseId }`, formData)
+        console.log('✅ PUT request successful for expense', expenseId)
+
+        // Sync attachments and tags from backend response
+        const serverExpense = response?.data
+        if (serverExpense) {
+            const mappedReceipts = Array.isArray(serverExpense.receipts)
+                ? serverExpense.receipts.map(r => ({
+                    url: `${API_BASE_URL}/storage/${r.receipt_path}`,
+                    name: r.receipt_name,
+                    receipt_id: r.receipt_id,
+                }))
+                : []
+            updatedExpenseItems[ editEvent.index ] = {
+                ...updatedExpenseItems[ editEvent.index ],
+                attachment: mappedReceipts,
+                tags: serverExpense.tags || updatedExpenseItems[ editEvent.index ].tags,
+            }
+        }
+
+        // Clear the temporary expansion changes for this row
+        setUnsavedExpansionChanges(previousChanges => {
+            const cleanedChanges = { ...previousChanges }
+            delete cleanedChanges[expenseId]
+            return cleanedChanges
+        })
 
         // Save all changes to parent
         saveExpenseItemsToParent(updatedExpenseItems)
@@ -251,8 +344,8 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
     // Delete an expense item
     const deleteExpenseItem = (transactionId) => {
         confirmDialog({
-            message: 'Do you want to delete an expense?',
-            header: 'Delete Expense',
+            message: 'Are you sure you want to delete this item? This action cannot be undone.',
+            header: 'Delete Item',
             icon: 'pi pi-info-circle',
             defaultFocus: 'reject',
             rejectClassName: 'p-button-danger',
@@ -419,6 +512,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
 
     return (
         <div className="bg-white h-full p-6">
+            <ConfirmDialog/>
 
             {/* Expenses Header*/}
             <div className="flex justify-between items-center mb-4">

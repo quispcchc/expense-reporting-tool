@@ -8,6 +8,7 @@ import { validationSchemas } from '../../../utils/validation/schemas.js'
 import { useNavigate } from 'react-router-dom'
 import { useClaims } from '../../../contexts/ClaimContext.jsx'
 import { useAuth } from '../../../contexts/AuthContext.jsx'
+import { showToast } from '../../../utils/helpers.js'
 
 const calculateTotalAmount = (formData) => {
     const claimItemsTotal = formData.claimItems.reduce(
@@ -86,11 +87,13 @@ function CreateClaim ({ navigateTo, homePath, toastRef }) {
         const validation = validateForm(expenseFormData, expenseSchema)
         setExpenseErrors(validation.errors)
 
+        // files is already an array of {file, url} objects
         const completeExpenseData = {
             ...expenseFormData,
             tags: [...tags],
-            attachment: [...files],
+            attachment: files, // Use files array directly
         }
+        
         if (!validation.isValid) return alert('Please fill in all required fields!')
 
         setClaimFormData(prev => ( {
@@ -100,7 +103,7 @@ function CreateClaim ({ navigateTo, homePath, toastRef }) {
 
         // Reset form data and files after adding expense
         setExpenseFormData(initialExpenseFormData)
-        setFiles({})
+        setFiles([])
         setTags(['Client Travelling'])
 
     }
@@ -127,7 +130,9 @@ function CreateClaim ({ navigateTo, homePath, toastRef }) {
 
         // Add expenses - properly handling files
         claimFormData.claimItems.forEach((expense, index) => {
-            console.log('expense', expense)
+            console.log('📦 Processing expense', index, expense)
+            console.log('📎 Attachments:', expense.attachment)
+            
             // Add all non-file fields
             formData.append(`expenses[${ index }][transaction_date]`, expense.transactionDate)
             formData.append(`expenses[${ index }][buyer_name]`, expense.buyer)
@@ -140,32 +145,35 @@ function CreateClaim ({ navigateTo, homePath, toastRef }) {
             formData.append(`expenses[${ index }][tags]`, expense.tags)
             formData.append(`expenses[${ index }][transaction_notes]`, expense.notes)
 
-            // Only add file if it's a real File object
-            // if (expense.attachment.file instanceof File) {
-            //     formData.append(`expenses[${ index }][file]`, expense.attachment.file)
-            // }
-
             // MULTIPLE ATTACHMENTS: { attachment: [{file, url}] }
-            if (Array.isArray(expense.attachment)) {
+            if (Array.isArray(expense.attachment) && expense.attachment.length > 0) {
+                console.log('✅ Found', expense.attachment.length, 'attachments')
                 expense.attachment.forEach((att, attIndex) => {
-                    // only append if there's an actual File object
+                    console.log(`  [${attIndex}] Attachment:`, att?.file instanceof File ? 'File object ✓' : 'Not a file ✗', att)
                     if (att?.file instanceof File) {
-                        formData.append(
-                            `expenses[${index}][file][${attIndex}]`,
-                            att.file
-                        )
+                        const fieldName = `expenses[${index}][file][${attIndex}]`
+                        formData.append(fieldName, att.file)
+                        console.log(`  ✅ Appended file to FormData as: ${fieldName}`)
                     }
                 })
+            } else {
+                console.log('⚠️ No attachments for this expense')
             }
         })
 
-        await createClaim(formData)
+        try {
+            await createClaim(formData)
+            showToast(toastRef, { severity: 'success', summary: 'Success', detail: 'Claim submitted successfully' })
 
-        setClaimFormData(initialClaimFormData)
-        setExpenseFormData(initialExpenseFormData)
-        setTags([])
-        setFiles([])
-        navigate(navigateTo)
+            setClaimFormData(initialClaimFormData)
+            setExpenseFormData(initialExpenseFormData)
+            setTags([])
+            setFiles([])
+            navigate(navigateTo)
+        } catch (error) {
+            const detail = error?.message || 'Failed to submit claim'
+            showToast(toastRef, { severity: 'error', summary: 'Submit failed', detail })
+        }
 
     }
 
