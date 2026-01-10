@@ -13,7 +13,8 @@ RUN apk add --no-cache \
     sqlite \
     sqlite-dev \
     nodejs \
-    npm
+    npm \
+    ttf-dejavu
 
 # Clear cache
 RUN rm -rf /var/cache/apk/*

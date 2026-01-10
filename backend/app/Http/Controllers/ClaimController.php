@@ -158,28 +158,57 @@ class ClaimController extends Controller
      */
     public function exportPdf($claimId)
     {
-        // Load claim with all necessary relationships
-        $claim = Claim::with([
-            'claimType',
-            'user.position',
-            'user.department',
-            'user.team',
-            'expenses.accountNumber',
-            'expenses.costCentre',
-            'expenses.approvalStatus',
-            'expenses.receipts',
-            'notes.user'
-        ])->findOrFail($claimId);
+        try {
+            \Log::info('PDF Export Started for Claim: ' . $claimId);
+            
+            // Set mbstring encoding for proper UTF-8 handling
+            mb_internal_encoding('UTF-8');
+            mb_http_output('UTF-8');
+            mb_regex_encoding('UTF-8');
+            
+            // Load claim with all necessary relationships
+            $claim = Claim::with([
+                'claimType',
+                'user.position',
+                'user.department',
+                'user.team',
+                'expenses.accountNumber',
+                'expenses.costCentre',
+                'expenses.approvalStatus',
+                'expenses.receipts',
+                'notes.user'
+            ])->findOrFail($claimId);
 
-        // Generate PDF from blade template
-        $pdf = Pdf::loadView('pdf.claim', ['claim' => $claim])
-            ->setPaper('a4', 'portrait')
-            ->setOption('isHtml5ParserEnabled', true)
-            ->setOption('isRemoteEnabled', true)
-            ->setOption('chroot', storage_path('app/public'));
+            \Log::info('Claim loaded. Expenses count: ' . count($claim->expenses ?? []));
+            
+            // Log receipt files
+            foreach ($claim->expenses ?? [] as $expense) {
+                foreach ($expense->receipts ?? [] as $receipt) {
+                    $imagePath = storage_path('app/public/' . $receipt->receipt_path);
+                    \Log::info('Receipt path: ' . $receipt->receipt_path . ' | Full path: ' . $imagePath . ' | Exists: ' . (file_exists($imagePath) ? 'YES' : 'NO'));
+                }
+            }
 
-        // Download PDF with claim ID in filename
-        return $pdf->download('claim_' . $claimId . '_' . now()->format('Y-m-d') . '.pdf');
+            // Generate PDF from blade template
+            $pdf = Pdf::loadView('pdf.claim', ['claim' => $claim])
+                ->setPaper('a4', 'portrait')
+                ->setOption('isHtml5ParserEnabled', true)
+                ->setOption('isRemoteEnabled', true)
+                ->setOption('chroot', storage_path('app/public'))
+                ->setOption('enable_php', false)
+                ->setOption('enable_javascript', false)
+                ->setOption('debugKeepTemp', false)
+                ->setOption('isUnicode', true)
+                ->setOption('isFontSubsettingEnabled', true);
+
+            \Log::info('PDF generated successfully for Claim: ' . $claimId);
+            
+            // Download PDF with claim ID in filename
+            return $pdf->download('claim_' . $claimId . '_' . now()->format('Y-m-d') . '.pdf');
+        } catch (\Exception $e) {
+            \Log::error('PDF Export Error for Claim ' . $claimId . ': ' . $e->getMessage() . ' | Stack: ' . $e->getTraceAsString());
+            return response()->json(['error' => 'Failed to generate PDF: ' . $e->getMessage()], 500);
+        }
     }
 
     /**
@@ -221,7 +250,12 @@ class ClaimController extends Controller
                         ->setPaper('a4', 'portrait')
                         ->setOption('isHtml5ParserEnabled', true)
                         ->setOption('isRemoteEnabled', true)
-                        ->setOption('chroot', storage_path('app/public'));
+                        ->setOption('chroot', storage_path('app/public'))
+                        ->setOption('enable_php', false)
+                        ->setOption('enable_javascript', false)
+                        ->setOption('debugKeepTemp', false)
+                        ->setOption('isUnicode', true)
+                        ->setOption('isFontSubsettingEnabled', true);
 
                     $filename = 'claim_' . $claimId . '.pdf';
                     $filepath = $tempDir . '/' . $filename;
@@ -256,6 +290,8 @@ class ClaimController extends Controller
             return response()->download($zipPath, $zipFilename)->deleteFileAfterSend(true);
 
         } catch (\Exception $e) {
+            \Log::error('PDF Export (Multiple) Error: ' . $e->getMessage() . ' | Stack: ' . $e->getTraceAsString());
+            
             // Clean up on error
             foreach ($pdfFiles as $file) {
                 if (file_exists($file)) {

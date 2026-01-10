@@ -5,7 +5,7 @@ export const API_BASE_URL = 'http://127.0.0.1:8000'
 
 const api = axios.create({
     baseURL: `${API_BASE_URL}/api`, // Base URL for all API requests
-    timeout: 10000, // Request timeout set to 10 seconds
+    timeout: 60000, // Request timeout set to 60 seconds (for PDF generation)
 })
 
 // Add a request interceptor to attach the Authorization header if a token exists
@@ -32,12 +32,24 @@ api.interceptors.response.use(
     (error) => {
         // Handle error
         let message = "An unknown error occurred";
+        let status = undefined;
+        let fullError = error;
 
         if (error.response) {
-            message = error.response.data?.message
+            // Server responded with error status
+            status = error.response.status;
+            message = error.response.data?.message || error.response.data?.error || `Error: ${status}`;
+            fullError = error.response.data;
+        } else if (error.request) {
+            // Request made but no response
+            message = "No response from server. This may be a timeout or network error.";
+        } else if (error.message) {
+            // Error in request setup
+            message = error.message;
         }
 
-        return Promise.reject({ message, status: error.response?.status });
+        console.error('API Error:', message, status);
+        return Promise.reject({ message, status, fullError });
     },
 )
 

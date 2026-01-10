@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <title>Volunteer Expense Claim - {{ optional($claim)->claim_id ?? 'Report' }}</title>
     <style>
         * {
@@ -10,7 +11,7 @@
             box-sizing: border-box;
         }
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'DejaVu Sans', sans-serif;
             color: #333;
             line-height: 1.4;
             font-size: 11px;
@@ -323,15 +324,15 @@
                                 <div class="receipt-label">
                                     Expense #{{ optional($expense)->expense_id ?? 'N/A' }} - {{ optional($expense)->vendor_name ?? 'N/A' }}
                                 </div>
-                                @if(optional($receipt)->receipt_url)
+                                @if(optional($receipt)->receipt_path)
                                     @php
-                                        $imagePath = storage_path('app/public/' . optional($receipt)->receipt_url);
-                                        $imageExists = file_exists($imagePath);
+                                        $imagePath = storage_path('app/public/' . optional($receipt)->receipt_path);
+                                        $imageExists = file_exists($imagePath) && is_file($imagePath);
                                     @endphp
                                     @if($imageExists)
                                         <img src="{{ $imagePath }}" class="receipt-image" alt="Receipt">
                                     @else
-                                        <p style="color: #999; font-size: 9px;">Receipt file not found: {{ optional($receipt)->receipt_url }}</p>
+                                        <p style="color: #999; font-size: 9px;">Receipt file not found at: {{ $imagePath }}</p>
                                     @endif
                                 @else
                                     <p style="color: #999; font-size: 9px;">No receipt file path available</p>
