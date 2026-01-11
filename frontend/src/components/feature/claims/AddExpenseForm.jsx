@@ -7,6 +7,7 @@ import Select from '../../common/ui/Select.jsx'
 import EditableExpansionTable from './expansionTable/EditableExpansionTable.jsx'
 import { autoFillForm } from '../../../utils/helpers.js'
 import { useLookups } from '../../../contexts/LookupContext.jsx'
+import { useTranslation } from 'react-i18next'
 
 function AddExpenseForm({
     claimFormData,
@@ -22,17 +23,18 @@ function AddExpenseForm({
     errors,
     toastRef
 }) {
+    const { t } = useTranslation()
     const { lookups: { costCentres, projects, accountNums } } = useLookups()
 
     return (
         <div className="bg-white h-full rounded-2xl shadow-sm">
             <div className="flex justify-between items-center my-6 bg-blue-100 rounded-t-2xl p-6">
                 <div>
-                    <p className="text-xl font-semibold text-gray-700">Add Expenses</p>
-                    <p className="text-gray-500 text-sm">Enter expense details below. All fields marked with * are required.</p>
+                    <p className="text-xl font-semibold text-gray-700">{t('expenses.addExpense')}</p>
+                    <p className="text-gray-500 text-sm">{t('expenses.addExpenseDescription')}</p>
                 </div>
                 <div className="text-right">
-                    <p className="text-sm text-gray-500">Total Amount</p>
+                    <p className="text-sm text-gray-500">{t('claims.totalAmount')}</p>
                     <p className="text-2xl font-bold text-blue-600">
                         ${claimFormData.claimItems?.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0).toFixed(2) || '0.00'}
                     </p>
@@ -48,65 +50,65 @@ function AddExpenseForm({
                     <div className="flex flex-col gap-3">
 
                         {/* Program select dropdown */}
-                        <Select name="program" id="program" label="Program" value={expenseFormData.program}
+                        <Select name="program" id="program" label={t('expenses.program')} value={expenseFormData.program}
                             onChange={onExpenseChange}
                             options={projects.map(opt => ({
                                 label: `${opt.project_name} - ${opt.project_desc}`,
                                 value: opt.project_id,
                             }))}
-                            placeholder="Select a program"
+                            placeholder={t('expenses.selectProgram', 'Select a program')}
                             errors={errors} />
 
                         {/* Transaction date input */}
-                        <Input name="transactionDate" id="transactionDate" label="Transaction Date (yyyy/mm/dd)*"
+                        <Input name="transactionDate" id="transactionDate" label={t('expenses.transactionDate') + '*'}
                             value={expenseFormData.transactionDate} type="date"
                             onChange={onExpenseChange}
-                            placeholder="Select a transaction date"
+                            placeholder={t('expenses.selectTransactionDate', 'Select a transaction date')}
                             errors={errors} />
 
                         {/* Cost Centre select dropdown, mapped to label and value */}
-                        <Select name="costCentre" id="costCentre" label="Cost Centre"
+                        <Select name="costCentre" id="costCentre" label={t('expenses.costCentre')}
                             value={expenseFormData.costCentre}
                             onChange={onExpenseChange}
                             options={costCentres.map((opt) => ({
                                 label: `${opt.cost_centre_code} - ${opt.description}`,
                                 value: opt.cost_centre_id,
                             }))}
-                            placeholder="Select a cost centre"
+                            placeholder={t('expenses.selectCostCentre', 'Select a cost centre')}
                             errors={errors} />
 
                         {/* Vendor / Service Provider input */}
-                        <Input name="vendor" id="vendor" label="Vendor / Service Provider"
+                        <Input name="vendor" id="vendor" label={t('expenses.vendor')}
                             value={expenseFormData.vendor}
                             onChange={onExpenseChange}
-                            placeholder="Enter vendor name"
+                            placeholder={t('expenses.enterVendor', 'Enter vendor name')}
                             errors={errors} />
 
                         {/* Account Number select dropdown, mapped to label and value */}
-                        <Select name="accountNum" id="accountNum" label="Account Number"
+                        <Select name="accountNum" id="accountNum" label={t('expenses.accountNumber')}
                             value={expenseFormData.accountNum}
                             onChange={onExpenseChange}
                             options={accountNums.map((opt) => ({
                                 label: `${opt.account_number} - ${opt.description}`,
                                 value: opt.account_number_id,
                             }))}
-                            placeholder="Select an Account Number"
+                            placeholder={t('expenses.selectAccountNumber', 'Select an Account Number')}
                             errors={errors} />
 
                         {/* Amount and Buyer inputs side by side */}
                         <div className="flex justify-between flex-wrap gap-3">
                             <div className="flex-1">
-                                <Input name="amount" id="amount" label="Amount"
+                                <Input name="amount" id="amount" label={t('expenses.amount')}
                                     value={expenseFormData.amount}
                                     onChange={onExpenseChange}
-                                    placeholder="Please enter amount"
+                                    placeholder={t('expenses.enterAmount', 'Please enter amount')}
                                     errors={errors} />
                             </div>
                             <div className="flex-1">
-                                <Input name="buyer" id="buyer" label="Buyer"
+                                <Input name="buyer" id="buyer" label={t('expenses.buyer')}
                                     value={expenseFormData.buyer}
                                     onChange={onExpenseChange}
-                                    placeholder="Please enter buyer"
+                                    placeholder={t('expenses.enterBuyer', 'Please enter buyer')}
                                     errors={errors} />
                             </div>
                         </div>
@@ -118,9 +120,9 @@ function AddExpenseForm({
 
                     {/* Expense Description textarea */}
                     <div className="mb-5">
-                        <label className="block text-sm font-medium mb-2">Expense Description</label>
+                        <label className="block text-sm font-medium mb-2">{t('expenses.description')}</label>
                         <textarea
-                            placeholder="Describe the purpose of this expense..."
+                            placeholder={t('expenses.descriptionPlaceholder', 'Describe the purpose of this expense...')}
                             name="description"
                             value={expenseFormData.description}
                             rows="3"
@@ -131,13 +133,13 @@ function AddExpenseForm({
 
                     {/* Notes textarea */}
                     <div className="mb-5">
-                        <label className="block text-sm font-medium mb-2">Notes</label>
+                        <label className="block text-sm font-medium mb-2">{t('expenses.notes')}</label>
                         <textarea
                             name="notes"
                             rows="3"
                             onChange={onExpenseChange}
                             value={expenseFormData.notes}
-                            placeholder="Add any additional notes..."
+                            placeholder={t('expenses.notesPlaceholder', 'Add any additional notes...')}
                             className="w-full border border-gray-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                     </div>
@@ -154,9 +156,9 @@ function AddExpenseForm({
 
             {/* Buttons for adding expense and autofill form (autofill:for quick test) */}
             <div className="flex justify-end gap-2 p-5">
-                <Button label="Add Expense" type="button" icon="pi pi-check" iconPos="right"
+                <Button label={t('expenses.addExpense')} type="button" icon="pi pi-check" iconPos="right"
                     onClick={onAddExpense} />
-                <Button label="Auto Fill Form" type="button" onClick={() => autoFillForm(onSetExpenseForm)} />
+                <Button label={t('common.autoFill', 'Auto Fill Form')} type="button" onClick={() => autoFillForm(onSetExpenseForm)} />
             </div>
 
             {/* Expansion table showing claim items in create mode */}

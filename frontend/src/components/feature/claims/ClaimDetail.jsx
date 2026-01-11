@@ -5,11 +5,13 @@ import { useLookups } from '../../../contexts/LookupContext.jsx'
 import { Button } from 'primereact/button'
 import api from '../../../api/api.js'
 import { showToast } from '../../../utils/helpers.js'
+import { useTranslation } from 'react-i18next'
 
 // ClaimDetail component shows details of a single claim
 // Used in both view and edit claim pages
 
 function ClaimDetail({ curClaim, toastRef }) {
+    const { t } = useTranslation()
     const { lookups } = useLookups()
     const [isEditing, setIsEditing] = useState(false)
 
@@ -54,8 +56,8 @@ function ClaimDetail({ curClaim, toastRef }) {
         <ComponentContainer>
             <div className="flex justify-between items-start mb-4">
                 <div>
-                    <h5 className="text-xl font-semibold text-gray-800 mb-1">Claim Detail</h5>
-                    <p className="text-sm text-gray-500">View and manage the details of this expense claim submission.</p>
+                    <h5 className="text-xl font-semibold text-gray-800 mb-1">{t('claims.claimDetails')}</h5>
+                    <p className="text-sm text-gray-500">{t('claims.claimDetailDescription', 'View and manage the details of this expense claim submission.')}</p>
                 </div>
                 <div className="flex gap-2">
                     {!isEditing && <Button
@@ -93,7 +95,7 @@ function ClaimDetail({ curClaim, toastRef }) {
                 <tbody>
                     {/* Claim Type */}
                     <ClaimDetailRow
-                        title="Claim Type:"
+                        title={t('claims.claimType') + ':'}
                         value={
                             isEditing
                                 ? claimDetail.claim_type_id
@@ -107,13 +109,13 @@ function ClaimDetail({ curClaim, toastRef }) {
                         onChange={(value) => handleSelectChange('claim_type_id', value)}
                     />
 
-                    <ClaimDetailRow title="Date Submitted:" value={submittedDate} />
-                    <ClaimDetailRow title="Employee:" value={fullName} />
-                    <ClaimDetailRow title="Position:" value={position} />
-                    <ClaimDetailRow title="Department:" value={department} />
+                    <ClaimDetailRow title={t('claims.dateSubmitted', 'Date Submitted') + ':'} value={submittedDate} />
+                    <ClaimDetailRow title={t('claims.employee', 'Employee') + ':'} value={fullName} />
+                    <ClaimDetailRow title={t('users.position') + ':'} value={position} />
+                    <ClaimDetailRow title={t('users.department') + ':'} value={department} />
 
                     <ClaimDetailRow
-                        title="Team:"
+                        title={t('users.team') + ':'}
                         value={isEditing ? claimDetail.team_id : teamName}
                         isEdit={isEditing}
                         options={lookups.teams?.filter(team => team.department_id === (curClaim?.department_id || curClaim?.user?.department_id)).map(

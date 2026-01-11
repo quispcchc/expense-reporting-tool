@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar } from 'primereact/calendar'
+import { useTranslation } from 'react-i18next'
 
 const DateRangeFilter = ({ options }) => {
+    const { t } = useTranslation()
     const [startDate, setStartDate] = useState(options.value?.[0] || '');
     const [endDate, setEndDate] = useState(options.value?.[1] || '');
 
@@ -25,14 +27,14 @@ const DateRangeFilter = ({ options }) => {
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
                 className="p-inputtext p-component"
-                placeholder="Start Date"
+                placeholder={t('filter.startDate', 'Start Date')}
             />
             <input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
                 className="p-inputtext p-component"
-                placeholder="End Data"
+                placeholder={t('filter.endDate', 'End Date')}
             />
 
         </div>

@@ -1,9 +1,11 @@
 import React from 'react'
 import Upload from '../uploadAttchment/Upload.jsx'
 import AttachmentList from '../uploadAttchment/AttchmentList.jsx'
+import { useTranslation } from 'react-i18next'
 
 // Customized expanded row: attachment editing dropdown in datatable
 function ClaimExpansionAttachmentRow({ label, file, isEditing, rowData, handleInputChange, mode }) {
+    const { t } = useTranslation()
 
     // Handle new files selected by user (supports multiple files)
     const handleFileSelect = (e) => {
@@ -74,7 +76,7 @@ function ClaimExpansionAttachmentRow({ label, file, isEditing, rowData, handleIn
         const attachments = Array.isArray(file) ? file : (file ? [file] : []);
 
         if (attachments.length === 0) {
-            return <p className="text-sm text-[#888888]">No attachments available.</p>
+            return <p className="text-sm text-[#888888]">{t('upload.noAttachments', 'No attachments available.')}</p>
         }
 
         return (

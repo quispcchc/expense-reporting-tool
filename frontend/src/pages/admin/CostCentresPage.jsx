@@ -15,8 +15,10 @@ import { ProgressSpinner } from 'primereact/progressspinner'
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog'
 import { Toast } from 'primereact/toast'
 import ActiveStatusTab from '../../components/common/ui/ActiveStatusTab.jsx'
+import { useTranslation } from 'react-i18next'
 
-function CostCentresPage () {
+function CostCentresPage() {
+    const { t } = useTranslation()
     const { lookups } = useLookups()
 
     // Destructure state and actions from the custom hook
@@ -33,7 +35,7 @@ function CostCentresPage () {
         const value = e.target.value
         let _filters = { ...filters }
 
-        _filters[ 'global' ].value = value
+        _filters['global'].value = value
 
         setFilters(_filters)
         setGlobalFilterValue(value)
@@ -43,26 +45,26 @@ function CostCentresPage () {
         return (
             <div className="flex justify-end">
                 <IconField iconPosition="left">
-                    <InputIcon className="pi pi-search"/>
-                    <InputText value={ globalFilterValue } onChange={ onGlobalFilterChange }
-                               placeholder="Keyword Search"/>
+                    <InputIcon className="pi pi-search" />
+                    <InputText value={globalFilterValue} onChange={onGlobalFilterChange}
+                        placeholder={t('common.keywordSearch')} />
                 </IconField>
             </div>
         )
     }
 
     const renderStatus = (rowData) => (
-        <ActiveStatusTab status={ rowData.active_status_id}/>
+        <ActiveStatusTab status={rowData.active_status_id} />
     )
 
     const departmentEditor = (editorOptions) => (
         <Dropdown
-            value={ editorOptions.value }
-            onChange={ (e) => editorOptions.editorCallback(e.value) }
-            options={ lookups.departments.map(department => ( {
+            value={editorOptions.value}
+            onChange={(e) => editorOptions.editorCallback(e.value)}
+            options={lookups.departments.map(department => ({
                 label: department.department_name,
                 value: department.department_id,
-            } )) }
+            }))}
         />
 
     )
@@ -70,20 +72,20 @@ function CostCentresPage () {
     const textInputEditor = (editorOptions) => (
         <InputText
             type="text"
-            value={ editorOptions.value || '' }
-            onChange={ (e) => editorOptions.editorCallback(e.target.value) }
+            value={editorOptions.value || ''}
+            onChange={(e) => editorOptions.editorCallback(e.target.value)}
             className="w-full"
         />
     )
 
     const statusEditor = (editorOptions) => (
         <Dropdown
-            value={ editorOptions.value }
-            onChange={ (e) => {editorOptions.editorCallback(e.value)} }
-            options={ lookups.activeStatuses.map(status => ( {
+            value={editorOptions.value}
+            onChange={(e) => { editorOptions.editorCallback(e.value) }}
+            options={lookups.activeStatuses.map(status => ({
                 label: status.active_status_name,
                 value: status.active_status_id,
-            } )) }
+            }))}
         />
     )
 
@@ -102,7 +104,7 @@ function CostCentresPage () {
             toast.current.show(
                 { severity: 'error', summary: 'Error', detail: error || 'Something went wrong.', life: 3000 })
         },
-        accept: async(costCentreId) => {
+        accept: async (costCentreId) => {
             const response = await deleteCostCentre(costCentreId)
             console.log(response)
             if (response) {
@@ -123,7 +125,7 @@ function CostCentresPage () {
         }
     }, [error])
 
-    const onRowEditComplete = async(e) => {
+    const onRowEditComplete = async (e) => {
         const response = await updateCostCentre(e.newData)
         if (response?.success) {
             toasts.updated()
@@ -132,8 +134,8 @@ function CostCentresPage () {
 
     const onDelete = (costCentreId) => {
         confirmDialog({
-            message: 'Are you sure you want to delete this item? This action cannot be undone.',
-            header: 'Delete Item',
+            message: t('costCentre.deleteConfirmMessage', 'Are you sure you want to delete this item? This action cannot be undone.'),
+            header: t('costCentre.deleteItem', 'Delete Item'),
             icon: 'pi pi-info-circle',
             defaultFocus: 'reject',
             acceptClassName: 'p-button-danger',
@@ -145,7 +147,7 @@ function CostCentresPage () {
     const renderDeleteButton = (rowData) => {
         return (
             <button
-                onClick={ () => onDelete(rowData.cost_centre_id) }
+                onClick={() => onDelete(rowData.cost_centre_id)}
                 type="button"
                 className="p-2 disabled:opacity-50"
                 title="Delete this expense"
@@ -157,40 +159,40 @@ function CostCentresPage () {
 
     return (
         <>
-            { loading && (
+            {loading && (
                 <div className="absolute inset-0 flex justify-center items-center bg-white/50 z-10">
-                    <ProgressSpinner/>
+                    <ProgressSpinner />
                 </div>
-            ) }
-            <Toast ref={ toast }/>
-            <ConfirmDialog/>
-            <ContentHeader title="Cost Centres" homePath="/admin"/>
-            <AddNewCostCentre createdToast={ toasts.created }/>
+            )}
+            <Toast ref={toast} />
+            <ConfirmDialog />
+            <ContentHeader title={t('sidebar.costCentre')} homePath="/admin" />
+            <AddNewCostCentre createdToast={toasts.created} />
             <div className="bg-white rounded-xl p-6 mt-5">
-                <DataTable value={ costCentres } paginator rows={ 5 } rowsPerPageOptions={ [5, 10, 25, 50] }
-                           filters={ filters } globalFilterFields={ [
-                    'department.department_name',
-                    'cost_centre_code',
-                    'active_status.active_status_name',
-                    'description',
-                ] }
-                           header={ renderHeader } emptyMessage="No results found."
-                           editMode="row" onRowEditComplete={ onRowEditComplete }
-                           sortMode="multiple" removableSort>
-                    <Column field="department_id" header="Department" sortable editor={ departmentEditor }
-                            body={ (rowData) => rowData.department?.department_name }></Column>
-                    <Column field="cost_centre_code" header="Code" sortable editor={ textInputEditor }></Column>
-                    <Column field="active_status_id" header="Status" body={ renderStatus } sortable
-                            editor={ statusEditor }></Column>
-                    <Column field="description" header="Description" sortable editor={ textInputEditor }></Column>
+                <DataTable value={costCentres} paginator rows={5} rowsPerPageOptions={[5, 10, 25, 50]}
+                    filters={filters} globalFilterFields={[
+                        'department.department_name',
+                        'cost_centre_code',
+                        'active_status.active_status_name',
+                        'description',
+                    ]}
+                    header={renderHeader} emptyMessage={t('common.noResults')}
+                    editMode="row" onRowEditComplete={onRowEditComplete}
+                    sortMode="multiple" removableSort>
+                    <Column field="department_id" header={t('users.department')} sortable editor={departmentEditor}
+                        body={(rowData) => rowData.department?.department_name}></Column>
+                    <Column field="cost_centre_code" header={t('teams.code')} sortable editor={textInputEditor}></Column>
+                    <Column field="active_status_id" header={t('common.status')} body={renderStatus} sortable
+                        editor={statusEditor}></Column>
+                    <Column field="description" header={t('costCentre.description', 'Description')} sortable editor={textInputEditor}></Column>
 
                     <Column
-                        rowEditor={ true }
-                        header="Edit"
+                        rowEditor={true}
+                        header={t('common.edit')}
                     />
                     <Column
-                        header="Delete"
-                        body={ renderDeleteButton }
+                        header={t('common.delete')}
+                        body={renderDeleteButton}
                     />
                 </DataTable>
 

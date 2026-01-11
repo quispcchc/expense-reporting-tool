@@ -4,11 +4,14 @@ import { useNavigate } from 'react-router-dom'
 import { Button } from 'primereact/button'
 import Input from '../../common/ui/Input.jsx'
 import InputPassword from '../../common/ui/InputPassword.jsx'
+import { useTranslation } from 'react-i18next'
+import LanguageSwitcher from '../../common/ui/LanguageSwitcher.jsx'
 
 import { validationSchemas } from '../../../utils/validation/schemas.js'
 import { validateForm } from '../../../utils/validation/validator.js'
 
 function LoginForm() {
+    const { t } = useTranslation()
     const { login, error, setError } = useAuth()
     const [formErrors, setFormErrors] = useState([])
     const navigate = useNavigate()
@@ -86,22 +89,27 @@ function LoginForm() {
 
     return (
         <form onSubmit={handleSubmit} className="w-100 p-5">
+            {/* Language Switcher */}
+            <div className="absolute top-4 right-4">
+                <LanguageSwitcher />
+            </div>
+
             <div className="mb-6">
                 <h2 className="text-2xl font-bold text-[#05589B]">CCHC</h2>
-                <h3 className="text-lg font-medium text-[#05589B]">Expense Claim Portal</h3>
+                <h3 className="text-lg font-medium text-[#05589B]">{t('auth.appName')}</h3>
             </div>
             <div className="mb-6">
-                <h3 className="text-xl font-semibold">Login to Your Account</h3>
-                <p className="text-sm text-gray-500">Enter your email address to get started.</p>
+                <h3 className="text-xl font-semibold">{t('auth.loginTitle')}</h3>
+                <p className="text-sm text-gray-500">{t('auth.loginSubtitle')}</p>
             </div>
 
             {/* Email */}
-            <Input name="email" id="email" label="Email" placeholder="Please enter your email"
+            <Input name="email" id="email" label={t('users.email')} placeholder={t('auth.emailPlaceholder')}
                 value={formData.email}
                 onChange={handleFormChange} errors={formErrors} />
 
             {/* Password */}
-            <InputPassword name="password" id="password" label="password" placeholder="Please enter your password"
+            <InputPassword name="password" id="password" label={t('auth.password', 'Password')} placeholder={t('auth.passwordPlaceholder')}
                 onChange={handleFormChange}
                 value={formData.password} errors={formErrors} />
 
@@ -110,17 +118,18 @@ function LoginForm() {
                 <div>
                     <input type="checkbox" name="remember" id="remember" onChange={handleFormChange}
                         className="mr-2" checked={formData.remember} />
-                    <label htmlFor="remember">Remember me?</label>
+                    <label htmlFor="remember">{t('auth.rememberMe')}</label>
                 </div>
 
-                <a href="/forgot-password" className="text-primary hover:underline">Forgot Password?</a>
+                <a href="/forgot-password" className="text-primary hover:underline">{t('auth.forgotPassword')}</a>
             </div>
 
             {/* Server side validation message */}
             {error && <div className="bg-red-100 text-red-600 rounded-xl p-2 mb-6">{error}</div>}
-            <Button type="submit" label="Submit" className="w-full" />
+            <Button type="submit" label={t('common.submit')} className="w-full" />
         </form>
     )
 }
 
 export default LoginForm
+

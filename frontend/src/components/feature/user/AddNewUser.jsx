@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import Input from '../../common/ui/Input.jsx'
 import Select from '../../common/ui/Select.jsx'
-import { roles, teams, status } from '../../../utils/mockData.js'
 import { Button } from 'primereact/button'
 import { useUserDispatch } from '../../../contexts/UserContext.jsx'
 import { generateId } from '../../../utils/helpers.js'
@@ -10,8 +9,10 @@ import { validateForm } from '../../../utils/validation/validator.js'
 import { MultiSelect } from 'primereact/multiselect'
 import { useLookups } from '../../../contexts/LookupContext.jsx'
 import { Dropdown } from 'primereact/dropdown'
+import { useTranslation } from 'react-i18next'
 
 function AddNewUser() {
+    const { t } = useTranslation()
     const [errors, setErrors] = useState([])
     const [isOpen, setIsOpen] = useState(false)
 
@@ -87,8 +88,8 @@ function AddNewUser() {
         <div className="bg-white rounded-xl p-6">
             <div className="flex justify-between items-center text-gray-700">
                 <div>
-                    <h4 className="text-[22px]">Add new user</h4>
-                    <p className="text-xs text-gray-500">Fill in the form below to register a new user to the system.</p>
+                    <h4 className="text-[22px]">{t('users.addNewUser')}</h4>
+                    <p className="text-xs text-gray-500">{t('users.addNewUserDescription')}</p>
                 </div>
 
                 <button className={`pi ${isOpen ? 'pi-chevron-up' : 'pi-chevron-down'} !text-xl`}
@@ -99,23 +100,23 @@ function AddNewUser() {
                 <form className="my-5" onSubmit={handleUserFormSubmit}>
                     {/* Row 1: Basic Info */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-                        <Input name="first_name" id="first_name" label="First Name" value={userFormData.first_name}
-                            onChange={handleUserFormChange} placeholder="Enter first name"
+                        <Input name="first_name" id="first_name" label={t('users.firstName')} value={userFormData.first_name}
+                            onChange={handleUserFormChange} placeholder={t('users.enterFirstName', 'Enter first name')}
                             errors={errors} />
-                        <Input name="last_name" id="last_name" label="Last Name" value={userFormData.last_name}
-                            onChange={handleUserFormChange} placeholder="Enter last name"
+                        <Input name="last_name" id="last_name" label={t('users.lastName')} value={userFormData.last_name}
+                            onChange={handleUserFormChange} placeholder={t('users.enterLastName', 'Enter last name')}
                             errors={errors} />
-                        <Input name="email" id="email" label="Email" value={userFormData.email}
-                            onChange={handleUserFormChange} placeholder="Enter email address"
+                        <Input name="email" id="email" label={t('users.email')} value={userFormData.email}
+                            onChange={handleUserFormChange} placeholder={t('users.enterEmail', 'Enter email address')}
                             errors={errors} />
                     </div>
 
                     {/* Row 2: Organization Info */}
                     <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-5">
                         <div>
-                            <Select id="department" name="department" label="Department" value={userFormData.department}
+                            <Select id="department" name="department" label={t('users.department')} value={userFormData.department}
                                 onChange={handleUserFormChange}
-                                placeholder="Select department" className="w-full"
+                                placeholder={t('users.selectDepartment', 'Select department')} className="w-full"
                                 options={lookups.departments.map(option => ({
                                     value: option.department_id,
                                     label: option.department_name,
@@ -125,9 +126,9 @@ function AddNewUser() {
                         </div>
 
                         <div>
-                            <Select id="team" name="team" label="Team" value={userFormData.team}
+                            <Select id="team" name="team" label={t('users.team')} value={userFormData.team}
                                 onChange={handleUserFormChange}
-                                placeholder="Select team" className="w-full"
+                                placeholder={t('users.selectTeam', 'Select team')} className="w-full"
                                 options={lookups.teams.map(option => ({
                                     value: option.team_id,
                                     label: option.team_name,
@@ -137,8 +138,8 @@ function AddNewUser() {
                         </div>
 
                         <div>
-                            <Input name="position" id="position" label="Position" value={userFormData.position}
-                                onChange={handleUserFormChange} placeholder="Enter position"
+                            <Input name="position" id="position" label={t('users.position')} value={userFormData.position}
+                                onChange={handleUserFormChange} placeholder={t('users.enterPosition', 'Enter position')}
                                 errors={errors} />
                         </div>
                     </div>
@@ -146,10 +147,10 @@ function AddNewUser() {
                     {/* Row 3: Role and Submit */}
                     <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-5 items-end">
                         <div>
-                            <Select name="role" id="role" label="Role" value={userFormData.role} className="w-full"
+                            <Select name="role" id="role" label={t('users.role')} value={userFormData.role} className="w-full"
                                 options={lookups.roles.map(option => ({ label: option.role_name, value: option.role_id }))}
                                 onChange={handleUserFormChange}
-                                placeholder="Select role" errors={errors} />
+                                placeholder={t('users.selectRole', 'Select role')} errors={errors} />
                         </div>
 
                         {/* Empty spacer column */}
@@ -157,7 +158,7 @@ function AddNewUser() {
 
                         {/* Save button aligned to bottom-right */}
                         <div className="flex justify-end">
-                            <Button label="Save" className="!h-[48px] w-full sm:w-auto px-8" />
+                            <Button label={t('common.save')} className="!h-[48px] w-full sm:w-auto px-8" />
                         </div>
                     </div>
 

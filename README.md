@@ -96,7 +96,9 @@ To see logs from the background queue worker:
 docker-compose logs -f queue
 ```
 
-## 🔧 Troubleshooting
+## 🔧 Troubleshooting & Debugging
+
+### Common Issues
 
 - **Database Errors**: If you encounter errors related to the database (e.g., "no such table"), ensure `database.sqlite` exists and migrations have been run.
     ```bash
@@ -109,3 +111,105 @@ docker-compose logs -f queue
     ```
 
 - **Port Conflicts**: Ensure ports `8000` (Backend) and `5173` (Frontend) are not being used by other applications.
+
+---
+
+### 🐳 Useful Docker Commands
+
+#### Container Management
+
+```bash
+# Start services in background (detached mode)
+docker-compose up -d --build
+
+# Stop all containers
+docker-compose down
+
+# Restart a specific service
+docker-compose restart backend
+docker-compose restart frontend
+docker-compose restart queue
+
+# View running containers
+docker ps
+
+# View all containers (including stopped)
+docker ps -a
+
+# Check container status and resource usage
+docker stats
+```
+
+#### Log Viewing
+
+```bash
+# View all logs (follow mode)
+docker-compose logs -f
+
+# View specific service logs
+docker-compose logs -f backend
+docker-compose logs -f frontend
+docker-compose logs -f queue
+
+# View last N lines of logs
+docker logs expense_backend --tail 100
+docker logs expense_frontend --tail 100
+
+# View Laravel application logs
+docker exec expense_backend sh -c "cat storage/logs/laravel.log"
+
+# View only recent Laravel logs (PowerShell)
+docker exec expense_backend sh -c "cat storage/logs/laravel.log" 2>&1 | Select-Object -Last 50
+```
+
+#### Interactive Shell Access
+
+```bash
+# Access backend container shell
+docker exec -it expense_backend sh
+
+# Access frontend container shell
+docker exec -it expense_frontend sh
+
+# Run Laravel Artisan commands
+docker-compose exec backend php artisan migrate
+docker-compose exec backend php artisan migrate:fresh --seed
+docker-compose exec backend php artisan cache:clear
+docker-compose exec backend php artisan config:clear
+docker-compose exec backend php artisan route:list
+```
+
+#### Debugging & Maintenance
+
+```bash
+# Check container health
+docker inspect expense_backend | grep -A 10 "State"
+
+# View container environment variables
+docker exec expense_backend env
+
+# Clear Laravel caches
+docker-compose exec backend php artisan optimize:clear
+
+# Rebuild containers without cache
+docker-compose build --no-cache
+
+# Remove all stopped containers and unused images
+docker system prune -a
+
+# View Docker disk usage
+docker system df
+```
+
+#### Database Operations
+
+```bash
+# Reset database and re-seed
+docker-compose exec backend php artisan migrate:fresh --seed
+
+# Run specific seeder
+docker-compose exec backend php artisan db:seed --class=UserSeeder
+
+# Backup SQLite database
+docker cp expense_backend:/var/www/html/database/database.sqlite ./backup.sqlite
+```

@@ -7,15 +7,21 @@ import StatusTab from '../../components/common/ui/StatusTab.jsx'
 import { InputText } from 'primereact/inputtext'
 import { Column } from 'primereact/column'
 import { Dropdown } from 'primereact/dropdown'
-import { status } from '../../utils/mockData.js'
 import { FilterMatchMode } from 'primereact/api'
+import { useLookups } from '../../contexts/LookupContext.jsx'
 import { IconField } from 'primereact/iconfield'
 import { InputIcon } from 'primereact/inputicon'
+import { useTranslation } from 'react-i18next'
 
-function TeamsPage () {
+function TeamsPage() {
+    const { t } = useTranslation()
     // Access global team state and dispatch function from context
     const teamState = useTeam()
     const dispatch = useTeamDispatch()
+    const { lookups } = useLookups()
+
+    // Get active statuses from lookups (maps to status names)
+    const statusOptions = lookups.activeStatuses.map(s => s.name || s)
 
     // Local state to hold the displayed teams
     const [teams, setTeams] = useState([])
@@ -62,7 +68,7 @@ function TeamsPage () {
         <Dropdown
             value={editorOptions.value}
             onChange={(e) => editorOptions.editorCallback(e.target.value)}
-            options={status}
+            options={statusOptions}
         />
     )
 
@@ -88,7 +94,7 @@ function TeamsPage () {
                     <InputText
                         value={globalFilterValue}
                         onChange={onGlobalFilterChange}
-                        placeholder="Keyword Search"
+                        placeholder={t('common.keywordSearch')}
                     />
                 </IconField>
             </div>
@@ -98,7 +104,7 @@ function TeamsPage () {
     return (
         <>
             {/* Page title and navigation */}
-            <ContentHeader title="Departments" homePath="/admin" />
+            <ContentHeader title={t('teams.title')} homePath="/admin" />
             {/* Add new team form component */}
             <AddNewTeam />
             <div className="bg-white rounded-xl p-6 mt-5">
@@ -113,15 +119,15 @@ function TeamsPage () {
                     filters={filters}
                     globalFilterFields={['code', 'name', 'status']}
                     header={renderHeader()}
-                    emptyMessage="No results found."
+                    emptyMessage={t('common.noResults')}
                     sortMode="multiple"
                     removableSort
                 >
                     {/* Columns with inline editing */}
-                    <Column field="code" header="Code" sortable editor={textInputEditor}></Column>
-                    <Column field="name" header="Name" sortable editor={textInputEditor}></Column>
-                    <Column field="status" header="Status" body={renderStatus} sortable editor={statusEditor}></Column>
-                    <Column rowEditor={true} header="Actions" />
+                    <Column field="code" header={t('teams.code')} sortable editor={textInputEditor}></Column>
+                    <Column field="name" header={t('teams.name')} sortable editor={textInputEditor}></Column>
+                    <Column field="status" header={t('common.status')} body={renderStatus} sortable editor={statusEditor}></Column>
+                    <Column rowEditor={true} header={t('common.actions')} />
                 </DataTable>
             </div>
         </>

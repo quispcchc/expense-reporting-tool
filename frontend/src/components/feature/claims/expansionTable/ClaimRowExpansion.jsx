@@ -3,6 +3,7 @@ import ClaimExpansionDropdownRow from './ClaimExpansionDropdownRow.jsx'
 import ClaimExpansionInputRow from './ClaimExpansionInputRow.jsx'
 import ClaimExpansionAttachmentRow from './ClaimExpansionAttachmentRow.jsx'
 import { useLookups } from '../../../../contexts/LookupContext.jsx'
+import { useTranslation } from 'react-i18next'
 
 function ClaimRowExpansion({
     rowData,
@@ -12,6 +13,7 @@ function ClaimRowExpansion({
     handleInputChange,
     mode,
 }) {
+    const { t } = useTranslation()
     const { lookups: { projects } } = useLookups()
 
     // Determine if the current row is in editing mode
@@ -69,9 +71,9 @@ function ClaimRowExpansion({
             <div className="grid grid-cols-1 gap-4">
                 {/* Dropdown to select program/project */}
                 <ClaimExpansionDropdownRow
-                    label="Program / Project"
+                    label={t('expenses.program')}
                     field="program"
-                    placeholder="Please select the program"
+                    placeholder={t('expenses.selectProgram', 'Please select the program')}
                     options={projects.map(
                         opt => ({ label: `${opt.project_name} - ${opt.project_desc}`, value: opt.project_id }))}
                     isEditing={isEditing}
@@ -82,7 +84,7 @@ function ClaimRowExpansion({
 
                 {/* Input for tags as comma-separated string */}
                 <ClaimExpansionInputRow
-                    label="Tags"
+                    label={t('expenses.tags', 'Tags')}
                     field="tags"
                     isEditing={isEditing}
                     rowData={rowData}
@@ -92,7 +94,7 @@ function ClaimRowExpansion({
 
                 {/* Input for expense description */}
                 <ClaimExpansionInputRow
-                    label="Expense Description"
+                    label={t('expenses.description')}
                     field="description"
                     isEditing={isEditing}
                     rowData={rowData}
@@ -102,7 +104,7 @@ function ClaimRowExpansion({
 
                 {/* Input for notes */}
                 <ClaimExpansionInputRow
-                    label="Notes"
+                    label={t('expenses.notes')}
                     field="notes"
                     isEditing={isEditing}
                     rowData={rowData}
@@ -112,7 +114,7 @@ function ClaimRowExpansion({
 
                 {/* Attachment list and upload functionality */}
                 <ClaimExpansionAttachmentRow
-                    label="Attachment"
+                    label={t('expenses.attachments')}
                     isEditing={isEditing}
                     file={displayData.attachment || null}
                     rowData={rowData}

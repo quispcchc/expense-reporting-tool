@@ -6,15 +6,16 @@ import { Column } from 'primereact/column'
 import { useUser, useUserDispatch } from '../../contexts/UserContext.jsx'
 import StatusTab from '../../components/common/ui/StatusTab.jsx'
 import { Dropdown } from 'primereact/dropdown'
-import { roles, teams, status } from '../../utils/mockData.js'
 import { InputText } from 'primereact/inputtext'
 import { FilterMatchMode } from 'primereact/api'
 import { InputIcon } from 'primereact/inputicon'
 import { IconField } from 'primereact/iconfield'
 import { MultiSelect } from 'primereact/multiselect'
 import { useLookups } from '../../contexts/LookupContext.jsx'
+import { useTranslation } from 'react-i18next'
 
-function UsersPage () {
+function UsersPage() {
+    const { t } = useTranslation()
     // Get user state and dispatch from context
     const usersState = useUser()
     const { updateUser } = useUserDispatch()
@@ -41,7 +42,7 @@ function UsersPage () {
     const onGlobalFilterChange = (e) => {
         const value = e.target.value
         let _filters = { ...filters }
-        _filters[ 'global' ].value = value
+        _filters['global'].value = value
 
         setFilters(_filters)
         setGlobalFilterValue(value)
@@ -49,53 +50,58 @@ function UsersPage () {
 
     // Render custom UI for user status
     const renderStatus = (rowData) => (
-        <StatusTab status={ rowData.status }/>
+        <StatusTab status={rowData.status} />
     )
 
     // Render list of roles (as comma-separated string)
     const renderRoles = (rowData) => (
-        <p>{ Array.isArray(rowData.roles) ? rowData.roles.join(', ') : '' }</p>
+        <p>{Array.isArray(rowData.roles) ? rowData.roles.join(', ') : ''}</p>
     )
 
     // Render list of teams (as comma-separated string)
     const renderTeams = (rowData) => (
-        <p>{ Array.isArray(rowData.teams) ? rowData.teams.join(', ') : '' }</p>
+        <p>{Array.isArray(rowData.teams) ? rowData.teams.join(', ') : ''}</p>
     )
 
     // Editor for text input fields (first name, last name, etc.)
     const textInputEditor = (editorOptions) => (
         <InputText
             type="text"
-            value={ editorOptions.value || '' }
-            onChange={ (e) => editorOptions.editorCallback(e.target.value) }
+            value={editorOptions.value || ''}
+            onChange={(e) => editorOptions.editorCallback(e.target.value)}
             className="w-full"
         />
     )
 
+    // Get teams and roles from lookups
+    const teamOptions = lookups.teams.map(t => t.code || t.name || t)
+    const roleOptions = lookups.roles.map(r => r.name || r)
+    const statusOptions = lookups.activeStatuses.map(s => s.name || s)
+
     // Dropdown editor for team field
     const teamEditor = (editorOptions) => (
         <MultiSelect
-            value={ editorOptions.value }
-            onChange={ (e) => editorOptions.editorCallback(e.target.value) }
-            options={ teams }
+            value={editorOptions.value}
+            onChange={(e) => editorOptions.editorCallback(e.target.value)}
+            options={teamOptions}
         />
     )
 
     // Dropdown editor for roles field
     const roleEditor = (editorOptions) => (
         <MultiSelect
-            value={ editorOptions.value }
-            onChange={ (e) => editorOptions.editorCallback(e.target.value) }
-            options={ roles }
+            value={editorOptions.value}
+            onChange={(e) => editorOptions.editorCallback(e.target.value)}
+            options={roleOptions}
         />
     )
 
     // Dropdown editor for status field
     const statusEditor = (editorOptions) => (
         <Dropdown
-            value={ editorOptions.value }
-            onChange={ (e) => editorOptions.editorCallback(e.target.value) }
-            options={ status }
+            value={editorOptions.value}
+            onChange={(e) => editorOptions.editorCallback(e.target.value)}
+            options={statusOptions}
         />
     )
 
@@ -104,16 +110,16 @@ function UsersPage () {
         let _users = [...users]
         let { newData, index } = e
 
-        _users[ index ] = newData
+        _users[index] = newData
         setUsers(_users)
-        // Persist update to backend via context action
-        ;(async () => {
-            try {
-                await updateUser(newData)
-            } catch (err) {
-                console.error('Failed to update user', err)
-            }
-        })()
+            // Persist update to backend via context action
+            ; (async () => {
+                try {
+                    await updateUser(newData)
+                } catch (err) {
+                    console.error('Failed to update user', err)
+                }
+            })()
     }
 
     // Render the table header, including the global search bar
@@ -121,11 +127,11 @@ function UsersPage () {
         return (
             <div className="flex justify-end">
                 <IconField iconPosition="left">
-                    <InputIcon className="pi pi-search"/>
+                    <InputIcon className="pi pi-search" />
                     <InputText
-                        value={ globalFilterValue }
-                        onChange={ onGlobalFilterChange }
-                        placeholder="Keyword Search"
+                        value={globalFilterValue}
+                        onChange={onGlobalFilterChange}
+                        placeholder={t('common.keywordSearch')}
                     />
                 </IconField>
             </div>
@@ -134,42 +140,42 @@ function UsersPage () {
 
     return (
         <>
-            {/* Page title/header */ }
-            <ContentHeader title="Users" homePath="/admin"/>
+            {/* Page title/header */}
+            <ContentHeader title={t('users.title')} homePath="/admin" />
 
-            {/* Add new user component (e.g. modal or inline form) */ }
-            <AddNewUser/>
+            {/* Add new user component (e.g. modal or inline form) */}
+            <AddNewUser />
 
-            {/* User data table */ }
+            {/* User data table */}
             <div className="bg-white rounded-xl p-6 mt-5">
                 <DataTable
-                    value={ usersState }
+                    value={usersState}
                     paginator
-                    rows={ 10 }
-                    rowsPerPageOptions={ [5, 10, 25, 50] }
-                    filters={ filters }
-                    globalFilterFields={ [
+                    rows={10}
+                    rowsPerPageOptions={[5, 10, 25, 50]}
+                    filters={filters}
+                    globalFilterFields={[
                         'user_id', 'first_name', 'last_name',
                         'team', 'position', 'role', 'status',
-                    ] }
-                    header={ renderHeader }
-                    emptyMessage="No results found."
+                    ]}
+                    header={renderHeader}
+                    emptyMessage={t('common.noResults')}
                     editMode="row"
-                    onRowEditComplete={ onRowEditComplete }
+                    onRowEditComplete={onRowEditComplete}
                     sortMode="multiple"
                     removableSort
                 >
-                    {/* Each column definition below */ }
-                    <Column field="user_id" header="User #" sortable/>
-                    <Column field="first_name" header="First Name" sortable editor={ textInputEditor }/>
-                    <Column field="last_name" header="Last Name" sortable editor={ textInputEditor }/>
-                    <Column field="teams" header="Team" body={ renderTeams } sortable editor={ teamEditor }/>
+                    {/* Each column definition below */}
+                    <Column field="user_id" header={t('users.userId', 'User #')} sortable />
+                    <Column field="first_name" header={t('users.firstName')} sortable editor={textInputEditor} />
+                    <Column field="last_name" header={t('users.lastName')} sortable editor={textInputEditor} />
+                    <Column field="teams" header={t('users.team')} body={renderTeams} sortable editor={teamEditor} />
                     {/*<Column field="position" header="Position" sortable editor={ textInputEditor }/>*/}
                     {/*<Column field="roles" header="Role" body={ renderRoles } sortable editor={ roleEditor }/>*/}
                     {/*<Column field="status" header="Status" body={ renderStatus } sortable editor={ statusEditor }/>*/}
 
-                    {/* Edit/save button column */ }
-                    <Column rowEditor header="Actions"/>
+                    {/* Edit/save button column */}
+                    <Column rowEditor header={t('common.actions')} />
                 </DataTable>
             </div>
         </>

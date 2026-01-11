@@ -9,9 +9,11 @@ import EditableExpansionTable from '../../components/feature/claims/expansionTab
 import Loader from '../../components/common/ui/Loader.jsx'
 import { Toast } from 'primereact/toast'
 import { ConfirmDialog } from 'primereact/confirmdialog'
+import { useTranslation } from 'react-i18next'
 
 
 function EditClaimPage() {
+    const { t } = useTranslation()
     const { claimId } = useParams()
     const { getClaimById } = useClaims()
 
@@ -41,7 +43,7 @@ function EditClaimPage() {
             <ConfirmDialog />
 
             <div className="flex justify-between items-center flex-wrap">
-                <ContentHeader title={`Claim #${claimId}`} homePath="/admin" />
+                <ContentHeader title={`${t('claims.claimNumber', 'Claim')} #${claimId}`} homePath="/admin" />
                 <ClaimStatus curClaim={curClaim} />
             </div>
 

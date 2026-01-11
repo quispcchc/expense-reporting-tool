@@ -22,6 +22,7 @@ import { useClaims } from '../../../contexts/ClaimContext.jsx'
 import api from '../../../api/api.js'
 import { confirmDialog } from 'primereact/confirmdialog'
 import { useIsMobile } from '../../../hooks/useIsMobile.js'
+import { useTranslation } from 'react-i18next'
 
 // Status color mapping for cards
 const STATUS_COLORS = {
@@ -32,6 +33,7 @@ const STATUS_COLORS = {
 }
 
 function ClaimListDataTable({ claims, user, path, toastRef }) {
+    const { t } = useTranslation()
     const { fetchClaims } = useClaims()
     const isMobile = useIsMobile()
 
@@ -135,7 +137,7 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
             <Dropdown value={options.value} options={claimStatus.map(
                 opt => ({ label: opt.claim_status_name, value: opt.claim_status_name }))}
                 onChange={(e) => options.filterApplyCallback(e.value)} itemTemplate={statusItemTemplate}
-                placeholder="Select" className="p-column-filter min-w-5" showClear />
+                placeholder={t('filter.select', 'Select')} className="p-column-filter min-w-5" showClear />
         )
     }
 
@@ -143,7 +145,7 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
         <Dropdown value={options.value}
             options={claimTypes.map(opt => ({ label: opt.claim_type_name, value: opt.claim_type_name }))}
             onChange={(e) => options.filterApplyCallback(e.value)}
-            placeholder="Select One" className="p-column-filter" />
+            placeholder={t('filter.selectOne', 'Select One')} className="p-column-filter" />
     )
 
     const customTextFilter = (options) => {
@@ -151,7 +153,7 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
             <InputText
                 value={options.value || ''}
                 onChange={(e) => options.filterApplyCallback(e.target.value)}
-                placeholder="Search"
+                placeholder={t('common.search', 'Search')}
                 className="p-column-filter min-w-30"
             />
         )
@@ -174,8 +176,8 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
         const payload = { claimIds }
 
         confirmDialog({
-            message: 'Do you want to approve all selected claims?',
-            header: 'Bulk Approve Confirmation',
+            message: t('claims.bulkApproveMessage', 'Do you want to approve all selected claims?'),
+            header: t('claims.bulkApproveHeader', 'Bulk Approve Confirmation'),
             icon: 'pi pi-info-circle',
             defaultFocus: 'reject',
             acceptClassName: 'p-button-info',
@@ -183,13 +185,13 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
                 try {
                     await api.post('claims/bulk-approve', payload)
                     await fetchClaims()
-                    showToast(toastRef, { severity: 'success', summary: 'Success', detail: 'Selected claims has been approved successfully!' })
+                    showToast(toastRef, { severity: 'success', summary: t('toast.success', 'Success'), detail: t('claims.bulkApproveSuccess', 'Selected claims has been approved successfully!') })
                 }
                 catch (error) {
-                    showToast(toastRef, { severity: 'error', summary: 'Error', detail: error.message })
+                    showToast(toastRef, { severity: 'error', summary: t('toast.error', 'Error'), detail: error.message })
                 }
             },
-            reject: () => { return showToast(toastRef, { severity: 'success', summary: 'Success', detail: 'Bulk Approve Cancelled' }) },
+            reject: () => { return showToast(toastRef, { severity: 'success', summary: t('toast.success', 'Success'), detail: t('claims.bulkApproveCancelled', 'Bulk Approve Cancelled') }) },
         })
 
         setSelectedClaims([])
@@ -201,8 +203,8 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
         const payload = { claimIds }
 
         confirmDialog({
-            message: 'Do you want to reject all selected claims?',
-            header: 'Bulk Reject Confirmation',
+            message: t('claims.bulkRejectMessage', 'Do you want to reject all selected claims?'),
+            header: t('claims.bulkRejectHeader', 'Bulk Reject Confirmation'),
             icon: 'pi pi-info-circle',
             defaultFocus: 'reject',
             acceptClassName: 'p-button-info',
@@ -210,13 +212,13 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
                 try {
                     await api.post('claims/bulk-reject', payload)
                     await fetchClaims()
-                    showToast(toastRef, { severity: 'success', summary: 'Success', detail: 'Selected claims has been rejected successfully!' })
+                    showToast(toastRef, { severity: 'success', summary: t('toast.success', 'Success'), detail: t('claims.bulkRejectSuccess', 'Selected claims has been rejected successfully!') })
                 }
                 catch (error) {
-                    showToast(toastRef, { severity: 'error', summary: 'Error', detail: error.message })
+                    showToast(toastRef, { severity: 'error', summary: t('toast.error', 'Error'), detail: error.message })
                 }
             },
-            reject: () => { return showToast(toastRef, { severity: 'info', summary: 'Cancel', detail: 'Bulk Reject Cancelled' }) },
+            reject: () => { return showToast(toastRef, { severity: 'info', summary: t('toast.cancel', 'Cancel'), detail: t('claims.bulkRejectCancelled', 'Bulk Reject Cancelled') }) },
         })
 
         setSelectedClaims([])
@@ -378,7 +380,7 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
         <div className={`desktop-filter-overlay ${showFilterModal ? 'visible' : ''}`} onClick={() => setShowFilterModal(false)}>
             <div className="desktop-filter-panel" onClick={(e) => e.stopPropagation()}>
                 <div className="desktop-filter-header">
-                    <span>Filter Claims</span>
+                    <span>{t('filter.filterClaims', 'Filter Claims')}</span>
                     <button onClick={() => setShowFilterModal(false)} className="text-gray-500 hover:text-gray-700">
                         <i className="pi pi-times text-lg" />
                     </button>
@@ -386,23 +388,23 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
                 <div className="desktop-filter-body">
                     {/* Request # */}
                     <div className="desktop-filter-field">
-                        <label>Request #</label>
+                        <label>{t('claims.requestNumber')}</label>
                         <InputText
                             value={filterValues.requestId}
                             onChange={(e) => setFilterValues({ ...filterValues, requestId: e.target.value })}
-                            placeholder="Search by ID..."
+                            placeholder={t('filter.searchById', 'Search by ID...')}
                             className="w-full"
                         />
                     </div>
 
                     {/* Claim Type */}
                     <div className="desktop-filter-field">
-                        <label>Claim Type</label>
+                        <label>{t('claims.claimType')}</label>
                         <Dropdown
                             value={filterValues.type}
                             options={claimTypes.map(opt => ({ label: opt.claim_type_name, value: opt.claim_type_name }))}
                             onChange={(e) => setFilterValues({ ...filterValues, type: e.value })}
-                            placeholder="All Types"
+                            placeholder={t('filter.allTypes', 'All Types')}
                             showClear
                             className="w-full"
                         />
@@ -410,19 +412,19 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
 
                     {/* Total Amount Range - Compact */}
                     <div className="desktop-filter-field">
-                        <label>Total Amount</label>
+                        <label>{t('claims.totalAmount')}</label>
                         <div className="flex gap-2 items-center">
                             <InputNumber
                                 value={filterValues.amountMin}
                                 onValueChange={(e) => setFilterValues({ ...filterValues, amountMin: e.value })}
-                                placeholder="Min"
+                                placeholder={t('filter.min', 'Min')}
                                 className="flex-1 amount-input-compact"
                             />
                             <span className="text-gray-400">~</span>
                             <InputNumber
                                 value={filterValues.amountMax}
                                 onValueChange={(e) => setFilterValues({ ...filterValues, amountMax: e.value })}
-                                placeholder="Max"
+                                placeholder={t('filter.max', 'Max')}
                                 className="flex-1 amount-input-compact"
                             />
                         </div>
@@ -430,10 +432,10 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
 
                     {/* Submitted At Date Range - Compact */}
                     <div className="desktop-filter-field">
-                        <label>Submitted At</label>
+                        <label>{t('claims.submittedAt')}</label>
                         <div className="flex flex-col gap-2">
                             <div className="flex items-center gap-2">
-                                <span className="text-sm text-gray-500 w-12">From</span>
+                                <span className="text-sm text-gray-500 w-12">{t('filter.from')}</span>
                                 <input
                                     type="date"
                                     value={filterValues.dateFrom || ''}
@@ -442,7 +444,7 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
                                 />
                             </div>
                             <div className="flex items-center gap-2">
-                                <span className="text-sm text-gray-500 w-12">To</span>
+                                <span className="text-sm text-gray-500 w-12">{t('filter.to')}</span>
                                 <input
                                     type="date"
                                     value={filterValues.dateTo || ''}
@@ -455,20 +457,20 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
 
                     {/* Status */}
                     <div className="desktop-filter-field">
-                        <label>Status</label>
+                        <label>{t('common.status')}</label>
                         <Dropdown
                             value={filterValues.status}
                             options={claimStatus.map(opt => ({ label: opt.claim_status_name, value: opt.claim_status_name }))}
                             onChange={(e) => setFilterValues({ ...filterValues, status: e.value })}
-                            placeholder="All Statuses"
+                            placeholder={t('filter.allStatuses', 'All Statuses')}
                             showClear
                             className="w-full"
                         />
                     </div>
                 </div>
                 <div className="desktop-filter-actions">
-                    <Button label="Clear" icon="pi pi-times" outlined onClick={clearDesktopFilters} className="flex-1" />
-                    <Button label="Apply" icon="pi pi-check" onClick={applyDesktopFilters} className="flex-1" />
+                    <Button label={t('common.clear', 'Clear')} icon="pi pi-times" outlined onClick={clearDesktopFilters} className="flex-1" />
+                    <Button label={t('common.apply', 'Apply')} icon="pi pi-check" onClick={applyDesktopFilters} className="flex-1" />
                 </div>
             </div>
         </div>
@@ -485,12 +487,12 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
                     <InputText
                         value={globalFilterValue}
                         onChange={onGlobalFilterChange}
-                        placeholder="Keyword Search"
+                        placeholder={t('common.keywordSearch')}
                         className="w-64"
                     />
                 </IconField>
                 <Button
-                    label="Filter"
+                    label={t('claims.filter', 'Filter')}
                     icon="pi pi-filter"
                     outlined
                     onClick={() => setShowFilterModal(true)}
@@ -501,12 +503,12 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
             </div>
 
             <div className="flex gap-2 flex-wrap">
-                <Button label="Approve" outlined className={BUTTON_STYLE.success} icon="pi pi-check" iconPos="right"
+                <Button label={t('claims.approve')} outlined className={BUTTON_STYLE.success} icon="pi pi-check" iconPos="right"
                     onClick={bulkApproveClaim} disabled={isDisabled || isExporting} />
-                <Button label="Reject" outlined className={BUTTON_STYLE.danger} icon="pi pi-times" iconPos="right"
+                <Button label={t('claims.reject')} outlined className={BUTTON_STYLE.danger} icon="pi pi-times" iconPos="right"
                     onClick={bulkRejectClaim} disabled={isDisabled || isExporting} />
                 <Button
-                    label={isExporting ? "Exporting..." : "Export"}
+                    label={isExporting ? t('claims.exporting', 'Exporting...') : t('claims.export', 'Export')}
                     outlined
                     icon={isExporting ? "pi pi-spin pi-spinner" : "pi pi-file-export"}
                     iconPos="right"
@@ -515,7 +517,7 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
                     loading={isExporting}
                 />
                 <Link to={`${path}/claims/create-claim`}>
-                    <Button label="New Claim" icon="pi pi-plus" iconPos="right" />
+                    <Button label={t('claims.newClaim', 'New Claim')} icon="pi pi-plus" iconPos="right" />
                 </Link>
 
             </div>
@@ -531,12 +533,12 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
                     <InputText
                         value={globalFilterValue}
                         onChange={onGlobalFilterChange}
-                        placeholder="Keyword Search"
+                        placeholder={t('common.keywordSearch')}
                         className="w-64"
                     />
                 </IconField>
                 <Button
-                    label="Filter"
+                    label={t('claims.filter', 'Filter')}
                     icon="pi pi-filter"
                     outlined
                     onClick={() => setShowFilterModal(true)}
@@ -548,7 +550,7 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
 
             <div className="flex gap-2">
                 <Link to={`${path}/claims/create-claim`}>
-                    <Button label="New Claim" icon="pi pi-plus" iconPos="right" />
+                    <Button label={t('claims.newClaim', 'New Claim')} icon="pi pi-plus" iconPos="right" />
                 </Link>
             </div>
 
@@ -582,17 +584,17 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
                     <Column selectionMode="multiple" headerStyle={{ width: '50px' }}
                         headerClassName="checkbox-header" bodyClassName="checkbox-cell"></Column>
 
-                    <Column field="claim_id" header="Request #" sortable></Column>
+                    <Column field="claim_id" header={t('claims.requestNumber', 'Request #')} sortable></Column>
 
-                    <Column field="claim_type.claim_type_name" header="Claim Type" sortable></Column>
+                    <Column field="claim_type.claim_type_name" header={t('claims.claimType')} sortable></Column>
 
-                    <Column field="total_amount" header="Total Amount" body={totalAmountBodyTemplate} sortable></Column>
+                    <Column field="total_amount" header={t('claims.totalAmount')} body={totalAmountBodyTemplate} sortable></Column>
 
-                    <Column field="claim_submitted" header="Submitted At" sortable></Column>
+                    <Column field="claim_submitted" header={t('claims.submittedAt', 'Submitted At')} sortable></Column>
 
-                    <Column field="status.claim_status_name" header="Status" body={statusBodyTemplate} sortable></Column>
+                    <Column field="status.claim_status_name" header={t('common.status')} body={statusBodyTemplate} sortable></Column>
 
-                    <Column header="Action" body={actionBodyTemplate} style={{ width: '80px' }}></Column>
+                    <Column header={t('common.actions')} body={actionBodyTemplate} style={{ width: '80px' }}></Column>
 
                 </DataTable>
             </ComponentContainer>
@@ -606,55 +608,55 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
         <div className={`mobile-filter-overlay ${showFilterModal ? 'visible' : ''}`} onClick={() => setShowFilterModal(false)}>
             <div className="mobile-filter-panel" onClick={(e) => e.stopPropagation()}>
                 <div className="mobile-filter-header">
-                    <span>Filter Claims</span>
+                    <span>{t('filter.filterClaims', 'Filter Claims')}</span>
                     <button onClick={() => setShowFilterModal(false)} className="text-gray-500">
                         <i className="pi pi-times" />
                     </button>
                 </div>
                 <div className="mobile-filter-body">
                     <div className="mobile-filter-field">
-                        <label>Keyword</label>
+                        <label>{t('filter.keyword', 'Keyword')}</label>
                         <InputText
                             value={filterValues.keyword}
                             onChange={(e) => setFilterValues({ ...filterValues, keyword: e.target.value })}
-                            placeholder="Search by ID or type..."
+                            placeholder={t('filter.searchByIdOrType', 'Search by ID or type...')}
                             className="w-full"
                         />
                     </div>
                     <div className="mobile-filter-field">
-                        <label>Claim Type</label>
+                        <label>{t('claims.claimType')}</label>
                         <Dropdown
                             value={filterValues.type}
                             options={claimTypes.map(opt => ({ label: opt.claim_type_name, value: opt.claim_type_name }))}
                             onChange={(e) => setFilterValues({ ...filterValues, type: e.value })}
-                            placeholder="All Types"
+                            placeholder={t('filter.allTypes', 'All Types')}
                             showClear
                             className="w-full"
                         />
                     </div>
                     <div className="mobile-filter-field">
-                        <label>Total Amount</label>
+                        <label>{t('claims.totalAmount')}</label>
                         <div className="flex gap-2 items-center">
                             <InputNumber
                                 value={filterValues.amountMin}
                                 onValueChange={(e) => setFilterValues({ ...filterValues, amountMin: e.value })}
-                                placeholder="Min"
+                                placeholder={t('filter.min', 'Min')}
                                 className="flex-1"
                             />
                             <span className="text-gray-400">~</span>
                             <InputNumber
                                 value={filterValues.amountMax}
                                 onValueChange={(e) => setFilterValues({ ...filterValues, amountMax: e.value })}
-                                placeholder="Max"
+                                placeholder={t('filter.max', 'Max')}
                                 className="flex-1"
                             />
                         </div>
                     </div>
                     <div className="mobile-filter-field">
-                        <label>Submitted At</label>
+                        <label>{t('claims.submittedAt')}</label>
                         <div className="flex flex-col gap-2">
                             <div className="flex items-center gap-2">
-                                <span className="text-xs text-gray-500 w-10">From</span>
+                                <span className="text-xs text-gray-500 w-10">{t('filter.from')}</span>
                                 <input
                                     type="date"
                                     value={filterValues.dateFrom || ''}
@@ -663,7 +665,7 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
                                 />
                             </div>
                             <div className="flex items-center gap-2">
-                                <span className="text-xs text-gray-500 w-10">To</span>
+                                <span className="text-xs text-gray-500 w-10">{t('filter.to')}</span>
                                 <input
                                     type="date"
                                     value={filterValues.dateTo || ''}
@@ -674,20 +676,20 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
                         </div>
                     </div>
                     <div className="mobile-filter-field">
-                        <label>Status</label>
+                        <label>{t('common.status')}</label>
                         <Dropdown
                             value={filterValues.status}
                             options={claimStatus.map(opt => ({ label: opt.claim_status_name, value: opt.claim_status_name }))}
                             onChange={(e) => setFilterValues({ ...filterValues, status: e.value })}
-                            placeholder="All Statuses"
+                            placeholder={t('filter.allStatuses', 'All Statuses')}
                             showClear
                             className="w-full"
                         />
                     </div>
                 </div>
                 <div className="mobile-filter-actions">
-                    <Button label="Clear" icon="pi pi-times" outlined onClick={clearMobileFilters} className="flex-1" />
-                    <Button label="Apply" icon="pi pi-check" onClick={applyMobileFilters} className="flex-1" />
+                    <Button label={t('common.clear', 'Clear')} icon="pi pi-times" outlined onClick={clearMobileFilters} className="flex-1" />
+                    <Button label={t('common.apply', 'Apply')} icon="pi pi-check" onClick={applyMobileFilters} className="flex-1" />
                 </div>
             </div>
         </div>

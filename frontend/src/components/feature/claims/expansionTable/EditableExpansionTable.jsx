@@ -13,6 +13,7 @@ import { showToast } from '../../../../utils/helpers.js'
 import api, { API_BASE_URL } from '../../../../api/api.js'
 import { BUTTON_STYLE } from '../../../../utils/customizeStyle.js'
 import { confirmDialog } from 'primereact/confirmdialog'
+import { useTranslation } from 'react-i18next'
 
 // Helper function to map data based on mode
 const mapExpenseData = (data, mode) => {
@@ -52,6 +53,7 @@ const mapExpenseData = (data, mode) => {
 }
 
 function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toastRef, onClaimUpdated }) {
+    const { t } = useTranslation()
     const [expenseItems, setExpenseItems] = useState(() => mapExpenseData(data, mode))
 
     const { updateClaim } = useClaims()
@@ -156,8 +158,8 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
         // Only show warning if NOT in create mode AND status is not pending (1)
         if (mode !== 'create' && editEvent.data.status !== 1) {
             confirmDialog({
-                message: 'Do you want to edit an expense which has already been approved or rejected?',
-                header: 'Edit Expense',
+                message: t('expenses.editApprovedRejectedMessage', 'Do you want to edit an expense which has already been approved or rejected?'),
+                header: t('expenses.editExpense', 'Edit Expense'),
                 icon: 'pi pi-info-circle',
                 defaultFocus: 'reject',
                 rejectClassName: 'p-button-danger',
@@ -179,7 +181,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                     })
                 },
                 reject: () => {
-                    showToast(toastRef, { severity: 'info', summary: 'Info', detail: 'Edit cancelled' })
+                    showToast(toastRef, { severity: 'info', summary: t('toast.info'), detail: t('expenses.editCancelled', 'Edit cancelled') })
                 },
             })
 
@@ -405,12 +407,12 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
     const triggerConfirmDeletions = () => {
         confirmDialog({
             message: mode === 'create'
-                ? `Are you sure you want to remove these ${pendingDeletions.length} items from the list?`
-                : `Are you sure you want to delete these ${pendingDeletions.length} items permanently? This action cannot be undone.`,
-            header: mode === 'create' ? 'Remove Items' : 'Delete Items',
+                ? t('expenses.removeItemsMessage', { count: pendingDeletions.length }, `Are you sure you want to remove these ${pendingDeletions.length} items from the list?`)
+                : t('expenses.deleteItemsMessage', { count: pendingDeletions.length }, `Are you sure you want to delete these ${pendingDeletions.length} items permanently? This action cannot be undone.`),
+            header: mode === 'create' ? t('expenses.removeItems', 'Remove Items') : t('expenses.deleteItems', 'Delete Items'),
             icon: 'pi pi-exclamation-triangle',
-            acceptLabel: mode === 'create' ? 'Yes, Remove' : 'Yes, Delete',
-            rejectLabel: 'Cancel',
+            acceptLabel: mode === 'create' ? t('expenses.yesRemove', 'Yes, Remove') : t('expenses.yesDelete', 'Yes, Delete'),
+            rejectLabel: t('common.cancel'),
             acceptClassName: 'p-button-danger',
             accept: handleConfirmDeletions,
         })
@@ -435,11 +437,11 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
             // Notify parent to refresh data if needed
             if (onClaimUpdated && mode === 'edit') onClaimUpdated()
 
-            showToast(toastRef, { severity: 'success', summary: 'Success', detail: 'Items deleted permanently' })
+            showToast(toastRef, { severity: 'success', summary: t('toast.success'), detail: t('expenses.itemsDeletedPermanently', 'Items deleted permanently') })
 
         } catch (error) {
             console.error('Batch Delete failed:', error)
-            showToast(toastRef, { severity: 'error', summary: 'Error', detail: 'Failed to delete some items' })
+            showToast(toastRef, { severity: 'error', summary: t('toast.error'), detail: t('expenses.deleteItemsFailed', 'Failed to delete some items') })
 
             // Optional: You might want to restore items if they failed, 
             // but for now we assume partial success or user will refresh.
@@ -458,7 +460,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
 
         // Clear pending list
         setPendingDeletions([])
-        showToast(toastRef, { severity: 'info', summary: 'Info', detail: 'Deletion cancelled, items restored' })
+        showToast(toastRef, { severity: 'info', summary: t('toast.info'), detail: t('expenses.deletionCancelled', 'Deletion cancelled, items restored') })
     }
 
     // Render delete button for each row
@@ -618,7 +620,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
             {/* Expenses Header*/}
             <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-4">
-                    <h3 className="text-[22px] font-semibold">Expense Details</h3>
+                    <h3 className="text-[22px] font-semibold">{t('expenses.title')}</h3>
 
                     {/* deferred deletion control buttons */}
                     {pendingDeletions.length > 0 && (
@@ -653,8 +655,8 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                 <div className="text-sm text-gray-600">
 
                     <div className="text-sm text-gray-600">
-                        {expenseItems.length} {expenseItems.length === 1 ? 'item' : 'items'} •
-                        Total: {new Intl.NumberFormat('en-US', {
+                        {expenseItems.length} {expenseItems.length === 1 ? t('expenses.item') : t('expenses.items')} •
+                        {t('claims.total', 'Total')}: {new Intl.NumberFormat('en-US', {
                             style: 'currency',
                             currency: 'USD',
                         }).format(expenseItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0))}
@@ -665,11 +667,11 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
             {/*Expenses Table*/}
             {expenseItems.length === 0 ? (
                 <div className="text-center py-12 text-gray-500">
-                    <p className="text-lg mb-2">No expenses added yet</p>
+                    <p className="text-lg mb-2">{t('expenses.noExpenses')}</p>
                     <p className="text-sm">
                         {mode === 'create'
-                            ? 'Add your first expense using the form above.'
-                            : 'This claim contains no expense items.'
+                            ? t('expenses.addFirstExpense')
+                            : t('expenses.noExpenseItems')
                         }
                     </p>
                 </div>
@@ -707,20 +709,20 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                     />
                     <Column
                         field="transactionDate"
-                        header="Transaction Date"
+                        header={t('expenses.transactionDate')}
                         editor={dateInputEditor}
                         style={{ minWidth: '150px' }}
                     />
 
                     <Column
                         field="vendor"
-                        header="Vendor"
+                        header={t('expenses.vendor')}
                         editor={textInputEditor}
                         style={{ minWidth: '120px' }}
                     />
                     <Column
                         field="accountNum"
-                        header="Account #"
+                        header={t('expenses.accountNumber')}
                         editor={accountNumEditor}
                         body={(rowData) => accountNumMap[rowData.accountNum] || ''}
                         style={{ minWidth: '200px' }}
@@ -728,21 +730,21 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
 
                     <Column
                         field="costCentre"
-                        header="Cost Centre"
+                        header={t('expenses.costCentre')}
                         editor={costCentreEditor}
                         body={(rowData) => costCentreMap[rowData.costCentre] || ''}
                         style={{ minWidth: '200px' }}
                     />
                     <Column
                         field="amount"
-                        header="Amount"
+                        header={t('expenses.amount')}
                         body={renderCurrencyAmount}
                         editor={currencyInputEditor}
                         style={{ minWidth: '120px' }}
                     />
                     <Column
                         field="buyer"
-                        header="Buyer"
+                        header={t('expenses.buyer')}
                         editor={textInputEditor}
                         style={{ minWidth: '120px' }}
                     />
@@ -750,7 +752,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                     {mode !== 'create' &&
                         <Column
                             field="status"
-                            header="Status"
+                            header={t('common.status')}
                             body={renderStatus}
                             style={{ minWidth: '120px' }}
                         />
@@ -759,20 +761,20 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                     {mode !== 'view' &&
                         <Column
                             rowEditor={true}
-                            header="Edit"
+                            header={t('common.edit')}
                         />
                     }
 
                     {mode !== 'view' && <Column
                         body={renderDeleteButton}
-                        header="Delete"
+                        header={t('common.delete')}
                     />
                     }
 
                     {mode === 'edit' && (
                         <Column
                             body={renderActionsButton}
-                            header="Action"
+                            header={t('common.actions')}
                         />
                     )}
                 </DataTable>
