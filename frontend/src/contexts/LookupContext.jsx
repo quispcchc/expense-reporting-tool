@@ -34,7 +34,8 @@ export function LookupProvider({ children }) {
                 return false
             }
 
-            const { data } = await api.get('lookups')
+            const response = await api.get('lookups')
+            const data = response.data.data
 
             // Check if data is actually available
             const hasData = data && Object.keys(data).some(key =>

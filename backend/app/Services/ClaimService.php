@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Enums\ClaimStatus;
+use App\Enums\RoleLevel;
 use App\Models\Claim;
 use App\Models\ClaimNote;
 use App\Models\Expense;
@@ -21,17 +23,17 @@ class ClaimService
 
         $query = Claim::with(['expenses.receipts', 'expenses', 'claimType', 'department', 'team', 'status']);
 
-        if ($role_level === 2) {
+        if ($role_level === RoleLevel::DEPARTMENT_MANAGER) {
             // Department-level access
             $query->where('department_id', $user->department_id)
                 ->where('user_id', '!=', $user->user_id);
 
-        } elseif ($role_level === 3) {
+        } elseif ($role_level === RoleLevel::TEAM_LEAD) {
             // Team-level access or own claims
             $query->where('team_id', $user->team_id)
                 ->where('user_id', '!=', $user->user_id);
 
-        } elseif ($role_level === 4) {
+        } elseif ($role_level === RoleLevel::USER) {
             // User-level access
             $query->where('user_id', $user->user_id);
         }
@@ -69,21 +71,21 @@ class ClaimService
                 'team_id' => $data['team_id'],
                 'total_amount' => $data['total_amount'],
                 'claim_submitted' => now(),
-                'claim_status_id' => 1,
+                'claim_status_id' => ClaimStatus::PENDING,
             ]);
 
             // Add claim note
-            if (! empty($data['claim_notes'])) {
+            if (!empty($data['claim_notes'])) {
                 $this->addNote($claim, $user, $data['claim_notes']);
             }
 
             // Add expenses
-            if (! empty($data['expenses'])) {
+            if (!empty($data['expenses'])) {
                 $this->addExpenses($claim, $data['expenses']);
             }
 
             // Add mileage
-            if (! empty($data['mileage'])) {
+            if (!empty($data['mileage'])) {
                 $mileage = Mileage::create($data['mileage']);
                 $claim->update(['mileage_id' => $mileage->mileage_id]);
             }
@@ -105,7 +107,7 @@ class ClaimService
     {
         foreach ($expenses as $index => $expenseData) {
             $expenseData['claim_id'] = $claim->claim_id;
-            $expenseData['approval_status_id'] = 1;
+            $expenseData['approval_status_id'] = ClaimStatus::PENDING;
 
             // Extract files array (can be single or multiple files)
             $files = $expenseData['file'] ?? [];
@@ -113,14 +115,14 @@ class ClaimService
 
             \Log::info('Adding expense', [
                 'expense_index' => $index,
-                'has_files' => ! empty($files),
+                'has_files' => !empty($files),
                 'file_count' => is_array($files) ? count($files) : (empty($files) ? 0 : 1),
             ]);
 
             $expense = Expense::create($expenseData);
 
             // Handle file uploads (support both single file and array of files)
-            if (! empty($files)) {
+            if (!empty($files)) {
                 // Normalize to array if single file
                 $fileArray = is_array($files) ? $files : [$files];
 
@@ -139,7 +141,7 @@ class ClaimService
             }
 
             // Handle tags
-            if (! empty($expenseData['tags'])) {
+            if (!empty($expenseData['tags'])) {
                 $tagNames = array_map('trim', explode(',', $expenseData['tags']));
                 $tagIds = [];
                 foreach ($tagNames as $name) {
@@ -155,7 +157,7 @@ class ClaimService
     {
         $claim = Claim::find($claimId);
 
-        if (! $claim) {
+        if (!$claim) {
             return response()->json(['message' => 'Claim not found'], 404);
         }
 
@@ -177,14 +179,14 @@ class ClaimService
     public function bulkApproveClaim(array $claimIds): void
     {
         foreach ($claimIds as $claimId) {
-            $this->updateClaimStatus($claimId, 2); // 2 for approved
+            $this->updateClaimStatus($claimId, ClaimStatus::APPROVED);
         }
     }
 
     public function bulkRejectClaim(array $claimIds): void
     {
         foreach ($claimIds as $claimId) {
-            $this->updateClaimStatus($claimId, 3); // 3 for rejected
+            $this->updateClaimStatus($claimId, ClaimStatus::REJECTED);
         }
     }
 
@@ -198,18 +200,18 @@ class ClaimService
         try {
             $claim = Claim::with('expenses')->find($claimId);
 
-            if (! $claim) {
-                throw new Exception('Claim not found.', 404);
+            if (!$claim) {
+                throw new Exception(trans('messages.claim_not_found'), 404);
             }
 
             // Prevent double-approving or double-rejecting
             if ($claim->claim_status_id == $newStatusId) {
-                throw new Exception('Claim is already in this status.', 400);
+                throw new Exception(trans('messages.claim_already_in_status'), 400);
             }
 
             // Prevent approving rejected or rejecting approved
-            if ($claim->claim_status_id !== 1) {  // 1 = Pending
-                throw new Exception('Only pending claims can be updated.', 400);
+            if ($claim->claim_status_id !== ClaimStatus::PENDING) {
+                throw new Exception(trans('messages.only_pending_update'), 400);
             }
 
             // Update claim status

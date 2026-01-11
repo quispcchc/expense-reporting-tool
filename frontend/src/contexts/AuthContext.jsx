@@ -58,15 +58,16 @@ export const AuthProvider = ({ children }) => {
             setError(null)
             try {
                 const response = await api.post('/login', credentials)
-                const { access_token, user } = response.data
+                // Use access_token from response and alias it to token
+                const { access_token: token, user } = response.data.data
 
                 console.log(response)
 
                 // Update auth state and persist to Cookies
                 // No expires option means it's a session cookie (removed on browser close)
                 setAuthUser(user)
-                setToken(access_token)
-                Cookies.set('token', access_token)
+                setToken(token)
+                Cookies.set('token', token)
                 Cookies.set('authUser', JSON.stringify(user))
 
                 const path = user.role_name === 'regular_user' ? '/user' : '/admin'
@@ -173,6 +174,3 @@ export const useAuth = () => {
     if (!context) throw new Error('useAuth must be used within AuthProvider')
     return context
 }
-
-
-
