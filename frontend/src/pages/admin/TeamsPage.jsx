@@ -114,6 +114,8 @@ function TeamsPage() {
                     paginator
                     rows={5}
                     rowsPerPageOptions={[5, 10, 25, 50]}
+                    paginatorTemplate="FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink RowsPerPageDropdown"
+                    currentPageReportTemplate="{first} to {last} of {totalRecords}"
                     editMode="row"
                     onRowEditComplete={onRowEditComplete}
                     filters={filters}

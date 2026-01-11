@@ -95,8 +95,8 @@ function LoginForm() {
             </div>
 
             <div className="mb-6">
-                <h2 className="text-2xl font-bold text-[#05589B]">CCHC</h2>
-                <h3 className="text-lg font-medium text-[#05589B]">{t('auth.appName')}</h3>
+                <h2 className="text-2xl font-bold text-brand-secondary">CCHC</h2>
+                <h3 className="text-lg font-medium text-brand-secondary">Expense Claim Portal</h3>
             </div>
             <div className="mb-6">
                 <h3 className="text-xl font-semibold">{t('auth.loginTitle')}</h3>

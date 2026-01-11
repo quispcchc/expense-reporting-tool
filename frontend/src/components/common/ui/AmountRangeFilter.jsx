@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 
+import { useTranslation } from 'react-i18next'
+
 const AmountRangeFilter = ({ options }) => {
+    const { t } = useTranslation()
     const [startAmount, setStartAmount] = useState(options.value?.[0] || '');
     const [endAmount, setEndAmount] = useState(options.value?.[1] || '');
 
@@ -23,14 +26,14 @@ const AmountRangeFilter = ({ options }) => {
                 value={startAmount}
                 onChange={(e) => setStartAmount(e.target.value)}
                 className="p-inputtext p-component min-w-20 w-100"
-                placeholder="from"
+                placeholder={t('filters.from')}
             />
             <input
                 type="text"
                 value={endAmount}
                 onChange={(e) => setEndAmount(e.target.value)}
                 className="p-inputtext p-component min-w-20 w-100"
-                placeholder="to"
+                placeholder={t('filters.to')}
             />
         </div>
     );

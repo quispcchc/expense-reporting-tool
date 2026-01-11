@@ -76,7 +76,7 @@ function ClaimExpansionAttachmentRow({ label, file, isEditing, rowData, handleIn
         const attachments = Array.isArray(file) ? file : (file ? [file] : []);
 
         if (attachments.length === 0) {
-            return <p className="text-sm text-[#888888]">{t('upload.noAttachments', 'No attachments available.')}</p>
+            return <p className="text-sm text-text-secondary">{t('upload.noAttachments', 'No attachments available.')}</p>
         }
 
         return (

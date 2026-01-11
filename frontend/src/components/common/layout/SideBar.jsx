@@ -146,8 +146,8 @@ function SideBar() {
                 ${!isMobile && isCollapsed ? 'justify-center' : 'justify-between'}`}>
                     {(!isCollapsed || isMobile) && (
                         <div className="leading-tight">
-                            <span className="block text-[#184190] font-bold">CCHC</span>
-                            <span className="block text-[#184190] font-medium text-sm">{t('auth.appName')}</span>
+                            <span className="block text-brand-primary font-bold">CCHC</span>
+                            <span className="block text-brand-primary font-medium text-sm">Expense Claim Portal</span>
                         </div>
                     )}
 
@@ -155,7 +155,7 @@ function SideBar() {
                     {!isMobile && (
                         <button
                             onClick={toggleSidebar}
-                            className="text-[#888888] hover:text-[#184190] p-1 rounded hover:bg-gray-100 transition-colors"
+                            className="text-text-secondary hover:text-brand-primary p-1 rounded hover:bg-gray-100 transition-colors"
                             aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                         >
                             {isCollapsed ? (
@@ -171,7 +171,7 @@ function SideBar() {
                     {isMobile && (
                         <button
                             onClick={closeMobileMenu}
-                            className="text-[#888888] hover:text-[#184190] p-1 rounded hover:bg-gray-100 transition-colors"
+                            className="text-text-secondary hover:text-brand-primary p-1 rounded hover:bg-gray-100 transition-colors"
                             aria-label="Close menu"
                         >
                             <HiX className="w-5 h-5" />
@@ -183,7 +183,7 @@ function SideBar() {
                     {sidebarData.map((section, index) => (
                         <div key={index} className="mb-6">
                             {(!isCollapsed || isMobile) && (
-                                <h3 className="px-4 py-2 text-sm font-light text-[#1D1B20] uppercase tracking-wider">
+                                <h3 className="px-4 py-2 text-sm font-light text-text-primary uppercase tracking-wider">
                                     {section.title}
                                 </h3>
                             )}
@@ -197,10 +197,10 @@ function SideBar() {
                                             className={`
                                                 flex items-center gap-3 px-3 py-2 rounded-lg
                                                 transition-all duration-200 font-light text-sm
-                                                hover:bg-[#D9EDFF] hover:text-[#184190]
+                                                hover:bg-brand-light hover:text-brand-primary
                                                 ${location.pathname === item.path
-                                                    ? 'bg-[#D9EDFF] text-[#184190]'
-                                                    : 'text-[#888888]'
+                                                    ? 'bg-brand-light text-brand-primary'
+                                                    : 'text-text-secondary'
                                                 }
                                                 ${!isMobile && isCollapsed ? 'justify-center px-2' : ''}
                                             ` }

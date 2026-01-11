@@ -31,15 +31,15 @@ export const validationSchemas = {
         ],
     },
 
-    updatePassword:{
-        current_password:[
+    updatePassword: {
+        current_password: [
             { rule: 'required', message: 'Current Password is required' },
         ],
-        new_password:[
+        new_password: [
             { rule: 'required', message: 'New Password is required' },
             { rule: 'minLength', params: [8], message: 'Password must be at least 8 characters long' },
         ],
-        new_password_confirmation:[
+        new_password_confirmation: [
             { rule: 'required', message: 'Password Confirmation is required' },
             { rule: 'matches', params: ['new_password'], message: 'Passwords must match' },
         ],
@@ -53,10 +53,10 @@ export const validationSchemas = {
             { rule: 'required', message: 'Position is required' },
         ],
         department: [
-            { rule: 'required', message:' Department is required' },
+            { rule: 'required', message: ' Department is required' },
         ],
         team: [
-            { rule: 'required', message:' Team is required' },
+            { rule: 'required', message: ' Team is required' },
         ],
         claimType: [
             { rule: 'required', message: 'Claim Type is required' },
@@ -80,7 +80,7 @@ export const validationSchemas = {
         accountNum: [
             { rule: 'required', message: 'Account Number is required' },
         ],
-        amount:[
+        amount: [
             { rule: 'required', message: 'Amount is required' },
         ],
         buyer: [
@@ -90,52 +90,52 @@ export const validationSchemas = {
 
     },
 
-    addUser:{
-        first_name:[
+    addUser: {
+        first_name: [
             { rule: 'required', message: 'Please enter first name' },
         ],
-        last_name:[
+        last_name: [
             { rule: 'required', message: 'Please enter last name' },
         ],
-        email:[
+        email: [
             { rule: 'required', message: 'Please enter email' },
         ],
-        department:[
-            { rule: 'required', message: 'Please select department'},
+        department: [
+            { rule: 'required', message: 'Please select department' },
         ],
-        team:[
-            { rule: 'required', message: 'Please select team'},
+        team: [
+            { rule: 'required', message: 'Please select team' },
         ],
-        position:[
+        position: [
             { rule: 'required', message: 'Please enter position' },
         ],
-        role:[
+        role: [
             { rule: 'required', message: 'Please choose role' },
         ],
     },
 
-    addTeam:{
-        code:[
+    addTeam: {
+        code: [
             { rule: 'required', message: 'Code is required' },
         ],
-        name:[
+        name: [
             { rule: 'required', message: 'Name is required' },
         ],
-        status:[
+        status: [
             { rule: 'required', message: 'Status is required' },
         ]
     },
-    addCostCentre:{
-        department:[
+    addCostCentre: {
+        department: [
             { rule: 'required', message: 'Department is required' },
         ],
-        code:[
+        code: [
             { rule: 'required', message: 'Code is required' },
         ],
         // status:[
         //     { rule: 'required', message: 'status is required' },
         // ],
-        description:[
+        description: [
             { rule: 'required', message: 'Description is required' },
         ]
     }

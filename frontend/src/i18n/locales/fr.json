@@ -19,7 +19,12 @@
         "goBack": "Retour",
         "clear": "Effacer",
         "apply": "Appliquer",
-        "autoFill": "Remplissage automatique"
+        "autoFill": "Remplissage automatique",
+        "new": "Nouveau",
+        "selected": "sélectionné(s)",
+        "ok": "OK",
+        "confirmDelete": "Confirmer la suppression",
+        "cancelDelete": "Annuler la suppression"
     },
     "filter": {
         "select": "Sélectionner",
@@ -48,7 +53,12 @@
         "rememberMe": "Se souvenir de moi?",
         "forgotPassword": "Mot de passe oublié?",
         "logout": "Déconnexion",
-        "resetPassword": "Réinitialiser le mot de passe"
+        "resetPassword": "Réinitialiser le mot de passe",
+        "resetPasswordTitle": "Réinitialiser le mot de passe",
+        "passwordLabel": "Mot de passe",
+        "repeatPasswordLabel": "Répéter le mot de passe",
+        "submitReset": "Réinitialiser le mot de passe",
+        "backToLogin": "Retour à la connexion"
     },
     "sidebar": {
         "claims": "RÉCLAMATIONS",
@@ -67,9 +77,9 @@
         "createClaim": "Créer une réclamation",
         "submitClaim": "Soumettre la réclamation",
         "claimDetails": "Détails de la réclamation",
-        "claimType": "Type de réclamation",
+        "claimType": "Type",
         "claimStatus": "Statut de la réclamation",
-        "totalAmount": "Montant total",
+        "totalAmount": "Montant",
         "pending": "En attente",
         "approved": "Approuvé",
         "rejected": "Rejeté",
@@ -79,8 +89,8 @@
         "newClaim": "Nouvelle réclamation",
         "export": "Exporter",
         "exporting": "Exportation...",
-        "requestNumber": "Demande #",
-        "submittedAt": "Soumis le",
+        "requestNumber": "ID",
+        "submittedAt": "Date",
         "bulkApproveMessage": "Voulez-vous approuver toutes les réclamations sélectionnées?",
         "bulkApproveHeader": "Confirmation d'approbation en masse",
         "bulkApproveSuccess": "Les réclamations sélectionnées ont été approuvées avec succès!",
@@ -204,13 +214,47 @@
         "goToDashboard": "Aller au tableau de bord",
         "needHelp": "Besoin d'aide?",
         "contactSupport": "Contacter le support",
-        "goToLogin": "Aller à la connexion"
+        "goToLogin": "Aller à la connexion",
+        "unknownError": "Une erreur inconnue s'est produite",
+        "networkError": "Aucune réponse du serveur. Cela peut être dû à un délai d'attente ou à une erreur réseau."
     },
     "validation": {
         "error": "Erreur de validation",
         "fillRequired": "Veuillez remplir tous les champs obligatoires!",
         "confirmationRequired": "Confirmation requise",
-        "noExpenseItems": "Aucun élément de dépense trouvé. Veuillez ajouter au moins une dépense avant de soumettre."
+        "noExpenseItems": "Aucun élément de dépense trouvé. Veuillez ajouter au moins une dépense avant de soumettre.",
+        "emailRequired": "L'e-mail est requis",
+        "emailInvalid": "Veuillez entrer une adresse e-mail valide",
+        "passwordRequired": "Le mot de passe est requis",
+        "passwordMinLength": "Le mot de passe doit contenir au moins 8 caractères",
+        "passwordConfirmRequired": "Veuillez confirmer votre mot de passe",
+        "passwordMatch": "Les mots de passe doivent correspondre",
+        "currentPasswordRequired": "Le mot de passe actuel est requis",
+        "newPasswordRequired": "Le nouveau mot de passe est requis",
+        "passwordConfirmRequired2": "La confirmation du mot de passe est requise",
+        "employeeNameRequired": "Le nom de l'employé est requis",
+        "positionRequired": "Le poste est requis",
+        "departmentRequired": "Le département est requis",
+        "teamRequired": "L'équipe est requise",
+        "claimTypeRequired": "Le type de réclamation est requis",
+        "programRequired": "Le programme est requis",
+        "transactionDateRequired": "La date de transaction est requise",
+        "costCentreRequired": "Le centre de coûts est requis",
+        "vendorRequired": "Le fournisseur est requis",
+        "accountNumRequired": "Le numéro de compte est requis",
+        "amountRequired": "Le montant est requis",
+        "buyerRequired": "L'acheteur est requis",
+        "firstNameRequired": "Veuillez entrer le prénom",
+        "lastNameRequired": "Veuillez entrer le nom de famille",
+        "enterEmail": "Veuillez entrer l'e-mail",
+        "selectDepartment": "Veuillez sélectionner un département",
+        "selectTeam": "Veuillez sélectionner une équipe",
+        "enterPosition": "Veuillez entrer le poste",
+        "chooseRole": "Veuillez choisir un rôle",
+        "codeRequired": "Le code est requis",
+        "nameRequired": "Le nom est requis",
+        "statusRequired": "Le statut est requis",
+        "descriptionRequired": "La description est requise"
     },
     "passwordReset": {
         "forgotPassword": "Mot de passe oublié",
@@ -225,5 +269,22 @@
         "newPassword": "Nouveau mot de passe",
         "passwordConfirmation": "Confirmation du mot de passe",
         "updateSuccess": "Mot de passe mis à jour avec succès!"
+    },
+    "headers": {
+        "notifications": "Notifications",
+        "userProfile": "Profil utilisateur"
+    },
+    "filters": {
+        "from": "de",
+        "to": "à",
+        "startDate": "Date de début",
+        "endDate": "Date de fin",
+        "selectIndication": "Sélectionnez une option"
+    },
+    "components": {
+        "upload": "Télécharger un fichier",
+        "attachments": "Pièces jointes",
+        "note": "Note",
+        "uploadNote": "Téléchargez le reçu, le contrat/l'accord ou d'autres documents justificatifs"
     }
 }

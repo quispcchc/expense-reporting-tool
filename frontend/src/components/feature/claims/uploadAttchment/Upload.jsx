@@ -8,7 +8,7 @@ function Upload({ handleFileSelect }) {
         // Custom-styled label that acts as a button for file upload
         <label
             className="p-button p-component p-button-outlined p-2 cursor-pointer flex items-center gap-2">
-            {t('upload.uploadFile')}
+            {t('components.upload')}
             <input
                 name='attachment'
                 id='attachment'

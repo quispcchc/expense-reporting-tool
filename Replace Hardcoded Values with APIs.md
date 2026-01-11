@@ -15,12 +15,12 @@ Responsible: Sandrima, Shan
 
 # api.js
 
-- [ ]  The base URL is hardcoded as **“[http://127.0.0.1:8000/api”](http://127.0.0.1:8000/api%E2%80%9D)**
-- [ ]  The timeout value is hardcoded as **10,000 milliseconds (10 seconds)**.
-- [ ]  The content type is hardcoded as **“application/json”**
-- [ ]  The error message **“Email or Password is not correct. Please Try Again!”** is hardcoded.
-- [ ]  The error message **“Access Denied”** is hardcoded.
-- [ ]  The fallback error message **“Request Failed”** is hardcoded.
+- [x]  The base URL is hardcoded as **“[http://127.0.0.1:8000/api”](http://127.0.0.1:8000/api%E2%80%9D)**
+- [x]  The timeout value is hardcoded as **10,000 milliseconds (10 seconds)**.
+- [x]  The content type is hardcoded as **“application/json”**
+- [x]  The error message **“Email or Password is not correct. Please Try Again!”** is hardcoded.
+- [x]  The error message **“Access Denied”** is hardcoded.
+- [x]  The fallback error message **“Request Failed”** is hardcoded.
 
 # **ContentHeader.jsx**
 
@@ -40,12 +40,12 @@ Responsible: Sandrima, Shan
 
 # **SideBar.jsx**
 
-- [ ]  The **sidebar section titles** “CLAIMS” and “GENERAL” are hardcoded.
-- [ ]  The **menu item labels** such as “All Claims,” “New Claim,” “Users,” “Teams,” “Cost Centre,” “Tags,” and “Settings” are hardcoded.
+- [x]  The **sidebar section titles** “CLAIMS” and “GENERAL” are hardcoded.
+- [x]  The **menu item labels** such as “All Claims,” “New Claim,” “Users,” “Teams,” “Cost Centre,” “Tags,” and “Settings” are hardcoded.
 - [ ]  The **menu item paths** like “/admin/claims,” “/admin/claims/create-claim,” “/admin/users,” “/admin/teams,” “/admin/cost-centre,” “/admin/tags,” and “/admin/settings” are hardcoded.
-- [ ]  The **application name “My App”** is hardcoded in the sidebar header.
-- [ ]  The **color codes** such as “#184190,” “#888888,” “#D9EDFF,” and “#1D1B20” are hardcoded.
-- [ ]  The **CSS class names** like “bg-white,” “hover:bg-gray-100,” and “text-gray-700” are hardcoded style values.
+- [x]  The **application name “My App”** is hardcoded in the sidebar header.
+- [x]  The **color codes** such as “#184190,” “#888888,” “#D9EDFF,” and “#1D1B20” are hardcoded.
+- [x]  The **CSS class names** like “bg-white,” “hover:bg-gray-100,” and “text-gray-700” are hardcoded style values.
 - [ ]  The **media breakpoint width (768px)** used for detecting mobile view is hardcoded.
 
 # **AmountRangeFilter.jsx**
@@ -98,14 +98,14 @@ Responsible: Sandrima, Shan
 
 # **StatusTab.jsx**
 
-- [ ]  The fallback style value “bg-[#FFF5C5] text-[#E27D00]” is hardcoded.
-- [ ]  The CSS class names such as “rounded-lg,” “p-1,” “text-center,” “text-sm,” “font-medium,” and “w-21” are hardcoded style values.
+- [x]  The fallback style value “bg-[#FFF5C5] text-[#E27D00]” is hardcoded.
+- [x]  The CSS class names such as “rounded-lg,” “p-1,” “text-center,” “text-sm,” “font-medium,” and “w-21” are hardcoded style values.
 
 # **LoginForm.jsx**
 
 - [ ]  The CSS class names such as “w-100,” “p-5,” “text-2xl,” “font-bold,” “mb-6,” “text-xl,” “font-semibold,” “text-sm,” “text-gray-500,” “mb-6,” “flex,” “items-center,” “justify-between,” “mr-2,” “bg-red-100,” “text-red-600,” “rounded-xl,” “p-2,” and “w-full” are hardcoded style values.
-- [ ]  The color code “#05589B” for the title text is hardcoded.
-- [ ]  The application name “My APP” is hardcoded.
+- [x]  The color code “#05589B” for the title text is hardcoded.
+- [x]  The application name “My APP” is hardcoded.
 - [ ]  The heading “Login to Your Account” is hardcoded.
 - [ ]  The helper text “Enter your email address to get started.” is hardcoded.
 - [ ]  The input placeholder “Please enter your email” is hardcoded.
@@ -164,7 +164,7 @@ Responsible: Sandrima, Shan
 - [ ]  The CSS class names such as “bg-white,” “h-full,” “p-6,” “flex,” “justify-between,” “items-center,” “text-[22px],” “text-sm,” “text-gray-600,” “text-center,” “py-12,” “text-gray-500,” “text-lg,” “mb-2,” “gap-2,” and “w-full” are hardcoded style values.
 - [ ]  The section heading text “Expense Details” is hardcoded.
 - [ ]  The item count suffixes “item” and “items” used for pluralization are hardcoded.
-- [ ]  The currency and locale for totals (“USD” and “en-US”) are hardcoded.
+- [x]  The currency and locale for totals (“USD” and “en-US”) are hardcoded.
 - [ ]  The empty-state texts “No expenses added yet,” “Add your first expense using the form above.,” and “This claim contains no expense items.” are hardcoded.
 - [ ]  The DataTable inline style min width “50rem” (tableStyle: { minWidth: '50rem' }) is hardcoded.
 - [ ]  The paginator configuration values — rows per page “5” and rowsPerPageOptions “[10, 25, 50]” — are hardcoded.
@@ -172,7 +172,7 @@ Responsible: Sandrima, Shan
 - [ ]  The DataTable size “small” is hardcoded.
 - [ ]  The column header texts “ID,” “Transaction Date,” “Vendor,” “Account #,” “Cost Centre,” “Amount,” “Buyer,” “Status,” “Edit,” “Delete,” and “Action” are hardcoded.
 - [ ]  The date editor input type “date” is hardcoded.
-- [ ]  The currency editor’s configuration (“mode: 'currency', currency: 'USD', locale: 'en-US'”) is hardcoded.
+- [x]  The currency editor’s configuration (“mode: 'currency', currency: 'USD', locale: 'en-US'”) is hardcoded.
 - [ ]  The delete button tooltip/title text “Delete this expense” is hardcoded.
 - [ ]  The delete button icon class “pi pi-trash” is hardcoded.
 - [ ]  The action buttons’ labels “Approve” and “Reject” are hardcoded
@@ -236,15 +236,15 @@ Shan:
     
     ### ClaimContext.jsx
     
-    - [ ]  Line 2 : import { *claimsData* } from '../utils/[mockData.js](http://mockdata.js/)'
+    - [x]  Line 2 : import { *claimsData* } from '../utils/[mockData.js](http://mockdata.js/)'
     
     ### TeamContext.jsx
     
-    - [ ]  Line 2: import { *mockTeams* } from '../utils/[mockData.js](http://mockdata.js/)'
+    - [x]  Line 2: import { *mockTeams* } from '../utils/[mockData.js](http://mockdata.js/)'
     
     ### UserContext.jsx
     
-    - [ ]  Line 2: import { *mockUsers* } from '../utils/[mockData.js](http://mockdata.js/)'
+    - [x]  Line 2: import { *mockUsers* } from '../utils/[mockData.js](http://mockdata.js/)'
     
 - **/src/components/feature/claims:**
     
@@ -310,12 +310,12 @@ Shan:
     
     ### **admin/TeamsPage.jsx**
     
-    - [ ]  Line 10: import { *status* } from '../../utils/mockData.js'
-    - [ ]  Line 65: options={*status*}
+    - [x]  Line 10: import { *status* } from '../../utils/mockData.js'
+    - [x]  Line 65: options={*status*}
     
     ### **admin/UsersPage.jsx**
     
-    - [ ]  Line 9: import { *roles*, *teams*, *status* } from '../../utils/mockData.js'
-    - [ ]  Line 76: options={ *teams* }
-    - [ ]  Line 85: options={ *roles* }
-    - [ ]  Line 94: options={ *status* }
+    - [x]  Line 9: import { *roles*, *teams*, *status* } from '../../utils/mockData.js'
+    - [x]  Line 76: options={ *teams* }
+    - [x]  Line 85: options={ *roles* }
+    - [x]  Line 94: options={ *status* }

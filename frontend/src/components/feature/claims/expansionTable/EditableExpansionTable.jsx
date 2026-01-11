@@ -9,6 +9,7 @@ import { Dropdown } from 'primereact/dropdown'
 import { Button } from 'primereact/button'
 import StatusTab from '../../../common/ui/StatusTab.jsx'
 import { useLookups } from '../../../../contexts/LookupContext.jsx'
+import { APP_SETTINGS } from '../../../../config/settings.js'
 import { showToast } from '../../../../utils/helpers.js'
 import api, { API_BASE_URL } from '../../../../api/api.js'
 import { BUTTON_STYLE } from '../../../../utils/customizeStyle.js'
@@ -482,9 +483,9 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
 
     // Display template for currency amounts
     const renderCurrencyAmount = (rowData) => {
-        return new Intl.NumberFormat('en-US', {
+        return new Intl.NumberFormat(APP_SETTINGS.currency.locale, {
             style: 'currency',
-            currency: 'USD',
+            currency: APP_SETTINGS.currency.code,
         }).format(rowData.amount || 0)
     }
 
@@ -597,8 +598,8 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
             value={editorOptions.value}
             onValueChange={(e) => editorOptions.editorCallback(e.value)}
             mode="currency"
-            currency="USD"
-            locale="en-US"
+            currency={APP_SETTINGS.currency.code}
+            locale={APP_SETTINGS.currency.locale}
             className="w-full"
         />
     )
@@ -630,9 +631,9 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                                 rounded
                                 text
                                 severity="success"
-                                aria-label="Confirm Delete"
+                                aria-label={t('common.confirmDelete')}
                                 onClick={triggerConfirmDeletions}
-                                tooltip="Confirm Deletion"
+                                tooltip={t('common.confirmDelete')}
                                 type="button"
                             />
                             <Button
@@ -640,9 +641,9 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                                 rounded
                                 text
                                 severity="danger"
-                                aria-label="Cancel Delete"
+                                aria-label={t('common.cancelDelete')}
                                 onClick={handleCancelDeletions}
-                                tooltip="Cancel Deletion"
+                                tooltip={t('common.cancelDelete')}
                                 type="button"
                             />
                             <span className="text-sm text-red-500 font-medium">
@@ -656,9 +657,9 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
 
                     <div className="text-sm text-gray-600">
                         {expenseItems.length} {expenseItems.length === 1 ? t('expenses.item') : t('expenses.items')} •
-                        {t('claims.total', 'Total')}: {new Intl.NumberFormat('en-US', {
+                        {t('claims.total', 'Total')}: {new Intl.NumberFormat(APP_SETTINGS.currency.locale, {
                             style: 'currency',
-                            currency: 'USD',
+                            currency: APP_SETTINGS.currency.code,
                         }).format(expenseItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0))}
                     </div>
                 </div>
@@ -695,17 +696,19 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                     // Pagination
                     paginator
                     rows={5}
-                    rowsPerPageOptions={[10, 25, 50]}
+                    rowsPerPageOptions={[5, 10, 25, 50]}
+                    paginatorTemplate="FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink RowsPerPageDropdown"
+                    currentPageReportTemplate="{first} to {last} of {totalRecords}"
 
                     //  Appearance & Behavior
                     tableStyle={{ minWidth: '50rem' }}
-                    emptyMessage="No expense items to display"
+                    emptyMessage={t('expenses.noExpensesDisplay')}
                     size="small"
                 >
                     <Column expander />
                     <Column
                         field="transactionId"
-                        header="ID"
+                        header={t('common.id', 'ID')}
                     />
                     <Column
                         field="transactionDate"
@@ -774,7 +777,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                     {mode === 'edit' && (
                         <Column
                             body={renderActionsButton}
-                            header={t('common.actions')}
+                            header={t('common.action')}
                         />
                     )}
                 </DataTable>
