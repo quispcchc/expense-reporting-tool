@@ -6,7 +6,9 @@
 @import 'primeicons/primeicons.css';
 
 
-.p-inputtext, .p-dropdown, .p-multiselect {
+.p-inputtext,
+.p-dropdown,
+.p-multiselect {
     border-radius: 12px;
 }
 
@@ -52,8 +54,410 @@ nav {
 }
 
 
+/* ============================================
+   Claims List Responsive Styles
+   ============================================ */
 
+/* Wrapper for responsive switching */
+.claims-list-wrapper {
+    width: 100%;
+}
 
+/* Desktop: max-width constraint */
+@media (min-width: 768px) {
+    .claims-list-wrapper {
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+}
 
+/* ============================================
+   Mobile Card View Styles
+   ============================================ */
+.mobile-claims-container {
+    padding: 0 12px;
+}
 
+.mobile-claims-header {
+    margin-bottom: 16px;
+}
 
+.mobile-claims-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Individual Claim Card */
+.claim-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+}
+
+.claim-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.claim-card-selected {
+    border-color: #3b82f6;
+    background: #eff6ff;
+}
+
+.claim-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.claim-card-status {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.claim-card-body {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+
+.claim-card-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.claim-card-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* ============================================
+   Mobile Filter Modal Styles
+   ============================================ */
+.mobile-filter-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 14px;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.mobile-filter-btn:hover {
+    background: #e2e8f0;
+    border-color: #cbd5e1;
+}
+
+.mobile-filter-btn:active {
+    transform: scale(0.98);
+}
+
+/* Filter Modal Overlay (hidden by default, shown with .visible class) */
+.mobile-filter-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    background: rgba(0, 0, 0, 0);
+    visibility: hidden;
+    pointer-events: none;
+    transition: background 0.2s ease, visibility 0.2s ease;
+}
+
+.mobile-filter-overlay.visible {
+    background: rgba(0, 0, 0, 0.4);
+    visibility: visible;
+    pointer-events: auto;
+}
+
+/* Filter Panel (slides up from bottom) */
+.mobile-filter-panel {
+    margin-top: auto;
+    background: white;
+    border-radius: 20px 20px 0 0;
+    max-height: 85vh;
+    overflow-y: auto;
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+}
+
+.mobile-filter-overlay.visible .mobile-filter-panel {
+    transform: translateY(0);
+}
+
+.mobile-filter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 20px 16px;
+    border-bottom: 1px solid #e2e8f0;
+    font-weight: 600;
+    font-size: 18px;
+}
+
+.mobile-filter-body {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.mobile-filter-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.mobile-filter-field label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+}
+
+.mobile-filter-actions {
+    display: flex;
+    gap: 12px;
+    padding: 16px 20px 24px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.mobile-filter-actions .p-button {
+    height: 48px;
+}
+
+/* Mobile filter input sizing */
+.mobile-filter-field .p-inputnumber {
+    min-width: 0;
+    flex: 1;
+}
+
+.mobile-filter-field .p-inputnumber-input {
+    width: 100%;
+    padding: 8px 10px;
+    font-size: 14px;
+}
+
+/* ============================================
+   Desktop Enhancements
+   ============================================ */
+@media (min-width: 768px) {
+
+    /* Improved table header styling */
+    .p-datatable .p-datatable-thead>tr>th {
+        background: #f8fafc;
+        font-weight: 600;
+    }
+}
+
+/* Filter button sizing to match other buttons */
+.filter-button.p-button {
+    height: 44px;
+    padding: 0 16px;
+}
+
+/* ============================================
+   Desktop Filter Overlay (slide from right)
+   ============================================ */
+.desktop-filter-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    justify-content: flex-end;
+    background: rgba(0, 0, 0, 0);
+    visibility: hidden;
+    pointer-events: none;
+    transition: background 0.2s ease, visibility 0.2s ease;
+}
+
+.desktop-filter-overlay.visible {
+    background: rgba(0, 0, 0, 0.3);
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.desktop-filter-panel {
+    width: 360px;
+    max-width: 90vw;
+    height: 100%;
+    background: white;
+    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+}
+
+.desktop-filter-overlay.visible .desktop-filter-panel {
+    transform: translateX(0);
+}
+
+.desktop-filter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e2e8f0;
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.desktop-filter-body {
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.desktop-filter-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.desktop-filter-field label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #374151;
+}
+
+.desktop-filter-actions {
+    display: flex;
+    gap: 12px;
+    padding: 16px 20px;
+    border-top: 1px solid #e2e8f0;
+    background: #fafafa;
+}
+
+.desktop-filter-actions .p-button {
+    height: 40px;
+}
+
+/* Compact input number for amount filter */
+.amount-input-compact .p-inputnumber-input {
+    padding: 8px 10px;
+    font-size: 13px;
+    width: 100%;
+}
+
+/* Standardize all filter inputs */
+.desktop-filter-field .p-inputtext,
+.desktop-filter-field .p-dropdown,
+.desktop-filter-field .p-inputnumber,
+.desktop-filter-field input[type="date"] {
+    height: 40px;
+    font-size: 14px;
+}
+
+.desktop-filter-field .p-inputtext,
+.desktop-filter-field .p-dropdown {
+    width: 100%;
+}
+
+/* HTML5 date input styling */
+.date-input-compact {
+    padding: 8px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #374151;
+    background: white;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    height: 40px;
+    box-sizing: border-box;
+}
+
+.date-input-compact:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.date-input-compact:hover {
+    border-color: #cbd5e1;
+}
+
+/* Hide the "Select All" checkbox text label in header */
+.claims-datatable .checkbox-header .p-checkbox-label {
+    display: none;
+}
+
+/* Filter button with active indicator */
+.filter-button .p-badge {
+    font-size: 8px;
+    min-width: 8px;
+    height: 8px;
+    line-height: 8px;
+}
+
+/* DataTable column spacing improvements */
+.claims-datatable .p-datatable-tbody>tr>td {
+    padding: 16px;
+}
+
+.claims-datatable .p-datatable-thead>tr>th {
+    padding: 16px;
+    white-space: nowrap;
+}
+
+/* Allow table to auto-size columns */
+.claims-datatable .p-datatable-table {
+    table-layout: auto;
+}
+
+/* Ensure proper spacing on wider screens */
+@media (min-width: 1200px) {
+
+    .claims-datatable .p-datatable-tbody>tr>td,
+    .claims-datatable .p-datatable-thead>tr>th {
+        padding: 16px 24px;
+    }
+}
+
+/* ============================================
+   Utility: Status Colors (fallback)
+   ============================================ */
+.bg-yellow-100 {
+    background-color: #fef3c7;
+}
+
+.text-yellow-800 {
+    color: #92400e;
+}
+
+.bg-green-100 {
+    background-color: #d1fae5;
+}
+
+.text-green-800 {
+    color: #065f46;
+}
+
+.bg-red-100 {
+    background-color: #fee2e2;
+}
+
+.text-red-800 {
+    color: #991b1b;
+}
+
+.bg-gray-100 {
+    background-color: #f3f4f6;
+}
+
+.text-gray-800 {
+    color: #1f2937;
+}

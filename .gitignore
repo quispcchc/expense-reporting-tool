@@ -6,3 +6,4 @@ dist/
 .git/
 copilot-instructions.md
 CONTEXT.md
+backend/public/storage

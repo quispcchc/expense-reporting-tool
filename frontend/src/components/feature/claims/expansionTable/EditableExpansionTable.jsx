@@ -469,11 +469,11 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
             <button
                 onClick={() => deleteExpenseItem(rowData.transactionId)}
                 type="button"
-                className="p-2 disabled:opacity-50"
+                className="p-2 rounded-full hover:bg-gray-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Delete this expense"
                 disabled={isCurrentlyEditing}
             >
-                <i className="pi pi-trash"></i>
+                <i className="pi pi-trash text-gray-600 hover:text-red-500 transition-colors"></i>
             </button>
         )
     }
