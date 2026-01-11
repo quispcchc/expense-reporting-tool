@@ -11,7 +11,6 @@ class RoleCheck
     /**
      * Handle an incoming request.
      *
-     * @param  \Illuminate\Http\Request  $request
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      * @param  int  $minLevel  Minimum role level required (e.g., 2 for manager and above)
      */
@@ -19,7 +18,7 @@ class RoleCheck
     {
         $user = $request->user();
 
-        if (!$user || !$user->role || $user->role->role_level !== $requiredRoleLevel) {
+        if (! $user || ! $user->role || $user->role->role_level !== $requiredRoleLevel) {
             return response()->json(['message' => 'Forbidden. Insufficient privileges.'], 403);
         }
 

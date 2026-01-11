@@ -2,12 +2,12 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Department extends Model
 {
     protected $table = 'departments';
+
     protected $primaryKey = 'department_id';
 
     protected $fillable = [
@@ -15,11 +15,13 @@ class Department extends Model
         'department_abbreviation',
     ];
 
-    public function teams(){
+    public function teams()
+    {
         return $this->hasMany(Team::class, 'department_id', 'team_id');
     }
 
-    public function costCentres(){
-        return $this->hasMany(CostCentre::class,'department_id','cost_centre_id');
+    public function costCentres()
+    {
+        return $this->hasMany(CostCentre::class, 'department_id', 'cost_centre_id');
     }
 }

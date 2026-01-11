@@ -15,8 +15,8 @@ return new class extends Migration
             $table->id('cost_centre_id');
             $table->integer('cost_centre_code')->unique();
             $table->string('description');
-            $table->foreignId('active_status_id')->constrained('active_status','active_status_id');
-            $table->foreignId('department_id')->constrained('departments','department_id');
+            $table->foreignId('active_status_id')->constrained('active_status', 'active_status_id');
+            $table->foreignId('department_id')->constrained('departments', 'department_id');
             $table->timestamps();
         });
     }

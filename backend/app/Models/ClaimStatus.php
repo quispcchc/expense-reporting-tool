@@ -7,9 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 class ClaimStatus extends Model
 {
     protected $table = 'claim_status';
+
     protected $primaryKey = 'claim_status_id';
+
     public $incrementing = false;
+
     protected $keyType = 'int';
+
     public $timestamps = false;
 
     protected $fillable = [

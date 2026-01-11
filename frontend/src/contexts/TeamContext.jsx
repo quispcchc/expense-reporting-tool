@@ -1,13 +1,16 @@
-import { createContext, useContext, useReducer } from 'react'
-import { mockTeams } from '../utils/mockData.js'
+import { createContext, useContext, useReducer, useEffect } from 'react'
+import api from '../api/api.js'
 
 const TeamContext = createContext()
 const TeamDispatchContext = createContext()
 
-const initialState = [...mockTeams]
+const initialState = []
 
 const teamReducer = (state, action) => {
     switch (action.type) {
+        case 'set':
+            return action.payload || []
+
         case 'create':
             return [...state, action.payload]
 
@@ -24,9 +27,23 @@ const teamReducer = (state, action) => {
 export const TeamProvider = ({ children }) => {
     const [state, dispatch] = useReducer(teamReducer, initialState)
 
-    return <TeamContext.Provider value={ state }>
-        <TeamDispatchContext.Provider value={ dispatch }>
-            { children }
+    // Fetch teams from backend on mount
+    const getTeams = async () => {
+        try {
+            const res = await api.get('/lookups')
+            dispatch({ type: 'set', payload: res.data.teams || [] })
+        } catch (err) {
+            console.error('Failed to fetch teams', err)
+        }
+    }
+
+    useEffect(() => {
+        getTeams()
+    }, [])
+
+    return <TeamContext.Provider value={state}>
+        <TeamDispatchContext.Provider value={dispatch}>
+            {children}
         </TeamDispatchContext.Provider>
 
     </TeamContext.Provider>

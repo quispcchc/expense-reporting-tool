@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom'
 import { useClaims } from '../../../contexts/ClaimContext.jsx'
 import { useAuth } from '../../../contexts/AuthContext.jsx'
 import { showToast } from '../../../utils/helpers.js'
+import { useTranslation } from 'react-i18next'
 
 const calculateTotalAmount = (formData) => {
     const claimItemsTotal = formData.claimItems.reduce(
@@ -20,6 +21,7 @@ const calculateTotalAmount = (formData) => {
 }
 
 function CreateClaim({ navigateTo, homePath, toastRef }) {
+    const { t } = useTranslation()
     const { authUser } = useAuth()
     const { createClaim } = useClaims()
     const navigate = useNavigate()
@@ -99,8 +101,8 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
         if (!validation.isValid) {
             setValidationDialog({
                 visible: true,
-                header: 'Validation Error',
-                message: 'Please fill in all required fields!'
+                header: t('validation.error', 'Validation Error'),
+                message: t('validation.fillRequired', 'Please fill in all required fields!')
             })
             return
         }
@@ -127,8 +129,8 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
             if (claimFormData.claimItems.length <= 0) {
                 setValidationDialog({
                     visible: true,
-                    header: 'Confirmation Required',
-                    message: 'No expense items found. Please add at least one expense before submitting.'
+                    header: t('validation.confirmationRequired', 'Confirmation Required'),
+                    message: t('validation.noExpenseItems', 'No expense items found. Please add at least one expense before submitting.')
                 })
                 return
             }
@@ -137,8 +139,8 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
         if (!validation.isValid) {
             setValidationDialog({
                 visible: true,
-                header: 'Validation Error',
-                message: 'Please fill in all required fields!'
+                header: t('validation.error', 'Validation Error'),
+                message: t('validation.fillRequired', 'Please fill in all required fields!')
             })
             return
         }
@@ -205,13 +207,13 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
     return (
         <form className="my-3" onSubmit={handleClaimSubmit}>
             <div className="flex justify-between items-center flex-wrap">
-                <ContentHeader title="Create a new claim" homePath={homePath} />
+                <ContentHeader title={t('claims.createClaim')} homePath={homePath} />
                 <div className="flex gap-5">
                     <div className="flex flex-col items-end">
-                        <p className="text-2xl">Total amount</p>
+                        <p className="text-2xl">{t('claims.totalAmount')}</p>
                         <p className="text-blue-500">${calculateTotalAmount(claimFormData).toFixed(2)}</p>
                     </div>
-                    <Button label="Submit claim" type="submit" icon="pi pi-plus"
+                    <Button label={t('claims.submitClaim', 'Submit claim')} type="submit" icon="pi pi-plus"
                         iconPos="right" />
                 </div>
             </div>

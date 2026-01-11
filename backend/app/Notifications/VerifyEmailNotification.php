@@ -2,8 +2,8 @@
 
 namespace App\Notifications;
 
-use Illuminate\Notifications\Notification;
 use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Notifications\Notification;
 
 class VerifyEmailNotification extends Notification
 {
@@ -31,8 +31,8 @@ class VerifyEmailNotification extends Notification
     public function toMail($notifiable)
     {
         $url = 'http://localhost:3000/verify-email?token='
-             . $this->token
-             . '&email=' . urlencode($notifiable->email);
+             .$this->token
+             .'&email='.urlencode($notifiable->email);
 
         return (new MailMessage)
             ->subject('Verify Your Email Address')

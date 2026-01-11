@@ -8,8 +8,10 @@ import ClaimStatus from '../../components/feature/claims/ClaimStatus.jsx'
 import EditableExpansionTable from '../../components/feature/claims/expansionTable/EditableExpansionTable.jsx'
 import Loader from '../../components/common/ui/Loader.jsx'
 import { useAuth } from '../../contexts/AuthContext.jsx'
+import { useTranslation } from 'react-i18next'
 
-function ViewClaimPage () {
+function ViewClaimPage() {
+    const { t } = useTranslation()
     const { claimId } = useParams()
     const { getClaimById } = useClaims()
     const [curClaim, setCurClaim] = useState()
@@ -29,24 +31,24 @@ function ViewClaimPage () {
         fetchClaim()
     }, [claimId])
 
-    if (!curClaim) return <Loader/>
+    if (!curClaim) return <Loader />
 
     return (
         <div>
             <div className="flex justify-between items-center flex-wrap">
-                <ContentHeader title={ `Claim #${ claimId }` } homePath={path}/>
-                <ClaimStatus curClaim={ curClaim }/>
+                <ContentHeader title={`${t('claims.claimNumber', 'Claim')} #${claimId}`} homePath={path} />
+                <ClaimStatus curClaim={curClaim} />
             </div>
 
             <div className="flex flex-wrap gap-5 my-5">
-                <div className="flex-1"><ClaimDetail curClaim={ curClaim }/></div>
+                <div className="flex-1"><ClaimDetail curClaim={curClaim} /></div>
                 <div className="flex-1">
                     {/* when in view claim mode, disable add note function*/}
-                    <ClaimNotes notes={ curClaim.notes  } curClaim={curClaim} mode='view'/>
+                    <ClaimNotes notes={curClaim.notes} curClaim={curClaim} mode='view' />
                 </div>
             </div>
 
-            <EditableExpansionTable data={curClaim.expenses} curClaim={curClaim} mode='view'/>
+            <EditableExpansionTable data={curClaim.expenses} curClaim={curClaim} mode='view' />
 
         </div>
     )

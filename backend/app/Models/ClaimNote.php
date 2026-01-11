@@ -7,12 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 class ClaimNote extends Model
 {
     protected $table = 'claim_notes';
+
     protected $primaryKey = 'claim_note_id';
 
     protected $fillable = [
         'claim_note_text',
         'claim_id',
-        'user_id'
+        'user_id',
     ];
 
     public function claim()
@@ -24,6 +25,4 @@ class ClaimNote extends Model
     {
         return $this->belongsTo(User::class, 'user_id', 'user_id');
     }
-
-
 }

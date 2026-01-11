@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -7,10 +8,15 @@ use Illuminate\Database\Eloquent\Model;
 class Position extends Model
 {
     use HasFactory;
+
     protected $table = 'positions';
+
     protected $primaryKey = 'position_id';
+
     public $incrementing = false;
+
     protected $keyType = 'int';
+
     public $timestamps = false;
 
     protected $fillable = [
@@ -19,8 +25,9 @@ class Position extends Model
         'position_name',
         'position_desc',
     ];
-    //relationship
-     public function activeStatus()
+
+    // relationship
+    public function activeStatus()
     {
         return $this->belongsTo(ActiveStatus::class, 'active_status_id', 'active_status_id');
     }

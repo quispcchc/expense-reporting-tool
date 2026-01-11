@@ -7,8 +7,10 @@ import { validationSchemas } from '../../../utils/validation/schemas.js'
 import { validateForm } from '../../../utils/validation/validator.js'
 import { useLookups } from '../../../contexts/LookupContext.jsx'
 import { ProgressSpinner } from 'primereact/progressspinner'
+import { useTranslation } from 'react-i18next'
 
 function AddNewCostCentre({ createdToast }) {
+    const { t } = useTranslation()
     const { lookups } = useLookups()
 
     const {
@@ -61,8 +63,8 @@ function AddNewCostCentre({ createdToast }) {
 
             <div className="flex justify-between items-center text-gray-700">
                 <div>
-                    <h4 className="text-[22px]">Add New CostCentre</h4>
-                    <p className="text-xs text-gray-500">Fill in the details below to add a new cost centre to the system.</p>
+                    <h4 className="text-[22px]">{t('costCentre.addNewCostCentre', 'Add New Cost Centre')}</h4>
+                    <p className="text-xs text-gray-500">{t('costCentre.addNewDescription', 'Fill in the details below to add a new cost centre to the system.')}</p>
                 </div>
 
                 <button className={`pi ${isOpen ? 'pi-chevron-up' : 'pi-chevron-down'} !text-xl`}
@@ -75,28 +77,28 @@ function AddNewCostCentre({ createdToast }) {
                     : 'items-end'}`}
                     onSubmit={handleCostCentreFormSubmit}>
                     <div className="col-span-4">
-                        <Select name="department" id="department" label="Department"
+                        <Select name="department" id="department" label={t('users.department')}
                             options={lookups.departments.map(
                                 option => ({ label: option.department_name, value: option.department_id }))}
                             value={costCentreFormData.department} onChange={handleCostCentreFormChange}
-                            placeholder="Please selct department" errors={validationErrors} />
+                            placeholder={t('costCentre.selectDepartment', 'Select a department')} errors={validationErrors} />
                     </div>
 
                     <div className="col-span-3">
-                        <Input name="code" id="code" label="Code" value={costCentreFormData.code}
-                            onChange={handleCostCentreFormChange} placeholder="Please enter code"
+                        <Input name="code" id="code" label={t('teams.code')} value={costCentreFormData.code}
+                            onChange={handleCostCentreFormChange} placeholder={t('costCentre.enterCode', 'Enter code')}
                             errors={validationErrors} />
                     </div>
 
                     <div className="col-span-3">
-                        <Input name="description" id="description" label="Description"
+                        <Input name="description" id="description" label={t('costCentre.description', 'Description')}
                             value={costCentreFormData.description}
-                            onChange={handleCostCentreFormChange} placeholder="Please enter description"
+                            onChange={handleCostCentreFormChange} placeholder={t('costCentre.enterDescription', 'Enter description')}
                             errors={validationErrors} />
                     </div>
 
                     <div className="col-span-2">
-                        <Button label="Add New" className="!h-[48px]" />
+                        <Button label={t('common.addNew')} className="!h-[48px]" />
                     </div>
 
                 </form>)}

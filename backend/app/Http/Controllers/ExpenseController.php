@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Expense;
 use App\Services\ExpenseService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class ExpenseController extends Controller
@@ -25,14 +24,14 @@ class ExpenseController extends Controller
     public function update(Request $request, $id)
     {
         Log::info('=== EXPENSE UPDATE REQUEST ===');
-        Log::info('Request method: ' . $request->method());
-        Log::info('Request content type: ' . $request->header('Content-Type'));
+        Log::info('Request method: '.$request->method());
+        Log::info('Request content type: '.$request->header('Content-Type'));
         Log::info('All request data: ', $request->all());
-        Log::info('deleteAttachment value: ' . $request->input('deleteAttachment', 'NOT SET'));
-        Log::info('deleteAttachment type: ' . gettype($request->input('deleteAttachment')));
-        Log::info('deleteReceiptIds value: ' . ($request->input('deleteReceiptIds') ?? 'NOT SET'));
+        Log::info('deleteAttachment value: '.$request->input('deleteAttachment', 'NOT SET'));
+        Log::info('deleteAttachment type: '.gettype($request->input('deleteAttachment')));
+        Log::info('deleteReceiptIds value: '.($request->input('deleteReceiptIds') ?? 'NOT SET'));
         $dIds = $request->input('deleteReceiptIds');
-        Log::info('deleteReceiptIds type: ' . (is_array($dIds) ? 'array' : gettype($dIds)));
+        Log::info('deleteReceiptIds type: '.(is_array($dIds) ? 'array' : gettype($dIds)));
 
         $validated = $request->validate([
             'transaction_date' => 'nullable|date',
@@ -57,19 +56,20 @@ class ExpenseController extends Controller
 
         // Read deleteReceiptIds directly from request (validation may strip it)
         $deleteIdsInput = $request->input('deleteReceiptIds', $payload['deleteReceiptIds'] ?? null);
-        Log::info('RAW deleteReceiptIds from request: ' . print_r($deleteIdsInput, true));
+        Log::info('RAW deleteReceiptIds from request: '.print_r($deleteIdsInput, true));
 
         // Normalize deleteReceiptIds to comma string if array
         if (is_array($deleteIdsInput)) {
             $deleteIdsInput = implode(',', array_map('trim', $deleteIdsInput));
         }
         $payload['deleteReceiptIds'] = $deleteIdsInput;
-        Log::info('Normalized payload.deleteReceiptIds: ' . ($payload['deleteReceiptIds'] ?? 'NULL'));
+        Log::info('Normalized payload.deleteReceiptIds: '.($payload['deleteReceiptIds'] ?? 'NULL'));
         $payload['deleteAttachment'] = $request->input('deleteAttachment', $payload['deleteAttachment'] ?? null);
 
-        Log::info('Validated data (sanitized). files count: ' . (is_array($payload['files']) ? count($payload['files']) : 0));
+        Log::info('Validated data (sanitized). files count: '.(is_array($payload['files']) ? count($payload['files']) : 0));
 
         $updatedExpense = $this->expenseService->updateExpense($payload, $id);
+
         return response()->json($updatedExpense);
 
     }
@@ -87,8 +87,7 @@ class ExpenseController extends Controller
     public function destroy($id)
     {
         $this->expenseService->deleteExpense($id);
+
         return response()->noContent();
     }
-
-
 }

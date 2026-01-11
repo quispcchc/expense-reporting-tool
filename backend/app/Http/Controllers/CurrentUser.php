@@ -2,13 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 
 class CurrentUserController extends Controller
 {
-    /** 
+    /**
      * Return the currently authenticated user's details.
      */
     public function show()
@@ -19,7 +18,7 @@ class CurrentUserController extends Controller
             'position',
             'claims' => function ($query) {
                 $query->with(['status']);
-            }
+            },
         ]);
 
         return response()->json([
@@ -31,7 +30,7 @@ class CurrentUserController extends Controller
                 'team' => $user->team,
                 'position' => $user->position,
                 'claims' => $user->claims,
-            ]
+            ],
         ]);
     }
 }

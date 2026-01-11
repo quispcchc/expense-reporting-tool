@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('claim_approval', function (Blueprint $table) {
-            //same issue
+            // same issue
             $table->id('claim_approval_id');
             $table->integer('claim_id');
             $table->string('claim_approval_details', 500);

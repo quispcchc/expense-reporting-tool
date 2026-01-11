@@ -7,11 +7,15 @@ use Illuminate\Database\Eloquent\Model;
 class Claim extends Model
 {
     protected $table = 'claims';
+
     protected $primaryKey = 'claim_id';
+
     protected $keyType = 'int';
 
     const STATUS_PENDING = 1;
+
     const STATUS_APPROVED = 2;
+
     const STATUS_REJECTED = 3;
 
     protected $fillable = [
@@ -22,7 +26,7 @@ class Claim extends Model
         'claim_submitted',
         'claim_type_id',
         'claim_status_id',
-        'total_amount'
+        'total_amount',
     ];
 
     // Relationships
@@ -31,7 +35,6 @@ class Claim extends Model
     {
         return $this->belongsTo(User::class, 'user_id', 'user_id');
     }
-
 
     public function claimType()
     {

@@ -3,8 +3,8 @@
 namespace App\Notifications;
 
 use App\Models\Claim;
-use Illuminate\Notifications\Notification;
 use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Notifications\Notification;
 
 class ClaimUpdatedNotification extends Notification
 {

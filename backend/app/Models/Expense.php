@@ -1,14 +1,17 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
 
 class Expense extends Model
 {
     protected $table = 'expenses';
+
     protected $primaryKey = 'expense_id';
+
     protected $keyType = 'int';
+
     public $timestamps = false;
 
     protected $fillable = [
@@ -22,10 +25,10 @@ class Expense extends Model
         'claim_id',
         'project_id',
         'cost_centre_id',
-        'account_number_id'
+        'account_number_id',
     ];
 
-    //Relationships
+    // Relationships
     public function receipts()
     {
         return $this->hasMany(Receipt::class, 'expense_id', 'expense_id');
@@ -33,7 +36,7 @@ class Expense extends Model
 
     public function tags()
     {
-        return $this->belongsToMany(Tag::class,  'expense_tag', 'expense_id', 'tag_id');
+        return $this->belongsToMany(Tag::class, 'expense_tag', 'expense_id', 'tag_id');
     }
 
     public function approvalStatus()
@@ -50,8 +53,10 @@ class Expense extends Model
     {
         return $this->belongsTo(Team::class, 'team_id', 'team_id');
     }
-    public function accountNumber() {
-        return $this->hasOne(AccountNumber::class,'account_number_id','account_number_id');
+
+    public function accountNumber()
+    {
+        return $this->hasOne(AccountNumber::class, 'account_number_id', 'account_number_id');
     }
 
     public function project()

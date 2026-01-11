@@ -3,8 +3,8 @@
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
-use Illuminate\Notifications\Notification;
 use Illuminate\Notifications\Messages\DatabaseMessage;
+use Illuminate\Notifications\Notification;
 
 class ClaimUpdatedNotification extends Notification
 {

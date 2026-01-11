@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { TbLayoutSidebarLeftCollapse, TbLayoutSidebarRightCollapse, TbUsers } from 'react-icons/tb'
 import { IoSettingsOutline } from 'react-icons/io5'
 import { PiOfficeChair } from 'react-icons/pi'
@@ -6,35 +6,37 @@ import { IoDocumentTextOutline, IoCreateOutline } from 'react-icons/io5'
 import { BsTag } from 'react-icons/bs'
 import { Link, useLocation } from 'react-router-dom'
 import { HiMenuAlt3, HiX } from 'react-icons/hi'
-
-const sidebarData = [
-    {
-        title: 'CLAIMS',
-        items: [
-            { icon: IoDocumentTextOutline, label: 'All Claims', path: '/admin/claims' },
-            { icon: IoDocumentTextOutline, label: 'My Claims', path: '/admin/my-claims' },
-            { icon: IoCreateOutline, label: 'New Claim', path: '/admin/claims/create-claim' },
-        ],
-    },
-    {
-        title: 'GENERAL',
-        items: [
-            { icon: TbUsers, label: 'Users', path: '/admin/users' },
-            { icon: PiOfficeChair, label: 'Teams', path: '/admin/teams' },
-            { icon: IoDocumentTextOutline, label: 'Cost Centre', path: '/admin/cost-centre' },
-            { icon: BsTag, label: 'Tags', path: '/admin/tags' },
-            { icon: IoSettingsOutline, label: 'Settings', path: '/admin/settings' },
-        ],
-    },
-]
+import { useTranslation } from 'react-i18next'
 
 function SideBar() {
+    const { t } = useTranslation()
     const location = useLocation()
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
     const [isCollapsed, setIsCollapsed] = useState(() => {
         return localStorage.getItem('sidebarCollapsed') === 'true'
     })
     const [showMobileMenu, setShowMobileMenu] = useState(false)
+
+    const sidebarData = useMemo(() => [
+        {
+            title: t('sidebar.claims'),
+            items: [
+                { icon: IoDocumentTextOutline, label: t('sidebar.allClaims'), path: '/admin/claims' },
+                { icon: IoDocumentTextOutline, label: t('sidebar.myClaims', 'My Claims'), path: '/admin/my-claims' },
+                { icon: IoCreateOutline, label: t('sidebar.newClaim'), path: '/admin/claims/create-claim' },
+            ],
+        },
+        {
+            title: t('sidebar.general'),
+            items: [
+                { icon: TbUsers, label: t('sidebar.users'), path: '/admin/users' },
+                { icon: PiOfficeChair, label: t('sidebar.teams'), path: '/admin/teams' },
+                { icon: IoDocumentTextOutline, label: t('sidebar.costCentre'), path: '/admin/cost-centre' },
+                { icon: BsTag, label: t('sidebar.tags'), path: '/admin/tags' },
+                { icon: IoSettingsOutline, label: t('sidebar.settings'), path: '/admin/settings' },
+            ],
+        },
+    ], [t])
 
     useEffect(() => {
         const handleResize = () => {
@@ -145,7 +147,7 @@ function SideBar() {
                     {(!isCollapsed || isMobile) && (
                         <div className="leading-tight">
                             <span className="block text-[#184190] font-bold">CCHC</span>
-                            <span className="block text-[#184190] font-medium text-sm">Expense Claim Portal</span>
+                            <span className="block text-[#184190] font-medium text-sm">{t('auth.appName')}</span>
                         </div>
                     )}
 

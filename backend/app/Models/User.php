@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Contracts\Auth\CanResetPassword;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -12,17 +11,17 @@ use Laravel\Sanctum\HasApiTokens;
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasApiTokens;
+    use HasApiTokens, HasFactory, Notifiable;
 
     /**
      * The attributes that are mass assignable.
      *
      * @var list<string>
      */
-
     public $timestamps = false;
 
     protected $primaryKey = 'user_id';
+
     protected $fillable = [
         'user_id',
         'email',
@@ -52,10 +51,10 @@ class User extends Authenticatable implements MustVerifyEmail
         'full_name',
         'role_name',
         'department_name',
-        'position_name'
+        'position_name',
     ];
 
-    //accessors to get full name, role name, and team name
+    // accessors to get full name, role name, and team name
     public function getFullNameAttribute()
     {
         return "{$this->first_name} {$this->last_name}";
@@ -76,7 +75,6 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->position?->position_name;
     }
 
-
     /**
      * Get the attributes that should be cast.
      *
@@ -90,7 +88,7 @@ class User extends Authenticatable implements MustVerifyEmail
         ];
     }
 
-    //Define relationships with other models
+    // Define relationships with other models
 
     public function role()
     {
@@ -127,4 +125,3 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(ClaimApproval::class, 'approved_by', 'user_id');
     }
 }
-

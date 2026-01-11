@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -7,10 +8,15 @@ use Illuminate\Database\Eloquent\Model;
 class Team extends Model
 {
     use HasFactory;
+
     protected $table = 'teams';
+
     protected $primaryKey = 'team_id';
+
     public $incrementing = false;
+
     protected $keyType = 'int';
+
     public $timestamps = false;
 
     protected $fillable = [
@@ -19,10 +25,12 @@ class Team extends Model
         'team_abbreviation',
         'team_desc',
         'active_status_id',
-        'department_id'
+        'department_id',
     ];
-    //relationships
-    public function activeStatus() {
+
+    // relationships
+    public function activeStatus()
+    {
         return $this->belongsTo(ActiveStatus::class, 'active_status_id', 'active_status_id');
     }
 }

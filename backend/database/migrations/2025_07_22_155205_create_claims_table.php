@@ -10,7 +10,6 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-
     public function up(): void
     {
         Schema::create('claims', function (Blueprint $table) {
@@ -18,12 +17,12 @@ return new class extends Migration
             $table->date('claim_submitted');
             $table->double('total_amount');
 
-            $table->foreignId('claim_status_id')->constrained('claim_status','claim_status_id');
-            $table->foreignId('user_id')->constrained('users','user_id');
-            $table->foreignId('position_id')->constrained('positions','position_id');
-            $table->foreignId('claim_type_id')->constrained('claim_types','claim_type_id');
-            $table->foreignId('department_id')->constrained('departments','department_id');
-            $table->foreignId('team_id')->constrained('teams','team_id');
+            $table->foreignId('claim_status_id')->constrained('claim_status', 'claim_status_id');
+            $table->foreignId('user_id')->constrained('users', 'user_id');
+            $table->foreignId('position_id')->constrained('positions', 'position_id');
+            $table->foreignId('claim_type_id')->constrained('claim_types', 'claim_type_id');
+            $table->foreignId('department_id')->constrained('departments', 'department_id');
+            $table->foreignId('team_id')->constrained('teams', 'team_id');
             $table->timestamps();
         });
     }
