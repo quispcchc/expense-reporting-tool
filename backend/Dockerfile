@@ -69,6 +69,9 @@ RUN mkdir -p /var/www/html/database && \
 RUN chown -R www-data:www-data /var/www/html && \
     chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/database
 
+# Copy .env.example to .env
+RUN cp .env.example .env
+
 # Generate application key if not already present
 RUN php artisan key:generate --force
 
