@@ -8,7 +8,7 @@ import { generateId } from '../../../utils/helpers.js'
 import { validationSchemas } from '../../../utils/validation/schemas.js'
 import { validateForm } from '../../../utils/validation/validator.js'
 
-function AddNewTeam () {
+function AddNewTeam() {
     const [errors, setErrors] = useState([])
     const [isOpen, setIsOpen] = useState(false)
     const dispatch = useTeamDispatch()
@@ -20,10 +20,10 @@ function AddNewTeam () {
 
     const handleTeamFormChange = (e) => {
         const { name, value } = e.target
-        setTeamFormData(prev => ( {
+        setTeamFormData(prev => ({
             ...prev,
-            [ name ]: value,
-        } ))
+            [name]: value,
+        }))
     }
 
     const handleTeamFormSubmit = (e) => {
@@ -45,35 +45,35 @@ function AddNewTeam () {
             <div className="flex justify-between items-center text-gray-700">
                 <div>
                     <h4 className="text-[22px]">Add new Team</h4>
-                    <p className="text-xs text-gray-500">Lorem ipsum dolor sit amet, consectetur adipisicing elit. </p>
+                    <p className="text-xs text-gray-500">Fill in the details below to register a new team in the system.</p>
                 </div>
 
-                <button className={ `pi ${ isOpen ? 'pi-chevron-up' : 'pi-chevron-down' } !text-xl` }
-                        onClick={ () => setIsOpen(prev => !prev) }></button>
+                <button className={`pi ${isOpen ? 'pi-chevron-up' : 'pi-chevron-down'} !text-xl`}
+                    onClick={() => setIsOpen(prev => !prev)}></button>
 
             </div>
-            { isOpen && (
-                <form className={ `my-5 grid grid-cols-1 sm:grid-cols-7 ${errors.length ===0 ? "items-end" : "items-center"} gap-5` }
-                      onSubmit={ handleTeamFormSubmit }>
+            {isOpen && (
+                <form className={`my-5 grid grid-cols-1 sm:grid-cols-7 ${errors.length === 0 ? "items-end" : "items-center"} gap-5`}
+                    onSubmit={handleTeamFormSubmit}>
                     <div className="col-span-2">
-                        <Input name="code" id="code" label="Code" value={ teamFormData.code }
-                               onChange={ handleTeamFormChange } placeholder="Please enter first name"
-                               errors={ errors }/>
+                        <Input name="code" id="code" label="Code" value={teamFormData.code}
+                            onChange={handleTeamFormChange} placeholder="Please enter first name"
+                            errors={errors} />
                     </div>
                     <div className="col-span-2">
-                        <Input name="name" id="name" label=" Name" value={ teamFormData.last_name }
-                               onChange={ handleTeamFormChange } placeholder="Please enter last name"
-                               errors={ errors }/>
+                        <Input name="name" id="name" label=" Name" value={teamFormData.last_name}
+                            onChange={handleTeamFormChange} placeholder="Please enter last name"
+                            errors={errors} />
                     </div>
                     <div className="col-span-2">
-                        <Select name="status" id="status" label="Status" options={ status }
-                                value={ teamFormData.status } onChange={ handleTeamFormChange }
-                                placeholder="Please selct status" errors={ errors }/>
+                        <Select name="status" id="status" label="Status" options={status}
+                            value={teamFormData.status} onChange={handleTeamFormChange}
+                            placeholder="Please selct status" errors={errors} />
                     </div>
-                    <Button label="Add New" className="!h-[48px]"/>
+                    <Button label="Add New" className="!h-[48px]" />
 
 
-                </form> ) }
+                </form>)}
 
 
         </div>

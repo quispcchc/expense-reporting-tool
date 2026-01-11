@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { DataTable } from 'primereact/datatable'
 import { Column } from 'primereact/column'
 import { InputText } from 'primereact/inputtext'
@@ -64,6 +64,10 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
 
     const [unsavedExpansionChanges, setUnsavedExpansionChanges] = useState({})
 
+    // Use ref to always have access to the latest unsavedExpansionChanges value
+    // This is needed because handleRowSaveComplete may be called before React state updates
+    const unsavedExpansionChangesRef = useRef({})
+
 
 
     const [pendingDeletions, setPendingDeletions] = useState([]) // Store items waiting to be permanently deleted
@@ -92,16 +96,19 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
         console.log(`📝 handleExpansionFieldChange: expenseId=${expenseId}, fieldName=${fieldName}, newValue=`, newValue)
 
         // Update the local expense items immediately for UI responsiveness
-        setExpenseItems(previousItems =>
-            previousItems.map(expense =>
-                expense.transactionId === expenseId
-                    ? {
-                        ...expense,
-                        [fieldName]: fieldName === 'tags' ? [...newValue.split(',')] : newValue,
-                    }
-                    : expense,
-            ),
-        )
+        // EXCEPT for attachment - that's handled only via unsavedExpansionChanges to prevent duplication
+        if (fieldName !== 'attachment' && fieldName !== 'deletedReceiptIds') {
+            setExpenseItems(previousItems =>
+                previousItems.map(expense =>
+                    expense.transactionId === expenseId
+                        ? {
+                            ...expense,
+                            [fieldName]: fieldName === 'tags' ? [...newValue.split(',')] : newValue,
+                        }
+                        : expense,
+                ),
+            )
+        }
 
         // Store the changes temporarily until the row edit is completed
         setUnsavedExpansionChanges(previousChanges => {
@@ -113,6 +120,8 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                 },
             }
             console.log(`✅ Updated unsavedExpansionChanges for ${expenseId}:`, updated[expenseId])
+            // Keep ref in sync with state
+            unsavedExpansionChangesRef.current = updated
             return updated
         })
     }
@@ -191,6 +200,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
         setUnsavedExpansionChanges(previousChanges => {
             const cleanedChanges = { ...previousChanges }
             delete cleanedChanges[editEvent.data.transactionId]
+            unsavedExpansionChangesRef.current = cleanedChanges
             return cleanedChanges
         })
     }
@@ -214,6 +224,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
         setUnsavedExpansionChanges(previousChanges => {
             const cleanedChanges = { ...previousChanges }
             delete cleanedChanges[expenseId]
+            unsavedExpansionChangesRef.current = cleanedChanges
             return cleanedChanges
         })
 
@@ -224,11 +235,13 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
     const handleRowSaveComplete = async (editEvent) => {
         const updatedExpenseItems = [...expenseItems]
         const expenseId = editEvent.newData.transactionId
-        const changesFromExpansion = unsavedExpansionChanges[expenseId] || {}
+        // Use ref to get the latest changes (React state may not be updated yet)
+        const changesFromExpansion = unsavedExpansionChangesRef.current[expenseId] || {}
 
         console.log('=== SAVE ROW EDIT START ===')
         console.log('expenseId:', expenseId)
         console.log('changesFromExpansion:', changesFromExpansion)
+        console.log('mode:', mode)
 
         // Merge the row edits with any expansion area changes
         const updated = updatedExpenseItems[editEvent.index] = {
@@ -239,6 +252,28 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
 
         console.log(updated)
 
+        setCurrentlyEditingRowId(null)
+
+        // In CREATE mode: only update local state, don't send to server
+        // The data will be sent when the claim is submitted
+        if (mode === 'create') {
+            console.log('📝 Create mode - updating local state only, no server request')
+
+            // Clear the temporary expansion changes for this row
+            setUnsavedExpansionChanges(previousChanges => {
+                const cleanedChanges = { ...previousChanges }
+                delete cleanedChanges[expenseId]
+                unsavedExpansionChangesRef.current = cleanedChanges
+                return cleanedChanges
+            })
+
+            // Save all changes to parent
+            saveExpenseItemsToParent(updatedExpenseItems)
+            showToast(toastRef, { severity: 'success', summary: 'Updated', detail: 'Expense updated locally!' })
+            return
+        }
+
+        // EDIT/VIEW mode: send to server
         const updatedExpense = {
             buyer_name: updated.buyer,
             vendor_name: updated.vendor,
@@ -256,8 +291,6 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                     : updated.tags.map(tag => tag.tag_name).join(','))
                 : ''
         }
-
-        setCurrentlyEditingRowId(null)
 
         // Use FormData to support file uploads
         const formData = new FormData()
@@ -341,6 +374,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
         setUnsavedExpansionChanges(previousChanges => {
             const cleanedChanges = { ...previousChanges }
             delete cleanedChanges[expenseId]
+            unsavedExpansionChangesRef.current = cleanedChanges
             return cleanedChanges
         })
 

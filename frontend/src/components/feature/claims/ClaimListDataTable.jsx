@@ -13,17 +13,17 @@ import { IconField } from 'primereact/iconfield'
 import { InputIcon } from 'primereact/inputicon'
 import { Button } from 'primereact/button'
 import { BUTTON_STYLE, STATUS_STYLES } from '../../../utils/customizeStyle.js'
-import { exportToCSVManual, showToast } from '../../../utils/helpers.js'
+import { showToast } from '../../../utils/helpers.js'
 import { useLookups } from '../../../contexts/LookupContext.jsx'
 import { useClaims } from '../../../contexts/ClaimContext.jsx'
 import api from '../../../api/api.js'
 import { confirmDialog } from 'primereact/confirmdialog'
 
-function ClaimListDataTable ({ claims ,user,path, toastRef }) {
+function ClaimListDataTable({ claims, user, path, toastRef }) {
     const { fetchClaims } = useClaims()
 
     useEffect(() => {
-        const fetchData = async() => {
+        const fetchData = async () => {
             await fetchClaims()
         }
         fetchData()
@@ -52,7 +52,7 @@ function ClaimListDataTable ({ claims ,user,path, toastRef }) {
         const value = e.target.value
         let _filters = { ...filters }
 
-        _filters[ 'global' ].value = value
+        _filters['global'].value = value
 
         setFilters(_filters)
         setGlobalFilterValue(value)
@@ -60,17 +60,17 @@ function ClaimListDataTable ({ claims ,user,path, toastRef }) {
 
     // Column Render Template
     const statusBodyTemplate = (rowData) => (
-            <StatusTab status={ rowData.claim_status_id }/>
-        )
+        <StatusTab status={rowData.claim_status_id} />
+    )
 
     const totalAmountBodyTemplate = (rowData) => (
-        <>${ rowData.total_amount }</>
+        <>${rowData.total_amount}</>
     )
 
     const statusItemTemplate = (option) => {
         return <div
-            className={ `rounded-lg p-1 text-center text-sm font-medium w-21 ${ STATUS_STYLES[ option.value ] }` }>
-            { option.value }
+            className={`rounded-lg p-1 text-center text-sm font-medium w-21 ${STATUS_STYLES[option.value]}`}>
+            {option.value}
         </div>
 
     }
@@ -78,25 +78,25 @@ function ClaimListDataTable ({ claims ,user,path, toastRef }) {
     // Filter Template
     const statusRowFilterTemplate = (options) => {
         return (
-            <Dropdown value={ options.value } options={ claimStatus.map(
-                opt => ( { label: opt.claim_status_name, value: opt.claim_status_name } )) }
-                      onChange={ (e) => options.filterApplyCallback(e.value) } itemTemplate={ statusItemTemplate }
-                      placeholder="Select" className="p-column-filter min-w-5" showClear/>
+            <Dropdown value={options.value} options={claimStatus.map(
+                opt => ({ label: opt.claim_status_name, value: opt.claim_status_name }))}
+                onChange={(e) => options.filterApplyCallback(e.value)} itemTemplate={statusItemTemplate}
+                placeholder="Select" className="p-column-filter min-w-5" showClear />
         )
     }
 
     const claimTypeFilterTemplate = (options) => (
-        <Dropdown value={ options.value }
-                  options={ claimTypes.map(opt => ( { label: opt.claim_type_name, value: opt.claim_type_name } )) }
-                  onChange={ (e) => options.filterApplyCallback(e.value) }
-                  placeholder="Select One" className="p-column-filter"/>
+        <Dropdown value={options.value}
+            options={claimTypes.map(opt => ({ label: opt.claim_type_name, value: opt.claim_type_name }))}
+            onChange={(e) => options.filterApplyCallback(e.value)}
+            placeholder="Select One" className="p-column-filter" />
     )
 
     const customTextFilter = (options) => {
         return (
             <InputText
-                value={ options.value || '' }
-                onChange={ (e) => options.filterApplyCallback(e.target.value) }
+                value={options.value || ''}
+                onChange={(e) => options.filterApplyCallback(e.target.value)}
                 placeholder="Search"
                 className="p-column-filter min-w-30"
             />
@@ -105,19 +105,19 @@ function ClaimListDataTable ({ claims ,user,path, toastRef }) {
 
     const actionBodyTemplate = (rowData) => (
         <>
-            { user === 'admin' ?
-                <Link to={ `${ rowData.claim_id }/edit-claim` }>
+            {user === 'admin' ?
+                <Link to={`${rowData.claim_id}/edit-claim`}>
                     <button className="pi pi-pencil cursor-pointer"></button>
-                </Link> : <Link to={ `${ rowData.claim_id }/view-claim` }>
+                </Link> : <Link to={`${rowData.claim_id}/view-claim`}>
                     <button className="pi pi-eye cursor-pointer"></button>
-                </Link> }
+                </Link>}
 
         </>
     )
 
-     function bulkApproveClaim () {
+    function bulkApproveClaim() {
         const claimIds = selectedClaims.map(claim => claim.claim_id)
-        const payload = {claimIds}
+        const payload = { claimIds }
 
         confirmDialog({
             message: 'Do you want to approve all selected claims?',
@@ -125,7 +125,7 @@ function ClaimListDataTable ({ claims ,user,path, toastRef }) {
             icon: 'pi pi-info-circle',
             defaultFocus: 'reject',
             acceptClassName: 'p-button-info',
-            accept: async() => {
+            accept: async () => {
                 try {
                     await api.post('claims/bulk-approve', payload)
                     await fetchClaims()
@@ -135,16 +135,16 @@ function ClaimListDataTable ({ claims ,user,path, toastRef }) {
                     showToast(toastRef, { severity: 'error', summary: 'Error', detail: error.message })
                 }
             },
-            reject: ()=>{ return showToast(toastRef, { severity: 'success', summary: 'Success', detail:'Bulk Approve Cancelled' })},
+            reject: () => { return showToast(toastRef, { severity: 'success', summary: 'Success', detail: 'Bulk Approve Cancelled' }) },
         })
 
-         setSelectedClaims([])
+        setSelectedClaims([])
 
     }
 
-     function bulkRejectClaim () {
+    function bulkRejectClaim() {
         const claimIds = selectedClaims.map(claim => claim.claim_id)
-        const payload = {claimIds}
+        const payload = { claimIds }
 
         confirmDialog({
             message: 'Do you want to reject all selected claims?',
@@ -152,7 +152,7 @@ function ClaimListDataTable ({ claims ,user,path, toastRef }) {
             icon: 'pi pi-info-circle',
             defaultFocus: 'reject',
             acceptClassName: 'p-button-info',
-            accept: async() => {
+            accept: async () => {
                 try {
                     await api.post('claims/bulk-reject', payload)
                     await fetchClaims()
@@ -162,7 +162,7 @@ function ClaimListDataTable ({ claims ,user,path, toastRef }) {
                     showToast(toastRef, { severity: 'error', summary: 'Error', detail: error.message })
                 }
             },
-            reject: ()=>{ return showToast(toastRef, { severity: 'info', summary: 'Cancel', detail:'Bulk Reject Cancelled' })},
+            reject: () => { return showToast(toastRef, { severity: 'info', summary: 'Cancel', detail: 'Bulk Reject Cancelled' }) },
         })
 
         setSelectedClaims([])
@@ -172,10 +172,10 @@ function ClaimListDataTable ({ claims ,user,path, toastRef }) {
 
     async function handleExportPdf() {
         if (!selectedClaims || selectedClaims.length === 0) {
-            showToast(toastRef, { 
-                severity: 'warn', 
-                summary: 'Warning', 
-                detail: 'Please select at least one claim to export' 
+            showToast(toastRef, {
+                severity: 'warn',
+                summary: 'Warning',
+                detail: 'Please select at least one claim to export'
             })
             return
         }
@@ -199,16 +199,16 @@ function ClaimListDataTable ({ claims ,user,path, toastRef }) {
                 link.remove()
                 window.URL.revokeObjectURL(url)
 
-                showToast(toastRef, { 
-                    severity: 'success', 
-                    summary: 'Success', 
-                    detail: 'PDF exported successfully' 
+                showToast(toastRef, {
+                    severity: 'success',
+                    summary: 'Success',
+                    detail: 'PDF exported successfully'
                 })
-            } 
+            }
             // Multiple claims - ZIP download
             else {
                 const claimIds = selectedClaims.map(claim => claim.claim_id)
-                const response = await api.post('/claims/export-multiple-pdf', 
+                const response = await api.post('/claims/export-multiple-pdf',
                     { claimIds },
                     { responseType: 'blob' }
                 )
@@ -222,16 +222,16 @@ function ClaimListDataTable ({ claims ,user,path, toastRef }) {
                 link.remove()
                 window.URL.revokeObjectURL(url)
 
-                showToast(toastRef, { 
-                    severity: 'success', 
-                    summary: 'Success', 
-                    detail: `${selectedClaims.length} claims exported as ZIP file` 
+                showToast(toastRef, {
+                    severity: 'success',
+                    summary: 'Success',
+                    detail: `${selectedClaims.length} claims exported as ZIP file`
                 })
             }
         } catch (error) {
             console.error('Error exporting PDF:', error)
             let errorDetail = 'Failed to export PDF. Please try again.';
-            
+
             if (error?.message) {
                 errorDetail = error.message;
             } else if (error?.response?.status === 500) {
@@ -239,11 +239,11 @@ function ClaimListDataTable ({ claims ,user,path, toastRef }) {
             } else if (error?.response?.status === 408) {
                 errorDetail = 'Request timeout. The PDF generation took too long. Please try again.';
             }
-            
-            showToast(toastRef, { 
-                severity: 'error', 
-                summary: 'Error', 
-                detail: errorDetail 
+
+            showToast(toastRef, {
+                severity: 'error',
+                summary: 'Error',
+                detail: errorDetail
             })
         } finally {
             setIsExporting(false)
@@ -254,31 +254,31 @@ function ClaimListDataTable ({ claims ,user,path, toastRef }) {
         <div className="flex justify-between items-center flex-wrap gap-2">
             <div className="flex justify-end">
                 <IconField iconPosition="left">
-                    <InputIcon className="pi pi-search"/>
+                    <InputIcon className="pi pi-search" />
                     <InputText
-                        value={ globalFilterValue }
-                        onChange={ onGlobalFilterChange }
+                        value={globalFilterValue}
+                        onChange={onGlobalFilterChange}
                         placeholder="Keyword Search"
                     />
                 </IconField>
             </div>
 
             <div className="flex gap-2 flex-wrap">
-                <Button label="Approve" outlined className={ BUTTON_STYLE.success } icon="pi pi-check" iconPos="right"
-                        onClick={ bulkApproveClaim } disabled={isDisabled || isExporting}/>
-                <Button label="Reject" outlined className={ BUTTON_STYLE.danger } icon="pi pi-times" iconPos="right"
-                        onClick={ bulkRejectClaim } disabled={isDisabled || isExporting}/>
-                <Button 
-                    label={isExporting ? "Exporting..." : "Export"} 
-                    outlined 
-                    icon={isExporting ? "pi pi-spin pi-spinner" : "pi pi-file-export"} 
+                <Button label="Approve" outlined className={BUTTON_STYLE.success} icon="pi pi-check" iconPos="right"
+                    onClick={bulkApproveClaim} disabled={isDisabled || isExporting} />
+                <Button label="Reject" outlined className={BUTTON_STYLE.danger} icon="pi pi-times" iconPos="right"
+                    onClick={bulkRejectClaim} disabled={isDisabled || isExporting} />
+                <Button
+                    label={isExporting ? "Exporting..." : "Export"}
+                    outlined
+                    icon={isExporting ? "pi pi-spin pi-spinner" : "pi pi-file-export"}
                     iconPos="right"
-                    onClick={ handleExportPdf } 
+                    onClick={handleExportPdf}
                     disabled={isDisabled || isExporting}
                     loading={isExporting}
                 />
                 <Link to={`${path}/claims/create-claim`}>
-                    <Button label="New Claim" icon="pi pi-plus" iconPos="right"/>
+                    <Button label="New Claim" icon="pi pi-plus" iconPos="right" />
                 </Link>
 
             </div>
@@ -290,10 +290,10 @@ function ClaimListDataTable ({ claims ,user,path, toastRef }) {
         <div className="flex justify-between items-center">
             <div className="flex justify-end">
                 <IconField iconPosition="left">
-                    <InputIcon className="pi pi-search"/>
+                    <InputIcon className="pi pi-search" />
                     <InputText
-                        value={ globalFilterValue }
-                        onChange={ onGlobalFilterChange }
+                        value={globalFilterValue}
+                        onChange={onGlobalFilterChange}
                         placeholder="Keyword Search"
                     />
                 </IconField>
@@ -301,7 +301,7 @@ function ClaimListDataTable ({ claims ,user,path, toastRef }) {
 
             <div className="flex gap-2">
                 <Link to={`${path}/claims/create-claim`}>
-                    <Button label="New Claim" icon="pi pi-plus" iconPos="right"/>
+                    <Button label="New Claim" icon="pi pi-plus" iconPos="right" />
                 </Link>
             </div>
 
@@ -310,44 +310,44 @@ function ClaimListDataTable ({ claims ,user,path, toastRef }) {
 
     return (
         <ComponentContainer>
-            <DataTable value={ claims } header={ user === 'admin' ? adminHeaderTemplate : userHeaderTemplate }
-                       paginator rows={ 5 } rowsPerPageOptions={ [5, 10, 25, 50] }
-                       paginatorTemplate="RowsPerPageDropdown FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink"
-                       currentPageReportTemplate="{first} to {last} of {totalRecords}"
-                       filters={ filters } filterDisplay="row"
-                       globalFilterFields={ [
-                           'claim_id',
-                           'claim_type.claim_type_name',
-                           'total_amount',
-                           'claim_submitted',
-                           'status.claim_status_name',
-                       ] }
-                       selectionMode="checkbox"
-                       selection={ selectedClaims } onSelectionChange={ (e) => setSelectedClaims(e.value) }
+            <DataTable value={claims} header={user === 'admin' ? adminHeaderTemplate : userHeaderTemplate}
+                paginator rows={5} rowsPerPageOptions={[5, 10, 25, 50]}
+                paginatorTemplate="RowsPerPageDropdown FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink"
+                currentPageReportTemplate="{first} to {last} of {totalRecords}"
+                filters={filters} filterDisplay="row"
+                globalFilterFields={[
+                    'claim_id',
+                    'claim_type.claim_type_name',
+                    'total_amount',
+                    'claim_submitted',
+                    'status.claim_status_name',
+                ]}
+                selectionMode="checkbox"
+                selection={selectedClaims} onSelectionChange={(e) => setSelectedClaims(e.value)}
             >
 
-                <Column selectionMode="multiple" headerStyle={ { width: '3rem', textAlign: 'center' } }></Column>
+                <Column selectionMode="multiple" headerStyle={{ width: '3rem', textAlign: 'center' }}></Column>
 
-                <Column field="claim_id" header="Request #" sortable filter filterElement={ customTextFilter }
-                        showFilterMenu={ false }></Column>
+                <Column field="claim_id" header="Request #" sortable filter filterElement={customTextFilter}
+                    showFilterMenu={false}></Column>
 
                 <Column field="claim_type.claim_type_name" header="Claim type" filter sortable
-                        filterElement={ claimTypeFilterTemplate }
-                        showFilterMenu={ false }></Column>
+                    filterElement={claimTypeFilterTemplate}
+                    showFilterMenu={false}></Column>
 
-                <Column field="total_amount" header="Total Amount" body={ totalAmountBodyTemplate } sortable filter
-                        filterElement={ (options) => <AmountRangeFilter options={ options }/> }
-                        showFilterMenu={ false }></Column>
+                <Column field="total_amount" header="Total Amount" body={totalAmountBodyTemplate} sortable filter
+                    filterElement={(options) => <AmountRangeFilter options={options} />}
+                    showFilterMenu={false}></Column>
 
                 <Column field="claim_submitted" header="Submitted At" sortable
-                        filter filterElement={ (options) => <DateRangeFilter options={ options }/> }
-                        showFilterMenu={ false }></Column>
+                    filter filterElement={(options) => <DateRangeFilter options={options} />}
+                    showFilterMenu={false}></Column>
 
-                <Column field="status.claim_status_name" header="Status" body={ statusBodyTemplate } sortable filter
-                        showFilterMenu={ false }
-                        filterElement={ statusRowFilterTemplate }></Column>
+                <Column field="status.claim_status_name" header="Status" body={statusBodyTemplate} sortable filter
+                    showFilterMenu={false}
+                    filterElement={statusRowFilterTemplate}></Column>
 
-                <Column header="Action" body={ actionBodyTemplate }></Column>
+                <Column header="Action" body={actionBodyTemplate}></Column>
 
             </DataTable>
         </ComponentContainer>

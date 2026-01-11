@@ -1,15 +1,17 @@
 import React from 'react'
 import { Dropdown } from 'primereact/dropdown'
 
-function Select (props) {
-    const { name, id, value,label, onChange, options,placeholder='Select an option',errors=[] } = { ...props }
+function Select(props) {
+    const { name, id, value, label, onChange, options, placeholder = 'Select an option', errors = [] } = { ...props }
     return (
         <div className='relative'>
-            <label htmlFor={ id } className="block text-sm font-medium mb-2">
-                {label }
-            </label>
-            <Dropdown {...props} className='w-full'  optionLabel="label"/>
-            { errors[name] && <p className="text-red-500 text-sm mt-2">{ errors[name] }</p> }
+            <div className="flex items-center gap-2 mb-2">
+                <label htmlFor={id} className="block text-sm font-medium">
+                    {label}
+                </label>
+                {errors[name] && <span className="text-red-500 text-xs">({errors[name]})</span>}
+            </div>
+            <Dropdown {...props} className='w-full' optionLabel="label" />
         </div>
     )
 }

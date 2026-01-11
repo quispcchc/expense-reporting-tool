@@ -73,12 +73,8 @@ RUN chown -R www-data:www-data /var/www/html && \
 RUN php artisan key:generate --force
 
 # Create storage symlink for public/storage
-# First ensure the public directory exists
-RUN mkdir -p /var/www/html/public/storage && \
-    if [ ! -L /var/www/html/public/storage ]; then \
-    rm -rf /var/www/html/public/storage && \
-    ln -s /var/www/html/storage/app/public /var/www/html/public/storage; \
-    fi || true
+RUN rm -rf /var/www/html/public/storage && \
+    ln -s /var/www/html/storage/app/public /var/www/html/public/storage
 
 
 # Expose port 8000

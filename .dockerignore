@@ -8,3 +8,4 @@ backend/bootstrap/cache/*
 .env.example
 CONTEXT.md
 .github
+backend/public/storage
