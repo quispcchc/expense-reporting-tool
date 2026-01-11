@@ -13,9 +13,15 @@ function MyClaimPage() {
     const path = authUser.role_name === 'regular_user' ? '/user' : '/admin'
 
     async function fetchMyClaims() {
-        const response = await api.get('my-claims');
-        setMyClaims(response.data)
-        console.log(myClaims)
+        try {
+            const response = await api.get('my-claims');
+            // Backend returns standardized response: { status: true, data: [...], ... }
+            // We need to unwrap the 'data' property.
+            setMyClaims(response.data.data)
+            console.log('Fetched my claims:', response.data.data)
+        } catch (error) {
+            console.error("Error fetching my claims:", error)
+        }
     }
 
     useEffect(() => {
@@ -24,7 +30,6 @@ function MyClaimPage() {
         }
         fetchData()
     }, [])
-
 
 
     return (

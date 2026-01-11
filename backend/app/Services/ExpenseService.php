@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\ClaimStatus;
 use App\Models\Claim;
 use App\Models\Expense;
 use App\Models\Receipt;
@@ -17,7 +18,7 @@ class ExpenseService
         DB::transaction(function () use ($expenseId) {
             $expense = Expense::findOrFail($expenseId);
 
-            $expense->update(['approval_status_id' => 2]);
+            $expense->update(['approval_status_id' => ClaimStatus::APPROVED]);
 
             $this->updateClaimStatus($expense->claim_id);
         });
@@ -28,7 +29,7 @@ class ExpenseService
         DB::transaction(function () use ($expenseId) {
             $expense = Expense::findOrFail($expenseId);
 
-            $expense->update(['approval_status_id' => 3]); // 3 = Rejected
+            $expense->update(['approval_status_id' => ClaimStatus::REJECTED]);
 
             $this->updateClaimStatus($expense->claim_id);
         });
@@ -38,9 +39,9 @@ class ExpenseService
     {
         return DB::transaction(function () use ($expenseId, $updatedExpense) {
             \Log::info('=== UPDATE EXPENSE START ===');
-            \Log::info('Expense ID: '.$expenseId);
-            \Log::info('Updated data keys: '.implode(', ', array_keys($updatedExpense)));
-            \Log::info('RAW deleteAttachment value: '.print_r($updatedExpense['deleteAttachment'] ?? 'NOT SET', true));
+            \Log::info('Expense ID: ' . $expenseId);
+            \Log::info('Updated data keys: ' . implode(', ', array_keys($updatedExpense)));
+            \Log::info('RAW deleteAttachment value: ' . print_r($updatedExpense['deleteAttachment'] ?? 'NOT SET', true));
 
             $expense = Expense::findOrFail($expenseId);
 
@@ -63,9 +64,9 @@ class ExpenseService
                 }
             }
 
-            \Log::info('Files present: '.(is_array($files) ? count($files) : 'no'));
-            \Log::info('Delete attachment flag (converted): '.($deleteAttachment ? 'TRUE' : 'FALSE'));
-            \Log::info('Delete receipt IDs: '.($deleteReceiptIds ?? 'none'));
+            \Log::info('Files present: ' . (is_array($files) ? count($files) : 'no'));
+            \Log::info('Delete attachment flag (converted): ' . ($deleteAttachment ? 'TRUE' : 'FALSE'));
+            \Log::info('Delete receipt IDs: ' . ($deleteReceiptIds ?? 'none'));
 
             unset($updatedExpense['files']);
             unset($updatedExpense['deleteAttachment']);
@@ -78,12 +79,12 @@ class ExpenseService
             // Handle individual receipt deletion by IDs
             if ($deleteReceiptIds) {
                 $receiptIdsArray = array_map('trim', explode(',', $deleteReceiptIds));
-                \Log::info('🗑️ DELETING specific receipts: '.implode(', ', $receiptIdsArray));
+                \Log::info('🗑️ DELETING specific receipts: ' . implode(', ', $receiptIdsArray));
 
                 foreach ($receiptIdsArray as $receiptId) {
                     $receipt = Receipt::find($receiptId);
                     if ($receipt && $receipt->expense_id == $expenseId) {
-                        \Log::info('Deleting receipt file: '.$receipt->receipt_path);
+                        \Log::info('Deleting receipt file: ' . $receipt->receipt_path);
                         Storage::disk('public')->delete($receipt->receipt_path);
                         $receipt->delete();
                         \Log::info('✅ Receipt deleted successfully');
@@ -93,14 +94,14 @@ class ExpenseService
 
             // Handle file deletion or upload
             if ($deleteAttachment) {
-                \Log::info('🗑️ DELETING ALL attachments for expense: '.$expenseId);
+                \Log::info('🗑️ DELETING ALL attachments for expense: ' . $expenseId);
                 $receiptsCount = $expense->receipts()->count();
-                \Log::info('Found '.$receiptsCount.' receipts to delete');
+                \Log::info('Found ' . $receiptsCount . ' receipts to delete');
 
                 // Delete ALL existing receipts
                 if ($expense->receipts()->exists()) {
                     foreach ($expense->receipts as $receipt) {
-                        \Log::info('Deleting receipt file: '.$receipt->receipt_path);
+                        \Log::info('Deleting receipt file: ' . $receipt->receipt_path);
                         Storage::disk('public')->delete($receipt->receipt_path);
                         $receipt->delete();
                         \Log::info('✅ Receipt deleted successfully');
@@ -112,11 +113,11 @@ class ExpenseService
 
             // Upload new files (append to existing receipts)
             if (is_array($files) && count($files) > 0) {
-                \Log::info('📎 Uploading '.count($files).' new file(s) for expense: '.$expenseId);
+                \Log::info('📎 Uploading ' . count($files) . ' new file(s) for expense: ' . $expenseId);
 
                 foreach ($files as $file) {
                     $path = $file->store('receipts', 'public');
-                    \Log::info('File stored at: '.$path);
+                    \Log::info('File stored at: ' . $path);
 
                     Receipt::create([
                         'receipt_path' => $path,
@@ -124,13 +125,13 @@ class ExpenseService
                         'receipt_desc' => $file->getClientMimeType(),
                         'expense_id' => $expense->expense_id,
                     ]);
-                    \Log::info('✅ Receipt created: '.$file->getClientOriginalName());
+                    \Log::info('✅ Receipt created: ' . $file->getClientOriginalName());
                 }
             }
 
             // Handle tags
             if (array_key_exists('tags', $updatedExpense)) {
-                if (! empty($updatedExpense['tags'])) {
+                if (!empty($updatedExpense['tags'])) {
                     $tagNames = array_map('trim', explode(',', $updatedExpense['tags']));
                     $tagIds = [];
 
@@ -159,13 +160,13 @@ class ExpenseService
         $claim = Claim::with('expenses')->findOrFail($claimId);
 
         if ($claim->expenses->isEmpty()) {
-            $claim->update(['claim_status_id' => 1]); // Pending (Empty)
-        } elseif ($claim->expenses->every(fn ($expense) => $expense->approval_status_id == 2)) {
-            $claim->update(['claim_status_id' => 2]); // All approved
-        } elseif ($claim->expenses->contains(fn ($e) => $e->approval_status_id == 3)) {
-            $claim->update(['claim_status_id' => 3]); // Any rejected
+            $claim->update(['claim_status_id' => ClaimStatus::PENDING]); // Pending (Empty)
+        } elseif ($claim->expenses->every(fn($expense) => $expense->approval_status_id == ClaimStatus::APPROVED)) {
+            $claim->update(['claim_status_id' => ClaimStatus::APPROVED]); // All approved
+        } elseif ($claim->expenses->contains(fn($e) => $e->approval_status_id == ClaimStatus::REJECTED)) {
+            $claim->update(['claim_status_id' => ClaimStatus::REJECTED]); // Any rejected
         } else {
-            $claim->update(['claim_status_id' => 1]); // Pending
+            $claim->update(['claim_status_id' => ClaimStatus::PENDING]); // Pending
         }
         $claim->user->notify(new ClaimUpdatedNotification($claim));
     }
