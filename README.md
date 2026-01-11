@@ -201,6 +201,14 @@ docker system prune -a
 docker system df
 ```
 
+#### 🧹 Cleanup
+
+For a complete cleanup of unused Docker resources (stopped containers, unused networks, images, and build cache), run:
+
+```bash
+docker system prune -a --volumes
+```
+
 #### Database Operations
 
 ```bash
@@ -212,4 +220,21 @@ docker-compose exec backend php artisan db:seed --class=UserSeeder
 
 # Backup SQLite database
 docker cp expense_backend:/var/www/html/database/database.sqlite ./backup.sqlite
+```
+
+### 🐙 Useful Git Commands
+
+#### 🧹 Clean Stale Branches
+
+To remove local branches that have been deleted from the remote repository:
+
+**PowerShell (Windows):**
+```powershell
+git fetch -p
+git branch -vv | Select-String 'gone]' | ForEach-Object { $_.ToString().Trim().Split(' ')[0] } | ForEach-Object { git branch -D $_ }
+```
+
+**Bash (Mac/Linux):**
+```bash
+git fetch -p && git branch -vv | grep ': gone]' | awk '{print $1}' | xargs git branch -D
 ```
