@@ -11,7 +11,7 @@ import { MultiSelect } from 'primereact/multiselect'
 import { useLookups } from '../../../contexts/LookupContext.jsx'
 import { Dropdown } from 'primereact/dropdown'
 
-function AddNewUser () {
+function AddNewUser() {
     const [errors, setErrors] = useState([])
     const [isOpen, setIsOpen] = useState(false)
 
@@ -38,10 +38,10 @@ function AddNewUser () {
 
     const handleUserFormChange = (e) => {
         const { name, value } = e.target
-        setUserFormData(prev => ( {
+        setUserFormData(prev => ({
             ...prev,
-            [ name ]: value,
-        } ))
+            [name]: value,
+        }))
     }
 
     const handleUserFormSubmit = (e) => {
@@ -58,7 +58,7 @@ function AddNewUser () {
         // console.log(updatedUser)
 
         if (validation.isValid) {
-            ;( async() => {
+            ; (async () => {
                 try {
                     await createUser({
                         first_name: userFormData.first_name,
@@ -68,15 +68,15 @@ function AddNewUser () {
                         team_id: userFormData.team
                     })
                     // Optionally clear form on success
-                    setUserFormData({ })
+                    setUserFormData({})
                     // setSelectedRoles(null)
                     // setSelectedTeams(null)
                 }
                 catch (err) {
                     console.error('Failed to create user', err)
-                    setErrors(prev => ( { ...prev, form: err.message } ))
+                    setErrors(prev => ({ ...prev, form: err.message }))
                 }
-            } )()
+            })()
         }
 
         console.log(selectedTeams, selectedRoles)
@@ -88,84 +88,81 @@ function AddNewUser () {
             <div className="flex justify-between items-center text-gray-700">
                 <div>
                     <h4 className="text-[22px]">Add new user</h4>
-                    <p className="text-xs text-gray-500">Lorem ipsum dolor sit amet, consectetur adipisicing elit. </p>
+                    <p className="text-xs text-gray-500">Fill in the form below to register a new user to the system.</p>
                 </div>
 
-                <button className={ `pi ${ isOpen ? 'pi-chevron-up' : 'pi-chevron-down' } !text-xl` }
-                        onClick={ () => setIsOpen(prev => !prev) }></button>
+                <button className={`pi ${isOpen ? 'pi-chevron-up' : 'pi-chevron-down'} !text-xl`}
+                    onClick={() => setIsOpen(prev => !prev)}></button>
 
             </div>
-            { isOpen && (
-                <form className="my-5" onSubmit={ handleUserFormSubmit }>
+            {isOpen && (
+                <form className="my-5" onSubmit={handleUserFormSubmit}>
+                    {/* Row 1: Basic Info */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-                        <Input name="first_name" id="first_name" label="First Name" value={ userFormData.first_name }
-                               onChange={ handleUserFormChange } placeholder="First Name"
-                               errors={ errors }/>
-                        <Input name="last_name" id="last_name" label="Last Name" value={ userFormData.last_name }
-                               onChange={ handleUserFormChange } placeholder="Last Name"
-                               errors={ errors }/>
-
-                        <Input name="email" id="email" label="Email" value={ userFormData.email }
-                               onChange={ handleUserFormChange } placeholder="Email"
-                               errors={ errors }/>
-
+                        <Input name="first_name" id="first_name" label="First Name" value={userFormData.first_name}
+                            onChange={handleUserFormChange} placeholder="Enter first name"
+                            errors={errors} />
+                        <Input name="last_name" id="last_name" label="Last Name" value={userFormData.last_name}
+                            onChange={handleUserFormChange} placeholder="Enter last name"
+                            errors={errors} />
+                        <Input name="email" id="email" label="Email" value={userFormData.email}
+                            onChange={handleUserFormChange} placeholder="Enter email address"
+                            errors={errors} />
                     </div>
 
+                    {/* Row 2: Organization Info */}
                     <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-5">
                         <div>
-                            <Select id="department" name="department" label='department' value={ userFormData.department }
-                                      onChange={ handleUserFormChange }
-                                      placeholder="Deaprtment" className="w-full"
-                                      options={ lookups.departments.map(option => ( {
-                                          value: option.department_id,
-                                          label: option.department_name,
-                                      } )) }
-                                      errors={errors}
+                            <Select id="department" name="department" label="Department" value={userFormData.department}
+                                onChange={handleUserFormChange}
+                                placeholder="Select department" className="w-full"
+                                options={lookups.departments.map(option => ({
+                                    value: option.department_id,
+                                    label: option.department_name,
+                                }))}
+                                errors={errors}
                             />
                         </div>
 
-                        {/* User may belong to multiple teams*/ }
                         <div>
-                            <Select id="team" name="team" label='team' value={ userFormData.team }
-                                    onChange={ handleUserFormChange }
-                                    placeholder="team" className="w-full"
-                                    options={ lookups.teams.map(option => ( {
-                                        value: option.team_id,
-                                        label: option.team_name,
-                                    } )) }
-                                    errors={errors}
+                            <Select id="team" name="team" label="Team" value={userFormData.team}
+                                onChange={handleUserFormChange}
+                                placeholder="Select team" className="w-full"
+                                options={lookups.teams.map(option => ({
+                                    value: option.team_id,
+                                    label: option.team_name,
+                                }))}
+                                errors={errors}
                             />
-
-                            {/*<label htmlFor="team" className="block text-sm font-medium mb-2">Team</label>*/}
-                            {/*<MultiSelect id="team" options={ teams } value={ selectedTeams }*/}
-                            {/*             onChange={ (e) => setSelectedTeams(e.target.value) }*/}
-                            {/*             placeholder="Please select team" className="w-full"/>*/}
-                            {/*{ errors.team && <p className="text-red-500 text-sm mt-2">{ errors.team }</p> }*/}
-
                         </div>
 
                         <div>
-                            <Input name="position" id="position" label="Position" value={ userFormData.position }
-                                   onChange={ handleUserFormChange } placeholder="Please enter position"
-                                   errors={ errors }/>
+                            <Input name="position" id="position" label="Position" value={userFormData.position}
+                                onChange={handleUserFormChange} placeholder="Enter position"
+                                errors={errors} />
                         </div>
-
-                        <div>
-                            <label htmlFor="role" className="block text-sm font-medium mb-2">Role</label>
-                            <Select name="role" id="role" value={ userFormData.role } className="w-full"
-                                    options={ lookups.roles.map(option => ( { label: option.role_name, value: option.role_id } )) }
-                                    onChange={ handleUserFormChange }
-                                    placeholder="Role" errors={ errors }/>
-                            {/*{ .roles && <p className="text-red-500 text-sm mt-2">{ errors.roles }</p> }*/ }
-
-                        </div>
-                        {/*<div className="">*/ }
-                        <Button label="Save" className="!h-[48px]"/>
-                        {/*</div>*/ }
-
                     </div>
 
-                </form> ) }
+                    {/* Row 3: Role and Submit */}
+                    <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-5 items-end">
+                        <div>
+                            <Select name="role" id="role" label="Role" value={userFormData.role} className="w-full"
+                                options={lookups.roles.map(option => ({ label: option.role_name, value: option.role_id }))}
+                                onChange={handleUserFormChange}
+                                placeholder="Select role" errors={errors} />
+                        </div>
+
+                        {/* Empty spacer column */}
+                        <div className="hidden sm:block"></div>
+
+                        {/* Save button aligned to bottom-right */}
+                        <div className="flex justify-end">
+                            <Button label="Save" className="!h-[48px] w-full sm:w-auto px-8" />
+                        </div>
+                    </div>
+
+                </form>
+            )}
 
 
         </div>

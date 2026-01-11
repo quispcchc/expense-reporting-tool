@@ -134,7 +134,14 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
             }
         }
 
-        if (!validation.isValid) return alert('Please fill in all required fields!')
+        if (!validation.isValid) {
+            setValidationDialog({
+                visible: true,
+                header: 'Validation Error',
+                message: 'Please fill in all required fields!'
+            })
+            return
+        }
 
         const formData = new FormData()
 

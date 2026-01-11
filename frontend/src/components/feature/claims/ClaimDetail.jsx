@@ -9,7 +9,7 @@ import { showToast } from '../../../utils/helpers.js'
 // ClaimDetail component shows details of a single claim
 // Used in both view and edit claim pages
 
-function ClaimDetail ({ curClaim, toastRef }) {
+function ClaimDetail({ curClaim, toastRef }) {
     const { lookups } = useLookups()
     const [isEditing, setIsEditing] = useState(false)
 
@@ -18,26 +18,26 @@ function ClaimDetail ({ curClaim, toastRef }) {
         team_id: curClaim.team_id,
     })
 
-    function handleSelectChange (field, value) {
-        setClaimDetail(prev => ( {
+    function handleSelectChange(field, value) {
+        setClaimDetail(prev => ({
             ...prev,
-            [ field ]: value,
-        } ))
+            [field]: value,
+        }))
     }
 
-    async function handleSelectSave () {
-        await api.put(`/claims/${ curClaim.claim_id }`, claimDetail)
+    async function handleSelectSave() {
+        await api.put(`/claims/${curClaim.claim_id}`, claimDetail)
         showToast(toastRef, { severity: 'success', summary: 'Updated', detail: 'Claim Updated Successfully' })
         setIsEditing(false)
 
 
     }
 
-    function getDepartmentName (id) {
+    function getDepartmentName(id) {
         return lookups.claimTypes?.find(c => c.claim_type_id === id)?.claim_type_name
     }
 
-    function getTeamName (id) {
+    function getTeamName(id) {
         return lookups.teams?.find(t => t.team_id === id)?.team_name
     }
 
@@ -52,21 +52,24 @@ function ClaimDetail ({ curClaim, toastRef }) {
     return (
 
         <ComponentContainer>
-            <div className="flex justify-between">
-                <h5 className="text-[22px] mb-2">Claim Detail</h5>
+            <div className="flex justify-between items-start mb-4">
+                <div>
+                    <h5 className="text-xl font-semibold text-gray-800 mb-1">Claim Detail</h5>
+                    <p className="text-sm text-gray-500">View and manage the details of this expense claim submission.</p>
+                </div>
                 <div className="flex gap-2">
-                    { !isEditing && <Button
+                    {!isEditing && <Button
                         rounded
                         icon="pi pi-pencil"
-                        onClick={ () => setIsEditing(prev => !prev) }
-                    /> }
+                        onClick={() => setIsEditing(prev => !prev)}
+                    />}
                     <div>
-                        { isEditing && (
+                        {isEditing && (
                             <div className="flex gap-2">
                                 <Button
                                     rounded
                                     icon="pi pi-check"
-                                    onClick={ handleSelectSave }
+                                    onClick={handleSelectSave}
                                 />
 
                                 <Button
@@ -74,25 +77,21 @@ function ClaimDetail ({ curClaim, toastRef }) {
                                     rounded
                                     text
                                     aria-label="Cancel"
-                                    onClick={ () => {
+                                    onClick={() => {
                                         setIsEditing(false)
                                         setClaimDetail({ team_id: curClaim.team_id, claim_type_id: curClaim.claim_type_id })
-                                    } }
+                                    }}
                                 />
                             </div>
-                        ) }
+                        )}
                     </div>
                 </div>
 
             </div>
 
-            <p className="text-[#888888] text-sm">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Accusantium
-                aliquid
-                commodi deleniti dolor.</p>
-
             <table className="table-auto w-full text-left">
                 <tbody>
-                    {/* Claim Type */ }
+                    {/* Claim Type */}
                     <ClaimDetailRow
                         title="Claim Type:"
                         value={
@@ -100,26 +99,26 @@ function ClaimDetail ({ curClaim, toastRef }) {
                                 ? claimDetail.claim_type_id
                                 : claimTypeName
                         }
-                        isEdit={ isEditing }
-                        options={ lookups.claimTypes?.map(c => ( {
+                        isEdit={isEditing}
+                        options={lookups.claimTypes?.map(c => ({
                             label: c.claim_type_name,
                             value: c.claim_type_id,
-                        } )) }
-                        onChange={ (value) => handleSelectChange('claim_type_id', value) }
+                        }))}
+                        onChange={(value) => handleSelectChange('claim_type_id', value)}
                     />
 
-                    <ClaimDetailRow title="Date Submitted:" value={ submittedDate }/>
-                    <ClaimDetailRow title="Employee:" value={ fullName }/>
-                    <ClaimDetailRow title="Position:" value={ position }/>
-                    <ClaimDetailRow title="Department:" value={ department }/>
+                    <ClaimDetailRow title="Date Submitted:" value={submittedDate} />
+                    <ClaimDetailRow title="Employee:" value={fullName} />
+                    <ClaimDetailRow title="Position:" value={position} />
+                    <ClaimDetailRow title="Department:" value={department} />
 
                     <ClaimDetailRow
                         title="Team:"
-                        value={ isEditing ? claimDetail.team_id : teamName }
-                        isEdit={ isEditing }
-                        options={ lookups.teams?.filter(team => team.department_id === (curClaim?.department_id || curClaim?.user?.department_id)).map(
-                            team => ( { label: team.team_name, value: team.team_id } )) }
-                        onChange={ (value) => handleSelectChange('team_id', value) }
+                        value={isEditing ? claimDetail.team_id : teamName}
+                        isEdit={isEditing}
+                        options={lookups.teams?.filter(team => team.department_id === (curClaim?.department_id || curClaim?.user?.department_id)).map(
+                            team => ({ label: team.team_name, value: team.team_id }))}
+                        onChange={(value) => handleSelectChange('team_id', value)}
                     />
                 </tbody>
             </table>

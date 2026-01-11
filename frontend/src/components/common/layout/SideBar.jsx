@@ -28,7 +28,7 @@ const sidebarData = [
     },
 ]
 
-function SideBar () {
+function SideBar() {
     const location = useLocation()
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
     const [isCollapsed, setIsCollapsed] = useState(() => {
@@ -89,7 +89,7 @@ function SideBar () {
             setShowMobileMenu(prev => !prev)
         } else {
             setIsCollapsed(prev => {
-                localStorage.setItem('sidebarCollapsed', `${ !prev }`)
+                localStorage.setItem('sidebarCollapsed', `${!prev}`)
                 return !prev
             })
         }
@@ -101,120 +101,123 @@ function SideBar () {
 
     return (
         <>
-            {/* Mobile menu icon*/ }
-            { isMobile && (
+            {/* Mobile menu icon*/}
+            {isMobile && (
                 <button
-                    onClick={ toggleSidebar }
+                    onClick={toggleSidebar}
                     className="fixed top-4 left-4 z-50 p-3 rounded-lg shadow-lg hover:bg-gray-50 transition-colors md:hidden"
-                    aria-label={ showMobileMenu ? 'Close menu' : 'Open menu' }
-                    aria-expanded={ showMobileMenu }
+                    aria-label={showMobileMenu ? 'Close menu' : 'Open menu'}
+                    aria-expanded={showMobileMenu}
                 >
-                    { showMobileMenu ? (
-                        <HiX className="w-5 h-5 text-gray-700"/>
+                    {showMobileMenu ? (
+                        <HiX className="w-5 h-5 text-gray-700" />
                     ) : (
-                        <HiMenuAlt3 className="w-5 h-5 text-gray-700"/>
-                    ) }
+                        <HiMenuAlt3 className="w-5 h-5 text-gray-700" />
+                    )}
                 </button>
-            ) }
+            )}
 
-            {/* Mobile menu overlay*/ }
-            { isMobile && showMobileMenu && (
+            {/* Mobile menu overlay*/}
+            {isMobile && showMobileMenu && (
                 <div
                     className="fixed inset-0 bg-black/50 z-40 transition-opacity duration-300"
-                    onClick={ closeMobileMenu }
+                    onClick={closeMobileMenu}
                     aria-hidden="true"
                 />
-            ) }
+            )}
 
             <aside
-                className={ `
+                className={`
                     h-screen bg-white border-gray-200
                     flex flex-col
                     transition-all duration-300 ease-in-out
-                    ${ isMobile
-                    ? `fixed top-0 left-0 z-50 w-80 max-w-[85vw] shadow-xl ${ showMobileMenu
-                        ? 'translate-x-0'
-                        : '-translate-x-full' }`
-                    : `shrink-0 ${ isCollapsed ? 'w-16' : 'w-55' }` }` }
+                    ${isMobile
+                        ? `fixed top-0 left-0 z-50 w-80 max-w-[85vw] shadow-xl ${showMobileMenu
+                            ? 'translate-x-0'
+                            : '-translate-x-full'}`
+                        : `shrink-0 ${isCollapsed ? 'w-16' : 'w-55'}`}`}
                 role="navigation"
                 aria-label="Main navigation"
             >
 
-                <div className={ `flex items-center p-4 text-xl mb-5 border-gray-100 flex-shrink-0 
-                ${ !isMobile && isCollapsed ? 'justify-center' : 'justify-between' }` }>
-                    { ( !isCollapsed || isMobile ) && (
-                        <h2 className="text-[#184190] font-medium">My App</h2>
-                    ) }
+                <div className={`flex items-center p-4 text-xl mb-5 border-gray-100 flex-shrink-0 
+                ${!isMobile && isCollapsed ? 'justify-center' : 'justify-between'}`}>
+                    {(!isCollapsed || isMobile) && (
+                        <div className="leading-tight">
+                            <span className="block text-[#184190] font-bold">CCHC</span>
+                            <span className="block text-[#184190] font-medium text-sm">Expense Claim Portal</span>
+                        </div>
+                    )}
 
-                    {/* Desktop toggle button */ }
-                    { !isMobile && (
+                    {/* Desktop toggle button */}
+                    {!isMobile && (
                         <button
-                            onClick={ toggleSidebar }
+                            onClick={toggleSidebar}
                             className="text-[#888888] hover:text-[#184190] p-1 rounded hover:bg-gray-100 transition-colors"
-                            aria-label={ isCollapsed ? 'Expand sidebar' : 'Collapse sidebar' }
+                            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                         >
-                            { isCollapsed ? (
-                                <TbLayoutSidebarRightCollapse className="w-5 h-5"/>
+                            {isCollapsed ? (
+                                <TbLayoutSidebarRightCollapse className="w-5 h-5" />
                             ) : (
-                                <TbLayoutSidebarLeftCollapse className="w-5 h-5"/>
-                            ) }
+                                <TbLayoutSidebarLeftCollapse className="w-5 h-5" />
+                            )}
                         </button>
-                    ) }
+                    )}
 
 
-                    {/* Mobile close button */ }
-                    { isMobile && (
+                    {/* Mobile close button */}
+                    {isMobile && (
                         <button
-                            onClick={ closeMobileMenu }
+                            onClick={closeMobileMenu}
                             className="text-[#888888] hover:text-[#184190] p-1 rounded hover:bg-gray-100 transition-colors"
                             aria-label="Close menu"
                         >
-                            <HiX className="w-5 h-5"/>
+                            <HiX className="w-5 h-5" />
                         </button>
-                    ) }
+                    )}
                 </div>
 
                 <div className="flex-1 overflow-y-auto px-2 pb-4">
-                    { sidebarData.map((section, index) => (
-                        <div key={ index } className="mb-6">
-                            { ( !isCollapsed || isMobile ) && (
+                    {sidebarData.map((section, index) => (
+                        <div key={index} className="mb-6">
+                            {(!isCollapsed || isMobile) && (
                                 <h3 className="px-4 py-2 text-sm font-light text-[#1D1B20] uppercase tracking-wider">
-                                    { section.title }
+                                    {section.title}
                                 </h3>
-                            ) }
+                            )}
 
                             <ul className="space-y-1">
-                                { section.items.map((item, idx) => (
-                                    <li key={ idx }>
+                                {section.items.map((item, idx) => (
+                                    <li key={idx}>
                                         <Link
-                                            to={ item.path }
-                                            onClick={ () => isMobile && closeMobileMenu() }
-                                            className={ `
+                                            to={item.path}
+                                            onClick={() => isMobile && closeMobileMenu()}
+                                            className={`
                                                 flex items-center gap-3 px-3 py-2 rounded-lg
                                                 transition-all duration-200 font-light text-sm
                                                 hover:bg-[#D9EDFF] hover:text-[#184190]
-                                                ${ location.pathname === item.path
-                                                ? 'bg-[#D9EDFF] text-[#184190]'
-                                                : 'text-[#888888]'
-                                            }
-                                                ${ !isMobile && isCollapsed ? 'justify-center px-2' : '' }
+                                                ${location.pathname === item.path
+                                                    ? 'bg-[#D9EDFF] text-[#184190]'
+                                                    : 'text-[#888888]'
+                                                }
+                                                ${!isMobile && isCollapsed ? 'justify-center px-2' : ''}
                                             ` }
-                                            title={ !isMobile && isCollapsed ? item.label : '' }
-                                            aria-label={ item.label }
-                                            aria-current={ location.pathname === item.path ? 'page' : undefined }
+                                            title={!isMobile && isCollapsed ? item.label : ''}
+                                            aria-label={item.label}
+                                            aria-current={location.pathname === item.path ? 'page' : undefined}
                                         >
                                             <div className="text-xl flex-shrink-0" aria-hidden="true">
-                                                <item.icon/>
+                                                <item.icon />
                                             </div>
-                                            { ( !isCollapsed || isMobile ) && (
-                                                <span className="truncate">{ item.label }</span>
-                                            ) }
+                                            {(!isCollapsed || isMobile) && (
+                                                <span className="truncate">{item.label}</span>
+                                            )}
                                         </Link>
                                     </li>
-                                )) }
+                                ))}
                             </ul>
                         </div>
-                    )) }
+                    ))}
                 </div>
             </aside>
         </>

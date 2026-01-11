@@ -4,11 +4,11 @@ import api from '../../../../api/api.js'
 import { showToast } from '../../../../utils/helpers.js'
 
 // Component to add a note to the current claim
-function AddNote ({ curClaim, onAddNote, toastRef }) {
+function AddNote({ curClaim, onAddNote, toastRef }) {
     const [noteText, setNoteText] = useState('')
 
     // Handle form submission to add the note
-    const handleSubmit = async(e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault()
 
         if (noteText === '') {
@@ -37,17 +37,17 @@ function AddNote ({ curClaim, onAddNote, toastRef }) {
 
     return (
         <div>
-            <p className="mt-5 text-2xl">Add a Note</p>
+            <h6 className="text-base font-medium text-gray-700 mt-4 mb-2">Add a Note</h6>
             <div className="flex flex-col items-end gap-3">
-                    <textarea
-                        name="note"
-                        rows="3"
-                        onChange={ (e) => setNoteText(e.target.value) }
-                        value={ noteText }
-                        placeholder="Enter a text..."
-                        className="w-full border border-gray-300 rounded-md p-3 text-sm"
-                    />
-                <Button label="Submit Note" className="w-1/3" onClick={ handleSubmit }/>
+                <textarea
+                    name="note"
+                    rows="3"
+                    onChange={(e) => setNoteText(e.target.value)}
+                    value={noteText}
+                    placeholder="Enter a text..."
+                    className="w-full border border-gray-300 rounded-md p-3 text-sm"
+                />
+                <Button label="Submit Note" className="w-1/3" onClick={handleSubmit} />
             </div>
         </div>
     )

@@ -1,10 +1,10 @@
 import React from 'react'
 
-function ComponentContainer ({title,children}) {
+function ComponentContainer({ title, children }) {
     return (
-        <div className="bg-white p-6 rounded-2xl shadow-sm">
-            <h5 className="text-[22px] mb-2">{ title }</h5>
-            { children }
+        <div className="bg-white p-6 rounded-2xl shadow-sm w-full h-full">
+            <h5 className="text-[22px] mb-2">{title}</h5>
+            {children}
         </div>
     )
 }

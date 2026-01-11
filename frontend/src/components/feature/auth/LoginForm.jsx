@@ -8,7 +8,7 @@ import InputPassword from '../../common/ui/InputPassword.jsx'
 import { validationSchemas } from '../../../utils/validation/schemas.js'
 import { validateForm } from '../../../utils/validation/validator.js'
 
-function LoginForm () {
+function LoginForm() {
     const { login, error, setError } = useAuth()
     const [formErrors, setFormErrors] = useState([])
     const navigate = useNavigate()
@@ -31,7 +31,7 @@ function LoginForm () {
                 email: savedEmail,
                 password: savedPassword,
                 remember: savedRemember,
-            } ))
+            }))
     }, [])
 
     // Save or clear saved credentials based on "remember me" checkbox
@@ -51,13 +51,13 @@ function LoginForm () {
     // Handle form field changes (email, password, remember)
     const handleFormChange = (e) => {
         const { name, value, type, checked } = e.target
-        setFormData((prev) => ( {
+        setFormData((prev) => ({
             ...prev,
-            [ name ]: type === 'checkbox' ? checked : value,
-        } ))
+            [name]: type === 'checkbox' ? checked : value,
+        }))
     }
 
-    const handleSubmit = async(e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault()
         setError(null)      // Clear server-side errors
         setFormErrors([])   // Clear client-side validation errors
@@ -85,37 +85,40 @@ function LoginForm () {
     }
 
     return (
-        <form onSubmit={ handleSubmit } className="w-100 p-5">
-            <h2 className="text-2xl font-bold text-[#05589B] mb-6">My APP</h2>
+        <form onSubmit={handleSubmit} className="w-100 p-5">
+            <div className="mb-6">
+                <h2 className="text-2xl font-bold text-[#05589B]">CCHC</h2>
+                <h3 className="text-lg font-medium text-[#05589B]">Expense Claim Portal</h3>
+            </div>
             <div className="mb-6">
                 <h3 className="text-xl font-semibold">Login to Your Account</h3>
                 <p className="text-sm text-gray-500">Enter your email address to get started.</p>
             </div>
 
-            {/* Email */ }
+            {/* Email */}
             <Input name="email" id="email" label="Email" placeholder="Please enter your email"
-                   value={ formData.email }
-                   onChange={ handleFormChange } errors={ formErrors }/>
+                value={formData.email}
+                onChange={handleFormChange} errors={formErrors} />
 
-            {/* Password */ }
+            {/* Password */}
             <InputPassword name="password" id="password" label="password" placeholder="Please enter your password"
-                           onChange={ handleFormChange }
-                           value={ formData.password } errors={ formErrors }/>
+                onChange={handleFormChange}
+                value={formData.password} errors={formErrors} />
 
-            {/* Remember & Forget */ }
+            {/* Remember & Forget */}
             <div className="mb-6 flex items-center justify-between">
                 <div>
-                    <input type="checkbox" name="remember" id="remember" onChange={ handleFormChange }
-                           className="mr-2" checked={ formData.remember }/>
+                    <input type="checkbox" name="remember" id="remember" onChange={handleFormChange}
+                        className="mr-2" checked={formData.remember} />
                     <label htmlFor="remember">Remember me?</label>
                 </div>
 
                 <a href="/forgot-password" className="text-primary hover:underline">Forgot Password?</a>
             </div>
 
-            {/* Server side validation message */ }
-            { error && <div className="bg-red-100 text-red-600 rounded-xl p-2 mb-6">{ error }</div> }
-            <Button type="submit" label="Submit" className="w-full"/>
+            {/* Server side validation message */}
+            {error && <div className="bg-red-100 text-red-600 rounded-xl p-2 mb-6">{error}</div>}
+            <Button type="submit" label="Submit" className="w-full" />
         </form>
     )
 }

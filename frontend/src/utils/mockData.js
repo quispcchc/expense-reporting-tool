@@ -48,7 +48,7 @@ export const claimsData = [
             {
                 submittedBy: 'Jane Doe',
                 date: '1-JAN-2025',
-                description: 'Lorem ipsum dolor sit amet, consectetur adipisicing elit. Doloribus error est ipsum iure optio qui tempora. A aliquam dolore ipsum molestiae quasi quibusdam, quos voluptate! Consectetur facilis illum iure magnam. ',
+                description: 'This claim includes expenses for team supplies purchased during the quarterly planning meeting. Receipts attached for verification.',
             },
 
         ],
@@ -60,24 +60,24 @@ export const claimsData = [
 ]
 
 export const positions = [
-    {id:1,positionName:'Software Engineer'},
-    {id:2,positionName:'Web Designer'},
-    {id:3,positionName:'Manager'},
+    { id: 1, positionName: 'Software Engineer' },
+    { id: 2, positionName: 'Web Designer' },
+    { id: 3, positionName: 'Manager' },
 ]
 
 export const claimTypes = [
-    { id: 1, name: 'Corporate Credit Card'},
+    { id: 1, name: 'Corporate Credit Card' },
     { id: 2, name: 'Petty Cash' },
-    { id: 3, name:  'Reimbursement' },
-    { id: 4, name: 'Invoice from Vendor'},
+    { id: 3, name: 'Reimbursement' },
+    { id: 4, name: 'Invoice from Vendor' },
     { id: 5, name: 'Non-staff' },
 ]
 
 export const claimTypesFilter = [
-    { label: 'Corporate Credit Card', value: 'Corporate Credit Card'},
-    { label: 'Petty Cash' , value: 'Petty Cash' },
-    { label: 'Reimbursement', value:  'Reimbursement' },
-    { label: 'Invoice from Vendor', value: 'Invoice from Vendor'},
+    { label: 'Corporate Credit Card', value: 'Corporate Credit Card' },
+    { label: 'Petty Cash', value: 'Petty Cash' },
+    { label: 'Reimbursement', value: 'Reimbursement' },
+    { label: 'Invoice from Vendor', value: 'Invoice from Vendor' },
     { label: 'Non-staff', value: 'Non-staff' },
 ]
 

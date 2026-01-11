@@ -8,7 +8,7 @@ import { validateForm } from '../../../utils/validation/validator.js'
 import { useLookups } from '../../../contexts/LookupContext.jsx'
 import { ProgressSpinner } from 'primereact/progressspinner'
 
-function AddNewCostCentre ({ createdToast }) {
+function AddNewCostCentre({ createdToast }) {
     const { lookups } = useLookups()
 
     const {
@@ -29,13 +29,13 @@ function AddNewCostCentre ({ createdToast }) {
 
     const handleCostCentreFormChange = (e) => {
         const { name, value } = e.target
-        setCostCentreFormData(prev => ( {
+        setCostCentreFormData(prev => ({
             ...prev,
-            [ name ]: value,
-        } ))
+            [name]: value,
+        }))
     }
 
-    const handleCostCentreFormSubmit = async(e) => {
+    const handleCostCentreFormSubmit = async (e) => {
         e.preventDefault()
         const schema = validationSchemas.addCostCentre
         const validation = validateForm(costCentreFormData, schema)
@@ -53,53 +53,53 @@ function AddNewCostCentre ({ createdToast }) {
     }
     return (
         <div className="bg-white rounded-xl p-6">
-            { loading && (
+            {loading && (
                 <div className="absolute inset-0 flex justify-center items-center bg-white/50 z-10">
-                    <ProgressSpinner/>
+                    <ProgressSpinner />
                 </div>
-            ) }
+            )}
 
             <div className="flex justify-between items-center text-gray-700">
                 <div>
                     <h4 className="text-[22px]">Add New CostCentre</h4>
-                    <p className="text-xs text-gray-500">Lorem ipsum dolor sit amet, consectetur adipisicing elit. </p>
+                    <p className="text-xs text-gray-500">Fill in the details below to add a new cost centre to the system.</p>
                 </div>
 
-                <button className={ `pi ${ isOpen ? 'pi-chevron-up' : 'pi-chevron-down' } !text-xl` }
-                        onClick={ () => setIsOpen(prev => !prev) }></button>
+                <button className={`pi ${isOpen ? 'pi-chevron-up' : 'pi-chevron-down'} !text-xl`}
+                    onClick={() => setIsOpen(prev => !prev)}></button>
             </div>
 
-            { isOpen && (
-                <form className={ `my-5 grid grid-cols-1 sm:grid-cols-12 gap-5 ${ validationErrors.length > 0
+            {isOpen && (
+                <form className={`my-5 grid grid-cols-1 sm:grid-cols-12 gap-5 ${validationErrors.length > 0
                     ? 'items-center'
-                    : 'items-end' }` }
-                      onSubmit={ handleCostCentreFormSubmit }>
+                    : 'items-end'}`}
+                    onSubmit={handleCostCentreFormSubmit}>
                     <div className="col-span-4">
                         <Select name="department" id="department" label="Department"
-                                options={ lookups.departments.map(
-                                    option => ( { label: option.department_name, value: option.department_id } )) }
-                                value={ costCentreFormData.department } onChange={ handleCostCentreFormChange }
-                                placeholder="Please selct department" errors={ validationErrors }/>
+                            options={lookups.departments.map(
+                                option => ({ label: option.department_name, value: option.department_id }))}
+                            value={costCentreFormData.department} onChange={handleCostCentreFormChange}
+                            placeholder="Please selct department" errors={validationErrors} />
                     </div>
 
                     <div className="col-span-3">
-                        <Input name="code" id="code" label="Code" value={ costCentreFormData.code }
-                               onChange={ handleCostCentreFormChange } placeholder="Please enter code"
-                               errors={ validationErrors }/>
+                        <Input name="code" id="code" label="Code" value={costCentreFormData.code}
+                            onChange={handleCostCentreFormChange} placeholder="Please enter code"
+                            errors={validationErrors} />
                     </div>
 
                     <div className="col-span-3">
                         <Input name="description" id="description" label="Description"
-                               value={ costCentreFormData.description }
-                               onChange={ handleCostCentreFormChange } placeholder="Please enter description"
-                               errors={ validationErrors }/>
+                            value={costCentreFormData.description}
+                            onChange={handleCostCentreFormChange} placeholder="Please enter description"
+                            errors={validationErrors} />
                     </div>
 
                     <div className="col-span-2">
-                        <Button label="Add New" className="!h-[48px]"/>
+                        <Button label="Add New" className="!h-[48px]" />
                     </div>
 
-                </form> ) }
+                </form>)}
 
 
         </div>

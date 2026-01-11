@@ -9,17 +9,15 @@ use Illuminate\Support\Facades\Validator;
 
 class UserController extends Controller
 {
-    
+
     public function index(Request $request)
     {
-        $perPage = (int) $request->query('per_page', 15);
-
-        $users = User::with(['role', 'team', 'position', 'activeStatus'])->paginate($perPage);
+        $users = User::with(['role', 'team', 'position', 'activeStatus'])->get();
 
         return response()->json($users);
     }
 
-    
+
     public function update(Request $request, $id)
     {
         $user = User::where('user_id', $id)->firstOrFail();
@@ -39,7 +37,13 @@ class UserController extends Controller
         }
 
         $user->fill($request->only([
-            'first_name', 'last_name', 'email', 'role_id', 'team_id', 'position_id', 'active_status_id'
+            'first_name',
+            'last_name',
+            'email',
+            'role_id',
+            'team_id',
+            'position_id',
+            'active_status_id'
         ]));
 
         $user->save();
@@ -47,7 +51,7 @@ class UserController extends Controller
         return response()->json(['user' => $user]);
     }
 
-    
+
     public function destroy(Request $request, $id)
     {
         $user = User::where('user_id', $id)->firstOrFail();
