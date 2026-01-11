@@ -27,9 +27,13 @@ api.interceptors.request.use(
     },
 )
 
-// Add a response interceptor to handle errors globally
+// Add a response interceptor to handle errors globally and auto-unwrap data
 api.interceptors.response.use(
     (response) => {
+        // Auto-unwrap: if response follows { success, data } format, return unwrapped data
+        if (response.data && typeof response.data === 'object' && 'data' in response.data) {
+            response.data = response.data.data
+        }
         return response
     },
     (error) => {

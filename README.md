@@ -211,9 +211,14 @@ docker system prune -a --volumes
 
 #### Database Operations
 
+> [!CAUTION]
+> **SQLite Database Locking**: The queue worker (`expense_queue`) maintains a persistent connection to the SQLite database. Running `migrate:fresh` or other destructive database commands while the queue worker is active will cause a **"database is locked"** error. Always stop the queue worker first.
+
 ```bash
-# Reset database and re-seed
+# ⚠️ IMPORTANT: Stop queue worker before running migrate:fresh
+docker-compose stop queue
 docker-compose exec backend php artisan migrate:fresh --seed
+docker-compose start queue
 
 # Run specific seeder
 docker-compose exec backend php artisan db:seed --class=UserSeeder

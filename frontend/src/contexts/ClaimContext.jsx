@@ -59,7 +59,7 @@ export function ClaimProvider({ children }) {
                 console.log('fetch claims', response)
                 dispatch({
                     type: CLAIM_ACTIONS.SET_CLAIMS,
-                    payload: response.data.data,
+                    payload: response.data,
                 })
             } catch (error) {
                 console.error("Error fetching claims:", error)
@@ -74,7 +74,7 @@ export function ClaimProvider({ children }) {
                 // Add to local state for UI display
                 dispatch({
                     type: CLAIM_ACTIONS.CREATE_CLAIM,
-                    payload: response.data.data,
+                    payload: response.data,
                 })
             }
             catch (error) {
@@ -102,7 +102,7 @@ export function ClaimProvider({ children }) {
         getClaimById: async (claimId) => {
             const response = await api.get(`claims/${claimId}`)
             console.log('fetch single claim', response.data)
-            return response.data.data
+            return response.data
         },
 
     }

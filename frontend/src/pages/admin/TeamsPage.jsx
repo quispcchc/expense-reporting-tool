@@ -49,9 +49,10 @@ function TeamsPage() {
     }, [teamState])
 
     // Custom renderer to display the status badge/tab
-    const renderStatus = (rowData) => (
-        <StatusTab status={rowData.status} />
-    )
+    const renderStatus = (rowData) => {
+        const status = lookups.activeStatuses.find(s => s.active_status_id === rowData.active_status_id)
+        return <StatusTab status={status?.active_status_name || 'Unknown'} />
+    }
 
     // Text input editor used when editing 'code' and 'name' fields
     const textInputEditor = (editorOptions) => (
@@ -119,16 +120,16 @@ function TeamsPage() {
                     editMode="row"
                     onRowEditComplete={onRowEditComplete}
                     filters={filters}
-                    globalFilterFields={['code', 'name', 'status']}
+                    globalFilterFields={['team_abbreviation', 'team_name', 'active_status_id']}
                     header={renderHeader()}
                     emptyMessage={t('common.noResults')}
                     sortMode="multiple"
                     removableSort
                 >
                     {/* Columns with inline editing */}
-                    <Column field="code" header={t('teams.code')} sortable editor={textInputEditor}></Column>
-                    <Column field="name" header={t('teams.name')} sortable editor={textInputEditor}></Column>
-                    <Column field="status" header={t('common.status')} body={renderStatus} sortable editor={statusEditor}></Column>
+                    <Column field="team_abbreviation" header={t('teams.code')} sortable editor={textInputEditor}></Column>
+                    <Column field="team_name" header={t('teams.name')} sortable editor={textInputEditor}></Column>
+                    <Column field="active_status_id" header={t('common.status')} body={renderStatus} sortable editor={statusEditor}></Column>
                     <Column rowEditor={true} header={t('common.actions')} />
                 </DataTable>
             </div>

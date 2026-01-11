@@ -59,7 +59,7 @@ export const AuthProvider = ({ children }) => {
             try {
                 const response = await api.post('/login', credentials)
                 // Use access_token from response and alias it to token
-                const { access_token: token, user } = response.data.data
+                const { access_token: token, user } = response.data
 
                 console.log(response)
 
