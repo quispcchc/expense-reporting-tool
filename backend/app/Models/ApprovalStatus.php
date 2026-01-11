@@ -21,14 +21,15 @@ class ApprovalStatus extends Model
         'approval_status_name',
         'approval_status_desc',
     ];
-    //relationships
+
+    // relationships
     public function expenses()
     {
         return $this->hasMany(Expense::class, 'approval_status_id', 'approval_status_id');
     }
-    public function claimApprovals() 
-    { 
-        return $this->hasMany(ClaimApproval::class, 'approval_status_id', 'approval_status_id'); 
-    }
 
+    public function claimApprovals()
+    {
+        return $this->hasMany(ClaimApproval::class, 'approval_status_id', 'approval_status_id');
+    }
 }

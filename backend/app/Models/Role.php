@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Role extends Model
 {
     use HasFactory;
+
     // Use the exact table name
     protected $table = 'roles';
 
@@ -32,12 +33,10 @@ class Role extends Model
         'role_desc',
     ];
 
-
     public function activeStatus()
     {
         return $this->belongsTo(ActiveStatus::class, 'active_status_id');
     }
-
 
     public function users()
     {

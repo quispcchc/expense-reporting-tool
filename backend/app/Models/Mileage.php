@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -6,9 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 class Mileage extends Model
 {
     protected $table = 'mileage';
+
     protected $primaryKey = 'mileage_id';
+
     public $incrementing = false;
+
     protected $keyType = 'int';
+
     public $timestamps = false;
 
     protected $fillable = [
@@ -21,11 +26,15 @@ class Mileage extends Model
         'parking_amount',
         'receipt_id',
     ];
-    //relationships
-    public function receipt() { 
-        return $this->belongsTo(Receipt::class, 'receipt_id', 'receipt_id'); 
+
+    // relationships
+    public function receipt()
+    {
+        return $this->belongsTo(Receipt::class, 'receipt_id', 'receipt_id');
     }
-    public function expenses() { 
-        return $this->hasMany(Expense::class, 'mileage_id', 'mileage_id'); 
+
+    public function expenses()
+    {
+        return $this->hasMany(Expense::class, 'mileage_id', 'mileage_id');
     }
 }

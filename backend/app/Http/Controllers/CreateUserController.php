@@ -2,16 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\User;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
 use App\Notifications\VerifyEmailNotification;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class CreateUserController extends Controller
 {
@@ -34,7 +29,7 @@ class CreateUserController extends Controller
 
             'password' => null,
             'role_id' => $request->role_id, // Assuming role_id is provided
-            'active_status_id'=>1,
+            'active_status_id' => 1,
             'email_verified_at' => null,
         ]);
 
@@ -42,13 +37,13 @@ class CreateUserController extends Controller
         $token = Str::random(64);
 
         // Store the token
-//        DB::table('email_verification_tokens')->updateOrInsert(
-//            ['email' => $user->email],
-//            [
-//                'token' => bcrypt($token),
-//                'created_at' => now(),
-//            ]
-//        );
+        //        DB::table('email_verification_tokens')->updateOrInsert(
+        //            ['email' => $user->email],
+        //            [
+        //                'token' => bcrypt($token),
+        //                'created_at' => now(),
+        //            ]
+        //        );
 
         // Send email with verification link
         $user->notify(new VerifyEmailNotification($token));

@@ -3,14 +3,12 @@
 namespace Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
-use App\Models\Team;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Team>
  */
 class TeamFactory extends Factory
 {
-
     public function definition(): array
     {
         return [
@@ -18,7 +16,7 @@ class TeamFactory extends Factory
             'team_abbreviation' => strtoupper($this->faker->lexify('???')),
             'team_desc' => $this->faker->sentence(),
             'active_status_id' => $this->faker->randomElement([1, 2]),
-            'department_id' => $this->faker->randomElement([1,5])
+            'department_id' => $this->faker->randomElement([1, 5]),
         ];
     }
 }

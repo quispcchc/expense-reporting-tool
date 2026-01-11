@@ -49,14 +49,12 @@ class ClaimService
             ->where('user_id', $user->user_id)->get();
     }
 
-
     public function getClaimById(int $claimId)
     {
         return Claim::with(['expenses.tags', 'expenses.receipts', 'claimType', 'status', 'position', 'user', 'department', 'team', 'claimNotes.user'])
             ->where('claim_id', $claimId)
             ->first();
     }
-
 
     public function createClaim(array $data, $user): Claim
     {
@@ -75,17 +73,17 @@ class ClaimService
             ]);
 
             // Add claim note
-            if (!empty($data['claim_notes'])) {
+            if (! empty($data['claim_notes'])) {
                 $this->addNote($claim, $user, $data['claim_notes']);
             }
 
             // Add expenses
-            if (!empty($data['expenses'])) {
+            if (! empty($data['expenses'])) {
                 $this->addExpenses($claim, $data['expenses']);
             }
 
             // Add mileage
-            if (!empty($data['mileage'])) {
+            if (! empty($data['mileage'])) {
                 $mileage = Mileage::create($data['mileage']);
                 $claim->update(['mileage_id' => $mileage->mileage_id]);
             }
@@ -115,17 +113,17 @@ class ClaimService
 
             \Log::info('Adding expense', [
                 'expense_index' => $index,
-                'has_files' => !empty($files),
-                'file_count' => is_array($files) ? count($files) : (empty($files) ? 0 : 1)
+                'has_files' => ! empty($files),
+                'file_count' => is_array($files) ? count($files) : (empty($files) ? 0 : 1),
             ]);
 
             $expense = Expense::create($expenseData);
 
             // Handle file uploads (support both single file and array of files)
-            if (!empty($files)) {
+            if (! empty($files)) {
                 // Normalize to array if single file
                 $fileArray = is_array($files) ? $files : [$files];
-                
+
                 foreach ($fileArray as $file) {
                     if ($file && $file instanceof \Illuminate\Http\UploadedFile) {
                         $path = $file->store('receipts', 'public');
@@ -133,7 +131,7 @@ class ClaimService
                             'receipt_path' => $path,
                             'receipt_name' => $file->getClientOriginalName(),
                             'receipt_desc' => $file->getClientMimeType(),
-                            'expense_id' => $expense->expense_id
+                            'expense_id' => $expense->expense_id,
                         ]);
                         \Log::info('Receipt created', ['path' => $path]);
                     }
@@ -141,7 +139,7 @@ class ClaimService
             }
 
             // Handle tags
-            if (!empty($expenseData['tags'])) {
+            if (! empty($expenseData['tags'])) {
                 $tagNames = array_map('trim', explode(',', $expenseData['tags']));
                 $tagIds = [];
                 foreach ($tagNames as $name) {
@@ -153,15 +151,13 @@ class ClaimService
         }
     }
 
-
-    public function updateClaim(array $data,$claimId)
+    public function updateClaim(array $data, $claimId)
     {
         $claim = Claim::find($claimId);
 
-        if (!$claim) {
+        if (! $claim) {
             return response()->json(['message' => 'Claim not found'], 404);
         }
-
 
         // Update the claim
         $claim->claim_type_id = $data['claim_type_id'];
@@ -170,7 +166,7 @@ class ClaimService
 
         return response()->json([
             'message' => 'Claim updated successfully',
-            'claim' => $claim
+            'claim' => $claim,
         ]);
 
     }
@@ -202,29 +198,29 @@ class ClaimService
         try {
             $claim = Claim::with('expenses')->find($claimId);
 
-            if (!$claim) {
-                throw new Exception("Claim not found.", 404);
+            if (! $claim) {
+                throw new Exception('Claim not found.', 404);
             }
 
             // Prevent double-approving or double-rejecting
             if ($claim->claim_status_id == $newStatusId) {
-                throw new Exception("Claim is already in this status.", 400);
+                throw new Exception('Claim is already in this status.', 400);
             }
 
             // Prevent approving rejected or rejecting approved
             if ($claim->claim_status_id !== 1) {  // 1 = Pending
-                throw new Exception("Only pending claims can be updated.", 400);
+                throw new Exception('Only pending claims can be updated.', 400);
             }
 
             // Update claim status
             $claim->update([
-                'claim_status_id' => $newStatusId
+                'claim_status_id' => $newStatusId,
             ]);
 
             // Update all expenses
             foreach ($claim->expenses as $expense) {
                 $expense->update([
-                    'approval_status_id' => $newStatusId
+                    'approval_status_id' => $newStatusId,
                 ]);
             }
 
@@ -240,6 +236,4 @@ class ClaimService
             throw $e;
         }
     }
-
-
 }

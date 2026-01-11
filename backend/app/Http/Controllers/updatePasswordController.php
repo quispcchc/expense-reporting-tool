@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use App\Models\User;
+
 class updatePasswordController extends Controller
 {
     /**
@@ -17,13 +18,13 @@ class updatePasswordController extends Controller
             'new_password' => 'required|string|min:8|confirmed', // must also send new_password_confirmation
         ]);
 
-         $userId = auth()->id();; // check
-         if (!$userId) {
+        $userId = auth()->id(); // check
+        if (! $userId) {
             return response()->json(['message' => 'Unauthenticated'], 401);
-         }
+        }
         $user = User::select('user_id', 'user_pass')->find($userId);
         // Check current password matches
-        if (!Hash::check($request->current_password, $user->user_pass)) {
+        if (! Hash::check($request->current_password, $user->user_pass)) {
             return response()->json(['message' => 'Current password is incorrect'], 403);
         }
 

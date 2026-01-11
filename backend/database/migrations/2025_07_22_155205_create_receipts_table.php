@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('receipt_name', 50);
             $table->string('receipt_desc')->nullable();
             $table->string('receipt_path', 500)->nullable();
-            $table->foreignId('expense_id')->constrained('expenses','expense_id');
+            $table->foreignId('expense_id')->constrained('expenses', 'expense_id');
         });
     }
 

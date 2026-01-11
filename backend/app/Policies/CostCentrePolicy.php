@@ -4,7 +4,6 @@ namespace App\Policies;
 
 use App\Models\CostCentre;
 use App\Models\User;
-use Illuminate\Auth\Access\Response;
 
 class CostCentrePolicy
 {
@@ -45,7 +44,6 @@ class CostCentrePolicy
     /**
      * Determine whether the user can update the model.
      */
-
     public function update(User $user, CostCentre $costCentre): bool
     {
         // Super admin can update anything

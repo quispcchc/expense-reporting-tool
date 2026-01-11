@@ -24,7 +24,7 @@ class RoleController extends Controller
         ]);
 
         $role = Role::create($request->only([
-            'role_id', 'active_status_id', 'role_name', 'role_desc'
+            'role_id', 'active_status_id', 'role_name', 'role_desc',
         ]));
 
         return response()->json(['message' => 'Role created', 'role' => $role]);
@@ -37,7 +37,7 @@ class RoleController extends Controller
 
         $request->validate([
             'active_status_id' => 'required|integer',
-            'role_name' => 'required|string|max:50|unique:role,role_name,' . $id . ',role_id',
+            'role_name' => 'required|string|max:50|unique:role,role_name,'.$id.',role_id',
             'role_desc' => 'nullable|string',
         ]);
 

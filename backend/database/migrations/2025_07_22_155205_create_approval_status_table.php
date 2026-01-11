@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('approval_status', function (Blueprint $table) {
-            //same here too, using "primary()" and "unique" make a conflict
+            // same here too, using "primary()" and "unique" make a conflict
             $table->id('approval_status_id');
             $table->string('approval_status_name', 50);
             $table->string('approval_status_desc')->nullable();

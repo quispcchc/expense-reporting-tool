@@ -14,9 +14,7 @@ use App\Models\Project;
 use App\Models\Role;
 use App\Models\Team;
 use App\Models\User;
-
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Database\Factories\ActiveStatusFactory;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -31,12 +29,12 @@ class DatabaseSeeder extends Seeder
         // Active Status
         ActiveStatus::firstOrCreate([
             'active_status_id' => 1,
-            'active_status_name' => 'Active'
+            'active_status_name' => 'Active',
         ]);
 
         ActiveStatus::firstOrCreate([
             'active_status_id' => 2,
-            'active_status_name' => 'Inactive'
+            'active_status_name' => 'Inactive',
         ]);
 
         // Approval Status
@@ -69,7 +67,7 @@ class DatabaseSeeder extends Seeder
                 ['role_name' => $roleName],
                 [
                     'role_level' => $roleLevel,
-                    'role_desc' => ucfirst($roleName) . ' role',
+                    'role_desc' => ucfirst($roleName).' role',
                     'active_status_id' => 1,
                 ]
             );
@@ -94,7 +92,7 @@ class DatabaseSeeder extends Seeder
         Team::factory(10)->create();
 
         // User
-//        User::factory(10)->create();
+        //        User::factory(10)->create();
 
         $users = [
             ['Super', 'Admin', 'superadmin@example.com', 4],
@@ -112,20 +110,19 @@ class DatabaseSeeder extends Seeder
                 'user_pass' => Hash::make('password'),
                 'active_status_id' => 1,
                 'role_id' => $role,
-                'position_id' => fake()->numberBetween(1,10) ,
-                'department_id' => fake()->numberBetween(1,5) ,
-                'team_id' =>fake()->numberBetween(1,10) ,
+                'position_id' => fake()->numberBetween(1, 10),
+                'department_id' => fake()->numberBetween(1, 5),
+                'team_id' => fake()->numberBetween(1, 10),
             ]);
         }
 
-
         // Projects
-       Project::create([
-           'active_status_id'=>1,
-           'project_name'=>'Project Test',
-           'project_desc'=>'this is a project',
-           'department_id'=>1
-       ]);
+        Project::create([
+            'active_status_id' => 1,
+            'project_name' => 'Project Test',
+            'project_desc' => 'this is a project',
+            'department_id' => 1,
+        ]);
 
         // Claim Types
         $claimTypes = [

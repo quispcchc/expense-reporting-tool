@@ -11,7 +11,9 @@ class ClaimApproval extends Model
     protected $primaryKey = 'claim_approval_id';
 
     public $incrementing = false;
+
     protected $keyType = 'int';
+
     public $timestamps = false;
 
     protected $fillable = [

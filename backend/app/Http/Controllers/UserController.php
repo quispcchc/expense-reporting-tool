@@ -2,21 +2,18 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class UserController extends Controller
 {
-
     public function index(Request $request)
     {
         $users = User::with(['role', 'team', 'position', 'activeStatus'])->get();
 
         return response()->json($users);
     }
-
 
     public function update(Request $request, $id)
     {
@@ -25,7 +22,7 @@ class UserController extends Controller
         $validator = Validator::make($request->all(), [
             'first_name' => 'sometimes|string|max:255',
             'last_name' => 'sometimes|string|max:255',
-            'email' => 'sometimes|email|unique:users,email,' . $user->user_id . ',user_id',
+            'email' => 'sometimes|email|unique:users,email,'.$user->user_id.',user_id',
             'role_id' => 'sometimes|integer|exists:role,role_id',
             'team_id' => 'sometimes|integer|exists:team,team_id',
             'position_id' => 'sometimes|integer|exists:position,position_id',
@@ -43,14 +40,13 @@ class UserController extends Controller
             'role_id',
             'team_id',
             'position_id',
-            'active_status_id'
+            'active_status_id',
         ]));
 
         $user->save();
 
         return response()->json(['user' => $user]);
     }
-
 
     public function destroy(Request $request, $id)
     {

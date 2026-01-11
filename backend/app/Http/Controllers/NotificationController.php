@@ -11,7 +11,6 @@ class NotificationController extends Controller
     /**
      * Notify the user when a claim is updated.
      *
-     * @param  \Illuminate\Http\Request  $request
      * @param  int  $claimId
      * @return \Illuminate\Http\JsonResponse
      */
@@ -25,7 +24,7 @@ class NotificationController extends Controller
         // Find the claim and eager load its user
         $claim = Claim::with('user')->find($claimId);
 
-        if (!$claim || !$claim->user) {
+        if (! $claim || ! $claim->user) {
             return response()->json(['error' => 'Claim or associated user not found'], 404);
         }
 

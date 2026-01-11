@@ -16,7 +16,7 @@ return new class extends Migration
             $table->integer('active_status_id')->nullable();
             $table->string('project_name', 50)->nullable();
             $table->string('project_desc')->nullable();
-            $table->foreignId('department_id')->constrained('departments','department_id')->onDelete('restrict');
+            $table->foreignId('department_id')->constrained('departments', 'department_id')->onDelete('restrict');
         });
     }
 
