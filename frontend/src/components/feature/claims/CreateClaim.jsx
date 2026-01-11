@@ -2,6 +2,7 @@ import AddExpenseForm from './AddExpenseForm.jsx'
 import { useEffect, useState } from 'react'
 import ContentHeader from '../../common/layout/ContentHeader.jsx'
 import { Button } from 'primereact/button'
+import { Dialog } from 'primereact/dialog'
 import ClaimForm from './ClaimForm.jsx'
 import { validateForm } from '../../../utils/validation/validator.js'
 import { validationSchemas } from '../../../utils/validation/schemas.js'
@@ -12,13 +13,13 @@ import { showToast } from '../../../utils/helpers.js'
 
 const calculateTotalAmount = (formData) => {
     const claimItemsTotal = formData.claimItems.reduce(
-        (sum, item) => sum + ( parseFloat(item.amount) || 0 ),
+        (sum, item) => sum + (parseFloat(item.amount) || 0),
         0,
     )
     return claimItemsTotal
 }
 
-function CreateClaim ({ navigateTo, homePath, toastRef }) {
+function CreateClaim({ navigateTo, homePath, toastRef }) {
     const { authUser } = useAuth()
     const { createClaim } = useClaims()
     const navigate = useNavigate()
@@ -28,6 +29,7 @@ function CreateClaim ({ navigateTo, homePath, toastRef }) {
 
     const [expenseErrors, setExpenseErrors] = useState([])
     const [claimErrors, setClaimErrors] = useState()
+    const [validationDialog, setValidationDialog] = useState({ visible: false, header: '', message: '' })
 
     const initialClaimFormData = {
         employeeName: authUser.full_name,
@@ -61,25 +63,25 @@ function CreateClaim ({ navigateTo, homePath, toastRef }) {
 
     const handleFormFieldChange = (e) => {
         const { name, value } = e.target
-        setClaimFormData(prev => ( {
+        setClaimFormData(prev => ({
             ...prev,
-            [ name ]: value,
-        } ))
+            [name]: value,
+        }))
     }
 
     const handleExpenseFieldChange = (e) => {
         const { name, value } = e.target
-        setExpenseFormData(prev => ( {
+        setExpenseFormData(prev => ({
             ...prev,
-            [ name ]: value,
-        } ))
+            [name]: value,
+        }))
     }
 
     const handleClaimItemsUpdate = (updatedClaimItems) => {
-        setClaimFormData(prev => ( {
+        setClaimFormData(prev => ({
             ...prev,
             claimItems: updatedClaimItems,
-        } ))
+        }))
     }
 
     const handleAddExpense = () => {
@@ -93,13 +95,20 @@ function CreateClaim ({ navigateTo, homePath, toastRef }) {
             tags: [...tags],
             attachment: files, // Use files array directly
         }
-        
-        if (!validation.isValid) return alert('Please fill in all required fields!')
 
-        setClaimFormData(prev => ( {
+        if (!validation.isValid) {
+            setValidationDialog({
+                visible: true,
+                header: 'Validation Error',
+                message: 'Please fill in all required fields!'
+            })
+            return
+        }
+
+        setClaimFormData(prev => ({
             ...prev,
             claimItems: [...prev.claimItems, completeExpenseData],
-        } ))
+        }))
 
         // Reset form data and files after adding expense
         setExpenseFormData(initialExpenseFormData)
@@ -108,13 +117,22 @@ function CreateClaim ({ navigateTo, homePath, toastRef }) {
 
     }
 
-    const handleClaimSubmit = async(e) => {
+    const handleClaimSubmit = async (e) => {
         e.preventDefault()
         const claimSchema = validationSchemas.claim
         const validation = validateForm(claimFormData, claimSchema)
         setClaimErrors(validation.errors)
 
-        if (claimFormData.claimItems.length <= 0) return alert('please add at least one expense!')
+        if (claimFormData.claimItems.length <= 0) {
+            if (claimFormData.claimItems.length <= 0) {
+                setValidationDialog({
+                    visible: true,
+                    header: 'Confirmation Required',
+                    message: 'No expense items found. Please add at least one expense before submitting.'
+                })
+                return
+            }
+        }
 
         if (!validation.isValid) return alert('Please fill in all required fields!')
 
@@ -132,18 +150,18 @@ function CreateClaim ({ navigateTo, homePath, toastRef }) {
         claimFormData.claimItems.forEach((expense, index) => {
             console.log('📦 Processing expense', index, expense)
             console.log('📎 Attachments:', expense.attachment)
-            
+
             // Add all non-file fields
-            formData.append(`expenses[${ index }][transaction_date]`, expense.transactionDate)
-            formData.append(`expenses[${ index }][buyer_name]`, expense.buyer)
-            formData.append(`expenses[${ index }][vendor_name]`, expense.vendor)
-            formData.append(`expenses[${ index }][transaction_desc]`, expense.description)
-            formData.append(`expenses[${ index }][expense_amount]`, expense.amount)
-            formData.append(`expenses[${ index }][project_id]`, expense.program)
-            formData.append(`expenses[${ index }][cost_centre_id]`, expense.costCentre)
-            formData.append(`expenses[${ index }][account_number_id]`, expense.accountNum)
-            formData.append(`expenses[${ index }][tags]`, expense.tags)
-            formData.append(`expenses[${ index }][transaction_notes]`, expense.notes)
+            formData.append(`expenses[${index}][transaction_date]`, expense.transactionDate)
+            formData.append(`expenses[${index}][buyer_name]`, expense.buyer)
+            formData.append(`expenses[${index}][vendor_name]`, expense.vendor)
+            formData.append(`expenses[${index}][transaction_desc]`, expense.description)
+            formData.append(`expenses[${index}][expense_amount]`, expense.amount)
+            formData.append(`expenses[${index}][project_id]`, expense.program)
+            formData.append(`expenses[${index}][cost_centre_id]`, expense.costCentre)
+            formData.append(`expenses[${index}][account_number_id]`, expense.accountNum)
+            formData.append(`expenses[${index}][tags]`, expense.tags)
+            formData.append(`expenses[${index}][transaction_notes]`, expense.notes)
 
             // MULTIPLE ATTACHMENTS: { attachment: [{file, url}] }
             if (Array.isArray(expense.attachment) && expense.attachment.length > 0) {
@@ -178,29 +196,39 @@ function CreateClaim ({ navigateTo, homePath, toastRef }) {
     }
 
     return (
-        <form className="my-3" onSubmit={ handleClaimSubmit }>
+        <form className="my-3" onSubmit={handleClaimSubmit}>
             <div className="flex justify-between items-center flex-wrap">
-                <ContentHeader title="Create a new claim" homePath={ homePath }/>
+                <ContentHeader title="Create a new claim" homePath={homePath} />
                 <div className="flex gap-5">
                     <div className="flex flex-col items-end">
                         <p className="text-2xl">Total amount</p>
-                        <p className="text-blue-500">${ calculateTotalAmount(claimFormData).toFixed(2) }</p>
+                        <p className="text-blue-500">${calculateTotalAmount(claimFormData).toFixed(2)}</p>
                     </div>
                     <Button label="Submit claim" type="submit" icon="pi pi-plus"
-                            iconPos="right"/>
+                        iconPos="right" />
                 </div>
             </div>
 
-            <ClaimForm claimFormData={ claimFormData } onFieldChange={ handleFormFieldChange }
-                       errors={ claimErrors }/>
-            <AddExpenseForm claimFormData={ claimFormData } onClaimItemsUpdate={ handleClaimItemsUpdate }
-                            expenseFormData={ expenseFormData } onSetExpenseForm={ setExpenseFormData }
-                            onExpenseChange={ handleExpenseFieldChange }
+            <ClaimForm claimFormData={claimFormData} onFieldChange={handleFormFieldChange}
+                errors={claimErrors} />
+            <AddExpenseForm claimFormData={claimFormData} onClaimItemsUpdate={handleClaimItemsUpdate}
+                expenseFormData={expenseFormData} onSetExpenseForm={setExpenseFormData}
+                onExpenseChange={handleExpenseFieldChange}
 
-                            onAddExpense={ handleAddExpense } tags={ tags } onSetTags={ setTags } files={ files }
-                            onSetFiles={ setFiles } errors={ expenseErrors }
-                            toastRef={ toastRef }
+                onAddExpense={handleAddExpense} tags={tags} onSetTags={setTags} files={files}
+                onSetFiles={setFiles} errors={expenseErrors}
+                toastRef={toastRef}
             />
+            <Dialog header={validationDialog.header} visible={validationDialog.visible} style={{ width: '450px' }}
+                onHide={() => setValidationDialog(prev => ({ ...prev, visible: false }))}
+                footer={
+                    <Button label="OK" icon="pi pi-check" onClick={() => setValidationDialog(prev => ({ ...prev, visible: false }))}
+                        autoFocus />
+                }>
+                <p className="m-0">
+                    {validationDialog.message}
+                </p>
+            </Dialog>
         </form>
 
     )
