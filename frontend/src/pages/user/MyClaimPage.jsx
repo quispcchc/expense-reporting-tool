@@ -17,8 +17,8 @@ function MyClaimPage() {
             const response = await api.get('my-claims');
             // Backend returns standardized response: { status: true, data: [...], ... }
             // We need to unwrap the 'data' property.
-            setMyClaims(response.data.data)
-            console.log('Fetched my claims:', response.data.data)
+            setMyClaims(response.data)
+            console.log('Fetched my claims:', response.data)
         } catch (error) {
             console.error("Error fetching my claims:", error)
         }
