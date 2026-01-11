@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import ComponentContainer from '../../common/ui/ComponentContainer.jsx'
 import { DataTable } from 'primereact/datatable'
 import { Column } from 'primereact/column'
@@ -12,15 +12,28 @@ import { InputText } from 'primereact/inputtext'
 import { IconField } from 'primereact/iconfield'
 import { InputIcon } from 'primereact/inputicon'
 import { Button } from 'primereact/button'
+import { Checkbox } from 'primereact/checkbox'
+import { Calendar } from 'primereact/calendar'
+import { InputNumber } from 'primereact/inputnumber'
 import { BUTTON_STYLE, STATUS_STYLES } from '../../../utils/customizeStyle.js'
 import { showToast } from '../../../utils/helpers.js'
 import { useLookups } from '../../../contexts/LookupContext.jsx'
 import { useClaims } from '../../../contexts/ClaimContext.jsx'
 import api from '../../../api/api.js'
 import { confirmDialog } from 'primereact/confirmdialog'
+import { useIsMobile } from '../../../hooks/useIsMobile.js'
+
+// Status color mapping for cards
+const STATUS_COLORS = {
+    'Pending': 'bg-yellow-100 text-yellow-800',
+    'Approved': 'bg-green-100 text-green-800',
+    'Rejected': 'bg-red-100 text-red-800',
+    'Draft': 'bg-gray-100 text-gray-800',
+}
 
 function ClaimListDataTable({ claims, user, path, toastRef }) {
     const { fetchClaims } = useClaims()
+    const isMobile = useIsMobile()
 
     useEffect(() => {
         const fetchData = async () => {
@@ -34,9 +47,22 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
     // State for global filter input and DataTable filters
     const [globalFilterValue, setGlobalFilterValue] = useState('')
 
-    const [selectedClaims, setSelectedClaims] = useState(null)
+    const [selectedClaims, setSelectedClaims] = useState([])
     const isDisabled = !selectedClaims || selectedClaims.length === 0;
     const [isExporting, setIsExporting] = useState(false)
+
+    // Filter modal state (shared for mobile and desktop)
+    const [showFilterModal, setShowFilterModal] = useState(false)
+    const [filterValues, setFilterValues] = useState({
+        keyword: '',
+        requestId: '',
+        status: '',
+        type: '',
+        amountMin: null,
+        amountMax: null,
+        dateFrom: null,
+        dateTo: null
+    })
 
     const [filters, setFilters] = useState({
         global: { value: null, matchMode: FilterMatchMode.CONTAINS },
@@ -46,6 +72,34 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
         claim_submitted: { value: null, matchMode: FilterMatchMode.BETWEEN },
         'status.claim_status_name': { value: null, matchMode: FilterMatchMode.EQUALS },
     })
+
+    // Filtered claims for mobile view
+    const filteredClaims = useMemo(() => {
+        if (!claims) return []
+
+        return claims.filter(claim => {
+            const matchKeyword = !filterValues.keyword ||
+                String(claim.claim_id).toLowerCase().includes(filterValues.keyword.toLowerCase()) ||
+                claim.claim_type?.claim_type_name?.toLowerCase().includes(filterValues.keyword.toLowerCase())
+
+            const matchRequestId = !filterValues.requestId ||
+                String(claim.claim_id).includes(filterValues.requestId)
+
+            const matchStatus = !filterValues.status ||
+                claim.status?.claim_status_name === filterValues.status
+
+            const matchType = !filterValues.type ||
+                claim.claim_type?.claim_type_name === filterValues.type
+
+            const matchAmountMin = !filterValues.amountMin ||
+                claim.total_amount >= filterValues.amountMin
+
+            const matchAmountMax = !filterValues.amountMax ||
+                claim.total_amount <= filterValues.amountMax
+
+            return matchKeyword && matchRequestId && matchStatus && matchType && matchAmountMin && matchAmountMax
+        })
+    }, [claims, filterValues])
 
     // Handle global search input changes
     const onGlobalFilterChange = (e) => {
@@ -250,17 +304,200 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
         }
     }
 
+    // Toggle claim selection for mobile
+    const toggleClaimSelection = (claim) => {
+        const isSelected = selectedClaims.some(c => c.claim_id === claim.claim_id)
+        if (isSelected) {
+            setSelectedClaims(selectedClaims.filter(c => c.claim_id !== claim.claim_id))
+        } else {
+            setSelectedClaims([...selectedClaims, claim])
+        }
+    }
+
+    // Apply mobile filters
+    const applyMobileFilters = () => {
+        setShowFilterModal(false)
+    }
+
+    // Clear mobile filters
+    const clearMobileFilters = () => {
+        setFilterValues({ keyword: '', requestId: '', status: '', type: '', amountMin: null, amountMax: null, dateFrom: null, dateTo: null })
+        setShowFilterModal(false)
+    }
+
+    // Apply desktop filters from overlay
+    const applyDesktopFilters = () => {
+        let _filters = { ...filters }
+
+        _filters['status.claim_status_name'].value = filterValues.status || null
+        _filters['claim_type.claim_type_name'].value = filterValues.type || null
+        _filters['claim_id'].value = filterValues.requestId || null
+
+        // Amount range filter
+        if (filterValues.amountMin !== null || filterValues.amountMax !== null) {
+            _filters['total_amount'].value = [filterValues.amountMin, filterValues.amountMax]
+        } else {
+            _filters['total_amount'].value = null
+        }
+
+        // Date range filter
+        if (filterValues.dateFrom || filterValues.dateTo) {
+            _filters['claim_submitted'].value = [filterValues.dateFrom, filterValues.dateTo]
+        } else {
+            _filters['claim_submitted'].value = null
+        }
+
+        setFilters(_filters)
+        setShowFilterModal(false)
+    }
+
+    // Clear desktop filters
+    const clearDesktopFilters = () => {
+        setFilterValues({ keyword: '', requestId: '', status: '', type: '', amountMin: null, amountMax: null, dateFrom: null, dateTo: null })
+        let _filters = { ...filters }
+        _filters['status.claim_status_name'].value = null
+        _filters['claim_type.claim_type_name'].value = null
+        _filters['claim_id'].value = null
+        _filters['total_amount'].value = null
+        _filters['claim_submitted'].value = null
+        _filters['global'].value = null
+        setFilters(_filters)
+        setGlobalFilterValue('')
+        setShowFilterModal(false)
+    }
+
+    // Check if any filter is active
+    const hasActiveFilters = filterValues.status || filterValues.type || filterValues.requestId ||
+        filterValues.amountMin !== null || filterValues.amountMax !== null ||
+        filterValues.dateFrom || filterValues.dateTo || globalFilterValue
+
+    // ============================================
+    // DESKTOP FILTER OVERLAY (always rendered, visibility controlled by CSS)
+    // ============================================
+    const desktopFilterOverlay = (
+        <div className={`desktop-filter-overlay ${showFilterModal ? 'visible' : ''}`} onClick={() => setShowFilterModal(false)}>
+            <div className="desktop-filter-panel" onClick={(e) => e.stopPropagation()}>
+                <div className="desktop-filter-header">
+                    <span>Filter Claims</span>
+                    <button onClick={() => setShowFilterModal(false)} className="text-gray-500 hover:text-gray-700">
+                        <i className="pi pi-times text-lg" />
+                    </button>
+                </div>
+                <div className="desktop-filter-body">
+                    {/* Request # */}
+                    <div className="desktop-filter-field">
+                        <label>Request #</label>
+                        <InputText
+                            value={filterValues.requestId}
+                            onChange={(e) => setFilterValues({ ...filterValues, requestId: e.target.value })}
+                            placeholder="Search by ID..."
+                            className="w-full"
+                        />
+                    </div>
+
+                    {/* Claim Type */}
+                    <div className="desktop-filter-field">
+                        <label>Claim Type</label>
+                        <Dropdown
+                            value={filterValues.type}
+                            options={claimTypes.map(opt => ({ label: opt.claim_type_name, value: opt.claim_type_name }))}
+                            onChange={(e) => setFilterValues({ ...filterValues, type: e.value })}
+                            placeholder="All Types"
+                            showClear
+                            className="w-full"
+                        />
+                    </div>
+
+                    {/* Total Amount Range - Compact */}
+                    <div className="desktop-filter-field">
+                        <label>Total Amount</label>
+                        <div className="flex gap-2 items-center">
+                            <InputNumber
+                                value={filterValues.amountMin}
+                                onValueChange={(e) => setFilterValues({ ...filterValues, amountMin: e.value })}
+                                placeholder="Min"
+                                className="flex-1 amount-input-compact"
+                            />
+                            <span className="text-gray-400">~</span>
+                            <InputNumber
+                                value={filterValues.amountMax}
+                                onValueChange={(e) => setFilterValues({ ...filterValues, amountMax: e.value })}
+                                placeholder="Max"
+                                className="flex-1 amount-input-compact"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Submitted At Date Range - Compact */}
+                    <div className="desktop-filter-field">
+                        <label>Submitted At</label>
+                        <div className="flex flex-col gap-2">
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm text-gray-500 w-12">From</span>
+                                <input
+                                    type="date"
+                                    value={filterValues.dateFrom || ''}
+                                    onChange={(e) => setFilterValues({ ...filterValues, dateFrom: e.target.value })}
+                                    className="flex-1 date-input-compact"
+                                />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm text-gray-500 w-12">To</span>
+                                <input
+                                    type="date"
+                                    value={filterValues.dateTo || ''}
+                                    onChange={(e) => setFilterValues({ ...filterValues, dateTo: e.target.value })}
+                                    className="flex-1 date-input-compact"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Status */}
+                    <div className="desktop-filter-field">
+                        <label>Status</label>
+                        <Dropdown
+                            value={filterValues.status}
+                            options={claimStatus.map(opt => ({ label: opt.claim_status_name, value: opt.claim_status_name }))}
+                            onChange={(e) => setFilterValues({ ...filterValues, status: e.value })}
+                            placeholder="All Statuses"
+                            showClear
+                            className="w-full"
+                        />
+                    </div>
+                </div>
+                <div className="desktop-filter-actions">
+                    <Button label="Clear" icon="pi pi-times" outlined onClick={clearDesktopFilters} className="flex-1" />
+                    <Button label="Apply" icon="pi pi-check" onClick={applyDesktopFilters} className="flex-1" />
+                </div>
+            </div>
+        </div>
+    )
+
+    // ============================================
+    // DESKTOP TABLE VIEW
+    // ============================================
     const adminHeaderTemplate = () => (
         <div className="flex justify-between items-center flex-wrap gap-2">
-            <div className="flex justify-end">
+            <div className="flex items-center gap-2">
                 <IconField iconPosition="left">
                     <InputIcon className="pi pi-search" />
                     <InputText
                         value={globalFilterValue}
                         onChange={onGlobalFilterChange}
                         placeholder="Keyword Search"
+                        className="w-64"
                     />
                 </IconField>
+                <Button
+                    label="Filter"
+                    icon="pi pi-filter"
+                    outlined
+                    onClick={() => setShowFilterModal(true)}
+                    badge={hasActiveFilters ? "●" : undefined}
+                    badgeClassName="p-badge-info"
+                    className="filter-button"
+                />
             </div>
 
             <div className="flex gap-2 flex-wrap">
@@ -287,16 +524,26 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
     )
 
     const userHeaderTemplate = () => (
-        <div className="flex justify-between items-center">
-            <div className="flex justify-end">
+        <div className="flex justify-between items-center gap-2">
+            <div className="flex items-center gap-2">
                 <IconField iconPosition="left">
                     <InputIcon className="pi pi-search" />
                     <InputText
                         value={globalFilterValue}
                         onChange={onGlobalFilterChange}
                         placeholder="Keyword Search"
+                        className="w-64"
                     />
                 </IconField>
+                <Button
+                    label="Filter"
+                    icon="pi pi-filter"
+                    outlined
+                    onClick={() => setShowFilterModal(true)}
+                    badge={hasActiveFilters ? "●" : undefined}
+                    badgeClassName="p-badge-info"
+                    className="filter-button"
+                />
             </div>
 
             <div className="flex gap-2">
@@ -308,49 +555,250 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
         </div>
     )
 
+    const DesktopTableView = () => (
+        <>
+            {desktopFilterOverlay}
+            <ComponentContainer>
+                <DataTable value={claims} header={user === 'admin' ? adminHeaderTemplate : userHeaderTemplate}
+                    paginator rows={10} rowsPerPageOptions={[5, 10, 25, 50]}
+                    paginatorTemplate="RowsPerPageDropdown FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink"
+                    currentPageReportTemplate="{first} to {last} of {totalRecords}"
+                    filters={filters}
+                    globalFilterFields={[
+                        'claim_id',
+                        'claim_type.claim_type_name',
+                        'total_amount',
+                        'claim_submitted',
+                        'status.claim_status_name',
+                    ]}
+                    selectionMode="checkbox"
+                    selection={selectedClaims} onSelectionChange={(e) => setSelectedClaims(e.value)}
+                    dataKey="claim_id"
+                    tableStyle={{ minWidth: '60rem' }}
+                    className="claims-datatable"
+                    removableSort
+                >
+
+                    <Column selectionMode="multiple" headerStyle={{ width: '50px' }}
+                        headerClassName="checkbox-header" bodyClassName="checkbox-cell"></Column>
+
+                    <Column field="claim_id" header="Request #" sortable></Column>
+
+                    <Column field="claim_type.claim_type_name" header="Claim Type" sortable></Column>
+
+                    <Column field="total_amount" header="Total Amount" body={totalAmountBodyTemplate} sortable></Column>
+
+                    <Column field="claim_submitted" header="Submitted At" sortable></Column>
+
+                    <Column field="status.claim_status_name" header="Status" body={statusBodyTemplate} sortable></Column>
+
+                    <Column header="Action" body={actionBodyTemplate} style={{ width: '80px' }}></Column>
+
+                </DataTable>
+            </ComponentContainer>
+        </>
+    )
+
+    // ============================================
+    // MOBILE CARD VIEW (always rendered, visibility controlled by CSS)
+    // ============================================
+    const mobileFilterModal = (
+        <div className={`mobile-filter-overlay ${showFilterModal ? 'visible' : ''}`} onClick={() => setShowFilterModal(false)}>
+            <div className="mobile-filter-panel" onClick={(e) => e.stopPropagation()}>
+                <div className="mobile-filter-header">
+                    <span>Filter Claims</span>
+                    <button onClick={() => setShowFilterModal(false)} className="text-gray-500">
+                        <i className="pi pi-times" />
+                    </button>
+                </div>
+                <div className="mobile-filter-body">
+                    <div className="mobile-filter-field">
+                        <label>Keyword</label>
+                        <InputText
+                            value={filterValues.keyword}
+                            onChange={(e) => setFilterValues({ ...filterValues, keyword: e.target.value })}
+                            placeholder="Search by ID or type..."
+                            className="w-full"
+                        />
+                    </div>
+                    <div className="mobile-filter-field">
+                        <label>Claim Type</label>
+                        <Dropdown
+                            value={filterValues.type}
+                            options={claimTypes.map(opt => ({ label: opt.claim_type_name, value: opt.claim_type_name }))}
+                            onChange={(e) => setFilterValues({ ...filterValues, type: e.value })}
+                            placeholder="All Types"
+                            showClear
+                            className="w-full"
+                        />
+                    </div>
+                    <div className="mobile-filter-field">
+                        <label>Total Amount</label>
+                        <div className="flex gap-2 items-center">
+                            <InputNumber
+                                value={filterValues.amountMin}
+                                onValueChange={(e) => setFilterValues({ ...filterValues, amountMin: e.value })}
+                                placeholder="Min"
+                                className="flex-1"
+                            />
+                            <span className="text-gray-400">~</span>
+                            <InputNumber
+                                value={filterValues.amountMax}
+                                onValueChange={(e) => setFilterValues({ ...filterValues, amountMax: e.value })}
+                                placeholder="Max"
+                                className="flex-1"
+                            />
+                        </div>
+                    </div>
+                    <div className="mobile-filter-field">
+                        <label>Submitted At</label>
+                        <div className="flex flex-col gap-2">
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs text-gray-500 w-10">From</span>
+                                <input
+                                    type="date"
+                                    value={filterValues.dateFrom || ''}
+                                    onChange={(e) => setFilterValues({ ...filterValues, dateFrom: e.target.value })}
+                                    className="flex-1 date-input-compact"
+                                />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs text-gray-500 w-10">To</span>
+                                <input
+                                    type="date"
+                                    value={filterValues.dateTo || ''}
+                                    onChange={(e) => setFilterValues({ ...filterValues, dateTo: e.target.value })}
+                                    className="flex-1 date-input-compact"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                    <div className="mobile-filter-field">
+                        <label>Status</label>
+                        <Dropdown
+                            value={filterValues.status}
+                            options={claimStatus.map(opt => ({ label: opt.claim_status_name, value: opt.claim_status_name }))}
+                            onChange={(e) => setFilterValues({ ...filterValues, status: e.value })}
+                            placeholder="All Statuses"
+                            showClear
+                            className="w-full"
+                        />
+                    </div>
+                </div>
+                <div className="mobile-filter-actions">
+                    <Button label="Clear" icon="pi pi-times" outlined onClick={clearMobileFilters} className="flex-1" />
+                    <Button label="Apply" icon="pi pi-check" onClick={applyMobileFilters} className="flex-1" />
+                </div>
+            </div>
+        </div>
+    )
+
+    const MobileHeader = () => (
+        <div className="mobile-claims-header">
+            <div className="flex items-center gap-2 mb-3">
+                <button
+                    className="mobile-filter-btn"
+                    onClick={() => setShowFilterModal(true)}
+                >
+                    <i className="pi pi-filter" />
+                    <span>Filter</span>
+                </button>
+                <Link to={`${path}/claims/create-claim`}>
+                    <Button icon="pi pi-plus" label="New" size="small" />
+                </Link>
+            </div>
+
+            {user === 'admin' && selectedClaims.length > 0 && (
+                <div className="flex gap-2 flex-wrap mb-3">
+                    <span className="text-sm text-gray-600">{selectedClaims.length} selected</span>
+                    <Button label="Approve" size="small" outlined className={BUTTON_STYLE.success}
+                        onClick={bulkApproveClaim} disabled={isExporting} />
+                    <Button label="Reject" size="small" outlined className={BUTTON_STYLE.danger}
+                        onClick={bulkRejectClaim} disabled={isExporting} />
+                    <Button
+                        label={isExporting ? "..." : "Export"}
+                        size="small"
+                        outlined
+                        onClick={handleExportPdf}
+                        disabled={isExporting}
+                        loading={isExporting}
+                    />
+                </div>
+            )}
+        </div>
+    )
+
+    const ClaimCard = ({ claim }) => {
+        const isSelected = selectedClaims.some(c => c.claim_id === claim.claim_id)
+        const statusName = claim.status?.claim_status_name || 'Unknown'
+        const statusColor = STATUS_COLORS[statusName] || 'bg-gray-100 text-gray-800'
+
+        return (
+            <div className={`claim-card ${isSelected ? 'claim-card-selected' : ''}`}>
+                <div className="claim-card-header">
+                    <div className="flex items-center gap-2">
+                        <Checkbox
+                            checked={isSelected}
+                            onChange={() => toggleClaimSelection(claim)}
+                        />
+                        <div>
+                            <div className="text-xs text-gray-500">Request #{claim.claim_id}</div>
+                            <div className="text-sm font-medium">
+                                {claim.claim_type?.claim_type_name} · ${claim.total_amount}
+                            </div>
+                        </div>
+                    </div>
+                    <span className={`claim-card-status ${statusColor}`}>
+                        {statusName}
+                    </span>
+                </div>
+                <div className="claim-card-body">
+                    <div className="claim-card-detail">
+                        <span className="text-gray-500 text-xs">Submitted At</span>
+                        <div className="text-sm">{claim.claim_submitted}</div>
+                    </div>
+                    <div className="claim-card-actions">
+                        {user === 'admin' ? (
+                            <Link to={`${claim.claim_id}/edit-claim`}>
+                                <Button icon="pi pi-pencil" size="small" text />
+                            </Link>
+                        ) : (
+                            <Link to={`${claim.claim_id}/view-claim`}>
+                                <Button icon="pi pi-eye" size="small" text />
+                            </Link>
+                        )}
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+    const MobileCardView = () => (
+        <div className="mobile-claims-container">
+            {mobileFilterModal}
+            <MobileHeader />
+
+            <div className="mobile-claims-list">
+                {filteredClaims.length === 0 ? (
+                    <div className="text-center text-gray-500 py-8">
+                        No claims found
+                    </div>
+                ) : (
+                    filteredClaims.map(claim => (
+                        <ClaimCard key={claim.claim_id} claim={claim} />
+                    ))
+                )}
+            </div>
+        </div>
+    )
+
+    // ============================================
+    // RENDER
+    // ============================================
     return (
-        <ComponentContainer>
-            <DataTable value={claims} header={user === 'admin' ? adminHeaderTemplate : userHeaderTemplate}
-                paginator rows={5} rowsPerPageOptions={[5, 10, 25, 50]}
-                paginatorTemplate="RowsPerPageDropdown FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink"
-                currentPageReportTemplate="{first} to {last} of {totalRecords}"
-                filters={filters} filterDisplay="row"
-                globalFilterFields={[
-                    'claim_id',
-                    'claim_type.claim_type_name',
-                    'total_amount',
-                    'claim_submitted',
-                    'status.claim_status_name',
-                ]}
-                selectionMode="checkbox"
-                selection={selectedClaims} onSelectionChange={(e) => setSelectedClaims(e.value)}
-            >
-
-                <Column selectionMode="multiple" headerStyle={{ width: '3rem', textAlign: 'center' }}></Column>
-
-                <Column field="claim_id" header="Request #" sortable filter filterElement={customTextFilter}
-                    showFilterMenu={false}></Column>
-
-                <Column field="claim_type.claim_type_name" header="Claim type" filter sortable
-                    filterElement={claimTypeFilterTemplate}
-                    showFilterMenu={false}></Column>
-
-                <Column field="total_amount" header="Total Amount" body={totalAmountBodyTemplate} sortable filter
-                    filterElement={(options) => <AmountRangeFilter options={options} />}
-                    showFilterMenu={false}></Column>
-
-                <Column field="claim_submitted" header="Submitted At" sortable
-                    filter filterElement={(options) => <DateRangeFilter options={options} />}
-                    showFilterMenu={false}></Column>
-
-                <Column field="status.claim_status_name" header="Status" body={statusBodyTemplate} sortable filter
-                    showFilterMenu={false}
-                    filterElement={statusRowFilterTemplate}></Column>
-
-                <Column header="Action" body={actionBodyTemplate}></Column>
-
-            </DataTable>
-        </ComponentContainer>
+        <div className="claims-list-wrapper">
+            {isMobile ? <MobileCardView /> : <DesktopTableView />}
+        </div>
     )
 }
 
