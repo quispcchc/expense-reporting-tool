@@ -5,22 +5,22 @@ function StatusTab({ status }) {
     let label = '';
     let color = '';
 
-    switch(status) {
+    switch (status) {
         case 1:
             label = 'Pending';
-            color = 'bg-[#FFF5C5] text-[#E27D00]';
+            color = 'bg-status-pending text-status-pending';
             break;
         case 2:
             label = 'Approved';
-            color = 'bg-[#B2FFB4] text-[#04910C]';
+            color = 'bg-status-success text-status-success';
             break;
         case 3:
             label = 'Rejected';
-            color = 'bg-[#FFDCDC] text-[#FF0000]';
+            color = 'bg-status-danger text-status-danger';
             break;
         default:
             label = 'Unknown';
-            color = 'bg-[#FFF5C5] text-[#E27D00]';
+            color = 'bg-status-pending text-status-pending';
     }
 
 

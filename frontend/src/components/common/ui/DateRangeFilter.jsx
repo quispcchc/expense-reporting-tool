@@ -27,14 +27,14 @@ const DateRangeFilter = ({ options }) => {
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
                 className="p-inputtext p-component"
-                placeholder={t('filter.startDate', 'Start Date')}
+                placeholder={t('filters.startDate')}
             />
             <input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
                 className="p-inputtext p-component"
-                placeholder={t('filter.endDate', 'End Date')}
+                placeholder={t('filters.endDate')}
             />
 
         </div>

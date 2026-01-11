@@ -1,11 +1,12 @@
 import axios from 'axios'
+import i18n from '../i18n/index.js' // Import i18n instance
 
 // Export the base URL for use in other components
-export const API_BASE_URL = 'http://127.0.0.1:8000'
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
 
 const api = axios.create({
     baseURL: `${API_BASE_URL}/api`, // Base URL for all API requests
-    timeout: 300000, // Request timeout set to 300 seconds (5 minutes) for PDF generation
+    timeout: Number(import.meta.env.VITE_API_TIMEOUT) || 300000, // Request timeout set to 300 seconds (5 minutes) for PDF generation
 })
 
 import Cookies from 'js-cookie'
@@ -33,7 +34,7 @@ api.interceptors.response.use(
     },
     (error) => {
         // Handle error
-        let message = "An unknown error occurred";
+        let message = i18n.t('errors.unknownError');
         let status = undefined;
         let fullError = error;
 
@@ -59,7 +60,7 @@ api.interceptors.response.use(
             }
         } else if (error.request) {
             // Request made but no response
-            message = "No response from server. This may be a timeout or network error.";
+            message = i18n.t('errors.networkError');
         } else if (error.message) {
             // Error in request setup
             message = error.message;

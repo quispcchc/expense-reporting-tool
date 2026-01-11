@@ -55,12 +55,12 @@ const TagInput = ({ tags, onSetTags }) => {
                 {tags.map((tag, index) => (
                     <span
                         key={index}
-                        className="flex items-center gap-1 px-2 py-1 bg-[#D9EDFF] text-[#184190] rounded-md text-sm font-medium"
+                        className="flex items-center gap-1 px-2 py-1 bg-brand-light text-brand-primary rounded-md text-sm font-medium"
                     >
                         {tag}
                         <button
                             type="button"
-                            className="text-[#184190] hover:bg-white/50 rounded-sm p-0.5"
+                            className="text-brand-primary hover:bg-white/50 rounded-sm p-0.5"
                             onClick={(e) => {
                                 e.stopPropagation()
                                 removeTag(index)

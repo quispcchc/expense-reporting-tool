@@ -170,6 +170,8 @@ function CostCentresPage() {
             <AddNewCostCentre createdToast={toasts.created} />
             <div className="bg-white rounded-xl p-6 mt-5">
                 <DataTable value={costCentres} paginator rows={5} rowsPerPageOptions={[5, 10, 25, 50]}
+                    paginatorTemplate="FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink RowsPerPageDropdown"
+                    currentPageReportTemplate="{first} to {last} of {totalRecords}"
                     filters={filters} globalFilterFields={[
                         'department.department_name',
                         'cost_centre_code',

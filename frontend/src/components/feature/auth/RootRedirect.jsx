@@ -1,11 +1,13 @@
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../../../contexts/AuthContext'
+import { useTranslation } from 'react-i18next'
 
 const RootRedirect = () => {
+    const { t } = useTranslation()
     const { isAuthenticated, authUser, isLoading } = useAuth()
 
     if (isLoading) {
-        return <div>Loading...</div> // Or a proper spinner
+        return <div>{t('common.loading')}</div> // Or a proper spinner
     }
 
     if (isAuthenticated() && authUser) {

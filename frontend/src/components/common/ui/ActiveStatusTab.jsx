@@ -5,18 +5,18 @@ function ActiveStatusTab({ status }) {
     let label = '';
     let color = '';
 
-    switch(status) {
+    switch (status) {
         case 1:
             label = 'Active';
-            color =  'bg-[#B2FFB4] text-[#04910C]';
+            color = 'bg-status-success text-status-success';
             break;
         case 2:
             label = 'Inactive';
-            color ='bg-[#FFDCDC] text-[#FF0000]';
+            color = 'bg-status-danger text-status-danger';
             break;
         default:
             label = 'Unknown';
-            color = 'bg-[#FFF5C5] text-[#E27D00]';
+            color = 'bg-status-pending text-status-pending';
     }
 
 

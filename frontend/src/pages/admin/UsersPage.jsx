@@ -153,6 +153,8 @@ function UsersPage() {
                     paginator
                     rows={10}
                     rowsPerPageOptions={[5, 10, 25, 50]}
+                    paginatorTemplate="FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink RowsPerPageDropdown"
+                    currentPageReportTemplate="{first} to {last} of {totalRecords}"
                     filters={filters}
                     globalFilterFields={[
                         'user_id', 'first_name', 'last_name',

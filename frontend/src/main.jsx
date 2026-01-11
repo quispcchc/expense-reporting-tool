@@ -7,17 +7,21 @@ import { AuthProvider } from './contexts/AuthContext.jsx'
 import { ClaimProvider } from './contexts/ClaimContext.jsx'
 import { PrimeReactProvider } from 'primereact/api'
 import { LookupProvider } from './contexts/LookupContext.jsx'
+import { ThemeProvider } from './contexts/ThemeContext.jsx'
 
 createRoot(document.getElementById('root')).render(
     <StrictMode>
-        <PrimeReactProvider>
-            <AuthProvider>
-                <LookupProvider>
-                    <ClaimProvider>
-                        <App />
-                    </ClaimProvider>
-                </LookupProvider>
-            </AuthProvider>
-        </PrimeReactProvider>
+        <ThemeProvider>
+            <PrimeReactProvider>
+                <AuthProvider>
+                    <LookupProvider>
+                        <ClaimProvider>
+                            <App />
+                        </ClaimProvider>
+                    </LookupProvider>
+                </AuthProvider>
+            </PrimeReactProvider>
+        </ThemeProvider>
     </StrictMode>,
 )
+

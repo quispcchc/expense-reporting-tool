@@ -1,49 +1,27 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Dropdown } from 'primereact/dropdown'
-
-const languageOptions = [
-    { label: 'English', value: 'en', flag: '🇨🇦' },
-    { label: 'Français', value: 'fr', flag: '🇨🇦' }
-]
 
 function LanguageSwitcher() {
     const { i18n } = useTranslation()
 
-    const handleLanguageChange = (e) => {
-        i18n.changeLanguage(e.value)
-    }
+    const currentLang = i18n.language?.substring(0, 2) || 'en'
 
-    const selectedLanguageTemplate = (option) => {
-        if (option) {
-            return (
-                <div className="flex items-center gap-2">
-                    <span>{option.flag}</span>
-                    <span>{option.label}</span>
-                </div>
-            )
-        }
-        return <span>Select Language</span>
-    }
-
-    const languageOptionTemplate = (option) => {
-        return (
-            <div className="flex items-center gap-2 p-2">
-                <span>{option.flag}</span>
-                <span>{option.label}</span>
-            </div>
-        )
+    const toggleLanguage = () => {
+        const newLang = currentLang === 'en' ? 'fr' : 'en'
+        i18n.changeLanguage(newLang)
     }
 
     return (
-        <Dropdown
-            value={i18n.language?.substring(0, 2) || 'en'}
-            options={languageOptions}
-            onChange={handleLanguageChange}
-            valueTemplate={selectedLanguageTemplate}
-            itemTemplate={languageOptionTemplate}
-            className="w-32"
-        />
+        <button
+            onClick={toggleLanguage}
+            className="flex items-center justify-center w-12 h-12 rounded-lg bg-[var(--color-bg-secondary)] hover:bg-[var(--color-border)] transition-colors"
+            aria-label={currentLang === 'en' ? 'Switch to French' : 'Switch to English'}
+            title={currentLang === 'en' ? 'Français' : 'English'}
+        >
+            <span className="text-base font-medium text-[var(--color-text-primary)]">
+                {currentLang.toUpperCase()}
+            </span>
+        </button>
     )
 }
 

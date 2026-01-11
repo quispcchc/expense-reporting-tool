@@ -8,7 +8,7 @@ function ContentHeader({ title, homePath }) {
     const { t } = useTranslation()
     const items = title ? [{ label: title }] : null
     const home = {
-        template: () => <Link to={homePath} className="text-gray-500"><span className="pi pi-home mr-1"></span>{t('common.home')}</Link>,
+        template: () => <Link to={homePath} className="text-text-secondary"><span className="pi pi-home mr-1"></span>{t('common.home')}</Link>,
     }
 
     return (

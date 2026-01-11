@@ -503,9 +503,9 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
             </div>
 
             <div className="flex gap-2 flex-wrap">
-                <Button label={t('claims.approve')} outlined className={BUTTON_STYLE.success} icon="pi pi-check" iconPos="right"
+                <Button label="Approve" outlined className={BUTTON_STYLE.success} icon="pi pi-check" iconPos="right"
                     onClick={bulkApproveClaim} disabled={isDisabled || isExporting} />
-                <Button label={t('claims.reject')} outlined className={BUTTON_STYLE.danger} icon="pi pi-times" iconPos="right"
+                <Button label="Reject" outlined className={BUTTON_STYLE.danger} icon="pi pi-times" iconPos="right"
                     onClick={bulkRejectClaim} disabled={isDisabled || isExporting} />
                 <Button
                     label={isExporting ? t('claims.exporting', 'Exporting...') : t('claims.export', 'Export')}
@@ -563,7 +563,7 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
             <ComponentContainer>
                 <DataTable value={claims} header={user === 'admin' ? adminHeaderTemplate : userHeaderTemplate}
                     paginator rows={10} rowsPerPageOptions={[5, 10, 25, 50]}
-                    paginatorTemplate="RowsPerPageDropdown FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink"
+                    paginatorTemplate="FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink RowsPerPageDropdown"
                     currentPageReportTemplate="{first} to {last} of {totalRecords}"
                     filters={filters}
                     globalFilterFields={[
@@ -576,25 +576,25 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
                     selectionMode="checkbox"
                     selection={selectedClaims} onSelectionChange={(e) => setSelectedClaims(e.value)}
                     dataKey="claim_id"
-                    tableStyle={{ minWidth: '60rem' }}
+                    tableStyle={{ minWidth: '50rem' }}
                     className="claims-datatable"
                     removableSort
                 >
 
-                    <Column selectionMode="multiple" headerStyle={{ width: '50px' }}
-                        headerClassName="checkbox-header" bodyClassName="checkbox-cell"></Column>
+                    <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}
+                        headerClassName="checkbox-header" bodyClassName="checkbox-cell text-center"></Column>
 
-                    <Column field="claim_id" header={t('claims.requestNumber', 'Request #')} sortable></Column>
+                    <Column field="claim_id" header={t('claims.requestNumber', 'Request #')} sortable style={{ minWidth: '4rem' }} headerStyle={{ textAlign: 'center' }} bodyClassName="text-center"></Column>
 
-                    <Column field="claim_type.claim_type_name" header={t('claims.claimType')} sortable></Column>
+                    <Column field="claim_type.claim_type_name" header={t('claims.claimType')} sortable style={{ minWidth: '8rem' }} headerStyle={{ textAlign: 'center' }} bodyClassName="text-center"></Column>
 
-                    <Column field="total_amount" header={t('claims.totalAmount')} body={totalAmountBodyTemplate} sortable></Column>
+                    <Column field="total_amount" header={t('claims.totalAmount')} body={totalAmountBodyTemplate} sortable style={{ minWidth: '8rem' }} headerStyle={{ textAlign: 'center' }} bodyClassName="text-center"></Column>
 
-                    <Column field="claim_submitted" header={t('claims.submittedAt', 'Submitted At')} sortable></Column>
+                    <Column field="claim_submitted" header={t('claims.submittedAt', 'Submitted At')} sortable style={{ minWidth: '11rem' }} headerStyle={{ textAlign: 'center' }} bodyClassName="text-center"></Column>
 
-                    <Column field="status.claim_status_name" header={t('common.status')} body={statusBodyTemplate} sortable></Column>
+                    <Column field="status.claim_status_name" header={t('common.status')} body={statusBodyTemplate} sortable style={{ minWidth: '8rem' }} headerStyle={{ textAlign: 'center' }} bodyClassName="text-center"></Column>
 
-                    <Column header={t('common.actions')} body={actionBodyTemplate} style={{ width: '80px' }}></Column>
+                    <Column header={t('common.actions')} body={actionBodyTemplate} style={{ minWidth: '4rem' }} headerStyle={{ textAlign: 'center' }} bodyClassName="text-center"></Column>
 
                 </DataTable>
             </ComponentContainer>
@@ -703,22 +703,47 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
                     onClick={() => setShowFilterModal(true)}
                 >
                     <i className="pi pi-filter" />
-                    <span>Filter</span>
+                    <span>{t('claims.filter', 'Filter')}</span>
                 </button>
+
+                {/* Approve/Reject icon buttons for admin */}
+                {user === 'admin' && (
+                    <>
+                        <Button
+                            icon="pi pi-thumbs-up"
+                            rounded
+                            outlined
+                            severity="success"
+                            size="small"
+                            onClick={bulkApproveClaim}
+                            disabled={selectedClaims.length === 0 || isExporting}
+                            tooltip="Approve"
+                            tooltipOptions={{ position: 'bottom' }}
+                        />
+                        <Button
+                            icon="pi pi-thumbs-down"
+                            rounded
+                            outlined
+                            severity="danger"
+                            size="small"
+                            onClick={bulkRejectClaim}
+                            disabled={selectedClaims.length === 0 || isExporting}
+                            tooltip="Reject"
+                            tooltipOptions={{ position: 'bottom' }}
+                        />
+                    </>
+                )}
+
                 <Link to={`${path}/claims/create-claim`}>
-                    <Button icon="pi pi-plus" label="New" size="small" />
+                    <Button icon="pi pi-plus" label={t('common.new', 'New')} size="small" />
                 </Link>
             </div>
 
             {user === 'admin' && selectedClaims.length > 0 && (
-                <div className="flex gap-2 flex-wrap mb-3">
-                    <span className="text-sm text-gray-600">{selectedClaims.length} selected</span>
-                    <Button label="Approve" size="small" outlined className={BUTTON_STYLE.success}
-                        onClick={bulkApproveClaim} disabled={isExporting} />
-                    <Button label="Reject" size="small" outlined className={BUTTON_STYLE.danger}
-                        onClick={bulkRejectClaim} disabled={isExporting} />
+                <div className="flex gap-2 flex-wrap mb-3 items-center">
+                    <span className="text-sm text-gray-600">{selectedClaims.length} {t('common.selected', 'selected')}</span>
                     <Button
-                        label={isExporting ? "..." : "Export"}
+                        label={isExporting ? "..." : t('claims.export', 'Export')}
                         size="small"
                         outlined
                         onClick={handleExportPdf}
@@ -744,7 +769,7 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
                             onChange={() => toggleClaimSelection(claim)}
                         />
                         <div>
-                            <div className="text-xs text-gray-500">Request #{claim.claim_id}</div>
+                            <div className="text-xs text-gray-500">{t('claims.requestNumber', 'ID')}: {claim.claim_id}</div>
                             <div className="text-sm font-medium">
                                 {claim.claim_type?.claim_type_name} · ${claim.total_amount}
                             </div>
@@ -756,7 +781,7 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
                 </div>
                 <div className="claim-card-body">
                     <div className="claim-card-detail">
-                        <span className="text-gray-500 text-xs">Submitted At</span>
+                        <span className="text-gray-500 text-xs">{t('claims.submittedAt', 'Date')}</span>
                         <div className="text-sm">{claim.claim_submitted}</div>
                     </div>
                     <div className="claim-card-actions">
@@ -783,7 +808,7 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
             <div className="mobile-claims-list">
                 {filteredClaims.length === 0 ? (
                     <div className="text-center text-gray-500 py-8">
-                        No claims found
+                        {t('common.noResults', 'No claims found')}
                     </div>
                 ) : (
                     filteredClaims.map(claim => (

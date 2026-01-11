@@ -6,7 +6,7 @@ function Input({ ...props }) {
         <div className='relative'>
             <div className="flex items-center gap-2 mb-2">
                 <label htmlFor={id} className='block text-sm font-medium'>{label}</label>
-                {errors[name] && <span className="text-red-500 text-xs">({errors[name]})</span>}
+                {errors[name] && <span className="text-status-danger text-xs">({errors[name]})</span>}
             </div>
             <InputText {...props} className='w-full' />
         </div>

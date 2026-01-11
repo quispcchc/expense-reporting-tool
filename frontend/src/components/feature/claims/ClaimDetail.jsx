@@ -78,7 +78,7 @@ function ClaimDetail({ curClaim, toastRef }) {
                                     icon="pi pi-times"
                                     rounded
                                     text
-                                    aria-label="Cancel"
+                                    aria-label={t('common.cancel')}
                                     onClick={() => {
                                         setIsEditing(false)
                                         setClaimDetail({ team_id: curClaim.team_id, claim_type_id: curClaim.claim_type_id })

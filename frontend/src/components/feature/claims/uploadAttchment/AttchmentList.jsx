@@ -2,7 +2,7 @@ import React from 'react'
 import { getFileIcon } from './getFileIcon.jsx'
 
 // Component to display a list of attached files with optional remove button
-function AttachmentList ({ selectedFile, showRemoveButton = true, handleRemoveFile }) {
+function AttachmentList({ selectedFile, showRemoveButton = true, handleRemoveFile }) {
 
     // Check if there's a file - either a new upload or an existing file from backend
     if (!selectedFile || (!selectedFile.file && !selectedFile.url && !selectedFile.path)) return null
@@ -19,24 +19,24 @@ function AttachmentList ({ selectedFile, showRemoveButton = true, handleRemoveFi
     return (
         <div className="mt-4 text-sm text-gray-700 flex items-center gap-2">
 
-            { getFileIcon(fileType) }
+            {getFileIcon(fileType)}
 
-            {/* Download link for the file */ }
+            {/* Download link for the file */}
             <a
-                href={ fileUrl }
-                download={ fileName }
+                href={fileUrl}
+                download={fileName}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-600 hover:underline"
             >
-                { fileName }
+                {fileName}
             </a>
 
-            {/* Conditionally show remove button */ }
-            { showRemoveButton && (
-                <button type="button" onClick={ handleRemoveFile }
-                        className="cursor-pointer text-red-500 ml-2 font-bold hover:text-red-700">X
-                </button> ) }
+            {/* Conditionally show remove button */}
+            {showRemoveButton && (
+                <button type="button" onClick={handleRemoveFile}
+                    className="cursor-pointer text-red-500 ml-2 font-bold hover:text-red-700"><i className="pi pi-times"></i>
+                </button>)}
         </div>
     )
 }

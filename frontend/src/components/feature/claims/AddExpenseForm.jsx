@@ -28,14 +28,14 @@ function AddExpenseForm({
 
     return (
         <div className="bg-white h-full rounded-2xl shadow-sm">
-            <div className="flex justify-between items-center my-6 bg-blue-100 rounded-t-2xl p-6">
+            <div className={`flex justify-between items-center my-6 rounded-t-2xl p-6 ${'bg-bg-secondary'}`}>
                 <div>
-                    <p className="text-xl font-semibold text-gray-700">{t('expenses.addExpense')}</p>
-                    <p className="text-gray-500 text-sm">{t('expenses.addExpenseDescription')}</p>
+                    <p className="text-xl font-semibold text-text-primary">{t('expenses.addExpense')}</p>
+                    <p className="text-text-secondary text-sm">{t('expenses.addExpenseDescription')}</p>
                 </div>
                 <div className="text-right">
-                    <p className="text-sm text-gray-500">{t('claims.totalAmount')}</p>
-                    <p className="text-2xl font-bold text-blue-600">
+                    <p className="text-sm text-text-secondary">{t('claims.totalAmount')}</p>
+                    <p className="text-2xl font-bold text-brand-primary">
                         ${claimFormData.claimItems?.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0).toFixed(2) || '0.00'}
                     </p>
                 </div>
@@ -126,7 +126,7 @@ function AddExpenseForm({
                             name="description"
                             value={expenseFormData.description}
                             rows="3"
-                            className="w-full border border-gray-300 rounded-md p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full border border-gray-300 rounded-md p-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent"
                             onChange={onExpenseChange}
                         />
                     </div>
@@ -140,7 +140,7 @@ function AddExpenseForm({
                             onChange={onExpenseChange}
                             value={expenseFormData.notes}
                             placeholder={t('expenses.notesPlaceholder', 'Add any additional notes...')}
-                            className="w-full border border-gray-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full border border-gray-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent"
                         />
                     </div>
 

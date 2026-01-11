@@ -19,7 +19,12 @@
         "goBack": "Go back",
         "clear": "Clear",
         "apply": "Apply",
-        "autoFill": "Auto Fill Form"
+        "autoFill": "Auto Fill Form",
+        "new": "New",
+        "selected": "selected",
+        "ok": "OK",
+        "confirmDelete": "Confirm Delete",
+        "cancelDelete": "Cancel Delete"
     },
     "filter": {
         "select": "Select",
@@ -48,7 +53,12 @@
         "rememberMe": "Remember me?",
         "forgotPassword": "Forgot Password?",
         "logout": "Log out",
-        "resetPassword": "Reset Password"
+        "resetPassword": "Reset Password",
+        "resetPasswordTitle": "Reset Password",
+        "passwordLabel": "Password",
+        "repeatPasswordLabel": "Repeat Password",
+        "submitReset": "Reset Password",
+        "backToLogin": "Back to login"
     },
     "sidebar": {
         "claims": "CLAIMS",
@@ -67,9 +77,9 @@
         "createClaim": "Create Claim",
         "submitClaim": "Submit Claim",
         "claimDetails": "Claim Details",
-        "claimType": "Claim Type",
+        "claimType": "Type",
         "claimStatus": "Claim Status",
-        "totalAmount": "Total Amount",
+        "totalAmount": "Amount",
         "pending": "Pending",
         "approved": "Approved",
         "rejected": "Rejected",
@@ -79,8 +89,8 @@
         "newClaim": "New Claim",
         "export": "Export",
         "exporting": "Exporting...",
-        "requestNumber": "Request #",
-        "submittedAt": "Submitted At",
+        "requestNumber": "ID",
+        "submittedAt": "Date",
         "bulkApproveMessage": "Do you want to approve all selected claims?",
         "bulkApproveHeader": "Bulk Approve Confirmation",
         "bulkApproveSuccess": "Selected claims has been approved successfully!",
@@ -204,13 +214,47 @@
         "goToDashboard": "Go to Dashboard",
         "needHelp": "Need help?",
         "contactSupport": "Contact support",
-        "goToLogin": "Go to Login"
+        "goToLogin": "Go to Login",
+        "unknownError": "An unknown error occurred",
+        "networkError": "No response from server. This may be a timeout or network error."
     },
     "validation": {
         "error": "Validation Error",
         "fillRequired": "Please fill in all required fields!",
         "confirmationRequired": "Confirmation Required",
-        "noExpenseItems": "No expense items found. Please add at least one expense before submitting."
+        "noExpenseItems": "No expense items found. Please add at least one expense before submitting.",
+        "emailRequired": "Email is required",
+        "emailInvalid": "Please enter a valid email address",
+        "passwordRequired": "Password is required",
+        "passwordMinLength": "Password must be at least 8 characters long",
+        "passwordConfirmRequired": "Please confirm your password",
+        "passwordMatch": "Passwords must match",
+        "currentPasswordRequired": "Current Password is required",
+        "newPasswordRequired": "New Password is required",
+        "passwordConfirmRequired2": "Password Confirmation is required",
+        "employeeNameRequired": "Employee name is required",
+        "positionRequired": "Position is required",
+        "departmentRequired": "Department is required",
+        "teamRequired": "Team is required",
+        "claimTypeRequired": "Claim Type is required",
+        "programRequired": "Program is required",
+        "transactionDateRequired": "Transaction Date is required",
+        "costCentreRequired": "Cost Centre is required",
+        "vendorRequired": "Vendor is required",
+        "accountNumRequired": "Account Number is required",
+        "amountRequired": "Amount is required",
+        "buyerRequired": "Buyer is required",
+        "firstNameRequired": "Please enter first name",
+        "lastNameRequired": "Please enter last name",
+        "enterEmail": "Please enter email",
+        "selectDepartment": "Please select department",
+        "selectTeam": "Please select team",
+        "enterPosition": "Please enter position",
+        "chooseRole": "Please choose role",
+        "codeRequired": "Code is required",
+        "nameRequired": "Name is required",
+        "statusRequired": "Status is required",
+        "descriptionRequired": "Description is required"
     },
     "passwordReset": {
         "forgotPassword": "Forgot your password",
@@ -225,5 +269,22 @@
         "newPassword": "New Password",
         "passwordConfirmation": "Password Confirmation",
         "updateSuccess": "Update Password Successfully!"
+    },
+    "headers": {
+        "notifications": "Notifications",
+        "userProfile": "User Profile"
+    },
+    "filters": {
+        "from": "from",
+        "to": "to",
+        "startDate": "Start Date",
+        "endDate": "End Date",
+        "selectIndication": "Select an option"
+    },
+    "components": {
+        "upload": "Upload a file",
+        "attachments": "Attachments",
+        "note": "Note",
+        "uploadNote": "Upload Receipt, contact/agreement or additional supporting documents"
     }
 }
