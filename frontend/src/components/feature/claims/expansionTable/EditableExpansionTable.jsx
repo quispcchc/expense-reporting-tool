@@ -14,8 +14,45 @@ import api, { API_BASE_URL } from '../../../../api/api.js'
 import { BUTTON_STYLE } from '../../../../utils/customizeStyle.js'
 import { confirmDialog } from 'primereact/confirmdialog'
 
+// Helper function to map data based on mode
+const mapExpenseData = (data, mode) => {
+    if (!data) return []
+
+    if (mode === 'create') {
+        let frontendId = 1
+        // Create mode: data is already in frontend form shape
+        return data.map(item => ({
+            ...item,
+            transactionId: item.transactionId || frontendId++,
+        }))
+
+    } else if (mode === 'edit' || mode === 'view') {
+        // Map backend fields to frontend form fields
+        return data.map((expense, index) => ({
+            transactionId: expense.expense_id || `temp-${index}-${Date.now()}`,
+            buyer: expense.buyer_name,
+            vendor: expense.vendor_name,
+            transactionDate: expense.transaction_date,
+            accountNum: expense.account_number_id,
+            costCentre: expense.cost_centre_id,
+            amount: expense.expense_amount,
+            description: expense.transaction_desc,
+            notes: expense.transaction_notes,
+            tags: expense.tags,
+            status: expense.approval_status_id,
+            program: expense.project_id,
+            attachment: expense.receipts ? expense.receipts.map(receipt => ({
+                url: `${API_BASE_URL}/storage/${receipt.receipt_path}`,
+                name: receipt.receipt_name,
+                receipt_id: receipt.receipt_id,
+            })) : [],
+        }))
+    }
+    return []
+}
+
 function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toastRef, onClaimUpdated }) {
-    const [expenseItems, setExpenseItems] = useState(data || [])
+    const [expenseItems, setExpenseItems] = useState(() => mapExpenseData(data, mode))
 
     const { updateClaim } = useClaims()
 
@@ -35,42 +72,8 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
 
     useEffect(() => {
         if (!data) return
-
-        if (mode === 'create') {
-            let frontendId = 1
-            // Create mode: data is already in frontend form shape, no mapping needed
-            setExpenseItems(data.map(item => ({
-                ...item,
-                transactionId: frontendId++,
-            })))
-
-        } else if (mode === 'edit') {
-
-            // Map backend fields to frontend form fields
-            setExpenseItems(
-                data.map(expense => ({
-                    transactionId: expense.expense_id,
-                    buyer: expense.buyer_name,
-                    vendor: expense.vendor_name,
-                    transactionDate: expense.transaction_date,
-                    accountNum: expense.account_number_id,
-                    costCentre: expense.cost_centre_id,
-                    amount: expense.expense_amount,
-                    description: expense.transaction_desc,
-                    notes: expense.transaction_notes,
-                    tags: expense.tags,
-                    status: expense.approval_status_id,
-                    program: expense.project_id,
-                    attachment: expense.receipts ? expense.receipts.map(receipt => ({
-                        url: `${API_BASE_URL}/storage/${receipt.receipt_path}`,
-                        name: receipt.receipt_name,
-                        receipt_id: receipt.receipt_id,
-                    })) : [],
-
-                })),
-            )
-        }
-    }, [data])
+        setExpenseItems(mapExpenseData(data, mode))
+    }, [data, mode])
 
     const handleExpansionFieldChange = (expenseId, fieldName, newValue) => {
         // For tags, handle special processing
