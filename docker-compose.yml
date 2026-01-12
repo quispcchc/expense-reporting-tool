@@ -25,7 +25,7 @@ services:
       - queue
     networks:
       - expense_network
-    command: sh -c "php artisan migrate --force && rm -rf public/storage && php artisan storage:link && sqlite3 /var/www/html/database/database.sqlite 'DELETE FROM sessions; DELETE FROM personal_access_tokens;' && php artisan serve --host=0.0.0.0 --port=8000"
+    command: sh -c "php artisan migrate --force && rm -rf public/storage && php artisan storage:link && php artisan config:cache && php artisan route:cache && sqlite3 /var/www/html/database/database.sqlite 'DELETE FROM sessions; DELETE FROM personal_access_tokens;' && php artisan serve --host=0.0.0.0 --port=8000"
 
   # Laravel Queue Worker
   queue:

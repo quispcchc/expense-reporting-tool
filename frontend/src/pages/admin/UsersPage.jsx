@@ -141,7 +141,7 @@ function UsersPage() {
     return (
         <>
             {/* Page title/header */}
-            <ContentHeader title={t('users.title')} homePath="/admin" />
+            <ContentHeader title={t('users.title')} homePath="/admin" iconKey="sidebar.users" />
 
             {/* Add new user component (e.g. modal or inline form) */}
             <AddNewUser />

@@ -45,7 +45,7 @@ function Header() {
             <LanguageSwitcher />
 
             {/* Notification area */}
-            <div className={`flex items-center justify-center w-12 h-12 rounded-lg relative ${'bg-bg-secondary'}`}>
+            <div className={`flex items-center justify-center w-12 h-12 rounded-lg relative bg-gray-100 dark:bg-gray-700`}>
                 <div className="text-2xl"><IoNotificationsOutline /></div>
                 <span
                     className="w-4 h-4 bg-red-600 text-white text-xs rounded-sm absolute left-6 top-3 text-center">8</span>

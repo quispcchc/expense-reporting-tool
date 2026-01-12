@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import ContentHeader from '../../components/common/layout/ContentHeader.jsx'
 import AddNewTeam from '../../components/feature/team/AddNewTeam.jsx'
 import { DataTable } from 'primereact/datatable'
-import { useTeam, useTeamDispatch } from '../../contexts/TeamContext.jsx'
+import { useTeam } from '../../contexts/TeamContext.jsx'
 import StatusTab from '../../components/common/ui/StatusTab.jsx'
 import { InputText } from 'primereact/inputtext'
 import { Column } from 'primereact/column'
@@ -15,16 +15,12 @@ import { useTranslation } from 'react-i18next'
 
 function TeamsPage() {
     const { t } = useTranslation()
-    // Access global team state and dispatch function from context
-    const teamState = useTeam()
-    const dispatch = useTeamDispatch()
+    // Access global team state and actions from context
+    const { state: { teams, loading, error }, actions: { updateTeam } } = useTeam()
     const { lookups } = useLookups()
 
     // Get active statuses from lookups (maps to status names)
     const statusOptions = lookups.activeStatuses.map(s => s.name || s)
-
-    // Local state to hold the displayed teams
-    const [teams, setTeams] = useState([])
 
     // State for global filter input and DataTable filters
     const [globalFilterValue, setGlobalFilterValue] = useState('')
@@ -42,11 +38,6 @@ function TeamsPage() {
         setFilters(_filters)
         setGlobalFilterValue(value)
     }
-
-    // Update local teams state whenever the global team state changes
-    useEffect(() => {
-        setTeams(teamState)
-    }, [teamState])
 
     // Custom renderer to display the status badge/tab
     const renderStatus = (rowData) => {
@@ -73,17 +64,10 @@ function TeamsPage() {
         />
     )
 
-    // Handle row edit completion: update local and global team state
-    const onRowEditComplete = (e) => {
-        let _teams = [...teams]
-        let { newData, index } = e
-
-        _teams[index] = newData
-
-        setTeams(_teams)
-
-        // Dispatch the update to context
-        dispatch({ type: 'update', payload: newData })
+    // Handle row edit completion: update team via context action
+    const onRowEditComplete = async (e) => {
+        const { newData } = e
+        await updateTeam(newData)
     }
 
     // Render the search bar above the DataTable
@@ -105,7 +89,7 @@ function TeamsPage() {
     return (
         <>
             {/* Page title and navigation */}
-            <ContentHeader title={t('teams.title')} homePath="/admin" />
+            <ContentHeader title={t('teams.title')} homePath="/admin" iconKey="sidebar.teams" />
             {/* Add new team form component */}
             <AddNewTeam />
             <div className="bg-white rounded-xl p-6 mt-5">

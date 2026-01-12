@@ -1,11 +1,11 @@
 import React from 'react'
 import ContentHeader from '../../components/common/layout/ContentHeader.jsx'
 
-function TagsPage () {
+function TagsPage() {
 
     return (
         <>
-            <ContentHeader title="Tags" homePath="/admin"/>
+            <ContentHeader title="Tags" homePath="/admin" iconKey="sidebar.tags" />
 
         </>
     )
