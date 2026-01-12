@@ -164,6 +164,7 @@ class ClaimController extends Controller
             // Load claim with all necessary relationships
             $claim = Claim::with([
                 'claimType',
+                'status',
                 'user',
                 'department',
                 'team',
@@ -234,6 +235,7 @@ class ClaimController extends Controller
             foreach ($claimIds as $claimId) {
                 $claim = Claim::with([
                     'claimType',
+                    'status',
                     'user',
                     'department',
                     'team',

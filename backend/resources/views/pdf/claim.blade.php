@@ -228,9 +228,9 @@
                 <td class="label">Status:</td>
                 <td>
                     @php
-                        $status = optional($claim)->status ?? 0;
-                        $statusText = $status === 1 ? 'Pending' : ($status === 2 ? 'Approved' : ($status === 3 ? 'Rejected' : 'Unknown'));
-                        $statusClass = $status === 1 ? 'pending' : ($status === 2 ? 'approved' : 'rejected');
+                        $statusId = optional($claim)->claim_status_id ?? 0;
+                        $statusText = optional($claim->status)->claim_status_name ?? 'Unknown';
+                        $statusClass = $statusId === 1 ? 'pending' : ($statusId === 2 ? 'approved' : ($statusId === 3 ? 'rejected' : 'unknown'));
                     @endphp
                     <span class="status-badge status-{{ $statusClass }}">{{ $statusText }}</span>
                 </td>
@@ -317,8 +317,8 @@
         <div class="notes-section">
             @forelse(optional($claim)->notes ?? [] as $note)
                 <div class="note-item">
-                    <div class="note-header">{{ optional($note->user)->user_first_name ?? 'Unknown' }}
-                        {{ optional($note->user)->user_last_name ?? '' }}
+                    <div class="note-header">{{ optional($note->user)->first_name ?? 'Unknown' }}
+                        {{ optional($note->user)->last_name ?? '' }}
                         ({{ optional($note)->created_at ? optional($note)->created_at->format('Y-m-d H:i') : 'N/A' }}):
                     </div>
                     <div class="note-text">{{ optional($note)->claim_note_text ?? 'N/A' }}</div>
