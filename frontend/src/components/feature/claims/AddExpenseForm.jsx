@@ -28,7 +28,7 @@ function AddExpenseForm({
 
     return (
         <div className="bg-white h-full rounded-2xl shadow-sm">
-            <div className={`flex justify-between items-center my-6 rounded-t-2xl p-6 ${'bg-bg-secondary'}`}>
+            <div className={`flex justify-between items-center rounded-t-2xl p-6 bg-brand-light`}>
                 <div>
                     <p className="text-xl font-semibold text-text-primary">{t('expenses.addExpense')}</p>
                     <p className="text-text-secondary text-sm">{t('expenses.addExpenseDescription')}</p>

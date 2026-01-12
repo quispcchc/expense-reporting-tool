@@ -7,7 +7,7 @@
         "delete": "Delete",
         "edit": "Edit",
         "add": "Add",
-        "addNew": "Add New",
+        "addNew": "Save",
         "search": "Search",
         "keywordSearch": "Keyword Search",
         "loading": "Loading...",
@@ -74,6 +74,8 @@
     },
     "claims": {
         "title": "Claims",
+        "allClaimsTitle": "All Claims",
+        "myClaimsTitle": "My Claims",
         "createClaim": "Create Claim",
         "submitClaim": "Submit Claim",
         "claimDetails": "Claim Details",

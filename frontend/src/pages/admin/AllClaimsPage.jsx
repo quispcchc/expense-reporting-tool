@@ -7,6 +7,7 @@ import ClaimListDataTable from '../../components/feature/claims/ClaimListDataTab
 import { Toast } from 'primereact/toast'
 import { ConfirmDialog } from 'primereact/confirmdialog'
 import { useAuth } from '../../contexts/AuthContext.jsx'
+import ContentHeader from '../../components/common/layout/ContentHeader.jsx'
 
 function AllClaimsPage() {
     const { t } = useTranslation()
@@ -22,7 +23,7 @@ function AllClaimsPage() {
         <>
             <Toast ref={toast} />
             <ConfirmDialog />
-            <p className="text-2xl my-3">{t('claims.title')}</p>
+            <ContentHeader title={t('claims.allClaimsTitle')} homePath={path} iconKey="claims.allClaimsTitle" />
             <ClaimListDataTable claims={claims} user='admin' path={path} toastRef={toast} />
         </>
     )

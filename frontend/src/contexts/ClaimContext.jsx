@@ -5,6 +5,7 @@ const ClaimContext = createContext()
 
 const CLAIM_ACTIONS = {
     SET_CLAIMS: 'SET_CLAIMS',
+    SET_MY_CLAIMS: 'SET_MY_CLAIMS',
     CREATE_CLAIM: 'CREATE_CLAIM',
     UPDATE_CLAIM: 'UPDATE_CLAIM',
     DELETE_CLAIM: 'DELETE_CLAIM',
@@ -18,6 +19,11 @@ const claimReducer = (state, action) => {
             return {
                 ...state,
                 claims: action.payload,
+            }
+        case CLAIM_ACTIONS.SET_MY_CLAIMS:
+            return {
+                ...state,
+                myClaims: action.payload,
             }
         case CLAIM_ACTIONS.CREATE_CLAIM:
             return {
@@ -48,6 +54,7 @@ const claimReducer = (state, action) => {
 export function ClaimProvider({ children }) {
     const [state, dispatch] = useReducer(claimReducer, {
         claims: [],
+        myClaims: [],
     })
 
     // Action creators to dispatch actions to the reducer
@@ -63,6 +70,20 @@ export function ClaimProvider({ children }) {
                 })
             } catch (error) {
                 console.error("Error fetching claims:", error)
+            }
+        },
+
+        // Fetch current user's claims from database
+        fetchMyClaims: async () => {
+            try {
+                const response = await api.get('/my-claims')
+                console.log('fetch my claims', response)
+                dispatch({
+                    type: CLAIM_ACTIONS.SET_MY_CLAIMS,
+                    payload: response.data,
+                })
+            } catch (error) {
+                console.error("Error fetching my claims:", error)
             }
         },
 
@@ -109,6 +130,7 @@ export function ClaimProvider({ children }) {
 
     const value = {
         claims: state.claims,
+        myClaims: state.myClaims,
         ...actions,
     }
 

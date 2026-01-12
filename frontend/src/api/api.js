@@ -75,4 +75,29 @@ api.interceptors.response.use(
     },
 )
 
+// Retry logic for network errors (ERR_CONNECTION_RESET, timeouts)
+const MAX_RETRIES = 2;
+const RETRY_DELAY = 500;
+
+const originalRequest = api.request.bind(api);
+api.request = async function (config) {
+    let lastError;
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        try {
+            return await originalRequest(config);
+        } catch (error) {
+            lastError = error;
+            // Only retry on network errors (no response), not on HTTP errors
+            const isNetworkError = !error.status && error.message?.includes('network');
+            if (isNetworkError && attempt < MAX_RETRIES) {
+                console.warn(`Network error, retrying (${attempt + 1}/${MAX_RETRIES})...`);
+                await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * (attempt + 1)));
+                continue;
+            }
+            throw error;
+        }
+    }
+    throw lastError;
+};
+
 export default api

@@ -11,7 +11,7 @@ const initialState = {
     error: null,
 }
 
-function costCentreReducer (state, action) {
+function costCentreReducer(state, action) {
     switch (action.type) {
         case 'SET_LOADING':
             return { ...state, loading: true, error: null }
@@ -45,7 +45,7 @@ export const CostCentreProvider = ({ children }) => {
 
     // Load initial data
     useEffect(() => {
-        async function fetchData () {
+        async function fetchData() {
             dispatch({ type: 'SET_LOADING' })
             try {
                 const { data } = await api.get('/cost-centres')
@@ -61,7 +61,7 @@ export const CostCentreProvider = ({ children }) => {
     }, [])
 
     const actions = {
-        createCostCentre: async(costCentre) => {
+        createCostCentre: async (costCentre) => {
             dispatch({ type: 'SET_LOADING' })
             const newCostCentre = {
                 department_id: costCentre.department,
@@ -71,7 +71,7 @@ export const CostCentreProvider = ({ children }) => {
             }
             try {
                 const { data } = await api.post('cost-centres', newCostCentre)
-                dispatch({ type: 'CREATE_COST_CENTRE', payload: data.data })
+                dispatch({ type: 'CREATE_COST_CENTRE', payload: data })
                 return data
             }
             catch (err) {
@@ -80,7 +80,7 @@ export const CostCentreProvider = ({ children }) => {
 
         },
 
-        updateCostCentre: async(newData) => {
+        updateCostCentre: async (newData) => {
             dispatch({ type: 'SET_LOADING' })
 
             const updatedCostCentre = {
@@ -91,8 +91,8 @@ export const CostCentreProvider = ({ children }) => {
             }
 
             try {
-                const { data } = await api.put(`cost-centres/${ newData.cost_centre_id }`, updatedCostCentre)
-                dispatch({ type: 'UPDATE_COST_CENTRE', payload: data.data })
+                const { data } = await api.put(`cost-centres/${newData.cost_centre_id}`, updatedCostCentre)
+                dispatch({ type: 'UPDATE_COST_CENTRE', payload: data })
                 return data
             }
             catch (err) {
@@ -101,22 +101,22 @@ export const CostCentreProvider = ({ children }) => {
 
         },
 
-        deleteCostCentre:async(costCentreId)=>{
+        deleteCostCentre: async (costCentreId) => {
             dispatch({ type: 'SET_LOADING' })
             try {
                 const response = await api.delete(`cost-centres/${costCentreId}`)
                 dispatch({ type: 'DELETE_COST_CENTRE', payload: costCentreId })
                 return response
 
-            }catch (err) {
-                dispatch({ type: 'SET_ERROR', payload: err.message})
+            } catch (err) {
+                dispatch({ type: 'SET_ERROR', payload: err.message })
             }
         }
     }
 
-    return <CostCentreContext.Provider value={ { state, actions } }>
-        <CostCentreDispatchContext.Provider value={ dispatch }>
-            { children }
+    return <CostCentreContext.Provider value={{ state, actions }}>
+        <CostCentreDispatchContext.Provider value={dispatch}>
+            {children}
         </CostCentreDispatchContext.Provider>
 
     </CostCentreContext.Provider>

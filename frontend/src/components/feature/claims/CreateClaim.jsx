@@ -205,29 +205,33 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
     }
 
     return (
-        <form className="my-3" onSubmit={handleClaimSubmit}>
-            <div className="flex justify-between items-center flex-wrap">
-                <ContentHeader title={t('claims.createClaim')} homePath={homePath} />
-                <div className="flex gap-5">
+        <form onSubmit={handleClaimSubmit}>
+            <div className="flex justify-between items-start flex-wrap gap-4 mb-4">
+                <ContentHeader title={t('claims.createClaim')} homePath={homePath} className="" iconKey="claims.createClaim" />
+                <div className="flex gap-5 items-center">
                     <div className="flex flex-col items-end">
-                        <p className="text-2xl">{t('claims.totalAmount')}</p>
-                        <p className="text-blue-500">${calculateTotalAmount(claimFormData).toFixed(2)}</p>
+                        <p className="text-lg font-medium">{t('claims.totalAmount')}</p>
+                        <p className="text-blue-500 text-xl">${calculateTotalAmount(claimFormData).toFixed(2)}</p>
                     </div>
                     <Button label={t('claims.submitClaim', 'Submit claim')} type="submit" icon="pi pi-plus"
                         iconPos="right" />
                 </div>
             </div>
 
-            <ClaimForm claimFormData={claimFormData} onFieldChange={handleFormFieldChange}
-                errors={claimErrors} />
-            <AddExpenseForm claimFormData={claimFormData} onClaimItemsUpdate={handleClaimItemsUpdate}
-                expenseFormData={expenseFormData} onSetExpenseForm={setExpenseFormData}
-                onExpenseChange={handleExpenseFieldChange}
+            <div className="mt-4">
+                <ClaimForm claimFormData={claimFormData} onFieldChange={handleFormFieldChange}
+                    errors={claimErrors} />
+            </div>
+            <div className="mt-6">
+                <AddExpenseForm claimFormData={claimFormData} onClaimItemsUpdate={handleClaimItemsUpdate}
+                    expenseFormData={expenseFormData} onSetExpenseForm={setExpenseFormData}
+                    onExpenseChange={handleExpenseFieldChange}
 
-                onAddExpense={handleAddExpense} tags={tags} onSetTags={setTags} files={files}
-                onSetFiles={setFiles} errors={expenseErrors}
-                toastRef={toastRef}
-            />
+                    onAddExpense={handleAddExpense} tags={tags} onSetTags={setTags} files={files}
+                    onSetFiles={setFiles} errors={expenseErrors}
+                    toastRef={toastRef}
+                />
+            </div>
             <Dialog header={validationDialog.header} visible={validationDialog.visible} style={{ width: '450px' }}
                 onHide={() => setValidationDialog(prev => ({ ...prev, visible: false }))}
                 footer={

@@ -248,16 +248,17 @@
         <table class="info-grid">
             <tr>
                 <td class="label">Employee Name:</td>
-                <td>{{ optional($claim->user)->user_first_name ?? 'N/A' }}
-                    {{ optional($claim->user)->user_last_name ?? '' }}</td>
+                <td>{{ optional($claim->user)->first_name ?? 'N/A' }}
+                    {{ optional($claim->user)->last_name ?? '' }}
+                </td>
                 <td class="label">Position:</td>
-                <td>{{ optional($claim->user->position)->position_name ?? 'N/A' }}</td>
+                <td>{{ optional($claim->position)->position_name ?? 'N/A' }}</td>
             </tr>
             <tr>
                 <td class="label">Department:</td>
-                <td>{{ optional($claim->user->position->department)->dept_name ?? 'N/A' }}</td>
+                <td>{{ optional($claim->department)->department_name ?? 'N/A' }}</td>
                 <td class="label">Team:</td>
-                <td>{{ optional($claim->user->team)->team_name ?? 'N/A' }}</td>
+                <td>{{ optional($claim->team)->team_name ?? 'N/A' }}</td>
             </tr>
         </table>
 

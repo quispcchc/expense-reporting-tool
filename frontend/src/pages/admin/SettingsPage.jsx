@@ -14,7 +14,7 @@ function SettingsPage() {
     return (
         <>
             <div className='flex justify-between'>
-                <ContentHeader title={t('sidebar.settings')} homePath="/admin" />
+                <ContentHeader title={t('sidebar.settings')} homePath="/admin" iconKey="sidebar.settings" />
                 <Button label={t('common.save')} onClick={handleRateSubmit} />
 
             </div>

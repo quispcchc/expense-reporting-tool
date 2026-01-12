@@ -166,7 +166,7 @@ function CostCentresPage() {
             )}
             <Toast ref={toast} />
             <ConfirmDialog />
-            <ContentHeader title={t('sidebar.costCentre')} homePath="/admin" />
+            <ContentHeader title={t('sidebar.costCentre')} homePath="/admin" iconKey="sidebar.costCentre" />
             <AddNewCostCentre createdToast={toasts.created} />
             <div className="bg-white rounded-xl p-6 mt-5">
                 <DataTable value={costCentres} paginator rows={5} rowsPerPageOptions={[5, 10, 25, 50]}

@@ -34,12 +34,12 @@ const STATUS_COLORS = {
 
 function ClaimListDataTable({ claims, user, path, toastRef }) {
     const { t } = useTranslation()
-    const { fetchClaims } = useClaims()
+    const { fetchClaims, fetchMyClaims } = useClaims()
     const isMobile = useIsMobile()
 
     useEffect(() => {
         const fetchData = async () => {
-            await fetchClaims()
+            await Promise.all([fetchClaims(), fetchMyClaims()])
         }
         fetchData()
     }, [])
@@ -184,7 +184,7 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
             accept: async () => {
                 try {
                     await api.post('claims/bulk-approve', payload)
-                    await fetchClaims()
+                    await Promise.all([fetchClaims(), fetchMyClaims()])
                     showToast(toastRef, { severity: 'success', summary: t('toast.success', 'Success'), detail: t('claims.bulkApproveSuccess', 'Selected claims has been approved successfully!') })
                 }
                 catch (error) {
@@ -211,7 +211,7 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
             accept: async () => {
                 try {
                     await api.post('claims/bulk-reject', payload)
-                    await fetchClaims()
+                    await Promise.all([fetchClaims(), fetchMyClaims()])
                     showToast(toastRef, { severity: 'success', summary: t('toast.success', 'Success'), detail: t('claims.bulkRejectSuccess', 'Selected claims has been rejected successfully!') })
                 }
                 catch (error) {
@@ -699,11 +699,12 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
         <div className="mobile-claims-header">
             <div className="flex items-center gap-2 mb-3">
                 <button
-                    className="mobile-filter-btn"
+                    className={`mobile-filter-btn ${hasActiveFilters ? 'mobile-filter-btn-active' : ''}`}
                     onClick={() => setShowFilterModal(true)}
                 >
                     <i className="pi pi-filter" />
                     <span>{t('claims.filter', 'Filter')}</span>
+                    {hasActiveFilters && <span className="mobile-filter-badge">●</span>}
                 </button>
 
                 {/* Approve/Reject icon buttons for admin */}

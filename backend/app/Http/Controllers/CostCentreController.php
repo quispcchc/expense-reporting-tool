@@ -23,20 +23,32 @@ class CostCentreController extends Controller
 
         // Super admin sees everything
         if ($roleLevel === 1) {
-            return CostCentre::with(['activeStatus', 'department'])->get();
+            $costCentres = CostCentre::with(['activeStatus', 'department'])->get();
+            return response()->json([
+                'success' => true,
+                'data' => $costCentres,
+            ]);
         }
 
         // Admin only see their own department
         if ($roleLevel === 2) {
-            return CostCentre::where('department_id', $user->department_id)
+            $costCentres = CostCentre::where('department_id', $user->department_id)
                 ->with(['activeStatus', 'department'])
                 ->get();
+            return response()->json([
+                'success' => true,
+                'data' => $costCentres,
+            ]);
         }
 
         //  Approver sees only their team ? department
-        return CostCentre::where('department_id', $user->department_id)
+        $costCentres = CostCentre::where('department_id', $user->department_id)
             ->with(['activeStatus', 'department'])
             ->get();
+        return response()->json([
+            'success' => true,
+            'data' => $costCentres,
+        ]);
 
     }
 

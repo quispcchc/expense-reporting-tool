@@ -7,7 +7,7 @@
         "delete": "Supprimer",
         "edit": "Modifier",
         "add": "Ajouter",
-        "addNew": "Ajouter nouveau",
+        "addNew": "Enregistrer",
         "search": "Rechercher",
         "keywordSearch": "Recherche par mot-clé",
         "loading": "Chargement...",
@@ -74,6 +74,8 @@
     },
     "claims": {
         "title": "Réclamations",
+        "allClaimsTitle": "Toutes les réclamations",
+        "myClaimsTitle": "Mes réclamations",
         "createClaim": "Créer une réclamation",
         "submitClaim": "Soumettre la réclamation",
         "claimDetails": "Détails de la réclamation",
