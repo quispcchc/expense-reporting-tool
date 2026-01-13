@@ -43,7 +43,7 @@ Development mode runs the backend in Docker while the frontend runs locally for 
 **Step 1: Start Backend Services**
 ```bash
 # Start backend and queue worker in Docker
-docker-compose -f docker-compose.dev.yml up -d
+docker compose -f docker-compose.dev.yml up -d
 ```
 
 **Step 2: Start Frontend Locally**
@@ -59,7 +59,7 @@ npm run dev
 
 **Stop Development Environment:**
 ```bash
-docker-compose -f docker-compose.dev.yml down
+docker compose -f docker-compose.dev.yml down
 # And Ctrl+C in the frontend terminal
 ```
 
@@ -81,10 +81,10 @@ Production mode uses Nginx as a reverse proxy, serving both frontend and backend
 **Manual Deploy:**
 ```bash
 # Build and start all services
-docker-compose -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.prod.yml up -d --build
 
 # View logs
-docker-compose -f docker-compose.prod.yml logs -f
+docker compose -f docker-compose.prod.yml logs -f
 ```
 
 **Access Point:**
@@ -100,7 +100,7 @@ User Browser → Nginx (:80) → {
 
 **Stop Production Environment:**
 ```bash
-docker-compose -f docker-compose.prod.yml down
+docker compose -f docker-compose.prod.yml down
 ```
 
 ---
@@ -110,7 +110,7 @@ docker-compose -f docker-compose.prod.yml down
 For backward compatibility, the original `docker-compose.yml` is still available:
 
 ```bash
-docker-compose up --build
+docker compose up --build
 ```
 
 - **Frontend**: [http://localhost:5173](http://localhost:5173)
@@ -121,14 +121,14 @@ docker-compose up --build
 To stop the containers and remove the networks:
 
 ```bash
-docker-compose down
+docker compose down
 ```
 
 To stop the containers but preserve the state:
 ```bash
 Ctrl+C
 # OR if running in detached mode
-docker-compose stop
+docker compose stop
 ```
 
 ## 📊 Viewing Logs
@@ -138,25 +138,25 @@ Monitoring logs is crucial for debugging and verifying that services are running
 ### View All Logs
 To stream logs from all services (Backend, Frontend, and Queue):
 ```bash
-docker-compose logs -f
+docker compose logs -f
 ```
 
 ### View Backend Logs
 To see only the Laravel backend logs:
 ```bash
-docker-compose logs -f backend
+docker compose logs -f backend
 ```
 
 ### View Frontend Logs
 To see only the React frontend logs:
 ```bash
-docker-compose logs -f frontend
+docker compose logs -f frontend
 ```
 
 ### View Queue Worker Logs
 To see logs from the background queue worker:
 ```bash
-docker-compose logs -f queue
+docker compose logs -f queue
 ```
 
 ## 🔧 Troubleshooting & Debugging
@@ -165,7 +165,7 @@ docker-compose logs -f queue
 
 - **Database Errors**: If you encounter errors related to the database (e.g., "no such table"), ensure `database.sqlite` exists and migrations have been run.
     ```bash
-    docker-compose exec backend php artisan migrate
+    docker compose exec backend php artisan migrate
     ```
 
 - **Permission Issues**: If you have permission issues with `storage` or `bootstrap/cache` on Linux/Mac:
@@ -183,15 +183,15 @@ docker-compose logs -f queue
 
 ```bash
 # Start services in background (detached mode)
-docker-compose up -d --build
+docker compose up -d --build
 
 # Stop all containers
-docker-compose down
+docker compose down
 
 # Restart a specific service
-docker-compose restart backend
-docker-compose restart frontend
-docker-compose restart queue
+docker compose restart backend
+docker compose restart frontend
+docker compose restart queue
 
 # View running containers
 docker ps
@@ -207,12 +207,12 @@ docker stats
 
 ```bash
 # View all logs (follow mode)
-docker-compose logs -f
+docker compose logs -f
 
 # View specific service logs
-docker-compose logs -f backend
-docker-compose logs -f frontend
-docker-compose logs -f queue
+docker compose logs -f backend
+docker compose logs -f frontend
+docker compose logs -f queue
 
 # View last N lines of logs
 docker logs expense_backend --tail 100
@@ -235,11 +235,11 @@ docker exec -it expense_backend sh
 docker exec -it expense_frontend sh
 
 # Run Laravel Artisan commands
-docker-compose exec backend php artisan migrate
-docker-compose exec backend php artisan migrate:fresh --seed
-docker-compose exec backend php artisan cache:clear
-docker-compose exec backend php artisan config:clear
-docker-compose exec backend php artisan route:list
+docker compose exec backend php artisan migrate
+docker compose exec backend php artisan migrate:fresh --seed
+docker compose exec backend php artisan cache:clear
+docker compose exec backend php artisan config:clear
+docker compose exec backend php artisan route:list
 ```
 
 #### Debugging & Maintenance
@@ -252,10 +252,10 @@ docker inspect expense_backend | grep -A 10 "State"
 docker exec expense_backend env
 
 # Clear Laravel caches
-docker-compose exec backend php artisan optimize:clear
+docker compose exec backend php artisan optimize:clear
 
 # Rebuild containers without cache
-docker-compose build --no-cache
+docker compose build --no-cache
 
 # Remove all stopped containers and unused images
 docker system prune -a
@@ -279,12 +279,12 @@ docker system prune -a --volumes
 
 ```bash
 # ⚠️ IMPORTANT: Stop queue worker before running migrate:fresh
-docker-compose stop queue
-docker-compose exec backend php artisan migrate:fresh --seed
-docker-compose start queue
+docker compose stop queue
+docker compose exec backend php artisan migrate:fresh --seed
+docker compose start queue
 
-# Run specific seeder
-docker-compose exec backend php artisan db:seed --class=UserSeeder
+# Run seeder (creates initial users and data)
+docker compose exec backend php artisan db:seed
 
 # Backup SQLite database
 docker cp expense_backend:/var/www/html/database/database.sqlite ./backup.sqlite

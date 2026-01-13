@@ -13,21 +13,21 @@ if [ ! -f "docker-compose.prod.yml" ]; then
 fi
 
 echo "📦 Building production images..."
-docker-compose -f docker-compose.prod.yml build
+docker compose -f docker-compose.prod.yml build
 
 echo "🛑 Stopping existing containers..."
-docker-compose -f docker-compose.prod.yml down
+docker compose -f docker-compose.prod.yml down
 
 echo "🔄 Starting production containers..."
-docker-compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.prod.yml up -d
 
 echo "⏳ Waiting for services to start..."
 sleep 10
 
 echo "✅ Deployment complete!"
 echo "🔍 Container status:"
-docker-compose -f docker-compose.prod.yml ps
+docker compose -f docker-compose.prod.yml ps
 
 echo ""
 echo "🌐 Application available at: http://deneb.ddns.net"
-echo "📋 View logs: docker-compose -f docker-compose.prod.yml logs -f"
+echo "📋 View logs: docker compose -f docker-compose.prod.yml logs -f"

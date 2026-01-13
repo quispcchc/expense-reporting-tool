@@ -303,7 +303,7 @@ volumes:
 
 ```bash
 Copy# 터미널 1: 백엔드와 DB 실행
-docker-compose -f docker-compose.dev.yml up
+docker compose -f docker-compose.dev.yml up
 
 # 터미널 2: 프론트엔드 실행
 cd frontend
@@ -320,10 +320,10 @@ npm run dev
 
 ```bash
 Copy# 배포 전 로컬 테스트
-docker-compose -f docker-compose.prod.yml up --build
+docker compose -f docker-compose.prod.yml up --build
 
 # 실제 서버 배포
-docker-compose -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.prod.yml up -d --build
 ```
 
 **특징:**
@@ -450,17 +450,17 @@ Copy#!/bin/bash
 echo "🚀 Starting production deployment..."
 
 echo "📦 Building production images..."
-docker-compose -f docker-compose.prod.yml build
+docker compose -f docker-compose.prod.yml build
 
 echo "🛑 Stopping existing containers..."
-docker-compose -f docker-compose.prod.yml down
+docker compose -f docker-compose.prod.yml down
 
 echo "🔄 Starting production containers..."
-docker-compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.prod.yml up -d
 
 echo "✅ Deployment complete!"
 echo "🔍 Container status:"
-docker-compose -f docker-compose.prod.yml ps
+docker compose -f docker-compose.prod.yml ps
 
 echo "🌐 Application should be available at: http://서버IP"
 ```
