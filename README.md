@@ -34,21 +34,84 @@ Before you begin, ensure you have the following installed on your machine:
 
 ## 🚀 Running the Application
 
-Start the application using Docker Compose. This command builds the images and starts the containers.
+This project supports two modes: **Development** (with hot reload) and **Production** (with Nginx reverse proxy).
+
+### Development Mode
+
+Development mode runs the backend in Docker while the frontend runs locally for faster development with HMR (Hot Module Replacement).
+
+**Step 1: Start Backend Services**
+```bash
+# Start backend and queue worker in Docker
+docker-compose -f docker-compose.dev.yml up -d
+```
+
+**Step 2: Start Frontend Locally**
+```bash
+cd frontend
+npm install    # First time only
+npm run dev
+```
+
+**Access Points:**
+- **Frontend**: [http://localhost:5173](http://localhost:5173)
+- **Backend API**: [http://localhost:8000](http://localhost:8000)
+
+**Stop Development Environment:**
+```bash
+docker-compose -f docker-compose.dev.yml down
+# And Ctrl+C in the frontend terminal
+```
+
+---
+
+### Production Mode
+
+Production mode uses Nginx as a reverse proxy, serving both frontend and backend through a single entry point (port 80).
+
+**Quick Deploy:**
+```powershell
+# Windows PowerShell
+.\deploy.ps1
+
+# Linux/Mac
+./deploy.sh
+```
+
+**Manual Deploy:**
+```bash
+# Build and start all services
+docker-compose -f docker-compose.prod.yml up -d --build
+
+# View logs
+docker-compose -f docker-compose.prod.yml logs -f
+```
+
+**Access Point:**
+- **Application**: [http://deneb.ddns.net](http://deneb.ddns.net) (or your server IP on port 80)
+
+**Architecture:**
+```
+User Browser → Nginx (:80) → {
+    /     → Frontend (React static files)
+    /api  → Backend (Laravel API)
+}
+```
+
+**Stop Production Environment:**
+```bash
+docker-compose -f docker-compose.prod.yml down
+```
+
+---
+
+### Legacy Mode (Original docker-compose.yml)
+
+For backward compatibility, the original `docker-compose.yml` is still available:
 
 ```bash
 docker-compose up --build
 ```
-
-> **First Run Note**: The `docker-compose.yml` is configured to automatically handle migrations and initial setup.
-> If you need to run migrations manually or seed the database:
-> ```bash
-> docker-compose exec backend php artisan migrate --seed
-> ```
-
-## 🌐 Accessing the Application
-
-Once the services are up and running:
 
 - **Frontend**: [http://localhost:5173](http://localhost:5173)
 - **Backend API**: [http://localhost:8000](http://localhost:8000)
