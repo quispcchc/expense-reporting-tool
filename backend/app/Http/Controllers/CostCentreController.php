@@ -24,6 +24,7 @@ class CostCentreController extends Controller
         // Super admin sees everything
         if ($roleLevel === 1) {
             $costCentres = CostCentre::with(['activeStatus', 'department'])->get();
+
             return response()->json([
                 'success' => true,
                 'data' => $costCentres,
@@ -35,6 +36,7 @@ class CostCentreController extends Controller
             $costCentres = CostCentre::where('department_id', $user->department_id)
                 ->with(['activeStatus', 'department'])
                 ->get();
+
             return response()->json([
                 'success' => true,
                 'data' => $costCentres,
@@ -45,6 +47,7 @@ class CostCentreController extends Controller
         $costCentres = CostCentre::where('department_id', $user->department_id)
             ->with(['activeStatus', 'department'])
             ->get();
+
         return response()->json([
             'success' => true,
             'data' => $costCentres,
