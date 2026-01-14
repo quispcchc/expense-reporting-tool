@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request; // require for API login
 use Illuminate\Support\Facades\Hash;
-use App\Traits\ApiResponse;
 
 class LoginController extends Controller
 {
@@ -20,7 +19,7 @@ class LoginController extends Controller
         // find user
         $user = User::with(['role', 'team'])->where('email', $request->email)->first();
         // Check if user exists
-        if (!$user || !Hash::check($request->password, $user->user_pass)) {
+        if (! $user || ! Hash::check($request->password, $user->user_pass)) {
             return $this->errorResponse(trans('messages.invalid_email_password'), 401);
         }
         // Check if email is verified

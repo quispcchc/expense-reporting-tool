@@ -19,6 +19,7 @@ class TeamController extends Controller
         // Super admin sees all teams
         if ($roleLevel === 1) {
             $teams = Team::with(['activeStatus'])->get();
+
             return $this->successResponse($teams);
         }
 
@@ -27,6 +28,7 @@ class TeamController extends Controller
             $teams = Team::where('department_id', $user->department_id)
                 ->with(['activeStatus'])
                 ->get();
+
             return $this->successResponse($teams);
         }
 
@@ -34,6 +36,7 @@ class TeamController extends Controller
         $teams = Team::where('department_id', $user->department_id)
             ->with(['activeStatus'])
             ->get();
+
         return $this->successResponse($teams);
     }
 
@@ -64,6 +67,7 @@ class TeamController extends Controller
     public function show($id)
     {
         $team = Team::with(['activeStatus'])->findOrFail($id);
+
         return $this->successResponse($team);
     }
 
@@ -81,7 +85,7 @@ class TeamController extends Controller
                 'required',
                 'string',
                 'max:20',
-                Rule::unique('teams', 'team_abbreviation')->ignore($team->team_id, 'team_id')
+                Rule::unique('teams', 'team_abbreviation')->ignore($team->team_id, 'team_id'),
             ],
             'team_desc' => 'nullable|string|max:255',
             'department_id' => 'sometimes|required|integer|exists:departments,department_id',

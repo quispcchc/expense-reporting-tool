@@ -75,17 +75,17 @@ class ClaimService
             ]);
 
             // Add claim note
-            if (!empty($data['claim_notes'])) {
+            if (! empty($data['claim_notes'])) {
                 $this->addNote($claim, $user, $data['claim_notes']);
             }
 
             // Add expenses
-            if (!empty($data['expenses'])) {
+            if (! empty($data['expenses'])) {
                 $this->addExpenses($claim, $data['expenses']);
             }
 
             // Add mileage
-            if (!empty($data['mileage'])) {
+            if (! empty($data['mileage'])) {
                 $mileage = Mileage::create($data['mileage']);
                 $claim->update(['mileage_id' => $mileage->mileage_id]);
             }
@@ -115,14 +115,14 @@ class ClaimService
 
             \Log::info('Adding expense', [
                 'expense_index' => $index,
-                'has_files' => !empty($files),
+                'has_files' => ! empty($files),
                 'file_count' => is_array($files) ? count($files) : (empty($files) ? 0 : 1),
             ]);
 
             $expense = Expense::create($expenseData);
 
             // Handle file uploads (support both single file and array of files)
-            if (!empty($files)) {
+            if (! empty($files)) {
                 // Normalize to array if single file
                 $fileArray = is_array($files) ? $files : [$files];
 
@@ -141,7 +141,7 @@ class ClaimService
             }
 
             // Handle tags
-            if (!empty($expenseData['tags'])) {
+            if (! empty($expenseData['tags'])) {
                 $tagNames = array_map('trim', explode(',', $expenseData['tags']));
                 $tagIds = [];
                 foreach ($tagNames as $name) {
@@ -157,7 +157,7 @@ class ClaimService
     {
         $claim = Claim::find($claimId);
 
-        if (!$claim) {
+        if (! $claim) {
             return response()->json(['message' => 'Claim not found'], 404);
         }
 
@@ -200,7 +200,7 @@ class ClaimService
         try {
             $claim = Claim::with('expenses')->find($claimId);
 
-            if (!$claim) {
+            if (! $claim) {
                 throw new Exception(trans('messages.claim_not_found'), 404);
             }
 

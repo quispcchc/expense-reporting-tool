@@ -1,8 +1,6 @@
-# Full-Stack Docker Development (Alternative)
-# Use this when you don't have PHP installed locally
-# Backend and Frontend both run in Docker containers
-# Run with: docker compose up -d
-# Note: Uses npm in containers for Docker compatibility
+# Development Docker Compose Configuration
+# Backend and Queue only - Frontend runs locally with npm run dev
+# Run with: docker-compose -f docker-compose.dev.yml up -d
 
 services:
   # Laravel Backend
@@ -10,7 +8,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: expense_backend
+    container_name: expense_backend_dev
     ports:
       - "8000:8000"
     volumes:
@@ -22,23 +20,26 @@ services:
     environment:
       - APP_ENV=local
       - APP_DEBUG=true
+      - APP_URL=http://127.0.0.1:8000
       - DB_CONNECTION=sqlite
       - DB_DATABASE=/var/www/html/database/database.sqlite
       - QUEUE_CONNECTION=database
       - SESSION_EXPIRE_ON_CLOSE=true
       - SESSION_LIFETIME=60
+      - FRONTEND_URL=http://localhost:5173
+      - ALT_FRONTEND_URL=http://127.0.0.1:5173
     depends_on:
       - queue
     networks:
-      - expense_network
-    command: sh -c "php artisan migrate --force && rm -rf public/storage && php artisan storage:link && php artisan config:cache && php artisan route:cache && sqlite3 /var/www/html/database/database.sqlite 'DELETE FROM sessions; DELETE FROM personal_access_tokens;' && php artisan serve --host=0.0.0.0 --port=8000"
+      - expense_dev_network
+    command: sh -c "php artisan migrate --force && rm -rf public/storage && php artisan storage:link && php artisan serve --host=0.0.0.0 --port=8000"
 
   # Laravel Queue Worker
   queue:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: expense_queue
+    container_name: expense_queue_dev
     volumes:
       - ./backend:/var/www/html
       - /var/www/html/vendor
@@ -52,26 +53,9 @@ services:
       - QUEUE_CONNECTION=database
     restart: always
     networks:
-      - expense_network
+      - expense_dev_network
     command: php artisan queue:work --tries=1
 
-  # React Frontend
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: expense_frontend
-    ports:
-      - "5173:5173"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    environment:
-      - VITE_API_URL=/api
-    networks:
-      - expense_network
-    command: npm run dev -- --host 0.0.0.0
-
 networks:
-  expense_network:
+  expense_dev_network:
     driver: bridge

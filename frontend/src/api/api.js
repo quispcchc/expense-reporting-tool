@@ -2,7 +2,9 @@ import axios from 'axios'
 import i18n from '../i18n/index.js' // Import i18n instance
 
 // Export the base URL for use in other components
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
+// In production with Nginx reverse proxy, use empty string for relative /api paths
+// In development, VITE_API_BASE_URL should be set to http://127.0.0.1:8000
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
 
 const api = axios.create({
     baseURL: `${API_BASE_URL}/api`, // Base URL for all API requests
