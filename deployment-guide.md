@@ -1,485 +1,495 @@
-# 웹 애플리케이션 배포 환경 구축 및 문제 해결 가이드
+# Deployment Guide
 
-## **프로젝트 개요**
+Complete deployment guide for the Volunteering Expense & Revenue Reporting Tool.
 
-**현재 아키텍처:**
-- Frontend: React/Vite (`http://localhost:5173`)
-- Backend API: (`http://localhost:8000`)
-- Database: PostgreSQL (Docker)
-- 컨테이너화: Docker & Docker Compose
+## Table of Contents
 
-**현재 상황:**
-- 로컬 개발 환경에서는 모든 기능이 정상 작동
-- 다른 서버에 배포 시 프론트엔드는 접근 가능하나 로그인 실패
-- 브라우저 콘솔에서 다음 에러 발생:
-
-
-api.js:73 API Error: No response from server. This may be a timeout or network error. undefined AuthContext.jsx:80 Error occurred while login Object 127.0.0.1:8000/api/login:1 Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+- [Deployment Options](#deployment-options)
+- [Docker Deployment (Recommended)](#docker-deployment-recommended)
+- [Native Linux Deployment](#native-linux-deployment)
+- [Nginx Configuration](#nginx-configuration)
+- [SSL/HTTPS Setup](#sslhttps-setup)
+- [Troubleshooting](#troubleshooting)
 
 ---
 
-## **문제 원인 분석**
+## Deployment Options
 
-### **핵심 문제: 잘못된 API 주소 참조**
-
-프론트엔드 코드가 `127.0.0.1:8000` 또는 `localhost:8000`으로 하드코딩되어 있어 배포 환경에서 문제가 발생합니다.
-
-**로컬 환경 vs 배포 환경의 차이:**
-
-| 환경 | 브라우저 위치 | `127.0.0.1:8000` 의미 | 결과 |
-|------|---------------|----------------------|------|
-| **로컬 개발** | 개발자 PC | 개발자 PC의 백엔드 서버 | ✅ 정상 작동 |
-| **배포 환경** | 사용자 PC | 사용자 PC의 로컬호스트 | ❌ 연결 실패 |
-
-**추가 문제:**
-- `ERR_BLOCKED_BY_CLIENT`: 브라우저 확장 프로그램(AdBlock 등)이 요청 차단
-- CORS 이슈: 서로 다른 포트 간 통신 문제
+| Method | Complexity | Use Case |
+|--------|------------|----------|
+| **Docker (Recommended)** | Low | Quick deployment, easy maintenance |
+| **Native Linux** | Medium | Full control, no Docker dependency |
 
 ---
 
-## **해결 방안**
+## Docker Deployment (Recommended)
 
-### **방안 1: 즉시 해결 (임시)**
+### Prerequisites
 
-환경 변수를 사용하여 API 주소를 동적으로 설정합니다.
+- Docker & Docker Compose installed
+- Git installed
 
-**1단계: 환경 변수 파일 생성**
-
-`.env.development`:
-```bash
-VITE_API_URL=http://localhost:8000
-````
-
-`.env.production`:
+### Quick Deploy
 
 ```bash
-CopyVITE_API_URL=http://서버IP주소:8000
+# Windows PowerShell
+.\deploy.ps1
+
+# Linux/Mac
+./deploy.sh
 ```
 
-**2단계: API 호출 코드 수정**
-
-```javascript
-Copy// api.js
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-
-export const login = async (credentials) => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(credentials),
-    });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    return await response.json();
-  } catch (error) {
-    console.error('API Error:', error);
-    throw error;
-  }
-};
-```
-
-**3단계: 백엔드 CORS 설정**
-
-```python
-Copy# FastAPI 예시
-from fastapi.middleware.cors import CORSMiddleware
-
-origins = [
-    "http://localhost:5173",
-    "http://서버IP주소:5173",  # 배포된 프론트엔드 주소 추가
-]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-```
-
-### **방안 2: Nginx 리버스 프록시 (권장)**
-
-프로덕션 환경의 표준 아키텍처로, 근본적인 문제 해결과 함께 확장성을 확보합니다.
-
-**장점:**
-
-- CORS 문제 완전 해결 (Single Origin)
-- IP/포트 하드코딩 불필요
-- 보안 강화 및 성능 최적화
-- SSL/TLS 적용 용이
-- 로드 밸런싱 확장 가능
-
----
-
-## **개발/배포 환경 분리 전략**
-
-### **권장 접근법: 환경별 최적화**
-
-|구분|개발 환경|배포 환경|
-|---|---|---|
-|**프록시**|Vite Dev Server|Nginx Reverse Proxy|
-|**API 경로**|`/api` (상대 경로)|`/api` (상대 경로)|
-|**실행 방식**|`npm run dev` + Docker Compose|Docker Compose (Nginx 포함)|
-|**주요 목적**|개발 속도, HMR, 디버깅|안정성, 보안, 성능|
-
-### **개발 환경 설정**
-
-**vite.config.js**:
-
-```javascript
-Copyimport { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-
-export default defineConfig({
-  plugins: [react()],
-  server: {
-    port: 5173,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-        secure: false,
-      }
-    }
-  }
-})
-```
-
-**docker-compose.dev.yml**:
-
-```yaml
-Copyversion: '3.8'
-
-services:
-  backend:
-    build: ./backend
-    ports:
-      - "8000:8000"
-    environment:
-      - DEBUG=True
-    volumes:
-      - ./backend:/app
-    depends_on:
-      - db
-    networks:
-      - dev-network
-
-  db:
-    image: postgres:15
-    ports:
-      - "5432:5432"
-    environment:
-      - POSTGRES_USER=dev_user
-      - POSTGRES_PASSWORD=dev_pass
-      - POSTGRES_DB=dev_db
-    volumes:
-      - postgres_dev_data:/var/lib/postgresql/data
-    networks:
-      - dev-network
-
-networks:
-  dev-network:
-    driver: bridge
-
-volumes:
-  postgres_dev_data:
-```
-
-### **배포 환경 설정**
-
-**nginx/default.conf**:
-
-```nginx
-Copyupstream frontend {
-    server frontend:80;
-}
-
-upstream backend {
-    server backend:8000;
-}
-
-server {
-    listen 80;
-    server_name _;
-
-    # 프론트엔드 라우팅
-    location / {
-        proxy_pass http://frontend;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    # 백엔드 API 라우팅
-    location /api/ {
-        proxy_pass http://backend/api/;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        
-        proxy_connect_timeout 60s;
-        proxy_send_timeout 60s;
-        proxy_read_timeout 60s;
-    }
-}
-```
-
-**docker-compose.prod.yml**:
-
-```yaml
-Copyversion: '3.8'
-
-services:
-  nginx:
-    image: nginx:alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
-    depends_on:
-      - frontend
-      - backend
-    restart: unless-stopped
-    networks:
-      - prod-network
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile.prod
-    expose:
-      - "80"
-    restart: unless-stopped
-    networks:
-      - prod-network
-
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile.prod
-    expose:
-      - "8000"
-    environment:
-      - DEBUG=False
-    depends_on:
-      - db
-    restart: unless-stopped
-    networks:
-      - prod-network
-
-  db:
-    image: postgres:15
-    environment:
-      - POSTGRES_USER=prod_user
-      - POSTGRES_PASSWORD=prod_pass
-      - POSTGRES_DB=prod_db
-    volumes:
-      - postgres_prod_data:/var/lib/postgresql/data
-    restart: unless-stopped
-    networks:
-      - prod-network
-
-networks:
-  prod-network:
-    driver: bridge
-
-volumes:
-  postgres_prod_data:
-```
-
----
-
-## **실행 워크플로우**
-
-### **개발 환경 실행**
+### Manual Deploy
 
 ```bash
-Copy# 터미널 1: 백엔드와 DB 실행
-docker compose -f docker-compose.dev.yml up
+# Clone repository
+git clone <repository-url>
+cd Volunteering_expense-and-revenue-reporting-tool
 
-# 터미널 2: 프론트엔드 실행
-cd frontend
-npm run dev
-```
-
-**특징:**
-
-- HMR(Hot Module Replacement) 활용
-- 각 서비스 로그 직접 확인 가능
-- 빠른 개발과 디버깅
-
-### **배포 환경 실행**
-
-```bash
-Copy# 배포 전 로컬 테스트
-docker compose -f docker-compose.prod.yml up --build
-
-# 실제 서버 배포
+# Build and start all services
 docker compose -f docker-compose.prod.yml up -d --build
+
+# View logs
+docker compose -f docker-compose.prod.yml logs -f
+
+# Stop services
+docker compose -f docker-compose.prod.yml down
 ```
 
-**특징:**
+### Architecture
 
-- 단일 진입점 (포트 80)
-- 외부 직접 접근 차단
-- 프로덕션 최적화
+```
+User Browser → Nginx (:80) → {
+    /     → Frontend (React static files)
+    /api  → Backend (Laravel API)
+}
+```
 
 ---
 
-## **프론트엔드 코드 수정**
+## Native Linux Deployment
 
-**최종 API 호출 코드 (개발/배포 공통)**:
+Deploy directly on a Linux server without Docker.
 
-```javascript
-Copy// api.js
-const API_BASE_URL = '/api';  // 상대 경로 사용
+### 1. System Requirements
 
-export const login = async (credentials) => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(credentials),
-    });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    return await response.json();
-  } catch (error) {
-    console.error('API Error:', error);
-    throw error;
-  }
-};
-```
-
-**환경 변수 설정**:
+**Tested on:** Ubuntu 22.04 LTS, Debian 12
 
 ```bash
-Copy# .env.development
-VITE_API_URL=/api
+# Update system
+sudo apt update && sudo apt upgrade -y
 
-# .env.production  
-VITE_API_URL=/api
+# Install required packages
+sudo apt install -y \
+    php8.2-fpm \
+    php8.2-sqlite3 \
+    php8.2-mbstring \
+    php8.2-xml \
+    php8.2-gd \
+    php8.2-zip \
+    php8.2-bcmath \
+    php8.2-curl \
+    nginx \
+    supervisor \
+    git \
+    curl \
+    unzip
+
+# Install Composer
+curl -sS https://getcomposer.org/installer | php
+sudo mv composer.phar /usr/local/bin/composer
+
+# Install Node.js (v20 LTS)
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
 ```
 
----
+### 2. Clone and Setup Application
 
-## **HTTPS 설정 (선택사항)**
+```bash
+# Create web directory
+sudo mkdir -p /var/www/expense-app
+sudo chown $USER:$USER /var/www/expense-app
 
-프로덕션 환경에서 HTTPS를 적용하려면 Nginx 설정을 확장합니다:
+# Clone repository
+cd /var/www/expense-app
+git clone <repository-url> .
+```
+
+### 3. Backend Setup (Laravel)
+
+```bash
+cd /var/www/expense-app/backend
+
+# Install PHP dependencies
+composer install --optimize-autoloader --no-dev
+
+# Environment configuration
+cp .env.example .env
+php artisan key:generate
+
+# Edit .env for production
+# APP_ENV=production
+# APP_DEBUG=false
+# APP_URL=https://your-domain.com
+
+# Database setup
+touch database/database.sqlite
+php artisan migrate --force
+php artisan db:seed --force  # Optional: seed initial data
+
+# Set permissions
+sudo chown -R www-data:www-data storage bootstrap/cache database
+sudo chmod -R 775 storage bootstrap/cache database
+
+# Optimize for production
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+
+# Create storage symlink
+php artisan storage:link
+```
+
+### 4. Frontend Setup (React)
+
+```bash
+cd /var/www/expense-app/frontend
+
+# Install dependencies
+npm install
+
+# Build for production
+npm run build
+
+# The build output is in dist/ directory
+```
+
+### 5. Nginx Configuration
+
+```bash
+# Create site configuration
+sudo nano /etc/nginx/sites-available/expense-app
+```
+
+Paste the following configuration:
 
 ```nginx
-Copyserver {
-    listen 443 ssl http2;
-    server_name your-domain.com;
-
-    ssl_certificate /etc/letsencrypt/live/your-domain.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/your-domain.com/privkey.pem;
-
-    # SSL 보안 설정
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers ECDHE-RSA-AES256-GCM-SHA512:DHE-RSA-AES256-GCM-SHA512;
-
-    location / {
-        proxy_pass http://frontend;
-        # 프록시 헤더 설정...
-    }
-
-    location /api/ {
-        proxy_pass http://backend/api/;
-        # 프록시 헤더 설정...
-    }
-}
-
-# HTTP를 HTTPS로 리다이렉트
 server {
     listen 80;
     server_name your-domain.com;
-    return 301 https://$server_name$request_uri;
+
+    # Frontend (React static files)
+    root /var/www/expense-app/frontend/dist;
+    index index.html;
+
+    # Gzip compression
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml;
+
+    # React SPA routing
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Backend API proxy
+    location /api {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 300s;
+        proxy_connect_timeout 75s;
+    }
+
+    # Sanctum CSRF endpoint
+    location /sanctum {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+    # Storage files (uploaded files)
+    location /storage {
+        alias /var/www/expense-app/backend/storage/app/public;
+        try_files $uri =404;
+    }
+
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
 }
 ```
 
----
-
-## **체크리스트**
-
-### **즉시 해결이 필요한 경우**
-
-- [ ]  프론트엔드에서 `127.0.0.1` 하드코딩 제거
-- [ ]  환경 변수 설정 및 프론트엔드 리빌드
-- [ ]  백엔드 CORS 설정에 배포 서버 주소 추가
-- [ ]  도커 포트 바인딩 확인 (`127.0.0.1:8000:8000` → `8000:8000`)
-- [ ]  서버 방화벽에서 8000번 포트 개방
-- [ ]  브라우저 확장 프로그램 비활성화 후 테스트
-
-### **Nginx 리버스 프록시 도입**
-
-- [ ]  `nginx/default.conf` 파일 생성
-- [ ]  `docker-compose.prod.yml` 파일 생성
-- [ ]  프론트엔드 API 호출을 상대 경로(`/api`)로 변경
-- [ ]  개발용 `vite.config.js` 프록시 설정 추가
-- [ ]  `docker-compose.dev.yml` 파일 생성 (개발 환경용)
-- [ ]  로컬에서 프로덕션 구성 테스트
-- [ ]  실제 서버에 배포 및 테스트
-
-### **브라우저 에러 해결**
-
-- [ ]  시크릿/인코그니토 모드에서 테스트
-- [ ]  AdBlock, uBlock Origin 등 확장 프로그램 일시 비활성화
-- [ ]  브라우저 캐시 강제 새로고침 (Ctrl+F5)
-
----
-
-## **배포 자동화 스크립트**
-
-**deploy.sh**:
+Enable the site:
 
 ```bash
-Copy#!/bin/bash
+sudo ln -s /etc/nginx/sites-available/expense-app /etc/nginx/sites-enabled/
+sudo rm /etc/nginx/sites-enabled/default  # Remove default site
+sudo nginx -t
+sudo systemctl reload nginx
+```
 
-echo "🚀 Starting production deployment..."
+### 6. Process Management (Supervisor)
 
-echo "📦 Building production images..."
-docker compose -f docker-compose.prod.yml build
+Supervisor keeps the Laravel backend and queue worker running.
 
-echo "🛑 Stopping existing containers..."
-docker compose -f docker-compose.prod.yml down
+```bash
+sudo nano /etc/supervisor/conf.d/expense-app.conf
+```
 
-echo "🔄 Starting production containers..."
-docker compose -f docker-compose.prod.yml up -d
+Paste the following:
 
-echo "✅ Deployment complete!"
-echo "🔍 Container status:"
-docker compose -f docker-compose.prod.yml ps
+```ini
+[program:expense-backend]
+process_name=%(program_name)s
+command=php /var/www/expense-app/backend/artisan serve --host=127.0.0.1 --port=8000
+directory=/var/www/expense-app/backend
+autostart=true
+autorestart=true
+user=www-data
+redirect_stderr=true
+stdout_logfile=/var/log/expense-backend.log
+stopwaitsecs=3600
 
-echo "🌐 Application should be available at: http://서버IP"
+[program:expense-queue]
+process_name=%(program_name)s
+command=php /var/www/expense-app/backend/artisan queue:work --sleep=3 --tries=3 --max-time=3600
+directory=/var/www/expense-app/backend
+autostart=true
+autorestart=true
+user=www-data
+redirect_stderr=true
+stdout_logfile=/var/log/expense-queue.log
+stopwaitsecs=3600
+```
+
+Start services:
+
+```bash
+sudo supervisorctl reread
+sudo supervisorctl update
+sudo supervisorctl start all
+
+# Check status
+sudo supervisorctl status
+```
+
+### 7. Automated Deployment Script
+
+Use the provided deployment script:
+
+```bash
+# First deployment
+./scripts/deploy-linux.sh --init
+
+# Update deployment
+./scripts/deploy-linux.sh --update
 ```
 
 ---
 
-## **결론 및 권장사항**
+## SSL/HTTPS Setup
 
-### **즉시 적용 가능한 해결책**
+### Using Certbot (Let's Encrypt)
 
-1. **개발 환경**: Vite 프록시 + 상대 경로 사용
-2. **배포 환경**: Nginx 리버스 프록시 도입
-3. **단계적 접근**: 로컬 프로덕션 테스트 → 실제 배포
+```bash
+# Install Certbot
+sudo apt install -y certbot python3-certbot-nginx
 
-### **장기적 이점**
+# Obtain certificate
+sudo certbot --nginx -d your-domain.com
 
-- **개발 생산성 향상**: HMR과 빠른 피드백 루프
-- **배포 안정성**: 프로덕션 표준 아키텍처
-- **확장성**: 로드 밸런싱, 캐싱, SSL 등 확장 기능
-- **보안 강화**: 백엔드 직접 노출 방지
+# Auto-renewal is configured automatically
+# Test renewal:
+sudo certbot renew --dry-run
+```
 
-현재 발생한 `127.0.0.1:8000` 접근 문제와 `ERR_BLOCKED_BY_CLIENT` 에러는 위 방법들을 통해 근본적으로 해결할 수 있으며, 동시에 확장 가능하고 안정적인 배포 환경을 구축할 수 있습니다.
+---
+
+## Troubleshooting
+
+### Common Issues
+
+**1. 502 Bad Gateway**
+```bash
+# Check if backend is running
+sudo supervisorctl status expense-backend
+
+# View logs
+sudo tail -f /var/log/expense-backend.log
+```
+
+**2. Permission Denied**
+```bash
+sudo chown -R www-data:www-data /var/www/expense-app/backend/storage
+sudo chmod -R 775 /var/www/expense-app/backend/storage
+```
+
+**3. Database Locked**
+```bash
+# Stop queue worker before migrations
+sudo supervisorctl stop expense-queue
+php artisan migrate
+sudo supervisorctl start expense-queue
+```
+
+**4. Frontend Not Loading**
+```bash
+# Rebuild frontend
+cd /var/www/expense-app/frontend
+npm run build
+
+# Check Nginx logs
+sudo tail -f /var/log/nginx/error.log
+```
+
+### Useful Commands
+
+```bash
+# Restart all services
+sudo supervisorctl restart all
+sudo systemctl reload nginx
+
+# Clear Laravel caches
+cd /var/www/expense-app/backend
+php artisan optimize:clear
+
+# View real-time logs
+sudo tail -f /var/log/expense-backend.log
+sudo tail -f /var/log/expense-queue.log
+sudo tail -f /var/log/nginx/access.log
+```
+
+---
+
+## Comparison: Docker vs Native
+
+| Aspect | Docker | Native |
+|--------|--------|--------|
+| **Setup Time** | ~5 minutes | ~30 minutes |
+| **Dependencies** | Docker only | PHP, Node, Nginx, Supervisor |
+| **Updates** | Rebuild image | Git pull + restart |
+| **Resource Usage** | Higher (containers) | Lower (direct) |
+| **Portability** | High | Server-specific |
+| **Debugging** | Container logs | Direct access |
+
+**Recommendation:** Use Docker for simplicity. Use Native deployment when you need more control or have resource constraints.
+
+---
+
+## Server Maintenance
+
+Proper maintenance prevents disk space issues and ensures system stability.
+
+### Maintenance Scripts
+
+The following scripts are available in the `scripts/` directory:
+
+| Script | Purpose | Schedule |
+|--------|---------|----------|
+| `maintenance.sh` | DB cleanup, log archive, cache clear | Daily |
+| `docker-cleanup.sh` | Remove unused Docker resources | Weekly |
+
+### Setting Up Scheduled Maintenance
+
+**1. Add to crontab (Linux):**
+
+```bash
+sudo crontab -e
+```
+
+```cron
+# Daily maintenance at 3:00 AM
+0 3 * * * /var/www/expense-app/scripts/maintenance.sh >> /var/log/expense-maintenance.log 2>&1
+
+# Weekly Docker cleanup at 4:00 AM on Sundays
+0 4 * * 0 /var/www/expense-app/scripts/docker-cleanup.sh >> /var/log/docker-cleanup.log 2>&1
+```
+
+**2. Install logrotate configuration:**
+
+```bash
+sudo cp scripts/logrotate-expense-app.conf /etc/logrotate.d/expense-app
+```
+
+### Log Management Strategy
+
+| Log Type | Retention | Location |
+|----------|-----------|----------|
+| Laravel App | 90 days (compressed) | `backend/storage/logs/` |
+| Docker | 30MB max per service | Docker logs |
+| Nginx | 30 days (compressed) | `/var/log/nginx/` |
+| Supervisor | 30 days (compressed) | `/var/log/expense-*.log` |
+
+### Manual Maintenance Commands
+
+```bash
+# Database maintenance
+./scripts/maintenance.sh db
+
+# Archive old logs
+./scripts/maintenance.sh logs
+
+# Clear caches
+./scripts/maintenance.sh cache
+
+# Disk usage report
+./scripts/maintenance.sh report
+
+# Docker cleanup (careful!)
+./scripts/docker-cleanup.sh
+```
+
+### SQLite Database Tips
+
+```bash
+# Check database size
+ls -lh backend/database/database.sqlite
+
+# Manual VACUUM (reclaim disk space)
+sqlite3 backend/database/database.sqlite "VACUUM;"
+
+# Check WAL file size
+ls -lh backend/database/database.sqlite-wal
+```
+
+### Disk Space Monitoring
+
+Monitor disk usage to prevent service disruptions:
+
+```bash
+# Check overall disk usage
+df -h /
+
+# Check application directories
+du -sh /var/www/expense-app/
+du -sh /var/www/expense-app/backend/storage/
+
+# Docker disk usage
+docker system df
+```
+
+> [!WARNING]
+> If disk usage exceeds 90%, services may fail. Set up alerts or monitoring.
+
+### Emergency Cleanup
+
+If disk is nearly full:
+
+```bash
+# 1. Clear Laravel caches
+php artisan optimize:clear
+
+# 2. Remove old logs
+find /var/www/expense-app/backend/storage/logs -name "*.log" -mtime +7 -delete
+
+# 3. Docker emergency cleanup
+docker system prune -a -f
+
+# 4. Clear journal logs (if applicable)
+sudo journalctl --vacuum-time=3d
+```

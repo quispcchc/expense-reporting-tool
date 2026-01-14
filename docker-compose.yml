@@ -1,3 +1,9 @@
+# Full-Stack Docker Development (Alternative)
+# Use this when you don't have PHP installed locally
+# Backend and Frontend both run in Docker containers
+# Run with: docker compose up -d
+# Note: Uses npm in containers for Docker compatibility
+
 services:
   # Laravel Backend
   backend:

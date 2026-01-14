@@ -1,6 +1,13 @@
 # Production Docker Compose Configuration
 # Run with: docker-compose -f docker-compose.prod.yml up -d --build
 
+# Default logging configuration for all services
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   # Nginx Reverse Proxy (Entry Point)
   nginx:
@@ -17,6 +24,7 @@ services:
     restart: unless-stopped
     networks:
       - expense_network
+    logging: *default-logging
 
   # Laravel Backend
   backend:
@@ -46,6 +54,7 @@ services:
     networks:
       - expense_network
     command: sh -c "php artisan migrate --force && rm -rf public/storage && php artisan storage:link && php artisan config:cache && php artisan route:cache && sqlite3 /var/www/html/database/database.sqlite 'DELETE FROM sessions; DELETE FROM personal_access_tokens;' && php artisan serve --host=0.0.0.0 --port=8000"
+    logging: *default-logging
 
   # Laravel Queue Worker
   queue:
@@ -65,6 +74,7 @@ services:
     networks:
       - expense_network
     command: php artisan queue:work --tries=1
+    logging: *default-logging
 
   # React Frontend (Production Build served by Nginx)
   frontend:
@@ -77,6 +87,7 @@ services:
     restart: unless-stopped
     networks:
       - expense_network
+    logging: *default-logging
 
 networks:
   expense_network:
