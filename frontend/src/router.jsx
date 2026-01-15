@@ -3,6 +3,7 @@ import LoginPage from './pages/shared/LoginPage.jsx'
 import ForgotPassword from './pages/shared/ForgotPassword.jsx'
 import ResetPassword from './pages/shared/ResetPassword.jsx'
 import UpdatePassword from './pages/shared/UpdatePassword.jsx'
+import VerifyEmailPage from './pages/shared/VerifyEmailPage.jsx'
 import Unauthorized from './pages/shared/Unauthrized.jsx'
 import ProtectedRoute from './components/feature/auth/ProtectedRoute.jsx'
 import UserLayout from './components/layouts/UserLayout.jsx'
@@ -47,6 +48,10 @@ const router = createBrowserRouter(
         {
             path: '/update-password',
             element: <UpdatePassword />,
+        },
+        {
+            path: '/verify-email',
+            element: <VerifyEmailPage />,
         },
         {
             path: '/unauthorized',

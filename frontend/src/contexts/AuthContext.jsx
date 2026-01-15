@@ -124,10 +124,15 @@ export const AuthProvider = ({ children }) => {
 
         // Reset password
         resetPassword: async (info) => {
-            const response = await api.post('/reset-password', info)
-            console.log(response)
-
-
+            setError(null)
+            try {
+                const response = await api.post('/reset-password', info)
+                return { success: true, message: response.data?.message || 'Password reset successfully' }
+            } catch (error) {
+                const message = error.response?.data?.message || error.message || 'Failed to reset password'
+                setError(message)
+                return { success: false, message }
+            }
         },
 
         // Update password
