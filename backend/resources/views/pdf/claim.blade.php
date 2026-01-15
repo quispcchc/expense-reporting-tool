@@ -25,16 +25,51 @@
         }
 
         .header {
-            text-align: center;
+            width: 100%;
             margin-bottom: 20px;
-            border-bottom: 2px solid #000;
+            border-bottom: 2px solid #5b6eb0;
             padding-bottom: 10px;
         }
 
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .header-table td {
+            vertical-align: top;
+            border: none;
+            padding: 0;
+        }
+
+        .header-left-cell {
+            width: 70%;
+            text-align: left;
+        }
+
+        .header-right-cell {
+            width: 30%;
+            text-align: right;
+            vertical-align: top;
+        }
+
+        .header-logo {
+            max-width: 180px;
+            max-height: 50px;
+        }
+
         .header h1 {
-            margin: 0 0 5px 0;
-            font-size: 22px;
+            margin: 0 0 3px 0;
+            font-size: 14px;
             font-weight: bold;
+            color: #5b6eb0;
+        }
+
+        .header h2 {
+            margin: 0 0 8px 0;
+            font-size: 12px;
+            color: #666;
+            font-weight: normal;
         }
 
         .header p {
@@ -111,13 +146,18 @@
             page-break-inside: avoid;
         }
 
+        .attachment-container {
+            text-align: center;
+            margin: 10px 0;
+        }
+
         .receipt-image {
             max-width: 300px;
             max-height: 400px;
-            margin: 10px;
+            margin: 10px auto;
             border: 1px solid #ddd;
             padding: 5px;
-            display: inline-block;
+            display: block;
         }
 
         .receipt-label {
@@ -160,21 +200,43 @@
         }
 
         .signature-section {
-            margin-top: 30px;
+            margin-top: 40px;
             page-break-inside: avoid;
         }
 
-        .signature-line {
+        .signature-table {
             width: 100%;
             border-collapse: collapse;
         }
 
-        .signature-line td {
-            width: 50%;
+        .signature-table td {
             text-align: center;
-            padding-top: 30px;
-            border-top: 1px solid #000;
+            vertical-align: bottom;
+            border: none;
+            padding: 0 20px;
+        }
+
+        .sig-underline {
+            border-bottom: 1px solid #000;
+            height: 40px;
+            margin-bottom: 5px;
+        }
+
+        .sig-label {
             font-size: 10px;
+            color: #5b6eb0;
+            margin-bottom: 20px;
+        }
+
+        .date-line {
+            border-bottom: 1px solid #000;
+            height: 25px;
+            margin-bottom: 5px;
+        }
+
+        .date-text {
+            font-size: 9px;
+            color: #666;
         }
 
         .amount {
@@ -215,8 +277,23 @@
     <div class="container">
         <!-- ===== HEADER ===== -->
         <div class="header">
-            <h1>Volunteer Expense Claim Report</h1>
-            <p>Claim ID: {{ optional($claim)->claim_id ?? 'N/A' }} | Generated: {{ now()->format('Y-m-d H:i') }}</p>
+            <table class="header-table">
+                <tr>
+                    <td class="header-left-cell">
+                        <h1>Carlington Community Health Centre</h1>
+                        <h2>Volunteer Expense Claim Report</h2>
+                        <p><strong>Request Number:</strong> {{ optional($claim)->claim_id ?? 'N/A' }}</p>
+                    </td>
+                    <td class="header-right-cell">
+                        @php
+                            $logoPath = storage_path('app/public/assets/carlington-logo.png');
+                        @endphp
+                        @if(file_exists($logoPath))
+                            <img src="{{ $logoPath }}" class="header-logo" alt="Carlington Logo">
+                        @endif
+                    </td>
+                </tr>
+            </table>
         </div>
 
         <!-- ===== CLAIM INFORMATION SECTION ===== -->
@@ -329,17 +406,22 @@
         </div>
 
         <!-- ===== SIGNATURE SECTION ===== -->
-        <div class="signature-section">
-            <table class="signature-line">
+        <div style="margin-top: 15px; page-break-inside: avoid;">
+            <table style="width: 100%; border-collapse: collapse;">
                 <tr>
-                    <td>Employee Signature</td>
-                    <td>Approver Signature</td>
-                </tr>
-                <tr>
-                    <td style="border: none; padding-top: 5px;"><span style="font-size: 9px;">Date:
-                            _______________</span></td>
-                    <td style="border: none; padding-top: 5px;"><span style="font-size: 9px;">Date:
-                            _______________</span></td>
+                    <td style="width: 40%; text-align: center; vertical-align: bottom; padding: 0 10px;">
+                        <hr style="border: none; border-top: 1px solid #000; margin-bottom: 5px;">
+                        <div style="font-size: 10px; margin-bottom: 25px;">Employee Signature</div>
+                        <hr style="border: none; border-top: 1px solid #000; margin-bottom: 5px;">
+                        <div style="font-size: 9px;">Date</div>
+                    </td>
+                    <td style="width: 20%;"></td>
+                    <td style="width: 40%; text-align: center; vertical-align: bottom; padding: 0 10px;">
+                        <hr style="border: none; border-top: 1px solid #000; margin-bottom: 5px;">
+                        <div style="font-size: 10px; margin-bottom: 25px;">Authorized Supervisor</div>
+                        <hr style="border: none; border-top: 1px solid #000; margin-bottom: 5px;">
+                        <div style="font-size: 9px;">Date</div>
+                    </td>
                 </tr>
             </table>
         </div>
@@ -359,12 +441,12 @@
 
         @if($hasReceipts)
             <div class="attachment-section">
-                <div class="section-title">ATTACHMENTS</div>
+                <div class="section-title">ATTACHMENT(S)</div>
                 @foreach(optional($claim)->expenses ?? [] as $expense)
                     @if(optional($expense)->receipts && count(optional($expense)->receipts) > 0)
                         @foreach(optional($expense)->receipts as $receipt)
-                            <div style="margin-bottom: 15px;">
-                                <div class="receipt-label">
+                            <div class="attachment-container">
+                                <div class="receipt-label" style="text-align: center;">
                                     Expense #{{ optional($expense)->expense_id ?? 'N/A' }} -
                                     {{ optional($expense)->vendor_name ?? 'N/A' }}
                                 </div>
@@ -376,10 +458,10 @@
                                     @if($imageExists)
                                         <img src="{{ $imagePath }}" class="receipt-image" alt="Receipt">
                                     @else
-                                        <p style="color: #999; font-size: 9px;">Receipt file not found at: {{ $imagePath }}</p>
+                                        <p style="color: #999; font-size: 9px; text-align: center;">Receipt file not found at: {{ $imagePath }}</p>
                                     @endif
                                 @else
-                                    <p style="color: #999; font-size: 9px;">No receipt file path available</p>
+                                    <p style="color: #999; font-size: 9px; text-align: center;">No receipt file path available</p>
                                 @endif
                             </div>
                         @endforeach

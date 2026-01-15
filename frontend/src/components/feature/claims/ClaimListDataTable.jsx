@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react'
+import React, { useEffect, useState, useMemo, useRef } from 'react'
 import ComponentContainer from '../../common/ui/ComponentContainer.jsx'
 import { DataTable } from 'primereact/datatable'
 import { Column } from 'primereact/column'
@@ -52,6 +52,7 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
     const [selectedClaims, setSelectedClaims] = useState([])
     const isDisabled = !selectedClaims || selectedClaims.length === 0;
     const [isExporting, setIsExporting] = useState(false)
+    const abortControllerRef = useRef(null)
 
     // Filter modal state (shared for mobile and desktop)
     const [showFilterModal, setShowFilterModal] = useState(false)
@@ -236,6 +237,13 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
             return
         }
 
+        // Cancel any previous ongoing request
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort()
+        }
+        abortControllerRef.current = new AbortController()
+        const signal = abortControllerRef.current.signal
+
         setIsExporting(true)
 
         try {
@@ -244,6 +252,7 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
                 const claimId = selectedClaims[0].claim_id
                 const response = await api.get(`/claims/${claimId}/export-pdf`, {
                     responseType: 'blob',
+                    signal,
                 })
 
                 const url = window.URL.createObjectURL(new Blob([response.data]))
@@ -266,7 +275,7 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
                 const claimIds = selectedClaims.map(claim => claim.claim_id)
                 const response = await api.post('/claims/export-multiple-pdf',
                     { claimIds },
-                    { responseType: 'blob' }
+                    { responseType: 'blob', signal }
                 )
 
                 const url = window.URL.createObjectURL(new Blob([response.data]))
@@ -285,6 +294,12 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
                 })
             }
         } catch (error) {
+            // Ignore aborted requests
+            if (error?.name === 'AbortError' || error?.name === 'CanceledError') {
+                console.log('PDF export request was cancelled')
+                return
+            }
+
             console.error('Error exporting PDF:', error)
             let errorDetail = 'Failed to export PDF. Please try again.';
 
@@ -303,6 +318,7 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
             })
         } finally {
             setIsExporting(false)
+            abortControllerRef.current = null
         }
     }
 
