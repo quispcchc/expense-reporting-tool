@@ -15,6 +15,7 @@ use App\Http\Controllers\ResetPasswordController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UpdatePasswordController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\VerifyEmailController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -24,6 +25,11 @@ Route::get('/user', function (Request $request) {
 
 // user login
 Route::post('/login', [LoginController::class, 'login']);
+
+// email verification and password setting
+Route::post('/verify-email', [VerifyEmailController::class, 'verifyEmail']);
+Route::post('/resend-verification-email', [VerifyEmailController::class, 'resendVerificationEmail']);
+Route::post('/check-email-verification', [VerifyEmailController::class, 'checkEmailVerification']);
 
 // user reset password
 Route::post('/forget-password', [ForgetPasswordController::class, 'sendResetLink']);
@@ -36,14 +42,11 @@ Route::put('/update-password', [updatePasswordController::class, 'updatePassword
 // user logout
 Route::post('/logout', [LogoutController::class, 'logout'])->middleware('auth:sanctum');
 
-// create user
-Route::post('/admin/create-user', [CreateUserController::class, 'createUser'])->middleware(['auth:sanctum', 'role:admin']);
+// create user (admin and super_admin only)
+Route::post('/admin/create-user', [CreateUserController::class, 'createUser'])->middleware('auth:sanctum');
 
 // Admin management
-Route::middleware(['auth:sanctum', 'role:1'])->group(function () {
-    Route::post('/admin/create-user', [CreateUserController::class, 'createUser']);
-
-    Route::post('/admin/create-user', [CreateUserController::class, 'createUser']);
+Route::middleware(['auth:sanctum'])->group(function () {
     // Admin user management
     Route::get('/admin/users', [UserController::class, 'index']);
     Route::put('/admin/users/{id}', [UserController::class, 'update']);

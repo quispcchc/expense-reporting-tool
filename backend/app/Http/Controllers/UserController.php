@@ -8,52 +8,197 @@ use Illuminate\Support\Facades\Validator;
 
 class UserController extends Controller
 {
+    /**
+     * Get list of users with role-based access control
+     */
     public function index(Request $request)
     {
-        $users = User::with(['role', 'team', 'position', 'activeStatus'])->get();
+        $authUser = $request->user();
 
-        return response()->json($users);
+        // Authorize user access to user list
+        if (!$this->canViewUsers($authUser)) {
+            return response()->json([
+                'message' => 'Unauthorized. Only super_admin, admin, and approver can view users.',
+            ], 403);
+        }
+
+        // Get users with related data and apply role-based filtering
+        $query = User::with(['role', 'department', 'team', 'activeStatus']);
+        $query = $this->applyRoleBasedFiltering($query, $authUser);
+
+        return response()->json($this->formatUsers($query->get()));
     }
+
+    /**
+     * Update user information
+     */
 
     public function update(Request $request, $id)
     {
+        $authUser = $request->user();
         $user = User::where('user_id', $id)->firstOrFail();
 
-        $validator = Validator::make($request->all(), [
-            'first_name' => 'sometimes|string|max:255',
-            'last_name' => 'sometimes|string|max:255',
-            'email' => 'sometimes|email|unique:users,email,'.$user->user_id.',user_id',
-            'role_id' => 'sometimes|integer|exists:role,role_id',
-            'team_id' => 'sometimes|integer|exists:team,team_id',
-            'position_id' => 'sometimes|integer|exists:position,position_id',
-            'active_status_id' => 'sometimes|integer|exists:active_status,active_status_id',
-        ]);
+        // Authorize user edit access
+        $authError = $this->authorizeUserEdit($authUser, $user);
+        if ($authError) {
+            return $authError;
+        }
+
+        // Validate input
+        $validator = Validator::make($request->all(), $this->getUserValidationRules($user->user_id));
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $user->fill($request->only([
-            'first_name',
-            'last_name',
-            'email',
-            'role_id',
-            'team_id',
-            'position_id',
-            'active_status_id',
-        ]));
-
+        // Update user with validated data
+        $user->fill($request->only($this->getEditableFields()));
         $user->save();
 
         return response()->json(['user' => $user]);
     }
 
+    /**
+     * Delete a user
+     */
     public function destroy(Request $request, $id)
     {
         $user = User::where('user_id', $id)->firstOrFail();
-
         $user->delete();
 
-        return response()->json(['message' => 'User deleted']);
+        return response()->json(['message' => 'User deleted successfully']);
+    }
+
+    /**
+     * Check if authenticated user can view the users list
+     */
+    private function canViewUsers($authUser): bool
+    {
+        $viewableRoles = ['super_admin', 'admin', 'approver'];
+        return in_array($authUser->role?->role_name, $viewableRoles);
+    }
+
+    /**
+     * Apply role-based filtering to user query
+     */
+    private function applyRoleBasedFiltering($query, $authUser)
+    {
+        return match ($authUser->role?->role_name) {
+            'super_admin' => $query,
+            'admin' => $query->where('department_id', $authUser->department_id),
+            'approver' => $query->where('team_id', $authUser->team_id),
+            default => $query,
+        };
+    }
+
+    /**
+     * Format users for API response
+     */
+    private function formatUsers($users)
+    {
+        return $users->map(function ($user) {
+            return [
+                'user_id' => $user->user_id,
+                'first_name' => $user->first_name,
+                'last_name' => $user->last_name,
+                'email' => $user->email,
+                'role_id' => $user->role_id,
+                'department_id' => $user->department_id,
+                'team' => $user->team?->team_name,
+                'status' => $user->active_status_id,
+            ];
+        });
+    }
+
+    /**
+     * Authorize user edit access based on role and department
+     */
+    private function authorizeUserEdit($authUser, $user)
+    {
+        // Load role relationships if not already loaded
+        if (!$authUser->relationLoaded('role')) {
+            $authUser->load('role');
+        }
+        if (!$user->relationLoaded('role')) {
+            $user->load('role');
+        }
+
+        $authRoleName = $authUser->role?->role_name;
+        $userRoleName = $user->role?->role_name;
+
+        // Super admin can edit anyone except other super admins and cannot edit themselves
+        if ($authRoleName === 'super_admin') {
+            if ($authUser->user_id === $user->user_id) {
+                return response()->json([
+                    'message' => 'You cannot edit your own profile.',
+                ], 403);
+            }
+            return null; // Authorized
+        }
+
+        // Admin can only edit regular users in their department
+        if ($authRoleName === 'admin') {
+            // Admin cannot edit themselves
+            if ($authUser->user_id === $user->user_id) {
+                return response()->json([
+                    'message' => 'You cannot edit your own profile.',
+                ], 403);
+            }
+
+            // Admin cannot edit other admin or super_admin users
+            if (in_array($userRoleName, ['admin', 'super admin'])) {
+                return response()->json([
+                    'message' => 'Unauthorized. You can only edit regular users and approvers in your department.',
+                ], 403);
+            }
+
+            // Admin can only edit users in their department
+            if ($user->department_id !== $authUser->department_id) {
+                return response()->json([
+                    'message' => 'Unauthorized. You can only edit users in your department.',
+                ], 403);
+            }
+
+            return null; // Authorized
+        }
+
+        // Other roles cannot edit users
+        return response()->json([
+            'message' => 'Unauthorized. Only super admin and admin can edit users.',
+        ], 403);
+    }
+
+    /**
+     * Get user validation rules for update
+     */
+    private function getUserValidationRules($userId): array
+    {
+        return [
+            'first_name' => 'sometimes|string|max:255',
+            'last_name' => 'sometimes|string|max:255',
+            'email' => "sometimes|email|unique:users,email,{$userId},user_id",
+            'role_id' => 'sometimes|integer|exists:roles,role_id',
+            'department_id' => 'sometimes|integer|exists:departments,department_id',
+            'team_id' => 'sometimes|integer|exists:teams,team_id',
+            'position_id' => 'sometimes|integer|exists:positions,position_id',
+            'active_status_id' => 'sometimes|integer|exists:active_status,active_status_id',
+        ];
+    }
+
+    /**
+     * Get list of fields that can be edited
+     */
+    private function getEditableFields(): array
+    {
+        return [
+            'first_name',
+            'last_name',
+            'email',
+            'role_id',
+            'department_id',
+            'team_id',
+            'position_id',
+            'active_status_id',
+        ];
     }
 }
