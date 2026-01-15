@@ -19,17 +19,18 @@ function ViewClaimPage() {
     const { authUser } = useAuth()
     const path = authUser.role_name === 'regular_user' ? '/user' : '/admin'
 
-    useEffect(() => {
-        const fetchClaim = async () => {
-            try {
-                const data = await getClaimById(Number(claimId))
-                setCurClaim(data)
-            } catch (error) {
-                console.error(error)
-            }
+    const fetchClaim = async () => {
+        try {
+            const data = await getClaimById(Number(claimId))
+            setCurClaim(data)
+        } catch (error) {
+            console.error(error)
         }
+    }
+
+    useEffect(() => {
         fetchClaim()
-    }, [claimId])
+    }, [claimId, getClaimById])
 
     if (!curClaim) return <Loader />
 
@@ -41,7 +42,7 @@ function ViewClaimPage() {
             </div>
 
             <div className="flex flex-wrap gap-5 my-5">
-                <div className="flex-1"><ClaimDetail curClaim={curClaim} /></div>
+                <div className="flex-1"><ClaimDetail curClaim={curClaim} onClaimRefetch={fetchClaim} /></div>
                 <div className="flex-1">
                     {/* when in view claim mode, disable add note function*/}
                     <ClaimNotes notes={curClaim.notes} curClaim={curClaim} mode='view' />

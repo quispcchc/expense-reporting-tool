@@ -150,6 +150,14 @@ class ExpenseService
             $result = $expense->fresh(['tags', 'receipts']);
             \Log::info('=== UPDATE EXPENSE END ===');
 
+
+            // Recalculate claim total amount
+            if ($expense->claim_id) {
+                $claim = Claim::findOrFail($expense->claim_id);
+                $totalAmount = $claim->expenses()->sum('expense_amount');
+                $claim->update(['total_amount' => $totalAmount]);
+            }
+
             return $result;
         });
 

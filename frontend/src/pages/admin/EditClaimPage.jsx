@@ -48,7 +48,7 @@ function EditClaimPage() {
             </div>
 
             <div className="flex flex-wrap gap-5 my-5 items-stretch">
-                <div className="flex-1 flex"><ClaimDetail curClaim={curClaim} toastRef={toast} /></div>
+                <div className="flex-1 flex"><ClaimDetail curClaim={curClaim} toastRef={toast} onClaimRefetch={fetchClaim} /></div>
                 <div className="flex-1 flex">
                     <ClaimNotes curClaim={curClaim} toastRef={toast} />
                 </div>

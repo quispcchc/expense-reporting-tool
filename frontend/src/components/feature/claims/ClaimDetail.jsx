@@ -10,7 +10,7 @@ import { useTranslation } from 'react-i18next'
 // ClaimDetail component shows details of a single claim
 // Used in both view and edit claim pages
 
-function ClaimDetail({ curClaim, toastRef }) {
+function ClaimDetail({ curClaim, toastRef, onClaimRefetch }) {
     const { t } = useTranslation()
     const { lookups } = useLookups()
     const [isEditing, setIsEditing] = useState(false)
@@ -28,11 +28,19 @@ function ClaimDetail({ curClaim, toastRef }) {
     }
 
     async function handleSelectSave() {
-        await api.put(`/claims/${curClaim.claim_id}`, claimDetail)
-        showToast(toastRef, { severity: 'success', summary: 'Updated', detail: 'Claim Updated Successfully' })
-        setIsEditing(false)
-
-
+        try {
+            await api.put(`/claims/${curClaim.claim_id}`, claimDetail)
+            
+            // Fetch fresh claim data from server
+            if (onClaimRefetch) {
+                await onClaimRefetch()
+            }
+            
+            showToast(toastRef, { severity: 'success', summary: 'Updated', detail: 'Claim Updated Successfully' })
+            setIsEditing(false)
+        } catch (error) {
+            showToast(toastRef, { severity: 'error', summary: 'Error', detail: 'Failed to update claim' })
+        }
     }
 
     function getDepartmentName(id) {
