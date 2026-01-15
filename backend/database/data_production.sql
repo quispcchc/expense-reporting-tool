@@ -48,22 +48,22 @@ VALUES
 -- ============================================================
 -- 4. POSITIONS
 -- ============================================================
-INSERT INTO positions (position_name, position_desc, created_at, updated_at)
+INSERT INTO positions (position_name, position_desc, active_status_id, created_at, updated_at)
 VALUES 
-    ('Admin Assistant 1', 'Administrative Assistant Level 1', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('Admin Assistant 2', 'Administrative Assistant Level 2', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('Admin Assistant 3 / Executive Assistant', 'Senior Administrative Assistant', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('Clinical Aide', 'Clinical Support Staff', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('Clinical Coordinator', 'Clinical Coordination', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('Coordinator of Volunteers', 'Volunteer Coordination', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('Executive Director', 'Executive Leadership', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('Medical Office Administrator 1', 'Medical Office Administration', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('Medical Receptionist', 'Medical Reception', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('Medical Secretary 3', 'Medical Secretarial Support', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('Program Assistant', 'Program Support', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('Program Director', 'Program Leadership', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('Program Manager', 'Program Management', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('Coordinator', 'General Coordination', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+    ('Admin Assistant 1', 'Administrative Assistant Level 1', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('Admin Assistant 2', 'Administrative Assistant Level 2', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('Admin Assistant 3 / Executive Assistant', 'Senior Administrative Assistant', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('Clinical Aide', 'Clinical Support Staff', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('Clinical Coordinator', 'Clinical Coordination', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('Coordinator of Volunteers', 'Volunteer Coordination', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('Executive Director', 'Executive Leadership', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('Medical Office Administrator 1', 'Medical Office Administration', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('Medical Receptionist', 'Medical Reception', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('Medical Secretary 3', 'Medical Secretarial Support', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('Program Assistant', 'Program Support', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('Program Director', 'Program Leadership', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('Program Manager', 'Program Management', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('Coordinator', 'General Coordination', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 -- ============================================================
 -- 5. APPROVAL STATUS

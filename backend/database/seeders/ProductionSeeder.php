@@ -130,7 +130,10 @@ class ProductionSeeder extends Seeder
         foreach ($positions as $position) {
             Position::firstOrCreate(
                 ['position_name' => $position['position_name']],
-                ['position_desc' => $position['position_desc']]
+                [
+                    'position_desc' => $position['position_desc'],
+                    'active_status_id' => 1,
+                ]
             );
         }
     }
