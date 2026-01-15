@@ -392,6 +392,72 @@ docker compose exec backend php artisan db:seed
 docker cp expense_backend:/var/www/html/database/database.sqlite ./backup.sqlite
 ```
 
+#### 🌱 Production Seeder
+
+For **initial production deployment**, use the `ProductionSeeder` to populate the database with production-ready seed data.
+
+> [!IMPORTANT]
+> The `ProductionSeeder` uses `firstOrCreate()` for all records, so it's safe to run multiple times without creating duplicates.
+
+**Initial Production Setup:**
+```bash
+# For Docker production environment
+docker compose -f docker-compose.prod.yml exec backend php artisan db:seed --class=ProductionSeeder
+
+# For fresh database setup (WARNING: deletes all existing data!)
+docker compose -f docker-compose.prod.yml stop queue
+docker compose -f docker-compose.prod.yml exec backend php artisan migrate:fresh --seed --seeder=ProductionSeeder
+docker compose -f docker-compose.prod.yml start queue
+```
+
+**Initial Login Credentials:**
+
+| Email | Password | Role |
+|-------|----------|------|
+| `superadmin@carlingtonchc.org` | `password` | Super Admin |
+| `admin@carlingtonchc.org` | `password` | Admin |
+
+> [!WARNING]
+> **Change these passwords immediately after first login!**
+
+#### 🧪 Development/Test Seeder
+
+For **local development and testing**, use the default `DatabaseSeeder` which creates random test data using factories.
+
+**Development Setup:**
+```bash
+# For Docker development environment
+docker compose -f docker-compose.dev.yml exec backend php artisan migrate:fresh --seed
+
+# Or for full Docker environment
+docker compose exec backend php artisan migrate:fresh --seed
+```
+
+**Test Login Credentials:**
+
+| Email | Password | Role |
+|-------|----------|------|
+| `superadmin@example.com` | `password` | Super Admin |
+| `admin@example.com` | `password` | Admin |
+| `approver@example.com` | `password` | Approver |
+| `test@example.com` | `password` | Regular User |
+
+> [!NOTE]
+> The `DatabaseSeeder` uses factories to generate random positions, teams, and other data. Each run produces different random data.
+
+**Seeder Comparison:**
+
+| Seeder | Use Case | Data |
+|--------|----------|------|
+| `DatabaseSeeder` | Development/Testing | Random test data via factories |
+| `ProductionSeeder` | Production Deployment | Real organization data (Departments, Teams, Cost Centres, Projects, etc.) |
+
+**SQL Alternative:**
+If you prefer direct SQL import instead of Laravel seeder:
+```bash
+sqlite3 database/database.sqlite < database/data_production.sql
+```
+
 ### 🐙 Useful Git Commands
 
 #### 🧹 Clean Stale Branches
