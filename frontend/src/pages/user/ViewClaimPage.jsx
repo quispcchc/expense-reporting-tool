@@ -30,7 +30,7 @@ function ViewClaimPage() {
 
     useEffect(() => {
         fetchClaim()
-    }, [claimId])
+    }, [claimId, getClaimById])
 
     if (!curClaim) return <Loader />
 
