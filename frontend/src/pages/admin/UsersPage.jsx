@@ -54,7 +54,7 @@ function UsersPage() {
 
         // Get teams and roles from lookups
     const teamOptions = lookups.teams.map(t => ({label: t.team_name, value: t.team_id}))
-    const roleOptions = lookups.roles.map(r => ({label: r.role_name, value: r.role_id}))
+    const roleOptions = lookups.roles.map(r => ({label: r.role_name.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase()), value: r.role_id}))
     const statusOptions = lookups.activeStatuses.map(s => ({label: s.active_status_name ,value: s.active_status_id}))
     const departmentOptions = lookups.departments.map(d => ({label: d.department_name, value: d.department_id}))
     // Render custom UI for user status

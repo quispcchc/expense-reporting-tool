@@ -208,6 +208,8 @@ function AddNewUser() {
                         </div>
                     </div>
 
+                    
+
                     {/* Row 3: Role and Actions */}
                     <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-5 items-end">
                         <div>
@@ -217,7 +219,7 @@ function AddNewUser() {
                                 label={t('users.role')} 
                                 value={userFormData.role} 
                                 className="w-full"
-                                options={lookups.roles.map(option => ({ label: option.role_name, value: option.role_id }))}
+                                options={lookups.roles.map(r => ({label: r.role_name.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase()), value: r.role_id}))}
                                 onChange={handleUserFormChange}
                                 placeholder={t('users.selectRole', 'Select role')} 
                                 errors={errors}
