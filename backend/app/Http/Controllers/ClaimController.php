@@ -154,7 +154,7 @@ class ClaimController extends Controller
     public function exportPdf($claimId)
     {
         try {
-            \Log::info('PDF Export Started for Claim: '.$claimId);
+            \Log::info('PDF Export Started for Claim: ' . $claimId);
 
             // Set mbstring encoding for proper UTF-8 handling
             mb_internal_encoding('UTF-8');
@@ -176,13 +176,13 @@ class ClaimController extends Controller
                 'notes.user',
             ])->findOrFail($claimId);
 
-            \Log::info('Claim loaded. Expenses count: '.count($claim->expenses ?? []));
+            \Log::info('Claim loaded. Expenses count: ' . count($claim->expenses ?? []));
 
             // Log receipt files
             foreach ($claim->expenses ?? [] as $expense) {
                 foreach ($expense->receipts ?? [] as $receipt) {
-                    $imagePath = storage_path('app/public/'.$receipt->receipt_path);
-                    \Log::info('Receipt path: '.$receipt->receipt_path.' | Full path: '.$imagePath.' | Exists: '.(file_exists($imagePath) ? 'YES' : 'NO'));
+                    $imagePath = storage_path('app/public/' . $receipt->receipt_path);
+                    \Log::info('Receipt path: ' . $receipt->receipt_path . ' | Full path: ' . $imagePath . ' | Exists: ' . (file_exists($imagePath) ? 'YES' : 'NO'));
                 }
             }
 
@@ -195,19 +195,34 @@ class ClaimController extends Controller
             // Write HTML to PDF
             $mpdf->WriteHTML($html);
 
-            \Log::info('PDF generated successfully for Claim: '.$claimId);
+            \Log::info('PDF generated successfully for Claim: ' . $claimId);
 
             // Generate filename
-            $filename = 'claim_'.$claimId.'_'.now()->format('Y-m-d').'.pdf';
+            $filename = 'claim_' . $claimId . '_' . now()->format('Y-m-d') . '.pdf';
 
-            // Return PDF as download
-            return response($mpdf->Output($filename, \Mpdf\Output\Destination::STRING_RETURN))
+            // Get PDF content as string
+            $pdfContent = $mpdf->Output($filename, \Mpdf\Output\Destination::STRING_RETURN);
+            $contentLength = strlen($pdfContent);
+
+            \Log::info('PDF content length: ' . $contentLength . ' bytes for Claim: ' . $claimId);
+
+            // Clean any output buffers to prevent interference
+            while (ob_get_level() > 0) {
+                ob_end_clean();
+            }
+
+            // Return PDF as download with explicit Content-Length
+            return response($pdfContent)
                 ->header('Content-Type', 'application/pdf')
-                ->header('Content-Disposition', 'attachment; filename="'.$filename.'"');
+                ->header('Content-Length', $contentLength)
+                ->header('Content-Disposition', 'attachment; filename="' . $filename . '"')
+                ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
+                ->header('Pragma', 'no-cache')
+                ->header('Expires', '0');
         } catch (\Exception $e) {
-            \Log::error('PDF Export Error for Claim '.$claimId.': '.$e->getMessage().' | Stack: '.$e->getTraceAsString());
+            \Log::error('PDF Export Error for Claim ' . $claimId . ': ' . $e->getMessage() . ' | Stack: ' . $e->getTraceAsString());
 
-            return $this->errorResponse('Failed to generate PDF: '.$e->getMessage(), 500);
+            return $this->errorResponse('Failed to generate PDF: ' . $e->getMessage(), 500);
         }
     }
 
@@ -223,8 +238,8 @@ class ClaimController extends Controller
         }
 
         // Create temporary directory for PDFs
-        $tempDir = storage_path('app/temp_pdfs_'.uniqid());
-        if (! file_exists($tempDir)) {
+        $tempDir = storage_path('app/temp_pdfs_' . uniqid());
+        if (!file_exists($tempDir)) {
             mkdir($tempDir, 0755, true);
         }
 
@@ -257,16 +272,16 @@ class ClaimController extends Controller
                     // Write HTML to PDF
                     $mpdf->WriteHTML($html);
 
-                    $filename = 'claim_'.$claimId.'.pdf';
-                    $filepath = $tempDir.'/'.$filename;
+                    $filename = 'claim_' . $claimId . '.pdf';
+                    $filepath = $tempDir . '/' . $filename;
                     $mpdf->Output($filepath, \Mpdf\Output\Destination::FILE);
                     $pdfFiles[] = $filepath;
                 }
             }
 
             // Create ZIP file
-            $zipFilename = 'claims_export_'.now()->format('Y-m-d_His').'.zip';
-            $zipPath = storage_path('app/'.$zipFilename);
+            $zipFilename = 'claims_export_' . now()->format('Y-m-d_His') . '.zip';
+            $zipPath = storage_path('app/' . $zipFilename);
 
             $zip = new \ZipArchive;
             if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) === true) {
@@ -290,7 +305,7 @@ class ClaimController extends Controller
             return response()->download($zipPath, $zipFilename)->deleteFileAfterSend(true);
 
         } catch (\Exception $e) {
-            \Log::error('PDF Export (Multiple) Error: '.$e->getMessage().' | Stack: '.$e->getTraceAsString());
+            \Log::error('PDF Export (Multiple) Error: ' . $e->getMessage() . ' | Stack: ' . $e->getTraceAsString());
 
             // Clean up on error
             foreach ($pdfFiles as $file) {
@@ -302,7 +317,7 @@ class ClaimController extends Controller
                 rmdir($tempDir);
             }
 
-            return $this->errorResponse('Failed to generate ZIP file: '.$e->getMessage(), 500);
+            return $this->errorResponse('Failed to generate ZIP file: ' . $e->getMessage(), 500);
         }
     }
 
@@ -320,7 +335,7 @@ class ClaimController extends Controller
 
         // Create mPDF temp directory if not exists
         $tempDir = storage_path('app/mpdf');
-        if (! file_exists($tempDir)) {
+        if (!file_exists($tempDir)) {
             mkdir($tempDir, 0755, true);
         }
 
