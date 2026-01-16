@@ -29,7 +29,7 @@ function DepartmentTeamsPage() {
     const [isFormOpen, setIsFormOpen] = useState(false)
     const [formErrors, setFormErrors] = useState([])
 
-    const { lookups } = useLookups()
+    const { lookups, refreshLookups } = useLookups()
     const toast = useRef(null)
 
     // Get active statuses from lookups
@@ -116,6 +116,7 @@ function DepartmentTeamsPage() {
             setTeams(prev => prev.map(team =>
                 team.team_id === newData.team_id ? response.data : team
             ))
+            await refreshLookups()
         } catch (err) {
             console.error('Failed to update team:', err)
         }
@@ -133,6 +134,7 @@ function DepartmentTeamsPage() {
                     await api.delete(`/teams/${rowData.team_id}`)
                     setTeams(prev => prev.filter(team => team.team_id !== rowData.team_id))
                     toast.current?.show({ severity: 'success', summary: t('common.success'), detail: t('teams.deleteSuccess'), life: 3000 })
+                    await refreshLookups()
                 } catch (err) {
                     toast.current?.show({ severity: 'error', summary: t('common.error'), detail: err.message, life: 5000 })
                 }
@@ -199,6 +201,7 @@ function DepartmentTeamsPage() {
             })
             setFormErrors([])
             setIsFormOpen(false)
+            await refreshLookups()
         } catch (err) {
             const errorMessage = err.response?.data?.message || err.message
             setFormErrors([{ field: '', message: errorMessage }])

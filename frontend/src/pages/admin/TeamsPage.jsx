@@ -17,7 +17,7 @@ function TeamsPage() {
     const { t } = useTranslation()
     // Access global team state and actions from context
     const { state: { teams, loading, error }, actions: { updateTeam } } = useTeam()
-    const { lookups } = useLookups()
+    const { lookups, refreshLookups } = useLookups()
 
     // Get active statuses from lookups (maps to status names)
     const statusOptions = lookups.activeStatuses.map(s => s.name || s)
@@ -68,6 +68,7 @@ function TeamsPage() {
     const onRowEditComplete = async (e) => {
         const { newData } = e
         await updateTeam(newData)
+        await refreshLookups()
     }
 
     // Render the search bar above the DataTable

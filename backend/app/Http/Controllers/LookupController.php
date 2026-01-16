@@ -19,10 +19,10 @@ class LookupController extends Controller
     public function index()
     {
         $roles = Cache::remember('roles', 60 * 60, fn() => Role::all());
-        $teams = Cache::remember('teams_active', 60 * 60, fn() => Team::where('active_status_id', 1)->get());
+        $teams = Team::with('activeStatus')->get(); // No cache - frequently updated
         $statuses = Cache::remember('active_statuses', 60 * 60, fn() => ActiveStatus::all());
         $positions = Cache::remember('positions', 60 * 60, fn() => Position::all());
-        $departments = Cache::remember('departments', 60 * 60, fn() => Department::all());
+        $departments = Department::with('activeStatus')->get(); // No cache - frequently updated
         $costCentres = Cache::remember('cost_centre', 60 * 60, fn() => CostCentre::all());
         $projects = Cache::remember('project', 60 * 60, fn() => Project::all());
         $accountNums = Cache::remember('accountNums', 60 * 60, fn() => AccountNumber::all());

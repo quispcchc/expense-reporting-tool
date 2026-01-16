@@ -23,7 +23,7 @@ function DepartmentsPage() {
 
     // Access global department state and actions from context
     const { state: { departments, loading }, actions: { updateDepartment, deleteDepartment } } = useDepartment()
-    const { lookups } = useLookups()
+    const { lookups, refreshLookups } = useLookups()
     const toast = useRef(null)
 
     // Get active statuses from lookups
@@ -80,6 +80,8 @@ function DepartmentsPage() {
     const onRowEditComplete = async (e) => {
         const { newData } = e
         await updateDepartment(newData)
+        // Refresh lookups so other pages (like Create Claim) get updated data
+        await refreshLookups()
     }
 
     // Navigate to department's teams page
@@ -98,6 +100,8 @@ function DepartmentsPage() {
                 const result = await deleteDepartment(rowData.department_id)
                 if (result.success) {
                     toast.current?.show({ severity: 'success', summary: t('common.success'), detail: t('departments.deleteSuccess'), life: 3000 })
+                    // Refresh lookups so other pages (like Create Claim) get updated data
+                    await refreshLookups()
                 } else {
                     toast.current?.show({ severity: 'error', summary: t('common.error'), detail: result.error, life: 5000 })
                 }
