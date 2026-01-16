@@ -78,6 +78,8 @@
         "myClaimsTitle": "My Claims",
         "createClaim": "Create Claim",
         "submitClaim": "Submit Claim",
+        "submitSuccess": "Claim submitted successfully!",
+        "redirectMessage": "Click OK to view your claims.",
         "claimDetails": "Claim Details",
         "claimType": "Type",
         "claimStatus": "Claim Status",
@@ -171,11 +173,28 @@
         "role": "Role"
     },
     "teams": {
-        "title": "Departments",
-        "addNewTeam": "Add new Team",
+        "title": "Teams",
+        "addNewTeam": "Add New Team",
         "addNewTeamDescription": "Fill in the details below to register a new team in the system.",
         "code": "Code",
-        "name": "Name"
+        "name": "Name",
+        "teamsOf": "Teams of {{departmentName}}",
+        "deleteConfirmTitle": "Delete Team",
+        "deleteConfirmMessage": "Are you sure you want to delete {{name}}? This action cannot be undone.",
+        "deleteSuccess": "Team deleted successfully."
+    },
+    "departments": {
+        "title": "Departments",
+        "addNewDepartment": "Add New Department",
+        "addNewDepartmentDescription": "Fill in the details below to register a new department in the system.",
+        "code": "Code",
+        "name": "Name",
+        "enterName": "Enter department name",
+        "manageTeams": "Manage Teams",
+        "deleteConfirmTitle": "Delete Department",
+        "deleteConfirmMessage": "Are you sure you want to delete {{name}}? This action cannot be undone.",
+        "deleteSuccess": "Department deleted successfully.",
+        "deleteError": "Cannot delete department with existing teams."
     },
     "costCentre": {
         "title": "Cost Centres",

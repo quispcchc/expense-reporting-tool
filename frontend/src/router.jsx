@@ -15,12 +15,13 @@ import AdminLayout from './components/layouts/AdminLayout.jsx'
 import AllClaimsPage from './pages/admin/AllClaimsPage.jsx'
 import EditClaimPage from './pages/admin/EditClaimPage.jsx'
 import UsersPage from './pages/admin/UsersPage.jsx'
-import TeamsPage from './pages/admin/TeamsPage.jsx'
+import DepartmentsPage from './pages/admin/DepartmentsPage.jsx'
+import DepartmentTeamsPage from './pages/admin/DepartmentTeamsPage.jsx'
 import CostCentresPage from './pages/admin/CostCentresPage.jsx'
 import TagsPage from './pages/admin/TagsPage.jsx'
 import SettingsPage from './pages/admin/SettingsPage.jsx'
 import { UserProvider } from './contexts/UserContext.jsx'
-import { TeamProvider } from './contexts/TeamContext.jsx'
+import { DepartmentProvider } from './contexts/DepartmentContext.jsx'
 import { CostCentreProvider } from './contexts/CostCentreContext.jsx'
 import UserCreateClaimPage from './pages/user/UserCreateClaimPage.jsx'
 
@@ -124,8 +125,12 @@ const router = createBrowserRouter(
                     element: <UserProvider><UsersPage /></UserProvider>,
                 },
                 {
-                    path: 'teams',
-                    element: <TeamProvider><TeamsPage /></TeamProvider>,
+                    path: 'departments',
+                    element: <DepartmentProvider><DepartmentsPage /></DepartmentProvider>,
+                },
+                {
+                    path: 'departments/:departmentId/teams',
+                    element: <DepartmentTeamsPage />,
                 },
                 {
                     path: 'cost-centre',

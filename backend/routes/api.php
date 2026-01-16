@@ -65,6 +65,10 @@ Route::apiResource('cost-centres', CostCentreController::class)->middleware('aut
 // Teams Management
 Route::apiResource('teams', \App\Http\Controllers\TeamController::class)->middleware('auth:sanctum');
 
+// Departments Management
+Route::apiResource('departments', \App\Http\Controllers\DepartmentController::class)->middleware('auth:sanctum');
+Route::get('departments/{departmentId}/teams', [\App\Http\Controllers\DepartmentController::class, 'getTeams'])->middleware('auth:sanctum');
+
 // Fetch lookup data (active_status, roles, departments, positions,claimTypes..., which will be used cross the app)
 Route::get('lookups', [LookupController::class, 'index'])->middleware('auth:sanctum');
 
