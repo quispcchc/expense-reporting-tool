@@ -11,7 +11,7 @@ function AddNewDepartment() {
     const [errors, setErrors] = useState([])
     const [isOpen, setIsOpen] = useState(false)
     const { actions } = useDepartment()
-    const { lookups } = useLookups()
+    const { lookups, refreshLookups } = useLookups()
 
     const statusOptions = lookups.activeStatuses.map(s => ({
         label: s.active_status_name,
@@ -62,6 +62,8 @@ function AddNewDepartment() {
             })
             setErrors([])
             setIsOpen(false)
+            // Refresh lookups so other pages (like Create Claim) get updated data
+            await refreshLookups()
         } else {
             setErrors([{ field: '', message: result.error }])
         }

@@ -103,7 +103,8 @@ export function LookupProvider({ children }) {
         lookups,
         loading,
         error,
-        retryCount
+        retryCount,
+        refreshLookups: fetchLookups // Expose refresh function for external use
     }
 
     return (

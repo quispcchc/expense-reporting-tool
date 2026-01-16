@@ -35,13 +35,13 @@ function ClaimForm({ claimFormData, onFieldChange, errors }) {
 
                 <Select name="department" id="department" label={t('users.department')} value={claimFormData.department}
                     onChange={onFieldChange}
-                    options={departments.map(opt => ({ label: opt.department_name, value: opt.department_id }))}
+                    options={departments.filter(dept => dept.active_status_id === 1).map(opt => ({ label: opt.department_name, value: opt.department_id }))}
                     placeholder={t('claimForm.selectDepartment', 'Select a Department')}
                     errors={errors} />
 
                 <Select name="team" id="team" label={t('users.team')} value={claimFormData.team}
                     onChange={onFieldChange}
-                    options={teams.filter(team => team.department_id === claimFormData.department).map(opt => ({ label: opt.team_name, value: opt.team_id }))}
+                    options={teams.filter(team => team.department_id === claimFormData.department && team.active_status_id === 1).map(opt => ({ label: opt.team_name, value: opt.team_id }))}
                     placeholder={t('claimForm.selectTeam', 'Select a Team')}
                     errors={errors} />
             </div>

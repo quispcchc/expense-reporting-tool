@@ -14,7 +14,7 @@ function AddNewTeam() {
     const [errors, setErrors] = useState([])
     const [isOpen, setIsOpen] = useState(false)
     const dispatch = useTeamDispatch()
-    const { lookups } = useLookups()
+    const { lookups, refreshLookups } = useLookups()
     const statusOptions = lookups.activeStatuses.map(s => s.name || s)
     const [teamFormData, setTeamFormData] = useState({
         code: '',
@@ -39,6 +39,7 @@ function AddNewTeam() {
         if (validation.isValid) {
             console.log(teamFormData)
             dispatch({ type: 'create', payload: teamFormData })
+            refreshLookups()
         }
 
         setErrors(validation.errors)
