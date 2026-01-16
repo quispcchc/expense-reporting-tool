@@ -9,7 +9,7 @@ function CreateClaimPage() {
         <div>
             <Toast ref={toast} />
             <ConfirmDialog />
-            <CreateClaim navigateTo='/admin/claims' homePath='/admin/claims' toastRef={toast} />
+            <CreateClaim navigateTo='/admin/my-claims' homePath='/admin/claims' toastRef={toast} />
         </div>
 
     )

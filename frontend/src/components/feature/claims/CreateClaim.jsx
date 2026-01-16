@@ -190,13 +190,9 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
 
         try {
             await createClaim(formData)
-            showToast(toastRef, { severity: 'success', summary: 'Success', detail: 'Claim submitted successfully' })
-
-            setClaimFormData(initialClaimFormData)
-            setExpenseFormData(initialExpenseFormData)
             setTags([])
             setFiles([])
-            navigate(navigateTo)
+            navigate(navigateTo, { state: { flashMessage: t('claims.submitSuccess') } })
         } catch (error) {
             const detail = error?.message || 'Failed to submit claim'
             showToast(toastRef, { severity: 'error', summary: 'Submit failed', detail })

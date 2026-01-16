@@ -78,6 +78,8 @@
         "myClaimsTitle": "My Claims",
         "createClaim": "Create Claim",
         "submitClaim": "Submit Claim",
+        "submitSuccess": "Claim submitted successfully!",
+        "redirectMessage": "Click OK to view your claims.",
         "claimDetails": "Claim Details",
         "claimType": "Type",
         "claimStatus": "Claim Status",
