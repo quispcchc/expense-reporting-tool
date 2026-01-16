@@ -30,7 +30,7 @@ function SideBar() {
             title: t('sidebar.general'),
             items: [
                 { icon: TbUsers, label: t('sidebar.users'), path: '/admin/users' },
-                { icon: PiOfficeChair, label: t('sidebar.teams'), path: '/admin/teams' },
+                { icon: PiOfficeChair, label: t('sidebar.teams'), path: '/admin/departments' },
                 { icon: IoDocumentTextOutline, label: t('sidebar.costCentre'), path: '/admin/cost-centre' },
                 { icon: BsTag, label: t('sidebar.tags'), path: '/admin/tags' },
                 { icon: IoSettingsOutline, label: t('sidebar.settings'), path: '/admin/settings' },

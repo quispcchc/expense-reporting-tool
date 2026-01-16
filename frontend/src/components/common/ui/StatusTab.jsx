@@ -6,6 +6,7 @@ function StatusTab({ status }) {
     let color = '';
 
     switch (status) {
+        // Numeric cases for claim status
         case 1:
             label = 'Pending';
             color = 'bg-status-pending text-status-pending';
@@ -16,6 +17,15 @@ function StatusTab({ status }) {
             break;
         case 3:
             label = 'Rejected';
+            color = 'bg-status-danger text-status-danger';
+            break;
+        // String cases for active status
+        case 'Active':
+            label = 'Active';
+            color = 'bg-status-success text-status-success';
+            break;
+        case 'Inactive':
+            label = 'Inactive';
             color = 'bg-status-danger text-status-danger';
             break;
         default:

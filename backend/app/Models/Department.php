@@ -13,15 +13,21 @@ class Department extends Model
     protected $fillable = [
         'department_name',
         'department_abbreviation',
+        'active_status_id',
     ];
+
+    public function activeStatus()
+    {
+        return $this->belongsTo(ActiveStatus::class, 'active_status_id', 'active_status_id');
+    }
 
     public function teams()
     {
-        return $this->hasMany(Team::class, 'department_id', 'team_id');
+        return $this->hasMany(Team::class, 'department_id', 'department_id');
     }
 
     public function costCentres()
     {
-        return $this->hasMany(CostCentre::class, 'department_id', 'cost_centre_id');
+        return $this->hasMany(CostCentre::class, 'department_id', 'department_id');
     }
 }

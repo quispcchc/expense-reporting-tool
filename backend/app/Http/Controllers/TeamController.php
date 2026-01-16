@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Team;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\Rule;
 
 class TeamController extends Controller
@@ -58,6 +59,9 @@ class TeamController extends Controller
         $team = Team::create($validated);
         $team->load(['activeStatus']);
 
+        // Invalidate teams cache
+        Cache::forget('teams_active');
+
         return $this->successResponse($team, 'Team created successfully.', 201);
     }
 
@@ -97,6 +101,9 @@ class TeamController extends Controller
         $team->update($validated);
         $team->load(['activeStatus']);
 
+        // Invalidate teams cache
+        Cache::forget('teams_active');
+
         return $this->successResponse($team, 'Team updated successfully.');
     }
 
@@ -107,6 +114,9 @@ class TeamController extends Controller
     {
         $team = Team::findOrFail($id);
         $team->delete();
+
+        // Invalidate teams cache
+        Cache::forget('teams_active');
 
         return $this->successResponse(null, 'Team deleted successfully.');
     }
