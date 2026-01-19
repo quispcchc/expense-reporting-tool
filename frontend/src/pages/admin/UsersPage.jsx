@@ -22,7 +22,7 @@ function UsersPage() {
     
     // Get user state and dispatch from context
     const usersState = useUser()
-    const { updateUser } = useUserDispatch()
+    const { updateUser, refresh } = useUserDispatch()
 
     // Local state to manage the current list of users
     const [users, setUsers] = useState(null)
@@ -86,22 +86,12 @@ function UsersPage() {
     // Render list of teams (as formatted badges)
     const renderTeams = (rowData) => {
         if (!rowData.teams || rowData.teams.length === 0) return ''
-        
-        const formatTeam = (team) => {
-            if (typeof team === 'string') {
-                return team.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
-            }
-            return team.name || team
-        }
-        
         return (
-            <div className="flex gap-2 flex-wrap">
-                {rowData.teams.map((team, index) => (
-                    <span key={index} className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
-                        {formatTeam(team)}
-                    </span>
-                ))}
-            </div>
+            <span>
+                {rowData.teams
+                    .map(team => team.team_name|| team.label || team)
+                    .join(', ')}
+            </span>
         )
     }
 
@@ -119,16 +109,38 @@ function UsersPage() {
 
 
 
-    // Dropdown editor for team field
-    const teamEditor = (editorOptions) => (
-        <MultiSelect
-            value={editorOptions.value}
-            onChange={(e) => editorOptions.editorCallback(e.target.value)}
-            options={teamOptions}
-            optionLabel="label"
-            optionValue="value"
-        />
-    )
+    // Dropdown editor for teams field (multi-select), filtered by department
+    const teamsEditor = (editorOptions) => {
+        // Find department for this row (edit mode: editorOptions.rowData, add mode: editorOptions.value)
+        const departmentId = editorOptions.rowData?.department_id || null;
+        const filteredTeams = departmentId
+            ? lookups.teams.filter(team => team.department_id === departmentId)
+            : [];
+
+        // Normalize value to array of team IDs for MultiSelect
+        let value = editorOptions.value;
+        if (!value && Array.isArray(editorOptions.rowData?.teams)) {
+            value = editorOptions.rowData.teams.map(t => t.team_id || t.value || t);
+        } else if (Array.isArray(value)) {
+            value = value.map(t => (typeof t === 'object' && t !== null ? t.team_id || t.value : t));
+        } else if (!value) {
+            value = [];
+        }
+
+        return (
+            <MultiSelect
+                value={value}
+                onChange={(e) => editorOptions.editorCallback(e.target.value)}
+                options={filteredTeams.map(option => ({ label: option.team_name, value: option.team_id }))}
+                optionLabel="label"
+                optionValue="value"
+                display="chip"
+                placeholder={departmentId ? t('users.selectTeam', 'Select team') : t('users.selectDepartmentFirst', 'Select department first')}
+                disabled={!departmentId}
+                className="w-full"
+            />
+        );
+    }
 
     // Dropdown editor for roles field
     const roleEditor = (editorOptions) => (
@@ -168,55 +180,52 @@ function UsersPage() {
 
         _users[index] = newData
         setUsers(_users)
-            // Persist update to backend via context action
-            ; (async () => {
-                try {
-                    // Map frontend field names to backend field names
-                    const updatePayload = {
-                        user_id: newData.user_id,
-                        first_name: newData.first_name,
-                        last_name: newData.last_name,
-                        email: newData.email,
-                        department_id: newData.department_id,
-                        role_id: newData.role_id,
-                        // team_id: newData.team,
-                        active_status_id: newData.status,
-                        department_id: newData.department_id,
-                    }
-                    
-                    // Remove undefined values
-                    Object.keys(updatePayload).forEach(key => 
-                        updatePayload[key] === undefined && delete updatePayload[key]
-                    )
-                    
-                    await updateUser(updatePayload)
-                    
-                    // Show success toast
-                    if (toastRef.current) {
-                        toastRef.current.show({
-                            severity: 'success',
-                            summary: t('common.success', 'Success'),
-                            detail: t('users.updateSuccess', 'User updated successfully'),
-                            life: 3000
-                        })
-                    }
-                } catch (err) {
-                    console.error('Failed to update user', err)
-                    
-                    // Show error toast
-                    if (toastRef.current) {
-                        toastRef.current.show({
-                            severity: 'error',
-                            summary: t('common.error', 'Error'),
-                            detail: err.message || t('users.updateError', 'Failed to update user'),
-                            life: 4000
-                        })
-                    }
-                    
-                    // Revert the UI change
-                    setUsers(users)
+        // Persist update to backend via context action
+        ; (async () => {
+            try {
+                // Map frontend field names to backend field names
+                const updatePayload = {
+                    user_id: newData.user_id,
+                    first_name: newData.first_name,
+                    last_name: newData.last_name,
+                    email: newData.email,
+                    department_id: newData.department_id,
+                    role_id: newData.role_id,
+                    active_status_id: newData.status,
+                    team_ids: Array.isArray(newData.teams)
+                        ? newData.teams.map(t => t.team_id || t.value || t)
+                        : [],
                 }
-            })()
+                // Remove undefined values
+                Object.keys(updatePayload).forEach(key => 
+                    updatePayload[key] === undefined && delete updatePayload[key]
+                )
+                await updateUser(updatePayload)
+                await refresh(); // Refresh user list from backend
+                // Show success toast
+                if (toastRef.current) {
+                    toastRef.current.show({
+                        severity: 'success',
+                        summary: t('common.success', 'Success'),
+                        detail: t('users.updateSuccess', 'User updated successfully'),
+                        life: 3000
+                    })
+                }
+            } catch (err) {
+                console.error('Failed to update user', err)
+                // Show error toast
+                if (toastRef.current) {
+                    toastRef.current.show({
+                        severity: 'error',
+                        summary: t('common.error', 'Error'),
+                        detail: err.message || t('users.updateError', 'Failed to update user'),
+                        life: 4000
+                    })
+                }
+                // Revert the UI change
+                setUsers(users)
+            }
+        })()
     }
 
     // Render the table header, including the global search bar
@@ -272,7 +281,7 @@ function UsersPage() {
                     <Column field="last_name" header={t('users.lastName')} sortable editor={textInputEditor} />
                     
                     <Column field="department_id" header={t('users.department')} body={renderDepartment} sortable editor={departmentEditor} />
-                    {/* <Column field="team" header={t('users.team')} sortable editor={teamEditor} /> */}
+                    <Column field="teams" header={t('users.teams', 'Teams')} body={renderTeams} editor={teamsEditor} sortable />
 
                     <Column field="email" header={t('users.email',"Email")} sortable editor={textInputEditor} />
                     {/*<Column field="position" header="Position" sortable editor={ textInputEditor }/>*/}

@@ -30,7 +30,6 @@ class User extends Authenticatable implements MustVerifyEmail
         'user_pass',
         'active_status_id',
         'department_id',
-        'team_id',
         'role_id',
         'position_id',
         'email_verified_at',
@@ -100,9 +99,9 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->belongsTo(Department::class, 'department_id', 'department_id');
     }
 
-    public function team()
+    public function teams()
     {
-        return $this->belongsTo(Team::class, 'team_id', 'team_id');
+        return $this->belongsToMany(Team::class, 'user_team', 'user_id', 'team_id');
     }
 
     public function activeStatus()

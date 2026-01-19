@@ -103,7 +103,7 @@ export const validationSchemas = {
         department: [
             { rule: 'required', message: 'Please select department' },
         ],
-        team: [
+        teams: [
             { rule: 'required', message: 'Please select team' },
         ],
         position: [

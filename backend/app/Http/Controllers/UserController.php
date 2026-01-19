@@ -23,7 +23,7 @@ class UserController extends Controller
         }
 
         // Get users with related data and apply role-based filtering
-        $query = User::with(['role', 'department', 'team', 'activeStatus']);
+        $query = User::with(['role', 'department', 'teams', 'activeStatus']);
         $query = $this->applyRoleBasedFiltering($query, $authUser);
 
         return response()->json($this->formatUsers($query->get()));
@@ -54,6 +54,11 @@ class UserController extends Controller
         // Update user with validated data
         $user->fill($request->only($this->getEditableFields()));
         $user->save();
+
+        // Sync teams if provided
+        if ($request->filled('team_ids')) {
+            $user->teams()->sync($request->team_ids);
+        }
 
         return response()->json(['user' => $user]);
     }
@@ -86,7 +91,11 @@ class UserController extends Controller
         return match ($authUser->role?->role_name) {
             'super_admin' => $query,
             'admin' => $query->where('department_id', $authUser->department_id),
-            'approver' => $query->where('team_id', $authUser->team_id),
+            'approver' => $query->whereHas('teams', function($q) use ($authUser) {
+                if (method_exists($authUser, 'teams')) {
+                    $q->whereIn('teams.team_id', $authUser->teams->pluck('team_id'));
+                }
+            }),
             default => $query,
         };
     }
@@ -104,7 +113,13 @@ class UserController extends Controller
                 'email' => $user->email,
                 'role_id' => $user->role_id,
                 'department_id' => $user->department_id,
-                'team' => $user->team?->team_name,
+                'teams' => $user->teams->map(function($team) {
+                    return [
+                        'team_id' => $team->team_id,
+                        'team_name' => $team->team_name,
+                        'team_abbreviation' => $team->team_abbreviation,
+                    ];
+                }),
                 'status' => $user->active_status_id,
             ];
         });
@@ -179,7 +194,8 @@ class UserController extends Controller
             'email' => "sometimes|email|unique:users,email,{$userId},user_id",
             'role_id' => 'sometimes|integer|exists:roles,role_id',
             'department_id' => 'sometimes|integer|exists:departments,department_id',
-            'team_id' => 'sometimes|integer|exists:teams,team_id',
+            'team_ids' => 'nullable|array',
+            'team_ids.*' => 'exists:teams,team_id',
             'position_id' => 'sometimes|integer|exists:positions,position_id',
             'active_status_id' => 'sometimes|integer|exists:active_status,active_status_id',
         ];
@@ -196,7 +212,6 @@ class UserController extends Controller
             'email',
             'role_id',
             'department_id',
-            'team_id',
             'position_id',
             'active_status_id',
         ];
