@@ -132,7 +132,7 @@ function UsersPage() {
         return (
             <span>
                 {rowData.teams
-                    .map(team => team.team_name || team.label || team)
+                    .map(team => team.team_abbreviation || team.label || team)
                     .join(', ')}
             </span>
         )
