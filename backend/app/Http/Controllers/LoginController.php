@@ -17,7 +17,7 @@ class LoginController extends Controller
             'password' => ['required', 'string'],
         ]);
         // find user
-        $user = User::with(['role', 'team'])->where('email', $request->email)->first();
+        $user = User::with(['role', 'teams'])->where('email', $request->email)->first();
         // Check if user exists
         if (! $user || ! Hash::check($request->password, $user->user_pass)) {
             return $this->errorResponse(trans('messages.invalid_email_password'), 401);

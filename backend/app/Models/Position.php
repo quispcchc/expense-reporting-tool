@@ -13,7 +13,7 @@ class Position extends Model
 
     protected $primaryKey = 'position_id';
 
-    public $incrementing = false;
+    public $incrementing = true;
 
     protected $keyType = 'int';
 

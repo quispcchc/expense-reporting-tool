@@ -9,6 +9,7 @@ import { validateForm } from '../../../utils/validation/validator.js'
 import { useLookups } from '../../../contexts/LookupContext.jsx'
 import { useTranslation } from 'react-i18next'
 import { showToast } from '../../../utils/helpers.js'
+import { MultiSelect } from 'primereact/multiselect'
 
 function AddNewUser() {
     const { t } = useTranslation()
@@ -25,7 +26,7 @@ function AddNewUser() {
         last_name: '',
         email: '',
         department: '',
-        team: '',
+        teams: [],
         position: '',
         role: '',
     })
@@ -38,13 +39,26 @@ function AddNewUser() {
         }))
     }
 
+    // For MultiSelect teams
+    const handleTeamsChange = (value) => {
+        setUserFormData(prev => ({
+            ...prev,
+            teams: value,
+        }))
+    }
+
+    // Filter teams based on selected department
+    const filteredTeams = userFormData.department
+        ? lookups.teams.filter(team => team.department_id === userFormData.department)
+        : [];
+
     const resetForm = () => {
         setUserFormData({
             first_name: '',
             last_name: '',
             email: '',
             department: '',
-            team: '',
+            teams: [],
             position: '',
             role: '',
         })
@@ -58,14 +72,16 @@ function AddNewUser() {
         const validation = validateForm(userFormData, schema)
 
         if (!validation.isValid) {
+            console.log(validation.errors);
+
             setErrors(validation.errors)
             return
         }
 
         setErrors({})
-        setIsLoading(true)
+        setIsLoading(true);
 
-        ; (async () => {
+        (async () => {
             try {
                 await createUser({
                     first_name: userFormData.first_name,
@@ -73,7 +89,7 @@ function AddNewUser() {
                     email: userFormData.email,
                     role_id: userFormData.role,
                     department_id: userFormData.department || null,
-                    team_id: userFormData.team || null,
+                    team_ids: userFormData.teams,
                     position_name: userFormData.position || null,
                 })
 
@@ -102,6 +118,8 @@ function AddNewUser() {
             }
         })()
     }
+
+
     return (
         <div className="bg-white rounded-xl p-6">
             <Toast ref={toastRef} />
@@ -112,7 +130,7 @@ function AddNewUser() {
                     <p className="text-xs text-gray-500">{t('users.addNewUserDescription')}</p>
                 </div>
 
-                <button 
+                <button
                     type="button"
                     className={`pi ${isOpen ? 'pi-chevron-up' : 'pi-chevron-down'} !text-xl cursor-pointer hover:text-gray-900 transition`}
                     onClick={() => setIsOpen(prev => !prev)}
@@ -124,32 +142,32 @@ function AddNewUser() {
                 <form className="my-5" onSubmit={handleUserFormSubmit}>
                     {/* Row 1: Basic Info */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-                        <Input 
-                            name="first_name" 
-                            id="first_name" 
-                            label={t('users.firstName')} 
+                        <Input
+                            name="first_name"
+                            id="first_name"
+                            label={t('users.firstName')}
                             value={userFormData.first_name}
-                            onChange={handleUserFormChange} 
+                            onChange={handleUserFormChange}
                             placeholder={t('users.enterFirstName', 'Enter first name')}
                             errors={errors}
                             disabled={isLoading}
                         />
-                        <Input 
-                            name="last_name" 
-                            id="last_name" 
-                            label={t('users.lastName')} 
+                        <Input
+                            name="last_name"
+                            id="last_name"
+                            label={t('users.lastName')}
                             value={userFormData.last_name}
-                            onChange={handleUserFormChange} 
+                            onChange={handleUserFormChange}
                             placeholder={t('users.enterLastName', 'Enter last name')}
                             errors={errors}
                             disabled={isLoading}
                         />
-                        <Input 
-                            name="email" 
-                            id="email" 
-                            label={t('users.email')} 
+                        <Input
+                            name="email"
+                            id="email"
+                            label={t('users.email')}
                             value={userFormData.email}
-                            onChange={handleUserFormChange} 
+                            onChange={handleUserFormChange}
                             placeholder={t('users.enterEmail', 'Enter email address')}
                             errors={errors}
                             disabled={isLoading}
@@ -159,13 +177,13 @@ function AddNewUser() {
                     {/* Row 2: Organization Info */}
                     <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-5">
                         <div>
-                            <Select 
-                                id="department" 
-                                name="department" 
-                                label={t('users.department')} 
+                            <Select
+                                id="department"
+                                name="department"
+                                label={t('users.department')}
                                 value={userFormData.department}
                                 onChange={handleUserFormChange}
-                                placeholder={t('users.selectDepartment', 'Select department')} 
+                                placeholder={t('users.selectDepartment', 'Select department')}
                                 className="w-full"
                                 options={lookups.departments.map(option => ({
                                     value: option.department_id,
@@ -177,30 +195,38 @@ function AddNewUser() {
                         </div>
 
                         <div>
-                            <Select 
-                                id="team" 
-                                name="team" 
-                                label={t('users.team')} 
-                                value={userFormData.team}
-                                onChange={handleUserFormChange}
-                                placeholder={t('users.selectTeam', 'Select team')} 
-                                className="w-full"
-                                options={lookups.teams.map(option => ({
+                            <div className="flex items-center gap-2 mb-2">
+                                <label htmlFor="teams" className="block text-sm font-medium">
+                                    {t('users.teams', 'Teams')}
+                                </label>
+                                 {errors['teams'] && <span className="text-status-danger text-xs">({errors['teams']})</span>}
+                            </div>
+
+                            <MultiSelect
+                                id="teams"
+                                name="teams"
+                                value={userFormData.teams}
+                                onChange={e => handleTeamsChange(e.value)}
+                                options={filteredTeams.map(option => ({
                                     value: option.team_id,
                                     label: option.team_name,
                                 }))}
-                                errors={errors}
-                                disabled={isLoading}
+                                optionLabel="label"
+                                optionValue="value"
+                                display="chip"
+                                placeholder={userFormData.department ? t('users.selectTeam', 'Select team') : t('users.selectDepartmentFirst', 'Select department first')}
+                                className="w-full"
+                                disabled={isLoading || !userFormData.department}
                             />
                         </div>
 
                         <div>
-                            <Input 
-                                name="position" 
-                                id="position" 
-                                label={t('users.position')} 
+                            <Input
+                                name="position"
+                                id="position"
+                                label={t('users.position')}
                                 value={userFormData.position}
-                                onChange={handleUserFormChange} 
+                                onChange={handleUserFormChange}
                                 placeholder={t('users.enterPosition', 'Enter position')}
                                 errors={errors}
                                 disabled={isLoading}
@@ -208,20 +234,20 @@ function AddNewUser() {
                         </div>
                     </div>
 
-                    
+
 
                     {/* Row 3: Role and Actions */}
                     <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-5 items-end">
                         <div>
-                            <Select 
-                                name="role" 
-                                id="role" 
-                                label={t('users.role')} 
-                                value={userFormData.role} 
+                            <Select
+                                name="role"
+                                id="role"
+                                label={t('users.role')}
+                                value={userFormData.role}
                                 className="w-full"
-                                options={lookups.roles.map(r => ({label: r.role_name.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase()), value: r.role_id}))}
+                                options={lookups.roles.map(r => ({ label: r.role_name.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase()), value: r.role_id }))}
                                 onChange={handleUserFormChange}
-                                placeholder={t('users.selectRole', 'Select role')} 
+                                placeholder={t('users.selectRole', 'Select role')}
                                 errors={errors}
                                 disabled={isLoading}
                             />
@@ -232,16 +258,16 @@ function AddNewUser() {
 
                         {/* Action buttons */}
                         <div className="flex justify-end gap-2">
-                            <Button 
-                                label={t('common.cancel')} 
+                            <Button
+                                label={t('common.cancel')}
                                 className="p-button-outlined !h-[48px]"
                                 onClick={resetForm}
                                 disabled={isLoading}
                                 type="button"
                             />
-                            <Button 
-                                label={t('common.save')} 
-                                className="!h-[48px] px-8" 
+                            <Button
+                                label={t('common.save')}
+                                className="!h-[48px] px-8"
                                 type="submit"
                                 loading={isLoading}
                                 disabled={isLoading}

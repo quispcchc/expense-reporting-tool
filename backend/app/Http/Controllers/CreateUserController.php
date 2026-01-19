@@ -30,7 +30,8 @@ class CreateUserController extends Controller
             'role_id' => 'required|exists:roles,role_id',
             'email' => 'required|email|unique:users,email',
             'department_id' => 'nullable|exists:departments,department_id',
-            'team_id' => 'nullable|exists:teams,team_id',
+            'team_ids' => 'nullable|array',
+            'team_ids.*' => 'exists:teams,team_id',
             'position_name' => 'nullable|string|max:255',
         ]);
 
@@ -88,14 +89,18 @@ class CreateUserController extends Controller
             // Note: the application uses `user_pass` as the stored password column in factories/models.
             // We intentionally leave password/user_pass null so the admin triggers verification flow.
 
-            'password' => null,
+            'user_pass' => null,
             'role_id' => $request->role_id,
             'department_id' => $request->department_id,
-            'team_id' => $request->team_id,
             'position_id' => $positionId,
             'active_status_id' => 1,
             'email_verified_at' => null,
         ]);
+
+        // Assign teams if provided
+        if ($request->filled('team_ids')) {
+            $user->teams()->sync($request->team_ids);
+        }
 
         // Generate a verification token
         $token = Str::random(64);

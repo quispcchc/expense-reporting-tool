@@ -1,7 +1,12 @@
 export const validationRules = {
     // Basic rules
     required: (value, message = 'This field is required') => {
-        if (!value || ( typeof value === 'string' && value.trim() === '' ) ) {
+        if (
+            value === undefined ||
+            value === null ||
+            (typeof value === 'string' && value.trim() === '') ||
+            (Array.isArray(value) && value.length === 0)
+        ) {
             return message
         }
         return null
