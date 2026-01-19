@@ -69,6 +69,13 @@ Route::apiResource('teams', \App\Http\Controllers\TeamController::class)->middle
 Route::apiResource('departments', \App\Http\Controllers\DepartmentController::class)->middleware('auth:sanctum');
 Route::get('departments/{departmentId}/teams', [\App\Http\Controllers\DepartmentController::class, 'getTeams'])->middleware('auth:sanctum');
 
+
+// Tag Management
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::apiResource('tags', \App\Http\Controllers\TagController::class);
+    Route::apiResource('projects', \App\Http\Controllers\ProjectController::class);
+});
+
 // Fetch lookup data (active_status, roles, departments, positions,claimTypes..., which will be used cross the app)
 Route::get('lookups', [LookupController::class, 'index'])->middleware('auth:sanctum');
 
