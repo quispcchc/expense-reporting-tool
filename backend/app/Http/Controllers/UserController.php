@@ -38,10 +38,20 @@ class UserController extends Controller
         $authUser = $request->user();
         $user = User::where('user_id', $id)->firstOrFail();
 
+
         // Authorize user edit access
         $authError = $this->authorizeUserEdit($authUser, $user);
         if ($authError) {
             return $authError;
+        }
+        // If admin is updating, prevent promoting to admin or super_admin
+        if ($authUser->role?->role_name === 'admin' && $request->filled('role_id')) {
+            $newRole = \App\Models\Role::find($request->role_id);
+            if ($newRole && in_array($newRole->role_name, ['admin', 'super_admin'])) {
+                return response()->json([
+                    'message' => 'Admins cannot promote users to admin or super admin roles.',
+                ], 403);
+            }
         }
 
         // Validate input
@@ -141,13 +151,8 @@ class UserController extends Controller
         $authRoleName = $authUser->role?->role_name;
         $userRoleName = $user->role?->role_name;
 
-        // Super admin can edit anyone except other super admins and cannot edit themselves
+        // Super admin can edit anyone, including themselves
         if ($authRoleName === 'super_admin') {
-            if ($authUser->user_id === $user->user_id) {
-                return response()->json([
-                    'message' => 'You cannot edit your own profile.',
-                ], 403);
-            }
             return null; // Authorized
         }
 
