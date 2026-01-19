@@ -18,7 +18,7 @@ class User extends Authenticatable implements MustVerifyEmail
      *
      * @var list<string>
      */
-    public $timestamps = false;
+    public $timestamps = true;
 
     protected $primaryKey = 'user_id';
 
@@ -101,7 +101,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function teams()
     {
-        return $this->belongsToMany(Team::class, 'user_team', 'user_id', 'team_id');
+        return $this->belongsToMany(Team::class, 'team_user', 'user_id', 'team_id')->withTimestamps();
     }
 
     public function activeStatus()
