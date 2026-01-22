@@ -20,7 +20,7 @@ return new class extends Migration
 
             $table->foreignId('tag_id')
                 ->constrained('tags', 'tag_id')
-                ->onDelete('cascade');
+                ->onDelete('restrict');
 
         });
     }

@@ -78,7 +78,8 @@ class ClaimController extends Controller
             'expenses.*.project_id' => 'required_with:expenses|integer|exists:projects,project_id',
             'expenses.*.file.*' => 'file|mimes:pdf,png,jpg,jpeg|max:20480',
             'expenses.*.cost_centre_id' => 'required_with:expenses|integer',
-            'expenses.*.tags' => 'nullable|string',
+            'expenses.*.tags' => 'nullable|array',
+            'expenses.*.tags.*' => 'integer|exists:tags,tag_id',
             'mileage' => 'nullable|array',
         ]);
 
@@ -112,6 +113,9 @@ class ClaimController extends Controller
         $validated = $request->validate([
             'claim_type_id' => 'required|exists:claim_types,claim_type_id',
             'team_id' => 'required|exists:teams,team_id',
+            'expenses' => 'sometimes|array',
+            'expenses.*.tags' => 'nullable|array',
+            'expenses.*.tags.*' => 'integer|exists:tags,tag_id',
         ]);
 
         $this->claimService->updateClaim($validated, $id);

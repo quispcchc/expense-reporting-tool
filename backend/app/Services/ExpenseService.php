@@ -131,15 +131,15 @@ class ExpenseService
 
             // Handle tags
             if (array_key_exists('tags', $updatedExpense)) {
-                if (! empty($updatedExpense['tags'])) {
-                    $tagNames = array_map('trim', explode(',', $updatedExpense['tags']));
+                if (!empty($updatedExpense['tags'])) {
                     $tagIds = [];
-
-                    foreach ($tagNames as $name) {
-                        $tag = Tag::firstOrCreate(['tag_name' => $name]);
-                        $tagIds[] = $tag->tag_id;
+                    if (is_array($updatedExpense['tags'])) {
+                        foreach ($updatedExpense['tags'] as $tag) {
+                            if (is_numeric($tag)) {
+                                $tagIds[] = (int)$tag;
+                            }
+                        }
                     }
-
                     $expense->tags()->sync($tagIds);
                 } else {
                     // If tags sent but empty → remove all tags

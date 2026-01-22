@@ -28,6 +28,7 @@ class LookupController extends Controller
         $accountNums = Cache::remember('accountNums', 60 * 60, fn() => AccountNumber::all());
         $claimTypes = Cache::remember('claimTypes', 60 * 60, fn() => ClaimType::all());
         $claimStatus = Cache::remember('claimStatus', 60 * 60, fn() => ClaimStatus::all());
+        $tags = \App\Models\Tag::all();
 
         return $this->successResponse([
             'roles' => $roles,
@@ -40,6 +41,7 @@ class LookupController extends Controller
             'accountNums' => $accountNums,
             'claimTypes' => $claimTypes,
             'claimStatus' => $claimStatus,
+            'tags' => $tags,
         ]);
     }
 }

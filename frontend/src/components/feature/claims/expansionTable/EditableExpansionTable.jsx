@@ -83,10 +83,14 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
     }, [data, mode])
 
     const handleExpansionFieldChange = (expenseId, fieldName, newValue) => {
-        // For tags, handle special processing
+        // For tags, handle both string (from text input) and array (from MultiSelect)
         let processedValue = newValue;
-        if (fieldName === 'tags' && newValue && typeof newValue === 'string') {
-            processedValue = newValue.split(',').map(tag => tag.trim());
+        if (fieldName === 'tags') {
+            if (Array.isArray(newValue)) {
+                processedValue = newValue;
+            } else if (typeof newValue === 'string') {
+                processedValue = newValue.split(',').map(tag => tag.trim());
+            }
         }
 
         // For deletedReceiptIds, accumulate values across multiple deletions
@@ -96,7 +100,6 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
             processedValue = [...existing, ...incoming]
         }
 
-        console.log(`📝 handleExpansionFieldChange: expenseId=${expenseId}, fieldName=${fieldName}, newValue=`, newValue)
 
         // Update the local expense items immediately for UI responsiveness
         // EXCEPT for attachment - that's handled only via unsavedExpansionChanges to prevent duplication
@@ -106,7 +109,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                     expense.transactionId === expenseId
                         ? {
                             ...expense,
-                            [fieldName]: fieldName === 'tags' ? [...newValue.split(',')] : newValue,
+                            [fieldName]: processedValue,
                         }
                         : expense,
                 ),
@@ -119,10 +122,9 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                 ...previousChanges,
                 [expenseId]: {
                     ...previousChanges[expenseId],
-                    [fieldName]: fieldName === 'tags' ? [...newValue.split(',')] : processedValue,
+                    [fieldName]: processedValue,
                 },
             }
-            console.log(`✅ Updated unsavedExpansionChanges for ${expenseId}:`, updated[expenseId])
             // Keep ref in sync with state
             unsavedExpansionChangesRef.current = updated
             return updated
@@ -241,10 +243,6 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
         // Use ref to get the latest changes (React state may not be updated yet)
         const changesFromExpansion = unsavedExpansionChangesRef.current[expenseId] || {}
 
-        console.log('=== SAVE ROW EDIT START ===')
-        console.log('expenseId:', expenseId)
-        console.log('changesFromExpansion:', changesFromExpansion)
-        console.log('mode:', mode)
 
         // Merge the row edits with any expansion area changes
         const updated = updatedExpenseItems[editEvent.index] = {
@@ -253,14 +251,12 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
             ...changesFromExpansion,
         }
 
-        console.log(updated)
 
         setCurrentlyEditingRowId(null)
 
         // In CREATE mode: only update local state, don't send to server
         // The data will be sent when the claim is submitted
         if (mode === 'create') {
-            console.log('📝 Create mode - updating local state only, no server request')
 
             // Clear the temporary expansion changes for this row
             setUnsavedExpansionChanges(previousChanges => {
@@ -289,46 +285,47 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
             cost_centre_id: updated.costCentre,
             account_number_id: updated.accountNum,
             tags: Array.isArray(updated.tags)
-                ? (typeof updated.tags[0] === 'string'
-                    ? updated.tags.join(',')
-                    : updated.tags.map(tag => tag.tag_name).join(','))
-                : ''
+                ? updated.tags.map(tag => {
+                    if (typeof tag === 'object' && tag.tag_id) return tag.tag_id;
+                    if (typeof tag === 'string' && !isNaN(tag)) return Number(tag);
+                    return tag;
+                })
+                : [],
         }
 
         // Use FormData to support file uploads
         const formData = new FormData()
         Object.keys(updatedExpense).forEach(key => {
-            formData.append(key, updatedExpense[key])
+            if (key === 'tags' && Array.isArray(updatedExpense.tags)) {
+                updatedExpense.tags.forEach(tagId => {
+                    formData.append('tags[]', tagId)
+                })
+            } else {
+                formData.append(key, updatedExpense[key])
+            }
         })
 
         // Handle attachments and deleted receipts
         const deletedReceiptIds = updated.deletedReceiptIds || []
         const newAttachments = updated.attachment || []
 
-        console.log('🔍 Processing attachments:')
-        console.log('  newAttachments:', newAttachments)
-        console.log('  deletedReceiptIds from form:', deletedReceiptIds)
 
         // Append new files
         newAttachments.forEach((att, index) => {
             if (att?.file instanceof File) {
-                console.log(`  Appending new file [${index}]:`, att.file.name)
                 formData.append(`files[${index}]`, att.file)
             }
         })
 
         // Append deleted receipt IDs (supports array, string, or single number)
         if (Array.isArray(deletedReceiptIds) && deletedReceiptIds.length > 0) {
-            console.log('  Appending deleteReceiptIds[] items:', deletedReceiptIds)
             // Append both array form and comma string for maximum compatibility
             deletedReceiptIds.forEach(id => formData.append('deleteReceiptIds[]', String(id)))
             const receiptIdsStr = deletedReceiptIds.join(',')
             formData.append('deleteReceiptIds', receiptIdsStr)
-            console.log('  Appending deleteReceiptIds (string):', receiptIdsStr)
         } else {
             const receiptIdsStr = (deletedReceiptIds ?? '').toString()
             if (receiptIdsStr.length > 0) {
-                console.log('  Appending deleteReceiptIds:', receiptIdsStr)
                 formData.append('deleteReceiptIds', receiptIdsStr)
             }
         }
@@ -337,7 +334,6 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
         const hasAttachmentChange = Object.prototype.hasOwnProperty.call(changesFromExpansion, 'attachment')
         const deleteAll = hasAttachmentChange && newAttachments.length === 0 && deletedReceiptIds.length === 0
         if (deleteAll) {
-            console.log('  Appending deleteAttachment: true (clear all)')
             formData.append('deleteAttachment', 'true')
         }
 
@@ -347,14 +343,11 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
         // Debug: log FormData contents to verify payload
         try {
             for (const [k, v] of formData.entries()) {
-                console.log('  FormData entry:', k, v)
             }
         } catch (e) {
-            console.log('  FormData logging failed:', e)
         }
 
         const response = await api.post(`expenses/${expenseId}`, formData)
-        console.log('✅ PUT request successful for expense', expenseId)
 
         // Sync attachments and tags from backend response
         const serverExpense = response?.data
@@ -365,12 +358,25 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                     name: r.receipt_name,
                     receipt_id: r.receipt_id,
                 }))
-                : []
+                : [];
+            // Map tag IDs from backend to tag objects for display
+            let mappedTags = serverExpense.tags;
+            if (Array.isArray(serverExpense.tags)) {
+                // Use lookups to map tag IDs to tag objects
+                mappedTags = serverExpense.tags.map(tag => {
+                    if (typeof tag === 'object' && tag.tag_id && tag.tag_name) {
+                        return tag;
+                    }
+                    // If tag is an ID, find the tag object
+                    const found = lookups.tags.find(t => t.tag_id === tag);
+                    return found || tag;
+                });
+            }
             updatedExpenseItems[editEvent.index] = {
                 ...updatedExpenseItems[editEvent.index],
                 attachment: mappedReceipts,
-                tags: serverExpense.tags || updatedExpenseItems[editEvent.index].tags,
-            }
+                tags: mappedTags || updatedExpenseItems[editEvent.index].tags,
+            };
         }
 
         // Clear the temporary expansion changes for this row
@@ -506,7 +512,6 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
 
         }
         catch (error) {
-            console.log(error)
             showToast(
                 toastRef, { severity: 'error', summary: 'Error', detail: 'Ops, something went wrong!' })
         }
@@ -529,7 +534,6 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
             showToast(toastRef, { severity: 'success', summary: 'Success', detail: 'Rejected successfully!' })
         }
         catch (error) {
-            console.log(error)
         }
     }
 

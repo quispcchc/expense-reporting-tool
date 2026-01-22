@@ -16,7 +16,8 @@ export function LookupProvider({ children }) {
         projects: [],
         accountNums: [],
         claimTypes: [],
-        claimStatus: []
+        claimStatus: [],
+        tags: []
     })
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
@@ -53,7 +54,8 @@ export function LookupProvider({ children }) {
                     projects: data.projects || [],
                     accountNums: data.accountNums || [],
                     claimTypes: data.claimTypes || [],
-                    claimStatus: data.claimStatus || []
+                    claimStatus: data.claimStatus || [],
+                    tags: data.tags || []
                 })
                 setRetryCount(0) // Reset retry count on success
                 return true // Indicate success

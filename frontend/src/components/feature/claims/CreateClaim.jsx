@@ -26,7 +26,7 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
     const { createClaim } = useClaims()
     const navigate = useNavigate()
 
-    const [tags, setTags] = useState(['Client Travelling'])
+    const [tags, setTags] = useState([])
     const [files, setFiles] = useState([])
 
     const [expenseErrors, setExpenseErrors] = useState([])
@@ -59,8 +59,6 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
     const [expenseFormData, setExpenseFormData] = useState(initialExpenseFormData)
 
     useEffect(() => {
-        console.log('claimFormData', claimFormData)
-        console.log('expenseFormData', expenseFormData)
     }, [claimFormData, expenseFormData, tags])
 
     const handleFormFieldChange = (e) => {
@@ -157,8 +155,6 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
 
         // Add expenses - properly handling files
         claimFormData.claimItems.forEach((expense, index) => {
-            console.log('📦 Processing expense', index, expense)
-            console.log('📎 Attachments:', expense.attachment)
 
             // Add all non-file fields
             formData.append(`expenses[${index}][transaction_date]`, expense.transactionDate)
@@ -169,22 +165,25 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
             formData.append(`expenses[${index}][project_id]`, expense.program)
             formData.append(`expenses[${index}][cost_centre_id]`, expense.costCentre)
             formData.append(`expenses[${index}][account_number_id]`, expense.accountNum)
-            formData.append(`expenses[${index}][tags]`, expense.tags)
+            // Send tags as an array of tag IDs
+            if (Array.isArray(expense.tags)) {
+                expense.tags.forEach((tagId, tagIdx) => {
+                    formData.append(`expenses[${index}][tags][${tagIdx}]`, typeof tagId === 'object' ? tagId.tag_id : tagId)
+                })
+            } else if (expense.tags) {
+                formData.append(`expenses[${index}][tags][0]`, typeof expense.tags === 'object' ? expense.tags.tag_id : expense.tags)
+            }
             formData.append(`expenses[${index}][transaction_notes]`, expense.notes)
 
             // MULTIPLE ATTACHMENTS: { attachment: [{file, url}] }
             if (Array.isArray(expense.attachment) && expense.attachment.length > 0) {
-                console.log('✅ Found', expense.attachment.length, 'attachments')
                 expense.attachment.forEach((att, attIndex) => {
-                    console.log(`  [${attIndex}] Attachment:`, att?.file instanceof File ? 'File object ✓' : 'Not a file ✗', att)
                     if (att?.file instanceof File) {
                         const fieldName = `expenses[${index}][file][${attIndex}]`
                         formData.append(fieldName, att.file)
-                        console.log(`  ✅ Appended file to FormData as: ${fieldName}`)
                     }
                 })
             } else {
-                console.log('⚠️ No attachments for this expense')
             }
         })
 
