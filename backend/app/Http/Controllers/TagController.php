@@ -18,6 +18,7 @@ class TagController extends Controller
             'tag_name' => 'required|string|max:50',
         ]);
         $tag = Tag::create($validated);
+
         return response()->json($tag, 201);
     }
 
@@ -28,6 +29,7 @@ class TagController extends Controller
             'tag_name' => 'required|string|max:50',
         ]);
         $tag->update($validated);
+
         return response()->json($tag);
     }
 
@@ -37,11 +39,12 @@ class TagController extends Controller
         // Prevent deletion if tag is linked to any expenses
         if ($tag->expenses()->exists()) {
             return response()->json([
-                'message' => 'Cannot delete tag: it is still linked to one or more expenses.'
+                'message' => 'Cannot delete tag: it is still linked to one or more expenses.',
             ], 409);
         }
         try {
             $tag->delete();
+
             return response()->json(null, 204);
         } catch (\Illuminate\Database\QueryException $e) {
             return response()->json([

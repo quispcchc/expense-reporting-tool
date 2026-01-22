@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
 use App\Models\Position;
 use App\Models\Role;
+use App\Models\User;
 use App\Notifications\VerifyEmailNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -18,7 +18,7 @@ class CreateUserController extends Controller
         $authUser = $request->user();
 
         // Check if user is admin or super_admin
-        if (!$authUser || !in_array($authUser->role?->role_name, ['admin', 'super_admin'])) {
+        if (! $authUser || ! in_array($authUser->role?->role_name, ['admin', 'super_admin'])) {
             return response()->json([
                 'message' => 'Unauthorized. Only admin and super admin can create users.',
             ], 403);
@@ -55,21 +55,21 @@ class CreateUserController extends Controller
                 ], 403);
             }
             // If no department specified, assign to admin's department
-            if (!$request->filled('department_id')) {
+            if (! $request->filled('department_id')) {
                 $request->merge(['department_id' => $authUser->department_id]);
             }
         }
 
         // Handle position: check if it exists, if not create it
         $positionId = null;
-        
+
         if ($request->filled('position_name')) {
             // Format position name: trim and capitalize first letter of each word
             $positionName = ucwords(strtolower(trim($request->position_name)));
-            
+
             $position = Position::where('position_name', $positionName)->first();
-            
-            if (!$position) {
+
+            if (! $position) {
                 // Create new position if it doesn't exist
                 $position = Position::create([
                     'position_name' => $positionName,
@@ -77,7 +77,7 @@ class CreateUserController extends Controller
                     'active_status_id' => 1,
                 ]);
             }
-            
+
             $positionId = $position->position_id;
         }
 

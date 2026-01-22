@@ -141,7 +141,7 @@ class ClaimService
             }
 
             // Handle tags: expect $expenseData['tags'] to be an array of tag IDs
-            if (!empty($expenseData['tags']) && is_array($expenseData['tags'])) {
+            if (! empty($expenseData['tags']) && is_array($expenseData['tags'])) {
                 $expense->tags()->sync($expenseData['tags']);
             }
         }

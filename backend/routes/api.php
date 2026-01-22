@@ -69,7 +69,6 @@ Route::apiResource('teams', \App\Http\Controllers\TeamController::class)->middle
 Route::apiResource('departments', \App\Http\Controllers\DepartmentController::class)->middleware('auth:sanctum');
 Route::get('departments/{departmentId}/teams', [\App\Http\Controllers\DepartmentController::class, 'getTeams'])->middleware('auth:sanctum');
 
-
 // Tag Management
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::apiResource('tags', \App\Http\Controllers\TagController::class);

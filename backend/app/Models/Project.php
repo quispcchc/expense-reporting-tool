@@ -27,7 +27,7 @@ class Project extends Model
         'department_id',
     ];
 
-      // Mutator to capitalize every word in project_name
+    // Mutator to capitalize every word in project_name
     public function setProjectNameAttribute($value)
     {
         $this->attributes['project_name'] = ucwords(strtolower($value));

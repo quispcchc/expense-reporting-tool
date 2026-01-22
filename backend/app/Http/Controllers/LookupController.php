@@ -18,16 +18,16 @@ class LookupController extends Controller
 {
     public function index()
     {
-        $roles = Cache::remember('roles', 60 * 60, fn() => Role::all());
+        $roles = Cache::remember('roles', 60 * 60, fn () => Role::all());
         $teams = Team::with('activeStatus')->get(); // No cache - frequently updated
-        $statuses = Cache::remember('active_statuses', 60 * 60, fn() => ActiveStatus::all());
-        $positions = Cache::remember('positions', 60 * 60, fn() => Position::all());
+        $statuses = Cache::remember('active_statuses', 60 * 60, fn () => ActiveStatus::all());
+        $positions = Cache::remember('positions', 60 * 60, fn () => Position::all());
         $departments = Department::with('activeStatus')->get(); // No cache - frequently updated
-        $costCentres = Cache::remember('cost_centre', 60 * 60, fn() => CostCentre::all());
-        $projects = Cache::remember('project', 60 * 60, fn() => Project::all());
-        $accountNums = Cache::remember('accountNums', 60 * 60, fn() => AccountNumber::all());
-        $claimTypes = Cache::remember('claimTypes', 60 * 60, fn() => ClaimType::all());
-        $claimStatus = Cache::remember('claimStatus', 60 * 60, fn() => ClaimStatus::all());
+        $costCentres = Cache::remember('cost_centre', 60 * 60, fn () => CostCentre::all());
+        $projects = Cache::remember('project', 60 * 60, fn () => Project::all());
+        $accountNums = Cache::remember('accountNums', 60 * 60, fn () => AccountNumber::all());
+        $claimTypes = Cache::remember('claimTypes', 60 * 60, fn () => ClaimType::all());
+        $claimStatus = Cache::remember('claimStatus', 60 * 60, fn () => ClaimStatus::all());
         $tags = \App\Models\Tag::all();
 
         return $this->successResponse([

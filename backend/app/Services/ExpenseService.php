@@ -6,7 +6,6 @@ use App\Enums\ClaimStatus;
 use App\Models\Claim;
 use App\Models\Expense;
 use App\Models\Receipt;
-use App\Models\Tag;
 use App\Notifications\ClaimUpdatedNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -131,12 +130,12 @@ class ExpenseService
 
             // Handle tags
             if (array_key_exists('tags', $updatedExpense)) {
-                if (!empty($updatedExpense['tags'])) {
+                if (! empty($updatedExpense['tags'])) {
                     $tagIds = [];
                     if (is_array($updatedExpense['tags'])) {
                         foreach ($updatedExpense['tags'] as $tag) {
                             if (is_numeric($tag)) {
-                                $tagIds[] = (int)$tag;
+                                $tagIds[] = (int) $tag;
                             }
                         }
                     }
@@ -149,7 +148,6 @@ class ExpenseService
 
             $result = $expense->fresh(['tags', 'receipts']);
             \Log::info('=== UPDATE EXPENSE END ===');
-
 
             // Recalculate claim total amount
             if ($expense->claim_id) {

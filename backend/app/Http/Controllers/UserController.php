@@ -16,7 +16,7 @@ class UserController extends Controller
         $authUser = $request->user();
 
         // Authorize user access to user list
-        if (!$this->canViewUsers($authUser)) {
+        if (! $this->canViewUsers($authUser)) {
             return response()->json([
                 'message' => 'Unauthorized. Only super_admin, admin, and approver can view users.',
             ], 403);
@@ -32,12 +32,10 @@ class UserController extends Controller
     /**
      * Update user information
      */
-
     public function update(Request $request, $id)
     {
         $authUser = $request->user();
         $user = User::where('user_id', $id)->firstOrFail();
-
 
         // Authorize user edit access
         $authError = $this->authorizeUserEdit($authUser, $user);
@@ -90,6 +88,7 @@ class UserController extends Controller
     private function canViewUsers($authUser): bool
     {
         $viewableRoles = ['super_admin', 'admin', 'approver'];
+
         return in_array($authUser->role?->role_name, $viewableRoles);
     }
 
@@ -101,7 +100,7 @@ class UserController extends Controller
         return match ($authUser->role?->role_name) {
             'super_admin' => $query,
             'admin' => $query->where('department_id', $authUser->department_id),
-            'approver' => $query->whereHas('teams', function($q) use ($authUser) {
+            'approver' => $query->whereHas('teams', function ($q) use ($authUser) {
                 if (method_exists($authUser, 'teams')) {
                     $q->whereIn('teams.team_id', $authUser->teams->pluck('team_id'));
                 }
@@ -123,7 +122,7 @@ class UserController extends Controller
                 'email' => $user->email,
                 'role_id' => $user->role_id,
                 'department_id' => $user->department_id,
-                'teams' => $user->teams->map(function($team) {
+                'teams' => $user->teams->map(function ($team) {
                     return [
                         'team_id' => $team->team_id,
                         'team_name' => $team->team_name,
@@ -141,10 +140,10 @@ class UserController extends Controller
     private function authorizeUserEdit($authUser, $user)
     {
         // Load role relationships if not already loaded
-        if (!$authUser->relationLoaded('role')) {
+        if (! $authUser->relationLoaded('role')) {
             $authUser->load('role');
         }
-        if (!$user->relationLoaded('role')) {
+        if (! $user->relationLoaded('role')) {
             $user->load('role');
         }
 

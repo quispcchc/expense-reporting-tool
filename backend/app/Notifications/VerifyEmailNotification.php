@@ -31,9 +31,9 @@ class VerifyEmailNotification extends Notification
     public function toMail($notifiable)
     {
         $frontendUrl = config('app.frontend_url', 'http://localhost:3000');
-        $url = $frontendUrl . '/verify-email?token='
-             . $this->token
-             . '&email=' . urlencode($notifiable->email);
+        $url = $frontendUrl.'/verify-email?token='
+             .$this->token
+             .'&email='.urlencode($notifiable->email);
 
         return (new MailMessage)
             ->subject('Verify Your Email Address')
