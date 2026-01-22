@@ -34,7 +34,20 @@ class TagController extends Controller
     public function destroy($id)
     {
         $tag = Tag::findOrFail($id);
-        $tag->delete();
-        return response()->json(null, 204);
+        // Prevent deletion if tag is linked to any expenses
+        if ($tag->expenses()->exists()) {
+            return response()->json([
+                'message' => 'Cannot delete tag: it is still linked to one or more expenses.'
+            ], 409);
+        }
+        try {
+            $tag->delete();
+            return response()->json(null, 204);
+        } catch (\Illuminate\Database\QueryException $e) {
+            return response()->json([
+                'message' => 'Failed to delete tag.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 }

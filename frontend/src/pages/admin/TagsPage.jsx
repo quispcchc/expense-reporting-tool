@@ -2,27 +2,43 @@ import React, { useEffect, useState, useRef } from 'react'
 import ContentHeader from '../../components/common/layout/ContentHeader.jsx'
 import { useTags } from '../../contexts/TagContext.jsx'
 import { useLookups } from '../../contexts/LookupContext.jsx'
-import AddOrEditTag from '../../components/feature/tag/AddOrEditTag.jsx'
-import AddOrEditProject from '../../components/feature/project/AddOrEditProject.jsx'
+import { useProjects } from '../../contexts/ProjectContext.jsx'
+import AddTag from '../../components/feature/tag/AddTag.jsx'
+import AddProject from '../../components/feature/project/AddProject.jsx'
 import { DataTable } from 'primereact/datatable'
 import { Column } from 'primereact/column'
 import { Button } from 'primereact/button'
 import { Toast } from 'primereact/toast'
+import { confirmDialog, ConfirmDialog } from 'primereact/confirmdialog'
 import { showToast } from '../../utils/helpers.js'
-import api from '../../api/api.js'
+import { useTranslation } from 'react-i18next'
+import ActiveStatusTab from '../../components/common/ui/ActiveStatusTab.jsx'
+
+import { Dropdown } from 'primereact/dropdown'
 
 function TagsPage() {
+    const { t } = useTranslation()
     const toast = useRef(null)
     const { tags, loading: tagsLoading, error: tagsError, fetchTags, createTag, updateTag, deleteTag } = useTags()
     const { lookups, loading: lookupsLoading, error: lookupsError, refreshLookups } = useLookups()
-    const [showTagDialog, setShowTagDialog] = useState(false)
-    const [editingTag, setEditingTag] = useState(null)
-    const [showProjectDialog, setShowProjectDialog] = useState(false)
-    const [editingProject, setEditingProject] = useState(null)
+
     const [projectLoading, setProjectLoading] = useState(false)
     const [search, setSearch] = useState({ tag: '', project: '' })
     const [projectError, setProjectError] = useState(null)
-    const [projects, setProjects] = useState([])
+    const { projects, loading: projectsLoading, error: projectsError, fetchProjects, createProject, updateProject, deleteProject } = useProjects()
+
+    const [showAddTag, setShowAddTag] = useState(false);
+    const [newTagLoading, setNewTagLoading] = useState(false);
+    const [newTagError, setNewTagError] = useState('');
+
+    const [showAddProject, setShowAddProject] = useState(false);
+    const [newProjectLoading, setNewProjectLoading] = useState(false);
+    const [newProjectError, setNewProjectError] = useState('');
+
+
+    // Prepare dropdown options for department/status selectors
+    const departmentOptions = (lookups.departments || []).map(d => ({ label: d.department_abbreviation, value: d.department_id }))
+    const statusOptions = (lookups.activeStatuses || []).map(s => ({ label: s.active_status_name, value: s.active_status_id }))
 
     useEffect(() => {
         fetchTags()
@@ -30,214 +46,315 @@ function TagsPage() {
         refreshLookups()
     }, [])
 
-    // Fetch projects directly from API, not from lookup
-    const fetchProjects = async () => {
+    // Add new tag handler (collapsible form at top of tag section)
+    const handleAddNewTag = async (tagName) => {
+        setNewTagLoading(true);
+        setNewTagError('');
         try {
-            const res = await api.get('projects')
-            setProjects(res.data)
+            await createTag(tagName);
+            showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('tags.added_success'), life: 2000 });
+            await fetchTags();
+            setShowAddTag(false);
         } catch (err) {
-            showToast(toast, { severity: 'error', summary: 'Error', detail: 'Failed to fetch projects', life: 3000 })
+            setNewTagError(err?.message || t('tags.add_failed'));
+        } finally {
+            setNewTagLoading(false);
         }
+    };
+
+
+    // Inline edit for tags (row editing in DataTable)
+    const onTagRowEditComplete = async (e) => {
+        const { newData } = e;
+        try {
+            await updateTag(newData.tag_id, newData.tag_name);
+            showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('tags.updated_success'), life: 2000 });
+            await fetchTags();
+        } catch (err) {
+            showToast(toast, { severity: 'error', summary: t('common.error'), detail: err?.message || t('tags.update_failed'), life: 3000 });
+        }
+    };
+
+    //Tag handlers (delete, confirm delete) 
+    const handleDeleteTag = (tag) => {
+        confirmDialog({
+            message: t('tags.delete_confirm'),
+            header: t('tags.delete_header'),
+            icon: 'pi pi-exclamation-triangle',
+            accept: async () => {
+                try {
+                    // You should implement a deleteTag method in TagContext for this
+                    await deleteTag(tag.tag_id);
+                    showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('tags.deleted_success'), life: 3000 })
+                    await fetchTags();
+                } catch (err) {
+                    const detail = err?.message || t('tags.delete_failed')
+                    showToast(toast, { severity: 'error', summary: t('common.error'), detail, life: 3000 })
+                }
+            },
+            reject: () => { },
+        })
     }
 
-    const filteredTags = tags.filter(tag => tag.tag_name?.toLowerCase().includes(search.tag.toLowerCase()))
-    const filteredProjects = projects.filter(project => {
+    // Fetch projects directly from API, not from lookup 
+    // fetchProjects is now from context
+
+    // Add new project handler (collapsible form at top of project section)
+    const handleAddNewProject = async (projectData) => {
+        setNewProjectLoading(true);
+        setNewProjectError('');
+        try {
+            await createProject(projectData);
+            showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('projects.added_success'), life: 2000 });
+            await fetchProjects();
+            setShowAddProject(false);
+        } catch (err) {
+            setNewProjectError(err?.message || t('projects.add_failed'));
+        } finally {
+            setNewProjectLoading(false);
+        }
+    };
+
+
+    // Inline edit for projects (row editing in DataTable)
+    const onProjectRowEditComplete = async (e) => {
+        const { newData } = e;
+        setProjectLoading(true);
+        setProjectError(null);
+        try {
+            await updateProject(newData.project_id, newData);
+            showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('projects.updated_success'), life: 2000 });
+            await fetchProjects();
+        } catch (err) {
+            setProjectError(err.message || t('projects.update_failed'));
+            showToast(toast, { severity: 'error', summary: t('common.error'), detail: err?.message || t('projects.update_failed'), life: 3000 });
+        } finally {
+            setProjectLoading(false);
+        }
+    };
+
+    //  Project handlers (delete, confirm delete)
+
+    const handleDeleteProject = (project) => {
+        confirmDialog({
+            message: t('projects.delete_confirm'),
+            header: t('projects.delete_header'),
+            icon: 'pi pi-exclamation-triangle',
+            accept: async () => {
+                setProjectLoading(true)
+                setProjectError(null)
+                try {
+                    await deleteProject(project.project_id);
+                    showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('projects.deleted_success'), life: 2000 })
+                    await fetchProjects();
+                } catch (err) {
+                    setProjectError(err.message || t('projects.delete_failed'))
+                    showToast(toast, { severity: 'error', summary: t('common.error'), detail: err?.message || t('projects.delete_failed'), life: 2000 })
+                } finally {
+                    setProjectLoading(false)
+                }
+            },
+            reject: () => { },
+        })
+    }
+
+
+    //  Sort/filter tags and projects for display 
+    const sortedTags = [...tags].filter(tag => tag && tag.tag_id && tag.tag_name).sort((a, b) => b.tag_id - a.tag_id)
+    const filteredTags = sortedTags.filter(tag => tag && tag.tag_name && tag.tag_name.toLowerCase().includes(search.tag.toLowerCase()))
+
+    // Sort projects so newest (highest id) is first
+    const sortedProjects = [...projects].sort((a, b) => b.project_id - a.project_id)
+    const filteredProjects = sortedProjects.filter(project => {
         const name = project.project_name || ''
         const desc = project.project_desc || ''
         return name.toLowerCase().includes(search.project.toLowerCase()) || desc.toLowerCase().includes(search.project.toLowerCase())
     })
 
-    // Tag handlers
-    const handleAddTag = () => { setEditingTag(null); setShowTagDialog(true) }
-    const handleEditTag = tag => { setEditingTag(tag); setShowTagDialog(true) }
-    const handleSaveTag = async tagName => {
-        try {
-            if (editingTag) await updateTag(editingTag.tag_id, tagName)
-            else await createTag(tagName)
-            showToast(toast, { severity: 'success', summary: 'Success', detail: editingTag ? 'Tag updated successfully' : 'Tag added successfully', life: 2000 })
-        } catch (err) {
-            showToast(toast, { severity: 'error', summary: 'Error', detail: err?.message || 'Failed to save tag', life: 3000 })
-        }
-        setShowTagDialog(false)
-    }
-    const handleDeleteTag = async tag => {
-        if (!window.confirm('Delete this tag?')) return
-        try {
-            await deleteTag(tag.tag_id)
-            showToast(toast, { severity: 'success', summary: 'Success', detail: 'Tag deleted successfully', life: 2000 })
-        } catch (err) {
-            showToast(toast, { severity: 'error', summary: 'Error', detail: err?.message || 'Failed to delete tag', life: 3000 })
-        }
-    }
 
-    // Project handlers
-    const handleAddProject = () => { setEditingProject(null); setShowProjectDialog(true) }
-    const handleEditProject = project => { setEditingProject(project); setShowProjectDialog(true) }
-    const handleSaveProject = async projectData => {
-        setProjectLoading(true)
-        setProjectError(null)
-        try {
-            if (editingProject) {
-                await api.put(`projects/${editingProject.project_id}`, { ...projectData, project_id: editingProject.project_id })
-                showToast(toast, { severity: 'success', summary: 'Success', detail: 'Project updated successfully', life: 2000 })
-            } else {
-                await api.post('projects', projectData)
-                showToast(toast, { severity: 'success', summary: 'Success', detail: 'Project added successfully', life: 2000 })
-            }
-            await fetchProjects()
-        } catch (err) {
-            setProjectError(err.message || 'Failed to save project')
-            showToast(toast, { severity: 'error', summary: 'Error', detail: err?.message || 'Failed to save project', life: 3000 })
-        } finally {
-            setProjectLoading(false)
-            setShowProjectDialog(false)
-        }
-    }
-    const handleDeleteProject = async project => {
-        if (!window.confirm('Delete this project?')) return
-        setProjectLoading(true)
-        setProjectError(null)
-        try {
-            await api.delete(`projects/${project.project_id}`)
-            showToast(toast, { severity: 'success', summary: 'Success', detail: 'Project deleted successfully', life: 2000 })
-            await fetchProjects()
-        } catch (err) {
-            setProjectError(err.message || 'Failed to delete project')
-            showToast(toast, { severity: 'error', summary: 'Error', detail: err?.message || 'Failed to delete project', life: 3000 })
-        } finally {
-            setProjectLoading(false)
-        }
-    }
+    const textInputEditor = (options) => (
+        <input
+            type="text"
+            value={options.value}
+            onChange={e => options.editorCallback(e.target.value)}
+            className="p-inputtext p-component"
+        />
+    )
 
-    // Prepare dropdown options
-    const departmentOptions = (lookups.departments || []).map(d => ({ label: d.department_abbreviation, value: d.department_id }))
-    const statusOptions = (lookups.activeStatuses || []).map(s => ({ label: s.active_status_name, value: s.active_status_id }))
+    // Dropdown editor for status field
+    const statusEditor = (editorOptions) => (
+        <Dropdown
+            value={editorOptions.value}
+            onChange={(e) => editorOptions.editorCallback(e.target.value)}
+            options={statusOptions}
+        />
+    )
 
+
+    const renderStatus = (rowData) => (<ActiveStatusTab status={rowData.active_status_id} />)
+
+    // === Render main UI: Toast, Dialog, Tags section, Projects section ===
     return (
         <>
             <Toast ref={toast} position="top-right" />
-            <ContentHeader title="Tags & Projects" homePath="/admin" iconKey="sidebar.tags" />
+            {/* PrimeReact confirmDialog is now used directly in handlers */}
+            <ConfirmDialog />
+            <ContentHeader title={t('tags_projects.title')} homePath="/admin" iconKey="sidebar.tags" />
             <div
-                className="flex flex-col md:flex-row gap-8 mt-6 items-stretch w-full"
+                className="flex flex-col md:flex-row gap-8 mt-6 items-stretch w-full h-screen bg-gray-50"
             >
                 {/* TAGS SECTION - align left */}
-                <div
-                    className="bg-white rounded-xl shadow-md p-7 mb-6 min-w-[320px] w-full md:w-2/5 flex flex-col h-[70vh] min-h-[400px]"
-                >
-                    <h2 className="mt-0 mb-4 text-xl font-semibold">Tags</h2>
+                <div className="bg-white rounded-xl shadow p-7 mb-6 min-w-[320px] w-full md:w-4/10 flex flex-col h-full min-h-[400px]">
+                    <h2 className="mt-0 mb-4 text-xl font-semibold text-gray-800">{t('tags.title')}</h2>
+
+                    {/* Add New Tag Collapsible */}
+                    <div className="mb-4">
+                        <Button
+                            label={showAddTag ? t('common.collapse') : t('tags.add_new')}
+                            icon={showAddTag ? 'pi pi-chevron-up' : 'pi pi-plus'}
+                            className={showAddTag ? 'p-button-secondary' : 'bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg px-4 py-2 w-full md:w-auto'}
+                            onClick={() => setShowAddTag(v => !v)}
+                        />
+                        {showAddTag && (
+                            <div className="mt-4 p-4 border border-gray-200 rounded bg-gray-50">
+                                <AddTag
+                                    onSave={handleAddNewTag}
+                                    onCancel={() => setShowAddTag(false)}
+                                    initialTag={null}
+                                />
+                                {newTagError && <div className="text-red-600 mt-2">{newTagError}</div>}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Search Tag By Name */}
                     <div className="flex items-center gap-2 mb-4 flex-wrap">
                         <input
                             type="text"
                             className="p-inputtext p-component border rounded px-3 py-2 flex-1 min-w-[120px]"
-                            placeholder="Search tags..."
+                            placeholder={t('tags.search_placeholder')}
                             value={search.tag}
                             onChange={e => setSearch(s => ({ ...s, tag: e.target.value }))}
                         />
-                        <Button
-                            label="Add Tag"
-                            icon="pi pi-plus"
-                            iconPos="left"
-                            onClick={handleAddTag}
-                            className="ml-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg px-4 py-2 w-full md:w-auto"
-                        />
+
                     </div>
+
                     <div className="flex-1 overflow-y-auto">
-                        <DataTable value={filteredTags} loading={tagsLoading} emptyMessage="No tags found" className="mb-3">
+                        <DataTable value={filteredTags} loading={tagsLoading} emptyMessage={t('tags.empty_message')} editMode="row" onRowEditComplete={onTagRowEditComplete} className="mb-3">
                             <Column
                                 field="tag_name"
-                                header="Tag Name"
-                                body={rowData =>
-                                    rowData.tag_name
-                                        ? rowData.tag_name.replace(/\w\S*/g, (w) => w.replace(/^\w/, c => c.toUpperCase()))
-                                        : ''
-                                }
+                                header={t('tags.name')}
+                                editor={textInputEditor}
+                            />
+
+                            <Column
+                                rowEditor={true}
+                                header={t('common.edit')}
                             />
                             <Column
-                                header="Actions"
+                                header={t('common.delete')}
                                 body={rowData => (
-                                    <>
-                                        <Button icon="pi pi-pencil" className="p-button-text" onClick={() => handleEditTag(rowData)} />
-                                        <Button icon="pi pi-trash" className="p-button-text p-button-danger" onClick={() => handleDeleteTag(rowData)} />
-                                    </>
+                                    <Button icon="pi pi-trash" className="p-button-text p-button-danger" onClick={() => handleDeleteTag(rowData)} />
                                 )}
-                                style={{ width: 120 }}
                             />
                         </DataTable>
                     </div>
-                    {tagsError && <div style={{ color: 'red' }}>{tagsError}</div>}
-                    {showTagDialog && (
-                        <div className="p-dialog-mask p-dialog-visible flex items-center justify-center" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.3)', zIndex: 1000 }}>
-                            <div className="p-dialog" style={{ width: 400, background: '#fff', padding: 24, borderRadius: 8, boxShadow: '0 4px 24px rgba(0,0,0,0.15)' }}>
-                                <AddOrEditTag
-                                    initialTag={editingTag}
-                                    onSave={handleSaveTag}
-                                    onCancel={() => setShowTagDialog(false)}
-                                />
-                            </div>
-                        </div>
-                    )}
                 </div>
 
                 {/* PROJECTS SECTION - align right */}
                 <div
-                    className="bg-white rounded-xl shadow-md p-7 mb-6 min-w-[320px] max-w-[60%] flex-1 flex flex-col"
-                    style={{ height: '70vh', minHeight: 400 }}
+                    className="bg-white rounded-xl shadow p-7 mb-6 min-w-[320px] w-full md:w-6/10 flex-1 flex flex-col h-full min-h-[400px]"
                 >
-                    <h2 className="mt-0 mb-4 text-xl font-semibold">Projects</h2>
+                    <h2 className="mt-0 mb-4 text-xl font-semibold text-gray-800">{t('projects.title')}</h2>
+
+                    {/* Add New Project Collapsible - now at the top of the project section */}
+                    <div className="mb-4">
+                        <Button
+                            label={showAddProject ? t('common.collapse') : t('projects.add_new')}
+                            icon={showAddProject ? 'pi pi-chevron-up' : 'pi pi-plus'}
+                            className={showAddProject ? 'p-button-secondary' : 'bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg px-4 py-2 w-full md:w-auto'}
+                            onClick={() => setShowAddProject(v => !v)}
+                        />
+                        {showAddProject && (
+                            <div className="mt-4 p-4 border border-gray-200 rounded bg-gray-50">
+                                <AddProject
+                                    onSave={handleAddNewProject}
+                                    onCancel={() => setShowAddProject(false)}
+                                    initialProject={null}
+                                    departments={departmentOptions}
+                                    statuses={statusOptions}
+                                />
+                                {newProjectError && <div className="text-red-600 mt-2">{newProjectError}</div>}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Search Project By Name/Description */}
                     <div className="flex items-center gap-2 mb-4 flex-wrap">
                         <input
                             type="text"
                             className="p-inputtext p-component border rounded px-3 py-2 flex-1 min-w-[120px]"
-                            placeholder="Search projects..."
+                            placeholder={t('projects.search_placeholder')}
                             value={search.project}
                             onChange={e => setSearch(s => ({ ...s, project: e.target.value }))}
                         />
-                        <Button
-                            label="Add Project"
-                            icon="pi pi-plus"
-                            iconPos="left"
-                            onClick={handleAddProject}
-                            className="ml-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg px-4 py-2 w-full md:w-auto"
-                        />
                     </div>
+
                     <div className="flex-1 overflow-y-auto">
-                        <DataTable value={filteredProjects} loading={lookupsLoading || projectLoading} emptyMessage="No projects found" className="mb-3">
-                            <Column field="project_name" header="Project Name" />
-                            <Column field="project_desc" header="Description" />
-                            <Column field="department_id" header="Department" body={rowData => {
-                                const dept = departmentOptions.find(d => d.value === rowData.department_id)
-                                return dept ? dept.label : ''
-                            }} />
-                            <Column field="active_status_id" header="Status" body={rowData => {
-                                const status = statusOptions.find(s => s.value === rowData.active_status_id)
-                                return status ? status.label : ''
-                            }} />
+                        <DataTable
+                            value={filteredProjects}
+                            loading={lookupsLoading || projectLoading}
+                            emptyMessage={t('projects.empty_message')}
+                            className="mb-3"
+                            editMode="row"
+                            onRowEditComplete={onProjectRowEditComplete}
+                        >
                             <Column
-                                header="Actions"
-                                body={rowData => (
-                                    <>
-                                        <Button icon="pi pi-pencil" className="p-button-text" onClick={() => handleEditProject(rowData)} />
-                                        <Button icon="pi pi-trash" className="p-button-text p-button-danger" onClick={() => handleDeleteProject(rowData)} />
-                                    </>
+                                field="project_name"
+                                header={t('projects.name')}
+                                editor={textInputEditor}
+                            />
+                            <Column
+                                field="project_desc"
+                                header={t('projects.description')}
+                                editor={textInputEditor}
+                            />
+                            <Column
+                                field="department_id"
+                                header={t('projects.department')}
+                                editor={options => (
+                                    <Dropdown
+                                        value={options.value}
+                                        options={departmentOptions}
+                                        onChange={e => options.editorCallback(e.value)}
+                                        placeholder={t('projects.select_department')}
+                                        optionLabel="label"
+                                        optionValue="value"
+                                    />
                                 )}
-                                style={{ width: 120 }}
+                                body={rowData => {
+                                    const dept = departmentOptions.find(d => d.value === rowData.department_id)
+                                    return dept ? dept.label : ''
+                                }}
+                            />
+                            <Column
+                                field="active_status_id"
+                                header={t('projects.status')}
+                                editor={statusEditor}
+                                body={renderStatus}
+                            />
+                            <Column
+                                rowEditor={true}
+                                header={t('common.edit')}
+                            />
+                            <Column
+                                header={t('common.delete')}
+                                body={rowData => (
+                                    <Button icon="pi pi-trash" className="p-button-text p-button-danger" onClick={() => handleDeleteProject(rowData)} />
+                                )}
                             />
                         </DataTable>
                     </div>
-                
-                    {showProjectDialog && (
-                        <div className="p-dialog-mask p-dialog-visible flex items-center justify-center" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.3)', zIndex: 1000 }}>
-                            <div className="p-dialog" style={{ width: 500, background: '#fff', padding: 24, borderRadius: 8, boxShadow: '0 4px 24px rgba(0,0,0,0.15)' }}>
-                                <AddOrEditProject
-                                    initialProject={editingProject}
-                                    onSave={handleSaveProject}
-                                    onCancel={() => setShowProjectDialog(false)}
-                                    departments={departmentOptions}
-                                    statuses={statusOptions}
-                                />
-                            </div>
-                        </div>
-                    )}
                 </div>
             </div>
         </>

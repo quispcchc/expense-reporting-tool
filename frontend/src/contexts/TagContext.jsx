@@ -27,8 +27,10 @@ export function TagProvider({ children }) {
         try {
             const response = await api.post('tags', { tag_name })
             setTags(prev => [...prev, response.data])
+            return response.data
         } catch (err) {
             setError(err.message || 'Failed to create tag')
+            throw err
         } finally {
             setLoading(false)
         }
@@ -55,6 +57,7 @@ export function TagProvider({ children }) {
             setTags(prev => prev.filter(t => t.tag_id !== tag_id))
         } catch (err) {
             setError(err.message || 'Failed to delete tag')
+            throw err
         } finally {
             setLoading(false)
         }
