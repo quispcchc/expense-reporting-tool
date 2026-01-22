@@ -140,15 +140,9 @@ class ClaimService
                 }
             }
 
-            // Handle tags
-            if (! empty($expenseData['tags'])) {
-                $tagNames = array_map('trim', explode(',', $expenseData['tags']));
-                $tagIds = [];
-                foreach ($tagNames as $name) {
-                    $tag = Tag::firstOrCreate(['tag_name' => $name]);
-                    $tagIds[] = $tag->tag_id;
-                }
-                $expense->tags()->sync($tagIds);
+            // Handle tags: expect $expenseData['tags'] to be an array of tag IDs
+            if (! empty($expenseData['tags']) && is_array($expenseData['tags'])) {
+                $expense->tags()->sync($expenseData['tags']);
             }
         }
     }

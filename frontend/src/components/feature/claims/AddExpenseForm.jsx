@@ -1,6 +1,7 @@
-import React from 'react'
+import React, { useEffect } from 'react'
+import { useTags } from '../../../contexts/TagContext.jsx'
 import UploadAttachment from './uploadAttchment/UploadAttachment.jsx'
-import TagInput from './TagInput.jsx'
+import TagMultiSelect from './TagMultiSelect.jsx'
 import { Button } from 'primereact/button'
 import Input from '../../common/ui/Input.jsx'
 import Select from '../../common/ui/Select.jsx'
@@ -8,6 +9,7 @@ import EditableExpansionTable from './expansionTable/EditableExpansionTable.jsx'
 import { autoFillForm } from '../../../utils/helpers.js'
 import { useLookups } from '../../../contexts/LookupContext.jsx'
 import { useTranslation } from 'react-i18next'
+
 
 function AddExpenseForm({
     claimFormData,
@@ -148,8 +150,8 @@ function AddExpenseForm({
                     <UploadAttachment files={files} onSetFiles={onSetFiles} errors={errors} />
 
 
-                    {/* Tag input component */}
-                    <TagInput tags={tags} onSetTags={onSetTags} />
+                    {/* Tag multi-select component */}
+                    <TagMultiSelect value={tags} onChange={onSetTags} />
 
                 </div>
             </div>

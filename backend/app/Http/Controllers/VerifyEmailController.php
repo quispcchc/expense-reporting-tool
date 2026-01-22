@@ -26,7 +26,7 @@ class VerifyEmailController extends Controller
         // Find user by email
         $user = User::where('email', $request->email)->first();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json([
                 'message' => 'User not found.',
             ], 404);
@@ -44,14 +44,14 @@ class VerifyEmailController extends Controller
             ->where('email', $request->email)
             ->first();
 
-        if (!$verificationToken) {
+        if (! $verificationToken) {
             return response()->json([
                 'message' => 'Verification token not found. Please request a new one.',
             ], 404);
         }
 
         // Verify the token using Hash::check for bcrypt comparison
-        if (!Hash::check($request->token, $verificationToken->token)) {
+        if (! Hash::check($request->token, $verificationToken->token)) {
             return response()->json([
                 'message' => 'Invalid verification token.',
             ], 401);
@@ -95,7 +95,7 @@ class VerifyEmailController extends Controller
         // Find user by email
         $user = User::where('email', $request->email)->first();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json([
                 'message' => 'User not found.',
             ], 404);
@@ -142,7 +142,7 @@ class VerifyEmailController extends Controller
         // Find user by email
         $user = User::where('email', $request->email)->first();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json([
                 'message' => 'User not found.',
                 'is_verified' => false,
@@ -150,7 +150,7 @@ class VerifyEmailController extends Controller
         }
 
         // Check if email is verified by checking email_verified_at field
-        $isVerified = !is_null($user->email_verified_at);
+        $isVerified = ! is_null($user->email_verified_at);
 
         return response()->json([
             'is_verified' => $isVerified,

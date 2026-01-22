@@ -17,6 +17,12 @@ class Tag extends Model
         'tag_name',
     ];
 
+    // Mutator to capitalize every word when saving
+    public function setTagNameAttribute($value)
+    {
+        $this->attributes['tag_name'] = ucwords(strtolower($value));
+    }
+
     public function expenses()
     {
         return $this->belongsToMany(Expense::class, 'expense_tag', 'tag_id', 'expense_id');

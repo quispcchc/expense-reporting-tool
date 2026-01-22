@@ -4,6 +4,7 @@ import ClaimExpansionInputRow from './ClaimExpansionInputRow.jsx'
 import ClaimExpansionAttachmentRow from './ClaimExpansionAttachmentRow.jsx'
 import { useLookups } from '../../../../contexts/LookupContext.jsx'
 import { useTranslation } from 'react-i18next'
+import ClaimExpansionMultiSelectRow from './ClaimExpansionMultiSelectRow.jsx'
 
 function ClaimRowExpansion({
     rowData,
@@ -21,8 +22,6 @@ function ClaimRowExpansion({
 
     // Get the original claim item data for this row
     const currentData = claimItems.find(item => item.transactionId === rowData.transactionId) || rowData
-    // console.log('claimItems',claimItems)
-    // console.log('current data',currentData)
 
     // Get any changes made in the expanded row for this transactionId
     const expansionChanges = expandedRowData[rowData.transactionId] || {}
@@ -82,15 +81,17 @@ function ClaimRowExpansion({
                     handleInputChange={handleInputChange}
                 />
 
-                {/* Input for tags as comma-separated string */}
-                <ClaimExpansionInputRow
-                    label={t('expenses.tags', 'Tags')}
-                    field="tags"
-                    isEditing={isEditing}
-                    rowData={rowData}
-                    value={getTagsValue(displayData.tags)}
-                    handleInputChange={handleInputChange}
-                />
+                    {/* Multi-select for tags */}
+                    <ClaimExpansionMultiSelectRow
+                        label={t('expenses.tags', 'Tags')}
+                        field="tags"
+                        isEditing={isEditing}
+                        rowData={rowData}
+                        value={Array.isArray(displayData.tags)
+                            ? displayData.tags
+                            : (displayData.tags ? [displayData.tags] : [])}
+                        handleInputChange={handleInputChange}
+                    />
 
                 {/* Input for expense description */}
                 <ClaimExpansionInputRow

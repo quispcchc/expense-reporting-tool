@@ -24,7 +24,10 @@
         "selected": "selected",
         "ok": "OK",
         "confirmDelete": "Confirm Delete",
-        "cancelDelete": "Cancel Delete"
+        "cancelDelete": "Cancel Delete",
+        "success": "Success",
+        "error": "Error",
+        "collapse": "Collapse"
     },
     "filter": {
         "select": "Select",
@@ -275,7 +278,8 @@
         "codeRequired": "Code is required",
         "nameRequired": "Name is required",
         "statusRequired": "Status is required",
-        "descriptionRequired": "Description is required"
+        "descriptionRequired": "Description is required",
+        "tagNameRequired": "Tag name is required"
     },
     "passwordReset": {
         "forgotPassword": "Forgot your password",
@@ -307,5 +311,43 @@
         "attachments": "Attachments",
         "note": "Note",
         "uploadNote": "Upload Receipt, contact/agreement or additional supporting documents"
+    },
+    "tags_projects": {
+        "title": "Tags & Projects"
+    },
+    "tags": {
+        "title": "Tags",
+        "add_new": "Add New Tag",
+        "added_success": "Tag added successfully",
+        "add_failed": "Failed to add tag",
+        "updated_success": "Tag updated successfully",
+        "update_failed": "Failed to update tag",
+        "delete_confirm": "Are you sure you want to delete this tag?",
+        "delete_header": "Delete Tag",
+        "deleted_success": "Tag deleted successfully",
+        "delete_failed": "Failed to delete tag",
+        "search_placeholder": "Search tags...",
+        "empty_message": "No tags found",
+        "name": "Tag Name"
+    },
+    "projects": {
+        "title": "Projects",
+        "add_new": "Add New Project",
+        "added_success": "Project added successfully",
+        "add_failed": "Failed to add project",
+        "updated_success": "Project updated successfully",
+        "update_failed": "Failed to update project",
+        "delete_confirm": "Are you sure you want to delete this project?",
+        "delete_header": "Delete Project",
+        "deleted_success": "Project deleted successfully",
+        "delete_failed": "Failed to delete project",
+        "fetch_failed": "Failed to fetch projects",
+        "search_placeholder": "Search project...",
+        "empty_message": "No projects found",
+        "name": "Project Name",
+        "description": "Description",
+        "department": "Department",
+        "status": "Status",
+        "select_department": "Select"
     }
 }

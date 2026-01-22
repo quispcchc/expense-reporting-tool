@@ -45,7 +45,8 @@ class ExpenseController extends Controller
             'files' => 'nullable|array',  // Accept multiple files
             'files.*' => 'file|max:5120|mimes:jpg,jpeg,png,pdf',
             'cost_centre_id' => 'nullable|integer',
-            'tags' => 'nullable|string',
+            'tags' => 'nullable|array',
+            'tags.*' => 'integer|exists:tags,tag_id',
             'deleteAttachment' => 'nullable',
             'deleteReceiptIds' => 'nullable',  // Accept both string and array
         ]);

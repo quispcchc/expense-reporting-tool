@@ -1,0 +1,26 @@
+import React from 'react'
+import { MultiSelect } from 'primereact/multiselect'
+import { useLookups } from '../../../contexts/LookupContext.jsx'
+import { useTranslation } from 'react-i18next'
+
+export default function TagMultiSelect({ value, onChange }) {
+    const { t } = useTranslation()
+    const { lookups, loading } = useLookups()
+
+    return (
+        <div className="w-80">
+            <MultiSelect
+                value={value}
+                options={lookups.tags}
+                optionLabel="tag_name"
+                optionValue="tag_id"
+                onChange={e => onChange(e.value)}
+                placeholder={t('expenses.tagsPlaceholder', 'Select tags...')}
+                display="chip"
+                loading={loading}
+                className="w-80"
+                filter
+            />
+        </div>
+    )
+}

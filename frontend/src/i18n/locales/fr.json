@@ -24,7 +24,10 @@
         "selected": "sélectionné(s)",
         "ok": "OK",
         "confirmDelete": "Confirmer la suppression",
-        "cancelDelete": "Annuler la suppression"
+        "cancelDelete": "Annuler la suppression",
+        "success": "Succès",
+        "error": "Erreur",
+        "collapse": "Réduire"
     },
     "filter": {
         "select": "Sélectionner",
@@ -288,5 +291,43 @@
         "attachments": "Pièces jointes",
         "note": "Note",
         "uploadNote": "Téléchargez le reçu, le contrat/l'accord ou d'autres documents justificatifs"
+    },
+    "tags_projects": {
+        "title": "Étiquettes & Projets"
+    },
+    "tags": {
+        "title": "Étiquettes",
+        "add_new": "Ajouter une nouvelle étiquette",
+        "added_success": "Étiquette ajoutée avec succès",
+        "add_failed": "Échec de l'ajout de l'étiquette",
+        "updated_success": "Étiquette modifiée avec succès",
+        "update_failed": "Échec de la modification de l'étiquette",
+        "delete_confirm": "Êtes-vous sûr de vouloir supprimer cette étiquette ?",
+        "delete_header": "Supprimer l'étiquette",
+        "deleted_success": "Étiquette supprimée avec succès",
+        "delete_failed": "Échec de la suppression de l'étiquette",
+        "search_placeholder": "Rechercher des étiquettes...",
+        "empty_message": "Aucune étiquette trouvée",
+        "name": "Nom de l'étiquette"
+    },
+    "projects": {
+        "title": "Projets",
+        "add_new": "Ajouter un nouveau projet",
+        "added_success": "Projet ajouté avec succès",
+        "add_failed": "Échec de l'ajout du projet",
+        "updated_success": "Projet modifié avec succès",
+        "update_failed": "Échec de la modification du projet",
+        "delete_confirm": "Êtes-vous sûr de vouloir supprimer ce projet ?",
+        "delete_header": "Supprimer le projet",
+        "deleted_success": "Projet supprimé avec succès",
+        "delete_failed": "Échec de la suppression du projet",
+        "fetch_failed": "Échec de la récupération des projets",
+        "search_placeholder": "Rechercher un projet...",
+        "empty_message": "Aucun projet trouvé",
+        "name": "Nom du projet",
+        "description": "Description",
+        "department": "Département",
+        "status": "Statut",
+        "select_department": "Sélectionner un département"
     }
 }
