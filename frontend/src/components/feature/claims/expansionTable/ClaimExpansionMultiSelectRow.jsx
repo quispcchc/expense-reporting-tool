@@ -5,9 +5,6 @@ import { useLookups } from '../../../../contexts/LookupContext.jsx'
 // Generic multi-select row for tags, styled like ClaimExpansionInputRow
 function ClaimExpansionMultiSelectRow({ label, field, value, isEditing, rowData, handleInputChange }) {
     const { lookups } = useLookups();
-
-    console.log('tags value', value);
-
     // Helper to get tag names from IDs or objects
     const getTagNames = (val) => {
         if (!val || (Array.isArray(val) && val.length === 0)) return `No ${field} available.`;

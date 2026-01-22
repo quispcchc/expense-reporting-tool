@@ -113,9 +113,6 @@ class ClaimController extends Controller
         $validated = $request->validate([
             'claim_type_id' => 'required|exists:claim_types,claim_type_id',
             'team_id' => 'required|exists:teams,team_id',
-            'expenses' => 'sometimes|array',
-            'expenses.*.tags' => 'nullable|array',
-            'expenses.*.tags.*' => 'integer|exists:tags,tag_id',
         ]);
 
         $this->claimService->updateClaim($validated, $id);
