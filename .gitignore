@@ -7,3 +7,6 @@ dist/
 copilot-instructions.md
 CONTEXT.md
 backend/public/storage
+.gemini/
+gemini-*
+gha-creds-*.json
