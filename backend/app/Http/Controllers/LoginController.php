@@ -17,10 +17,14 @@ class LoginController extends Controller
             'password' => ['required', 'string'],
         ]);
         // find user
-        $user = User::with(['role', 'teams'])->where('email', $request->email)->first();
+        $user = User::with(['role', 'teams', 'activeStatus'])->where('email', $request->email)->first();
         // Check if user exists
         if (! $user || ! Hash::check($request->password, $user->user_pass)) {
             return $this->errorResponse(trans('messages.invalid_email_password'), 401);
+        }
+        // Check if user is inactive
+        if ($user->activeStatus && strtolower($user->activeStatus->active_status_name) === 'inactive') {
+            return $this->errorResponse('Your account is inactive. Please contact the administrator.', 403);
         }
         // Check if email is verified
         if (is_null($user->email_verified_at)) {
