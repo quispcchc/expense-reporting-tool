@@ -89,11 +89,6 @@ function LoginForm() {
 
     return (
         <form onSubmit={handleSubmit} className="w-100 p-5">
-            {/* Language Switcher */}
-            <div className="absolute top-4 right-4">
-                <LanguageSwitcher />
-            </div>
-
             <div className="mb-6">
                 <h2 className="text-2xl font-bold text-brand-secondary">CCHC</h2>
                 <h3 className="text-lg font-medium text-brand-secondary">Expense Claim Portal</h3>
