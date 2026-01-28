@@ -34,7 +34,7 @@ class UserFactory extends Factory
             'role_id' => $this->faker->randomElement([1, 4]),
             'position_id' => fake()->numberBetween(1, 4),
             'department_id' => fake()->numberBetween(1, 5),
-            'team_id' => fake()->numberBetween(1, 10),
+            // 'team_id' => fake()->numberBetween(1, 10),
 
         ];
     }
