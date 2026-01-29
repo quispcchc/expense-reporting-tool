@@ -65,6 +65,7 @@
         "backToLogin": "Back to login"
     },
     "sidebar": {
+        "dashboard": "Dashboard",
         "claims": "CLAIMS",
         "general": "GENERAL",
         "allClaims": "All Claims",

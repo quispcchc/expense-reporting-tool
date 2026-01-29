@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { TbLayoutSidebarLeftCollapse, TbLayoutSidebarRightCollapse, TbUsers } from 'react-icons/tb'
 import { IoSettingsOutline } from 'react-icons/io5'
+import { MdOutlineDashboard } from "react-icons/md";
+
+
 import { PiOfficeChair } from 'react-icons/pi'
 import { IoDocumentTextOutline, IoCreateOutline } from 'react-icons/io5'
 import { BsTag } from 'react-icons/bs'
@@ -34,6 +37,7 @@ function SideBar() {
                 { icon: IoDocumentTextOutline, label: t('sidebar.costCentre'), path: '/admin/cost-centre' },
                 { icon: BsTag, label: t('sidebar.tags'), path: '/admin/tags' },
                 { icon: IoSettingsOutline, label: t('sidebar.settings'), path: '/admin/settings' },
+                { icon: MdOutlineDashboard, label: t('sidebar.dashboard'), path: '/admin/dashboard' },
             ],
         },
     ], [t])

@@ -65,6 +65,7 @@
         "backToLogin": "Retour à la connexion"
     },
     "sidebar": {
+        "dashboard": "Tableau de bord",
         "claims": "RÉCLAMATIONS",
         "general": "GÉNÉRAL",
         "allClaims": "Toutes les réclamations",
