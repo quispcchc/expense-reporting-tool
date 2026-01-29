@@ -56,7 +56,6 @@ function TagsPage() {
             await createTag(tagName);
             showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('tags.added_success'), life: 2000 });
             await fetchTags();
-            setShowAddTag(false);
         } catch (err) {
             setNewTagError(err?.message || t('tags.add_failed'));
         } finally {

@@ -261,7 +261,9 @@
         "codeRequired": "Le code est requis",
         "nameRequired": "Le nom est requis",
         "statusRequired": "Le statut est requis",
-        "descriptionRequired": "La description est requise"
+        "descriptionRequired": "La description est requise",
+        "projectNameRequired": "Le nom du projet est requis",
+        "tagNameRequired": "Le nom de l'étiquette est requis"
     },
     "passwordReset": {
         "forgotPassword": "Mot de passe oublié",

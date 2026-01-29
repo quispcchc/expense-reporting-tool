@@ -281,7 +281,8 @@
         "nameRequired": "Name is required",
         "statusRequired": "Status is required",
         "descriptionRequired": "Description is required",
-        "tagNameRequired": "Tag name is required"
+        "tagNameRequired": "Tag name is required",
+        "projectNameRequired": "Project name is required"
     },
     "passwordReset": {
         "forgotPassword": "Forgot your password",
