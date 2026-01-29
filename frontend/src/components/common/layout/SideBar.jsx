@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import { useAuth } from '../../../contexts/AuthContext.jsx'
 import { TbLayoutSidebarLeftCollapse, TbLayoutSidebarRightCollapse, TbUsers } from 'react-icons/tb'
 import { IoSettingsOutline } from 'react-icons/io5'
+import { MdOutlineDashboard } from "react-icons/md";
+
+
 import { PiOfficeChair } from 'react-icons/pi'
 import { IoDocumentTextOutline, IoCreateOutline } from 'react-icons/io5'
 import { BsTag } from 'react-icons/bs'
@@ -10,6 +14,7 @@ import { useTranslation } from 'react-i18next'
 
 function SideBar() {
     const { t } = useTranslation()
+    const { authUser } = useAuth()
     const location = useLocation()
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
     const [isCollapsed, setIsCollapsed] = useState(() => {
@@ -17,26 +22,32 @@ function SideBar() {
     })
     const [showMobileMenu, setShowMobileMenu] = useState(false)
 
-    const sidebarData = useMemo(() => [
-        {
-            title: t('sidebar.claims'),
-            items: [
-                { icon: IoDocumentTextOutline, label: t('sidebar.allClaims'), path: '/admin/claims' },
-                { icon: IoDocumentTextOutline, label: t('sidebar.myClaims', 'My Claims'), path: '/admin/my-claims' },
-                { icon: IoCreateOutline, label: t('sidebar.newClaim'), path: '/admin/claims/create-claim' },
-            ],
-        },
-        {
-            title: t('sidebar.general'),
-            items: [
-                { icon: TbUsers, label: t('sidebar.users'), path: '/admin/users' },
-                { icon: PiOfficeChair, label: t('sidebar.teams'), path: '/admin/departments' },
-                { icon: IoDocumentTextOutline, label: t('sidebar.costCentre'), path: '/admin/cost-centre' },
-                { icon: BsTag, label: t('sidebar.tags'), path: '/admin/tags' },
-                { icon: IoSettingsOutline, label: t('sidebar.settings'), path: '/admin/settings' },
-            ],
-        },
-    ], [t])
+    const sidebarData = useMemo(() => {
+        const data = [
+            {
+                title: t('sidebar.claims'),
+                items: [
+                    { icon: IoDocumentTextOutline, label: t('sidebar.allClaims'), path: '/admin/claims' },
+                    { icon: IoDocumentTextOutline, label: t('sidebar.myClaims', 'My Claims'), path: '/admin/my-claims' },
+                    { icon: IoCreateOutline, label: t('sidebar.newClaim'), path: '/admin/claims/create-claim' },
+                ],
+            },
+        ];
+        if (authUser && (authUser.role_name === 'super_admin' || authUser.role_name === 'admin')) {
+            data.push({
+                title: t('sidebar.general'),
+                items: [
+                    { icon: TbUsers, label: t('sidebar.users'), path: '/admin/users' },
+                    { icon: PiOfficeChair, label: t('sidebar.teams'), path: '/admin/departments' },
+                    { icon: IoDocumentTextOutline, label: t('sidebar.costCentre'), path: '/admin/cost-centre' },
+                    { icon: BsTag, label: t('sidebar.tags'), path: '/admin/tags' },
+                    { icon: IoSettingsOutline, label: t('sidebar.settings'), path: '/admin/settings' },
+                    { icon: MdOutlineDashboard, label: t('sidebar.dashboard'), path: '/admin/dashboard' },
+                ],
+            });
+        }
+        return data;
+    }, [t, authUser]);
 
     useEffect(() => {
         const handleResize = () => {
