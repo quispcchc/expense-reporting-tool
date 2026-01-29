@@ -27,7 +27,8 @@
         "cancelDelete": "Annuler la suppression",
         "success": "Succès",
         "error": "Erreur",
-        "collapse": "Réduire"
+        "collapse": "Réduire",
+        "expand": "Développer"
     },
     "filter": {
         "select": "Sélectionner",

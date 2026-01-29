@@ -248,7 +248,11 @@ function TagsPage() {
                                 />
                             </div>
                             <div className="flex-1 overflow-y-auto">
-                                <DataTable value={filteredTags} loading={tagsLoading} emptyMessage={t('tags.empty_message')} editMode="row" onRowEditComplete={onTagRowEditComplete} className="mb-3">
+                                <DataTable value={filteredTags} loading={tagsLoading} emptyMessage={t('tags.empty_message')} editMode="row" onRowEditComplete={onTagRowEditComplete} className="mb-3" paginator
+                                    rows={5}
+                                    rowsPerPageOptions={[5, 10, 25, 50]}
+                                    paginatorTemplate="FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink RowsPerPageDropdown"
+                                    currentPageReportTemplate="{first} to {last} of {totalRecords}">
                                     <Column
                                         field="tag_name"
                                         header={t('tags.name')}
