@@ -149,7 +149,7 @@
         "enterBuyer": "Veuillez entrer l'acheteur",
         "descriptionPlaceholder": "Décrivez l'objet de cette dépense...",
         "notesPlaceholder": "Ajoutez des notes supplémentaires...",
-        "tagsPlaceholder": "Tapez ici pour ajouter des étiquettes...",
+        "tagsPlaceholder": "Sélectionner des étiquettes",
         "editExpense": "Modifier la dépense",
         "editApprovedRejectedMessage": "Voulez-vous modifier une dépense déjà approuvée ou rejetée?",
         "editCancelled": "Modification annulée",

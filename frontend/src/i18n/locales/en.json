@@ -151,7 +151,7 @@
         "enterBuyer": "Please enter buyer",
         "descriptionPlaceholder": "Describe the purpose of this expense...",
         "notesPlaceholder": "Add any additional notes...",
-        "tagsPlaceholder": "Type here to add tags...",
+        "tagsPlaceholder": "Select tags",
         "editExpense": "Edit Expense",
         "editApprovedRejectedMessage": "Do you want to edit an expense which has already been approved or rejected?",
         "editCancelled": "Edit cancelled",
