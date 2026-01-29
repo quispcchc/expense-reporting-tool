@@ -3,6 +3,7 @@ import { MultiSelect } from 'primereact/multiselect'
 import { useLookups } from '../../../contexts/LookupContext.jsx'
 import { useTranslation } from 'react-i18next'
 import { useTags } from '../../../contexts/TagContext.jsx'
+import { useEffect } from 'react'
 
 export default function TagMultiSelect({ value, onChange }) {
     const { t } = useTranslation()
