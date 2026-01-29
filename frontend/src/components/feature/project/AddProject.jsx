@@ -40,8 +40,22 @@ export default function AddProject({ onSave, onCancel, initialProject, departmen
         onSave(project)
     }
 
+    const handleCancel = () => {
+        setProject({
+            project_name: initialProject?.project_name || '',
+            project_desc: initialProject?.project_desc || '',
+            department_id: initialProject?.department_id || '',
+            active_status_id: initialProject?.active_status_id || '',
+        });
+        setError('');
+        onCancel();
+    };
+
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <h3 className="text-lg font-semibold text-grey-600 mb-2">
+                {t('projects.add_new', 'Add Project')}
+            </h3>
             <InputText
                 name="project_name"
                 value={project.project_name}
@@ -69,7 +83,7 @@ export default function AddProject({ onSave, onCancel, initialProject, departmen
             {error && <small style={{ color: 'red' }}>{error}</small>}
             <div style={{ display: 'flex', gap: 8 }}>
                 <Button label={initialProject ? t('common.update', 'Update') : t('common.add', 'Add')} onClick={handleSave} />
-                <Button label={t('common.cancel')} className="p-button-secondary" onClick={onCancel} />
+                <Button label={t('common.cancel')} className="p-button-secondary" onClick={handleCancel} />
             </div>
         </div>
     )

@@ -27,13 +27,15 @@ function TagsPage() {
     const [projectError, setProjectError] = useState(null)
     const { projects, loading: projectsLoading, error: projectsError, fetchProjects, createProject, updateProject, deleteProject } = useProjects()
 
-    const [showAddTag, setShowAddTag] = useState(false);
     const [newTagLoading, setNewTagLoading] = useState(false);
     const [newTagError, setNewTagError] = useState('');
 
-    const [showAddProject, setShowAddProject] = useState(false);
+    const [showAddProject] = useState(false); // unused, form is always visible
     const [newProjectLoading, setNewProjectLoading] = useState(false);
     const [newProjectError, setNewProjectError] = useState('');
+
+    const [isTagsOpen, setIsTagsOpen] = useState(false);
+    const [isProjectsOpen, setIsProjectsOpen] = useState(false);
 
 
     // Prepare dropdown options for department/status selectors
@@ -107,7 +109,6 @@ function TagsPage() {
             await createProject(projectData);
             showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('projects.added_success'), life: 2000 });
             await fetchProjects();
-            setShowAddProject(false);
         } catch (err) {
             setNewProjectError(err?.message || t('projects.add_failed'));
         } finally {
@@ -200,160 +201,180 @@ function TagsPage() {
             {/* PrimeReact confirmDialog is now used directly in handlers */}
             <ConfirmDialog />
             <ContentHeader title={t('tags_projects.title')} homePath="/admin" iconKey="sidebar.tags" />
-            <div
-                className="flex flex-col md:flex-row gap-8 mt-6 items-stretch w-full h-screen bg-gray-50"
-            >
-                {/* TAGS SECTION - align left */}
-                <div className="bg-white rounded-xl shadow p-7 mb-6 min-w-[320px] w-full md:w-4/10 flex flex-col h-full min-h-[400px]">
-                    <h2 className="mt-0 mb-4 text-xl font-semibold text-gray-800">{t('tags.title')}</h2>
 
-                    {/* Add New Tag Collapsible */}
-                    <div className="mb-4">
-                        <Button
-                            label={showAddTag ? t('common.collapse') : t('tags.add_new')}
-                            icon={showAddTag ? 'pi pi-chevron-up' : 'pi pi-plus'}
-                            className={showAddTag ? 'p-button-secondary' : 'bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg px-4 py-2 w-full md:w-auto'}
-                            onClick={() => setShowAddTag(v => !v)}
-                        />
-                        {showAddTag && (
-                            <div className="mt-4 p-4 border border-gray-200 rounded bg-gray-50">
+
+            <div
+                className="flex flex-col gap-8 mt-6 items-stretch w-full h-screen"
+            >
+                {/* TAGS SECTION*/}
+                <div className="bg-white rounded-xl shadow p-4 mb-6 w-full">
+                    <div
+                        className="flex items-center justify-between cursor-pointer select-none px-2 py-3 border-b border-gray-300 hover:bg-gray-50 transition"
+                        onClick={() => setIsTagsOpen(prev => !prev)}
+                        aria-expanded={isTagsOpen}
+                        role="button"
+                        tabIndex={0}
+                        onKeyPress={e => { if (e.key === 'Enter' || e.key === ' ') setIsTagsOpen(prev => !prev) }}
+                    >
+                        <span className="text-xl font-semibold text-gray- flex items-center gap-2">
+                            {t('tags.title')}
+                            <i className={`pi ${isTagsOpen ? 'pi-chevron-up' : 'pi-chevron-down'} text-base ml-2`} />
+                        </span>
+                        <span className="text-gray-500 text-sm">{isTagsOpen ? t('common.collapse') : t('common.expand')}</span>
+                    </div>
+
+                    <div
+                        className={`transition-all duration-300 ease-in-out overflow-scroll ${isTagsOpen ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}
+                        style={{ willChange: 'max-height, opacity' }}
+                    >
+                        <div className='m-4'>
+                            {/* Add New Tag Always Visible */}
+                            <div className="mb-4 mt-2 p-4 border border-gray-200 rounded bg-gray-50">
                                 <AddTag
                                     onSave={handleAddNewTag}
-                                    onCancel={() => setShowAddTag(false)}
+                                    onCancel={() => { }}
                                     initialTag={null}
                                 />
                                 {newTagError && <div className="text-red-600 mt-2">{newTagError}</div>}
                             </div>
-                        )}
-                    </div>
-
-                    {/* Search Tag By Name */}
-                    <div className="flex items-center gap-2 mb-4 flex-wrap">
-                        <input
-                            type="text"
-                            className="p-inputtext p-component border rounded px-3 py-2 flex-1 min-w-[120px]"
-                            placeholder={t('tags.search_placeholder')}
-                            value={search.tag}
-                            onChange={e => setSearch(s => ({ ...s, tag: e.target.value }))}
-                        />
-
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto">
-                        <DataTable value={filteredTags} loading={tagsLoading} emptyMessage={t('tags.empty_message')} editMode="row" onRowEditComplete={onTagRowEditComplete} className="mb-3">
-                            <Column
-                                field="tag_name"
-                                header={t('tags.name')}
-                                editor={textInputEditor}
-                            />
-
-                            <Column
-                                rowEditor={true}
-                                header={t('common.edit')}
-                            />
-                            <Column
-                                header={t('common.delete')}
-                                body={rowData => (
-                                    <Button icon="pi pi-trash" className="p-button-text p-button-danger" onClick={() => handleDeleteTag(rowData)} />
-                                )}
-                            />
-                        </DataTable>
+                            {/* Search Tag By Name */}
+                            <div className="flex items-center gap-2 mb-4 flex-wrap">
+                                <input
+                                    type="text"
+                                    className="p-inputtext p-component border rounded px-3 py-2 flex-1 min-w-[120px]"
+                                    placeholder={t('tags.search_placeholder')}
+                                    value={search.tag}
+                                    onChange={e => setSearch(s => ({ ...s, tag: e.target.value }))}
+                                />
+                            </div>
+                            <div className="flex-1 overflow-y-auto">
+                                <DataTable value={filteredTags} loading={tagsLoading} emptyMessage={t('tags.empty_message')} editMode="row" onRowEditComplete={onTagRowEditComplete} className="mb-3">
+                                    <Column
+                                        field="tag_name"
+                                        header={t('tags.name')}
+                                        editor={textInputEditor}
+                                    />
+                                    <Column
+                                        rowEditor={true}
+                                        header={t('common.edit')}
+                                    />
+                                    <Column
+                                        header={t('common.delete')}
+                                        body={rowData => (
+                                            <Button icon="pi pi-trash" className="p-button-text p-button-danger" onClick={() => handleDeleteTag(rowData)} />
+                                        )}
+                                    />
+                                </DataTable>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                {/* PROJECTS SECTION - align right */}
-                <div
-                    className="bg-white rounded-xl shadow p-7 mb-6 min-w-[320px] w-full md:w-6/10 flex-1 flex flex-col h-full min-h-[400px]"
-                >
-                    <h2 className="mt-0 mb-4 text-xl font-semibold text-gray-800">{t('projects.title')}</h2>
+                {/* PROJECTS SECTION */}
+                <div className="bg-white rounded-xl shadow p-4 mb-6 w-full">
+                    <div
+                        className="flex items-center justify-between cursor-pointer select-none px-2 py-3 border-b border-gray-300 hover:bg-gray-50 transition"
+                        onClick={() => setIsProjectsOpen(prev => !prev)}
+                        aria-expanded={isProjectsOpen}
+                        role="button"
+                        tabIndex={0}
+                        onKeyPress={e => { if (e.key === 'Enter' || e.key === ' ') setIsProjectsOpen(prev => !prev) }}
+                    >
+                        <span className="text-xl font-semibold text-gray- flex items-center gap-2">
+                            {t('projects.title')}
+                            <i className={`pi ${isProjectsOpen ? 'pi-chevron-up' : 'pi-chevron-down'} text-base ml-2`} />
+                        </span>
+                        <span className="text-gray-500 text-sm">{isProjectsOpen ? t('common.collapse') : t('common.expand')}</span>
+                    </div>
 
-                    {/* Add New Project Collapsible - now at the top of the project section */}
-                    <div className="mb-4">
-                        <Button
-                            label={showAddProject ? t('common.collapse') : t('projects.add_new')}
-                            icon={showAddProject ? 'pi pi-chevron-up' : 'pi pi-plus'}
-                            className={showAddProject ? 'p-button-secondary' : 'bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg px-4 py-2 w-full md:w-auto'}
-                            onClick={() => setShowAddProject(v => !v)}
-                        />
-                        {showAddProject && (
-                            <div className="mt-4 p-4 border border-gray-200 rounded bg-gray-50">
-                                <AddProject
-                                    onSave={handleAddNewProject}
-                                    onCancel={() => setShowAddProject(false)}
-                                    initialProject={null}
-                                    departments={departmentOptions}
-                                    statuses={statusOptions}
+                    <div
+                        className={`transition-all duration-300 ease-in-out overflow-auto ${isProjectsOpen ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}
+                        style={{ willChange: 'max-height, opacity' }}
+                    >
+                        {/* Add New Project Always Visible */}
+                        <div className="mb-4 mt-2 p-4 border border-gray-200 rounded bg-gray-50">
+                            <AddProject
+                                onSave={handleAddNewProject}
+                                onCancel={() => { }}
+                                initialProject={null}
+                                departments={departmentOptions}
+                                statuses={statusOptions}
+                            />
+                            {newProjectError && <div className="text-red-600 mt-2">{newProjectError}</div>}
+                        </div>
+
+                        <div className="m-2">
+                            {/* Search Project By Name/Description */}
+                            <div className="flex items-center gap-2 mb-4 flex-wrap">
+                                <input
+                                    type="text"
+                                    className="p-inputtext p-component border rounded px-3 py-2 flex-1 min-w-[120px]"
+                                    placeholder={t('projects.search_placeholder')}
+                                    value={search.project}
+                                    onChange={e => setSearch(s => ({ ...s, project: e.target.value }))}
                                 />
-                                {newProjectError && <div className="text-red-600 mt-2">{newProjectError}</div>}
                             </div>
-                        )}
-                    </div>
-
-                    {/* Search Project By Name/Description */}
-                    <div className="flex items-center gap-2 mb-4 flex-wrap">
-                        <input
-                            type="text"
-                            className="p-inputtext p-component border rounded px-3 py-2 flex-1 min-w-[120px]"
-                            placeholder={t('projects.search_placeholder')}
-                            value={search.project}
-                            onChange={e => setSearch(s => ({ ...s, project: e.target.value }))}
-                        />
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto">
-                        <DataTable
-                            value={filteredProjects}
-                            loading={lookupsLoading || projectLoading}
-                            emptyMessage={t('projects.empty_message')}
-                            className="mb-3"
-                            editMode="row"
-                            onRowEditComplete={onProjectRowEditComplete}
-                        >
-                            <Column
-                                field="project_name"
-                                header={t('projects.name')}
-                                editor={textInputEditor}
-                            />
-                            <Column
-                                field="project_desc"
-                                header={t('projects.description')}
-                                editor={textInputEditor}
-                            />
-                            <Column
-                                field="department_id"
-                                header={t('projects.department')}
-                                editor={options => (
-                                    <Dropdown
-                                        value={options.value}
-                                        options={departmentOptions}
-                                        onChange={e => options.editorCallback(e.value)}
-                                        placeholder={t('projects.select_department')}
-                                        optionLabel="label"
-                                        optionValue="value"
+                            <div className="flex-1 overflow-y-auto">
+                                <DataTable
+                                    value={filteredProjects}
+                                    loading={lookupsLoading || projectLoading}
+                                    emptyMessage={t('projects.empty_message')}
+                                    className="mb-3"
+                                    editMode="row"
+                                    onRowEditComplete={onProjectRowEditComplete}
+                                    paginator
+                                    rows={5}
+                                    rowsPerPageOptions={[5, 10, 25, 50]}
+                                    paginatorTemplate="FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink RowsPerPageDropdown"
+                                    currentPageReportTemplate="{first} to {last} of {totalRecords}"
+                                >
+                                    <Column
+                                        field="project_name"
+                                        header={t('projects.name')}
+                                        editor={textInputEditor}
                                     />
-                                )}
-                                body={rowData => {
-                                    const dept = departmentOptions.find(d => d.value === rowData.department_id)
-                                    return dept ? dept.label : ''
-                                }}
-                            />
-                            <Column
-                                field="active_status_id"
-                                header={t('projects.status')}
-                                editor={statusEditor}
-                                body={renderStatus}
-                            />
-                            <Column
-                                rowEditor={true}
-                                header={t('common.edit')}
-                            />
-                            <Column
-                                header={t('common.delete')}
-                                body={rowData => (
-                                    <Button icon="pi pi-trash" className="p-button-text p-button-danger" onClick={() => handleDeleteProject(rowData)} />
-                                )}
-                            />
-                        </DataTable>
+                                    <Column
+                                        field="project_desc"
+                                        header={t('projects.description')}
+                                        editor={textInputEditor}
+                                    />
+                                    <Column
+                                        field="department_id"
+                                        header={t('projects.department')}
+                                        editor={options => (
+                                            <Dropdown
+                                                value={options.value}
+                                                options={departmentOptions}
+                                                onChange={e => options.editorCallback(e.value)}
+                                                placeholder={t('projects.select_department')}
+                                                optionLabel="label"
+                                                optionValue="value"
+                                            />
+                                        )}
+                                        body={rowData => {
+                                            const dept = departmentOptions.find(d => d.value === rowData.department_id)
+                                            return dept ? dept.label : ''
+                                        }}
+                                    />
+                                    <Column
+                                        field="active_status_id"
+                                        header={t('projects.status')}
+                                        editor={statusEditor}
+                                        body={renderStatus}
+                                    />
+                                    <Column
+                                        rowEditor={true}
+                                        header={t('common.edit')}
+                                    />
+                                    <Column
+                                        header={t('common.delete')}
+                                        body={rowData => (
+                                            <Button icon="pi pi-trash" className="p-button-text p-button-danger" onClick={() => handleDeleteProject(rowData)} />
+                                        )}
+                                    />
+                                </DataTable>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

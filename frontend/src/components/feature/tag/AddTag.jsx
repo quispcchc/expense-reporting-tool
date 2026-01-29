@@ -20,8 +20,17 @@ export default function AddTag({ onSave, onCancel, initialTag }) {
         onSave(tagName)
     }
 
+    const handleCancel = () => {
+        setTagName(initialTag ? initialTag.tag_name : '');
+        setError('');
+        onCancel();
+    };
+
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <h3 className="text-lg font-semibold text-grey-600 mb-2">
+                {t('tags.add_new', 'Add Tag')}
+            </h3>
             <InputText
                 value={tagName}
                 onChange={e => setTagName(e.target.value)}
@@ -31,7 +40,7 @@ export default function AddTag({ onSave, onCancel, initialTag }) {
             {error && <small style={{ color: 'red' }}>{error}</small>}
             <div style={{ display: 'flex', gap: 8 }}>
                 <Button label={initialTag ? t('common.update', 'Update') : t('common.add', 'Add')} onClick={handleSave} />
-                <Button label={t('common.cancel')} className="p-button-secondary" onClick={onCancel} />
+                <Button label={t('common.cancel')} className="p-button-secondary" onClick={handleCancel} />
             </div>
         </div>
     )
