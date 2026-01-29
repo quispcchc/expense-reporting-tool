@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { use } from 'react'
 import { MultiSelect } from 'primereact/multiselect'
 import { useLookups } from '../../../contexts/LookupContext.jsx'
 import { useTranslation } from 'react-i18next'
@@ -7,7 +7,11 @@ import { useTags } from '../../../contexts/TagContext.jsx'
 export default function TagMultiSelect({ value, onChange }) {
     const { t } = useTranslation()
     const { lookups, loading } = useLookups()
-    const { tags } = useTags()
+    const { tags, fetchTags } = useTags()
+    
+    useEffect(() => {
+        fetchTags()
+    }, [fetchTags])
 
     return (
         <div className="w-80">
