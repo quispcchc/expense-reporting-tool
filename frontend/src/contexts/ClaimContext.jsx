@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useReducer } from 'react'
+import { createContext, useContext, useEffect, useReducer, useRef } from 'react'
 import api from '../api/api.js'
 
 const ClaimContext = createContext()
@@ -19,11 +19,13 @@ const claimReducer = (state, action) => {
             return {
                 ...state,
                 claims: action.payload,
+                hasFetchedClaims: true,
             }
         case CLAIM_ACTIONS.SET_MY_CLAIMS:
             return {
                 ...state,
                 myClaims: action.payload,
+                hasFetchedMyClaims: true,
             }
         case CLAIM_ACTIONS.CREATE_CLAIM:
             return {
@@ -55,13 +57,22 @@ export function ClaimProvider({ children }) {
     const [state, dispatch] = useReducer(claimReducer, {
         claims: [],
         myClaims: [],
+        hasFetchedClaims: false,
+        hasFetchedMyClaims: false,
     })
+
+    const isFetchingClaims = useRef(false)
+    const isFetchingMyClaims = useRef(false)
 
     // Action creators to dispatch actions to the reducer
     const actions = {
         // Fetch existing claims from database
-        fetchClaims: async () => {
+        fetchClaims: async (force = false) => {
+            if (!force && (state.hasFetchedClaims || isFetchingClaims.current)) {
+                return
+            }
             try {
+                isFetchingClaims.current = true
                 const response = await api.get('/claims')
                 console.log('fetch claims', response)
                 dispatch({
@@ -70,12 +81,18 @@ export function ClaimProvider({ children }) {
                 })
             } catch (error) {
                 console.error("Error fetching claims:", error)
+            } finally {
+                isFetchingClaims.current = false
             }
         },
 
         // Fetch current user's claims from database
-        fetchMyClaims: async () => {
+        fetchMyClaims: async (force = false) => {
+            if (!force && (state.hasFetchedMyClaims || isFetchingMyClaims.current)) {
+                return
+            }
             try {
+                isFetchingMyClaims.current = true
                 const response = await api.get('/my-claims')
                 console.log('fetch my claims', response)
                 dispatch({
@@ -84,6 +101,8 @@ export function ClaimProvider({ children }) {
                 })
             } catch (error) {
                 console.error("Error fetching my claims:", error)
+            } finally {
+                isFetchingMyClaims.current = false
             }
         },
 
@@ -126,11 +145,21 @@ export function ClaimProvider({ children }) {
             return response.data
         },
 
+        refreshClaims: () => {
+            actions.fetchClaims(true)
+        },
+
+        refreshMyClaims: () => {
+            actions.fetchMyClaims(true)
+        }
+
     }
 
     const value = {
         claims: state.claims,
         myClaims: state.myClaims,
+        hasFetchedClaims: state.hasFetchedClaims,
+        hasFetchedMyClaims: state.hasFetchedMyClaims,
         ...actions,
     }
 
