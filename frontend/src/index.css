@@ -486,6 +486,16 @@ nav {
     font-size: 14px;
 }
 
+/* DataTable loading overlay - make background transparent */
+.p-datatable-loading-overlay {
+    background-color: transparent !important;
+}
+
+/* Optional: hide the loading spinner icon as well */
+/* .p-datatable-loading-icon {
+    display: none;
+} */
+
 
 /* ============================================
    Claims List Responsive Styles
