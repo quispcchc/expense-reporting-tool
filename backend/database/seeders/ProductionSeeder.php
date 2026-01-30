@@ -454,7 +454,6 @@ class ProductionSeeder extends Seeder
                 'role_id' => $superAdminRole?->role_id ?? 1,
                 'position_id' => 1,
                 'department_id' => 2, // Corporate Services
-                'team_id' => 1,
             ]
         );
 
@@ -470,7 +469,6 @@ class ProductionSeeder extends Seeder
                 'role_id' => $adminRole?->role_id ?? 2,
                 'position_id' => 1,
                 'department_id' => 2, // Corporate Services
-                'team_id' => 1,
             ]
         );
     }

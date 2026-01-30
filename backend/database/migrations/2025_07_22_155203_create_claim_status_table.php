@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('claim_status', function (Blueprint $table) {
             $table->id('claim_status_id');
             $table->string('claim_status_name', 50);
-            $table->integer('claim_status_desc')->nullable();
+            $table->string('claim_status_desc', 255)->nullable();
         });
     }
 
