@@ -19,8 +19,8 @@ function TeamsPage() {
     const { state: { teams, loading, error }, actions: { updateTeam } } = useTeam()
     const { lookups, refreshLookups } = useLookups()
 
-    // Get active statuses from lookups (maps to status names)
-    const statusOptions = lookups.activeStatuses.map(s => s.name || s)
+    // Get active statuses from lookups
+    const statusOptions = lookups.activeStatuses.map(s => ({ label: s.active_status_name, value: s.active_status_id }))
 
     // State for global filter input and DataTable filters
     const [globalFilterValue, setGlobalFilterValue] = useState('')
@@ -59,8 +59,10 @@ function TeamsPage() {
     const statusEditor = (editorOptions) => (
         <Dropdown
             value={editorOptions.value}
-            onChange={(e) => editorOptions.editorCallback(e.target.value)}
+            onChange={(e) => editorOptions.editorCallback(e.value)}
             options={statusOptions}
+            optionLabel="label"
+            optionValue="value"
         />
     )
 
