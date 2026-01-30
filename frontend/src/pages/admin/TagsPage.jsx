@@ -45,7 +45,6 @@ function TagsPage() {
     useEffect(() => {
         fetchTags()
         fetchProjects()
-        refreshLookups()
     }, [])
 
     // Add new tag handler (collapsible form at top of tag section)
