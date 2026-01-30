@@ -6,7 +6,7 @@ function Layout() {
     return (
         <div className="flex flex-col h-screen">
             <Header />
-            <main className="grow px-40 py-8 bg-bg-secondary">
+            <main className="grow px-40 py-8 bg-bg-secondary overflow-y-auto">
                 <Outlet />
             </main>
 
