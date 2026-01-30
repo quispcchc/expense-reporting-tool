@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, useEffect } from 'react'
+import { createContext, useContext, useReducer, useEffect, useRef } from 'react'
 import api from '../api/api.js'
 
 const TeamContext = createContext()
@@ -8,6 +8,7 @@ const initialState = {
     teams: [],
     loading: false,
     error: null,
+    hasFetched: false,
 }
 
 const teamReducer = (state, action) => {
@@ -15,7 +16,7 @@ const teamReducer = (state, action) => {
         case 'SET_LOADING':
             return { ...state, loading: true, error: null }
         case 'SET_INITIAL_DATA':
-            return { ...state, loading: false, teams: action.payload }
+            return { ...state, loading: false, teams: action.payload, hasFetched: true }
         case 'SET_ERROR':
             return { ...state, loading: false, error: action.payload }
         case 'CREATE_TEAM':
@@ -34,6 +35,8 @@ const teamReducer = (state, action) => {
                 loading: false,
                 teams: state.teams.filter(team => team.team_id !== action.payload),
             }
+        case 'RESET_FETCH_STATE':
+            return { ...state, hasFetched: false }
         default:
             return state
     }
@@ -41,20 +44,30 @@ const teamReducer = (state, action) => {
 
 export const TeamProvider = ({ children }) => {
     const [state, dispatch] = useReducer(teamReducer, initialState)
+    const isFetching = useRef(false)
 
     // Load initial data
     useEffect(() => {
         async function fetchData() {
+            // Prevent duplicate calls
+            if (state.hasFetched || isFetching.current) {
+                return
+            }
+
+            isFetching.current = true
             dispatch({ type: 'SET_LOADING' })
+
             try {
                 const { data } = await api.get('/teams')
                 dispatch({ type: 'SET_INITIAL_DATA', payload: data })
             } catch (err) {
                 dispatch({ type: 'SET_ERROR', payload: err.message })
+            } finally {
+                isFetching.current = false
             }
         }
         fetchData()
-    }, [])
+    }, [state.hasFetched])
 
     const actions = {
         createTeam: async (teamData) => {
@@ -91,6 +104,11 @@ export const TeamProvider = ({ children }) => {
                 dispatch({ type: 'SET_ERROR', payload: err.message })
                 return { success: false, error: err.message }
             }
+        },
+
+        // Force refresh data from server
+        refreshTeams: () => {
+            dispatch({ type: 'RESET_FETCH_STATE' })
         },
     }
 
