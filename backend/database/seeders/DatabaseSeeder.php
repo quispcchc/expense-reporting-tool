@@ -2,55 +2,85 @@
 
 namespace Database\Seeders;
 
-use App\Models\AccountNumber;
-use App\Models\ActiveStatus;
-use App\Models\ApprovalStatus;
-use App\Models\ClaimStatus;
-use App\Models\ClaimType;
-use App\Models\CostCentre;
 use App\Models\Department;
 use App\Models\Position;
-use App\Models\Project;
 use App\Models\Role;
-use App\Models\Team;
 use App\Models\User;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
     /**
-     * Seed the application's database.
+     * Seed the application's database for development.
+     * This seeder calls ProductionSeeder first for base data,
+     * then adds development-specific test users.
+     * 
+     * Run with: php artisan db:seed
      */
     public function run(): void
     {
-        // User        
+        // First, run ProductionSeeder to create all base lookup data
+        $this->call(ProductionSeeder::class);
 
-        $users = [
-            ['Super', 'Admin', 'superadmin@example.com', 4],
-            ['System', 'Admin', 'admin@example.com', 3],
-            ['Project', 'Approver', 'approver@example.com', 2],
-            ['Test', 'User', 'test@example.com', 1],
+        // Then, add development-specific test users
+        $this->seedDevelopmentUsers();
+    }
+
+    /**
+     * Create development test users with @example.com emails.
+     */
+    private function seedDevelopmentUsers(): void
+    {
+        $superAdminRole = Role::where('role_name', 'super_admin')->first();
+        $adminRole = Role::where('role_name', 'admin')->first();
+        $approverRole = Role::where('role_name', 'approver')->first();
+        $userRole = Role::where('role_name', 'regular_user')->first();
+
+        $positionId = Position::first()?->position_id ?? 1;
+        $departmentId = Department::first()?->department_id ?? 1;
+
+        $devUsers = [
+            [
+                'email' => 'superadmin@example.com',
+                'first_name' => 'Dev',
+                'last_name' => 'SuperAdmin',
+                'role_id' => $superAdminRole?->role_id ?? 1,
+            ],
+            [
+                'email' => 'admin@example.com',
+                'first_name' => 'Dev',
+                'last_name' => 'Admin',
+                'role_id' => $adminRole?->role_id ?? 2,
+            ],
+            [
+                'email' => 'approver@example.com',
+                'first_name' => 'Dev',
+                'last_name' => 'Approver',
+                'role_id' => $approverRole?->role_id ?? 3,
+            ],
+            [
+                'email' => 'test@example.com',
+                'first_name' => 'Test',
+                'last_name' => 'User',
+                'role_id' => $userRole?->role_id ?? 4,
+            ],
         ];
 
-        foreach ($users as [$first, $last, $email, $role]) {
-            $positionId = Position::inRandomOrder()->value('position_id');
-            $departmentId = Department::inRandomOrder()->value('department_id');
-            
-            User::factory()->create([
-                'first_name' => $first,
-                'last_name' => $last,
-                'email' => $email,
-                'email_verified_at' => now(),
-                'user_pass' => Hash::make('password'),
-                'active_status_id' => 1,
-                'role_id' => $role,
-                'position_id' => $positionId,
-                'department_id' => $departmentId,
-            ]);
+        foreach ($devUsers as $userData) {
+            User::firstOrCreate(
+                ['email' => $userData['email']],
+                [
+                    'first_name' => $userData['first_name'],
+                    'last_name' => $userData['last_name'],
+                    'email_verified_at' => now(),
+                    'user_pass' => Hash::make('password'),
+                    'active_status_id' => 1,
+                    'role_id' => $userData['role_id'],
+                    'position_id' => $positionId,
+                    'department_id' => $departmentId,
+                ]
+            );
         }
-
-
     }
 }
