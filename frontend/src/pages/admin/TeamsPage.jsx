@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import ContentHeader from '../../components/common/layout/ContentHeader.jsx'
 import AddNewTeam from '../../components/feature/team/AddNewTeam.jsx'
 import { DataTable } from 'primereact/datatable'
@@ -12,11 +12,13 @@ import { useLookups } from '../../contexts/LookupContext.jsx'
 import { IconField } from 'primereact/iconfield'
 import { InputIcon } from 'primereact/inputicon'
 import { useTranslation } from 'react-i18next'
+import { Toast } from 'primereact/toast'
 
 function TeamsPage() {
     const { t } = useTranslation()
+    const toast = useRef(null)
     // Access global team state and actions from context
-    const { state: { teams, loading, error }, actions: { updateTeam } } = useTeam()
+    const { state: { teams, loading, error }, actions: { updateTeam, refreshTeams } } = useTeam()
     const { lookups, refreshLookups } = useLookups()
 
     // Get active statuses from lookups
@@ -69,8 +71,15 @@ function TeamsPage() {
     // Handle row edit completion: update team via context action
     const onRowEditComplete = async (e) => {
         const { newData } = e
-        await updateTeam(newData)
-        await refreshLookups()
+        const result = await updateTeam(newData)
+
+        if (result.success) {
+            refreshTeams() // Force refresh data from server
+            toast.current.show({ severity: 'success', summary: t('common.success'), detail: t('teams.updateSuccess', 'Team updated successfully'), life: 3000 })
+            await refreshLookups()
+        } else {
+            toast.current.show({ severity: 'error', summary: t('common.error'), detail: result.error || t('teams.updateError', 'Failed to update team'), life: 5000 })
+        }
     }
 
     // Render the search bar above the DataTable
@@ -91,6 +100,7 @@ function TeamsPage() {
 
     return (
         <>
+            <Toast ref={toast} />
             {/* Page title and navigation */}
             <ContentHeader title={t('teams.title')} homePath="/admin" iconKey="sidebar.teams" />
             {/* Add new team form component */}
@@ -105,6 +115,7 @@ function TeamsPage() {
                     paginatorTemplate="FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink RowsPerPageDropdown"
                     currentPageReportTemplate="{first} to {last} of {totalRecords}"
                     editMode="row"
+                    dataKey="team_id"
                     onRowEditComplete={onRowEditComplete}
                     filters={filters}
                     globalFilterFields={['team_abbreviation', 'team_name', 'active_status_id']}

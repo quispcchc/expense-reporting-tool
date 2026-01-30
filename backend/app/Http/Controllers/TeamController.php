@@ -136,6 +136,7 @@ class TeamController extends Controller
         $departments = \App\Models\Department::pluck('department_id');
         foreach ($departments as $deptId) {
             Cache::forget("teams_dept_{$deptId}");
+            Cache::forget("department_{$deptId}_teams");
         }
 
         // Clear lookup cache since it includes teams
