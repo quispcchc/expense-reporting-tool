@@ -11,6 +11,11 @@ use Illuminate\Validation\Rule;
 class DepartmentController extends Controller
 {
     /**
+     * Cache TTL in seconds (5 minutes)
+     */
+    private const CACHE_TTL = 300;
+
+    /**
      * Display a listing of departments.
      */
     public function index(Request $request)
@@ -20,24 +25,21 @@ class DepartmentController extends Controller
 
         // Super admin and admin can see all departments for management
         if ($roleLevel <= 2) {
-            $departments = Department::with(['activeStatus'])->get();
+            $cacheKey = 'departments_all';
+            $departments = Cache::remember($cacheKey, self::CACHE_TTL, function () {
+                return Department::with(['activeStatus'])->get();
+            });
 
             return $this->successResponse($departments);
         }
 
-        // Approvers see their own department
-        if ($roleLevel === 3) {
-            $departments = Department::where('department_id', $user->department_id)
+        // Approvers and regular users see their own department
+        $cacheKey = "departments_user_{$user->department_id}";
+        $departments = Cache::remember($cacheKey, self::CACHE_TTL, function () use ($user) {
+            return Department::where('department_id', $user->department_id)
                 ->with(['activeStatus'])
                 ->get();
-
-            return $this->successResponse($departments);
-        }
-
-        // Regular users see their own department
-        $departments = Department::where('department_id', $user->department_id)
-            ->with(['activeStatus'])
-            ->get();
+        });
 
         return $this->successResponse($departments);
     }
@@ -58,8 +60,8 @@ class DepartmentController extends Controller
         $department = Department::create($validated);
         $department->load(['activeStatus']);
 
-        // Clear cache
-        Cache::forget('departments');
+        // Clear all related caches
+        $this->clearDepartmentCaches();
 
         return $this->successResponse($department, 'Department created successfully.', 201);
     }
@@ -98,8 +100,8 @@ class DepartmentController extends Controller
         $department->update($validated);
         $department->load(['activeStatus']);
 
-        // Clear cache
-        Cache::forget('departments');
+        // Clear all related caches
+        $this->clearDepartmentCaches();
 
         return $this->successResponse($department, 'Department updated successfully.');
     }
@@ -118,8 +120,8 @@ class DepartmentController extends Controller
 
         $department->delete();
 
-        // Clear cache
-        Cache::forget('departments');
+        // Clear all related caches
+        $this->clearDepartmentCaches();
 
         return $this->successResponse(null, 'Department deleted successfully.');
     }
@@ -138,5 +140,27 @@ class DepartmentController extends Controller
             'department' => $department,
             'teams' => $teams,
         ]);
+    }
+
+    /**
+     * Clear all department and related caches.
+     */
+    private function clearDepartmentCaches(): void
+    {
+        // Clear department caches
+        Cache::forget('departments_all');
+        Cache::forget('departments');
+        
+        // Clear user-specific department caches
+        $departments = Department::pluck('department_id');
+        foreach ($departments as $deptId) {
+            Cache::forget("departments_user_{$deptId}");
+        }
+
+        // Also clear cost centre caches since they include department data
+        Cache::forget('cost_centres_all');
+        foreach ($departments as $deptId) {
+            Cache::forget("cost_centres_dept_{$deptId}");
+        }
     }
 }
