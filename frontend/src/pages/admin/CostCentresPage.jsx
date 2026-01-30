@@ -10,7 +10,6 @@ import { FilterMatchMode } from 'primereact/api'
 import { IconField } from 'primereact/iconfield'
 import { InputIcon } from 'primereact/inputicon'
 import { useLookups } from '../../contexts/LookupContext.jsx'
-import { ProgressSpinner } from 'primereact/progressspinner'
 
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog'
 import { Toast } from 'primereact/toast'
@@ -159,11 +158,6 @@ function CostCentresPage() {
 
     return (
         <>
-            {loading && (
-                <div className="absolute inset-0 flex justify-center items-center z-10">
-                    <ProgressSpinner />
-                </div>
-            )}
             <Toast ref={toast} />
             <ConfirmDialog />
             <ContentHeader title={t('sidebar.costCentre')} homePath="/admin" iconKey="sidebar.costCentre" />
@@ -180,7 +174,8 @@ function CostCentresPage() {
                     ]}
                     header={renderHeader} emptyMessage={t('common.noResults')}
                     editMode="row" onRowEditComplete={onRowEditComplete}
-                    sortMode="multiple" removableSort>
+                    sortMode="multiple" removableSort
+                    loading={loading}>
                     <Column field="department_id" header={t('users.department')} sortable editor={departmentEditor}
                         body={(rowData) => rowData.department?.department_name}></Column>
                     <Column field="cost_centre_code" header={t('teams.code')} sortable editor={textInputEditor}></Column>
