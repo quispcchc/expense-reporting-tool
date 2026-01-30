@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::table('claim_approval', function (Blueprint $table) {
             $table->foreign(['approval_status_id'], null)->references(['approval_status_id'])->on('approval_status')->onUpdate('no action')->onDelete('no action');
             $table->foreign(['approved_by'], null)->references(['user_id'])->on('users')->onUpdate('no action')->onDelete('no action');
-            $table->foreign(['claim_id'], null)->references([''])->on('claim')->onUpdate('no action')->onDelete('no action');
+            $table->foreign(['claim_id'], null)->references(['claim_id'])->on('claims')->onUpdate('no action')->onDelete('no action');
         });
     }
 

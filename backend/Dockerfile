@@ -15,6 +15,7 @@ RUN apk add --no-cache \
     unzip \
     sqlite \
     sqlite-dev \
+    postgresql-dev \
     nodejs \
     npm \
     ttf-dejavu \
@@ -29,8 +30,8 @@ RUN mkdir -p /usr/share/fonts/noto-cjk && \
     "https://raw.githubusercontent.com/notofonts/noto-cjk/main/Sans/OTC/NotoSansCJK-Regular.ttc" && \
     fc-cache -fv
 
-# Install PHP extensions
-RUN docker-php-ext-install pdo pdo_sqlite mbstring exif pcntl bcmath gd
+# Install PHP extensions (SQLite and PostgreSQL)
+RUN docker-php-ext-install pdo pdo_sqlite pdo_pgsql mbstring exif pcntl bcmath gd
 
 # Install zip extension
 RUN apk add --no-cache libzip-dev && docker-php-ext-install zip

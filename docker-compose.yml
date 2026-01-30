@@ -5,6 +5,26 @@
 # Note: Uses npm in containers for Docker compatibility
 
 services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: expense_postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=expense_db
+      - POSTGRES_USER=expense_user
+      - POSTGRES_PASSWORD=expense_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - expense_network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U expense_user -d expense_db" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # Laravel Backend
   backend:
     build:
@@ -22,13 +42,22 @@ services:
     environment:
       - APP_ENV=local
       - APP_DEBUG=true
+      # SQLite Configuration (Default)
       - DB_CONNECTION=sqlite
       - DB_DATABASE=/var/www/html/database/database.sqlite
+      # PostgreSQL Configuration (Uncomment to switch)
+      # - DB_CONNECTION=pgsql
+      # - DB_HOST=postgres
+      # - DB_PORT=5432
+      # - DB_DATABASE=expense_db
+      # - DB_USERNAME=expense_user
+      # - DB_PASSWORD=expense_password
       - QUEUE_CONNECTION=database
       - SESSION_EXPIRE_ON_CLOSE=true
       - SESSION_LIFETIME=60
     depends_on:
       - queue
+      - postgres
     networks:
       - expense_network
     command: sh -c "php artisan migrate --force && rm -rf public/storage && php artisan storage:link && php artisan config:cache && php artisan route:cache && sqlite3 /var/www/html/database/database.sqlite 'DELETE FROM sessions; DELETE FROM personal_access_tokens;' && php artisan serve --host=0.0.0.0 --port=8000"
@@ -47,9 +76,19 @@ services:
       - ./backend/database:/var/www/html/database
     environment:
       - APP_ENV=local
+      # SQLite Configuration (Default)
       - DB_CONNECTION=sqlite
       - DB_DATABASE=/var/www/html/database/database.sqlite
+      # PostgreSQL Configuration (Uncomment to switch)
+      # - DB_CONNECTION=pgsql
+      # - DB_HOST=postgres
+      # - DB_PORT=5432
+      # - DB_DATABASE=expense_db
+      # - DB_USERNAME=expense_user
+      # - DB_PASSWORD=expense_password
       - QUEUE_CONNECTION=database
+    depends_on:
+      - postgres
     restart: always
     networks:
       - expense_network
@@ -75,3 +114,6 @@ services:
 networks:
   expense_network:
     driver: bridge
+
+volumes:
+  postgres_data:
