@@ -162,5 +162,8 @@ class DepartmentController extends Controller
         foreach ($departments as $deptId) {
             Cache::forget("cost_centres_dept_{$deptId}");
         }
+
+        // Clear lookup cache since it includes departments
+        LookupController::clearCache();
     }
 }

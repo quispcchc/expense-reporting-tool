@@ -11,37 +11,51 @@ use App\Models\Department;
 use App\Models\Position;
 use App\Models\Project;
 use App\Models\Role;
+use App\Models\Tag;
 use App\Models\Team;
 use Illuminate\Support\Facades\Cache;
 
 class LookupController extends Controller
 {
+    /**
+     * Cache TTL in seconds (5 minutes)
+     */
+    private const CACHE_TTL = 300;
+
     public function index()
     {
-        $roles = Cache::remember('roles', 60 * 60, fn () => Role::all());
-        $teams = Team::with('activeStatus')->get(); // No cache - frequently updated
-        $statuses = Cache::remember('active_statuses', 60 * 60, fn () => ActiveStatus::all());
-        $positions = Cache::remember('positions', 60 * 60, fn () => Position::all());
-        $departments = Department::with('activeStatus')->get(); // No cache - frequently updated
-        $costCentres = Cache::remember('cost_centre', 60 * 60, fn () => CostCentre::all());
-        $projects = Cache::remember('project', 60 * 60, fn () => Project::all());
-        $accountNums = Cache::remember('accountNums', 60 * 60, fn () => AccountNumber::all());
-        $claimTypes = Cache::remember('claimTypes', 60 * 60, fn () => ClaimType::all());
-        $claimStatus = Cache::remember('claimStatus', 60 * 60, fn () => ClaimStatus::all());
-        $tags = \App\Models\Tag::all();
+        // Cache all lookups together for better performance
+        return Cache::remember('lookups_all', self::CACHE_TTL, function () {
+            return $this->successResponse([
+                'roles' => Role::all(),
+                'teams' => Team::with('activeStatus')->get(),
+                'activeStatuses' => ActiveStatus::all(),
+                'positions' => Position::all(),
+                'departments' => Department::with('activeStatus')->get(),
+                'costCentres' => CostCentre::with(['department', 'activeStatus'])->get(),
+                'projects' => Project::all(),
+                'accountNums' => AccountNumber::all(),
+                'claimTypes' => ClaimType::all(),
+                'claimStatus' => ClaimStatus::all(),
+                'tags' => Tag::all(),
+            ]);
+        });
+    }
 
-        return $this->successResponse([
-            'roles' => $roles,
-            'teams' => $teams,
-            'activeStatuses' => $statuses,
-            'positions' => $positions,
-            'departments' => $departments,
-            'costCentres' => $costCentres,
-            'projects' => $projects,
-            'accountNums' => $accountNums,
-            'claimTypes' => $claimTypes,
-            'claimStatus' => $claimStatus,
-            'tags' => $tags,
-        ]);
+    /**
+     * Clear all lookup caches - call this when any lookup data changes
+     */
+    public static function clearCache(): void
+    {
+        Cache::forget('lookups_all');
+        // Also clear individual caches for controllers that use them
+        Cache::forget('roles');
+        Cache::forget('active_statuses');
+        Cache::forget('positions');
+        Cache::forget('cost_centre');
+        Cache::forget('project');
+        Cache::forget('accountNums');
+        Cache::forget('claimTypes');
+        Cache::forget('claimStatus');
     }
 }
