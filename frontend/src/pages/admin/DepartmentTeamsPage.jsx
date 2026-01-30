@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import ContentHeader from '../../components/common/layout/ContentHeader.jsx'
 import { DataTable } from 'primereact/datatable'
-import { useTeam } from '../../contexts/TeamContext.jsx'
 import StatusTab from '../../components/common/ui/StatusTab.jsx'
 import { InputText } from 'primereact/inputtext'
 import { Column } from 'primereact/column'
@@ -28,6 +27,7 @@ function DepartmentTeamsPage() {
     const [loading, setLoading] = useState(true)
     const [isFormOpen, setIsFormOpen] = useState(false)
     const [formErrors, setFormErrors] = useState([])
+    const isFetching = useRef(false)
 
     const { lookups, refreshLookups } = useLookups()
     const toast = useRef(null)
@@ -49,16 +49,21 @@ function DepartmentTeamsPage() {
     // Fetch department and its teams
     useEffect(() => {
         async function fetchData() {
+            // Prevent duplicate calls from React StrictMode
+            if (isFetching.current) {
+                return
+            }
+
+            isFetching.current = true
             setLoading(true)
             try {
                 const response = await api.get(`/departments/${departmentId}/teams`)
-                console.log('DepartmentTeamsPage: API response', response.data)
-                // axios interceptor auto-unwraps response.data, so response.data contains the actual data
                 setDepartmentData(response.data.department)
                 setTeams(response.data.teams || [])
             } catch (err) {
                 console.error('Failed to fetch department teams:', err)
             } finally {
+                isFetching.current = false
                 setLoading(false)
             }
         }

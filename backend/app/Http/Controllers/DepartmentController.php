@@ -131,15 +131,19 @@ class DepartmentController extends Controller
      */
     public function getTeams($departmentId)
     {
-        $department = Department::findOrFail($departmentId);
-        $teams = Team::where('department_id', $departmentId)
-            ->with(['activeStatus'])
-            ->get();
+        $cacheKey = "department_{$departmentId}_teams";
+        
+        return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($departmentId) {
+            $department = Department::findOrFail($departmentId);
+            $teams = Team::where('department_id', $departmentId)
+                ->with(['activeStatus'])
+                ->get();
 
-        return $this->successResponse([
-            'department' => $department,
-            'teams' => $teams,
-        ]);
+            return $this->successResponse([
+                'department' => $department,
+                'teams' => $teams,
+            ]);
+        });
     }
 
     /**
@@ -155,12 +159,19 @@ class DepartmentController extends Controller
         $departments = Department::pluck('department_id');
         foreach ($departments as $deptId) {
             Cache::forget("departments_user_{$deptId}");
+            Cache::forget("department_{$deptId}_teams");
         }
 
         // Also clear cost centre caches since they include department data
         Cache::forget('cost_centres_all');
         foreach ($departments as $deptId) {
             Cache::forget("cost_centres_dept_{$deptId}");
+        }
+
+        // Clear team caches
+        Cache::forget('teams_all');
+        foreach ($departments as $deptId) {
+            Cache::forget("teams_dept_{$deptId}");
         }
 
         // Clear lookup cache since it includes departments
