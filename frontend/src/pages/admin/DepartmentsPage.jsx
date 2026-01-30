@@ -171,7 +171,7 @@ function DepartmentsPage() {
             {/* Page title and navigation */}
             <ContentHeader title={t('departments.title')} homePath="/admin" iconKey="sidebar.teams" />
             {/* Add new department form component */}
-            <AddNewDepartment />
+            <AddNewDepartment toastRef={toast} />
             <div className="bg-white rounded-xl p-6 mt-5">
                 {/* DataTable for listing and editing departments */}
                 <DataTable

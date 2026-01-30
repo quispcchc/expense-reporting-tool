@@ -6,10 +6,11 @@ import { useDepartment } from '../../../contexts/DepartmentContext.jsx'
 import { useLookups } from '../../../contexts/LookupContext.jsx'
 import { useTranslation } from 'react-i18next'
 
-function AddNewDepartment() {
+function AddNewDepartment({ toastRef }) {
     const { t } = useTranslation()
     const [errors, setErrors] = useState([])
     const [isOpen, setIsOpen] = useState(false)
+    const [isSubmitting, setIsSubmitting] = useState(false)
     const { actions } = useDepartment()
     const { lookups, refreshLookups } = useLookups()
 
@@ -52,20 +53,50 @@ function AddNewDepartment() {
             return
         }
 
-        const result = await actions.createDepartment(formData)
-        if (result.success) {
-            // Reset form
-            setFormData({
-                department_abbreviation: '',
-                department_name: '',
-                active_status_id: '',
+        setIsSubmitting(true)
+        try {
+            const result = await actions.createDepartment(formData)
+            if (result?.success) {
+                // Reset form
+                setFormData({
+                    department_abbreviation: '',
+                    department_name: '',
+                    active_status_id: '',
+                })
+                setErrors([])
+                setIsOpen(false)
+                // Show success toast
+                toastRef?.current?.show({
+                    severity: 'success',
+                    summary: t('common.success'),
+                    detail: t('departments.createSuccess', 'Department created successfully'),
+                    life: 3000
+                })
+                // Refresh lookups so other pages (like Create Claim) get updated data
+                await refreshLookups()
+            } else {
+                const errorMsg = result?.error || t('common.unknownError', 'An unknown error occurred')
+                setErrors([{ field: '', message: errorMsg }])
+                // Show error toast
+                toastRef?.current?.show({
+                    severity: 'error',
+                    summary: t('common.error'),
+                    detail: errorMsg,
+                    life: 5000
+                })
+            }
+        } catch (err) {
+            const errorMsg = err?.message || t('common.networkError', 'Network error occurred')
+            setErrors([{ field: '', message: errorMsg }])
+            // Show error toast for network errors
+            toastRef?.current?.show({
+                severity: 'error',
+                summary: t('common.error'),
+                detail: errorMsg,
+                life: 5000
             })
-            setErrors([])
-            setIsOpen(false)
-            // Refresh lookups so other pages (like Create Claim) get updated data
-            await refreshLookups()
-        } else {
-            setErrors([{ field: '', message: result.error }])
+        } finally {
+            setIsSubmitting(false)
         }
     }
 
@@ -118,7 +149,12 @@ function AddNewDepartment() {
                             errors={errors}
                         />
                     </div>
-                    <Button label={t('common.addNew')} className="!h-[48px]" />
+                    <Button
+                        label={t('common.addNew')}
+                        className="!h-[48px]"
+                        loading={isSubmitting}
+                        disabled={isSubmitting}
+                    />
                 </form>
             )}
         </div>
@@ -126,3 +162,4 @@ function AddNewDepartment() {
 }
 
 export default AddNewDepartment
+
