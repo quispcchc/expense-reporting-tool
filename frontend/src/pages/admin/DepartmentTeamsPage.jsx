@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import ContentHeader from '../../components/common/layout/ContentHeader.jsx'
 import { DataTable } from 'primereact/datatable'
-import { useTeam } from '../../contexts/TeamContext.jsx'
 import StatusTab from '../../components/common/ui/StatusTab.jsx'
 import { InputText } from 'primereact/inputtext'
 import { Column } from 'primereact/column'
@@ -28,6 +27,7 @@ function DepartmentTeamsPage() {
     const [loading, setLoading] = useState(true)
     const [isFormOpen, setIsFormOpen] = useState(false)
     const [formErrors, setFormErrors] = useState([])
+    const isFetching = useRef(false)
 
     const { lookups, refreshLookups } = useLookups()
     const toast = useRef(null)
@@ -47,23 +47,29 @@ function DepartmentTeamsPage() {
     })
 
     // Fetch department and its teams
-    useEffect(() => {
-        async function fetchData() {
-            setLoading(true)
-            try {
-                const response = await api.get(`/departments/${departmentId}/teams`)
-                console.log('DepartmentTeamsPage: API response', response.data)
-                // axios interceptor auto-unwraps response.data, so response.data contains the actual data
-                setDepartmentData(response.data.department)
-                setTeams(response.data.teams || [])
-            } catch (err) {
-                console.error('Failed to fetch department teams:', err)
-            } finally {
-                setLoading(false)
-            }
+    const fetchData = React.useCallback(async () => {
+        // Prevent duplicate calls from React StrictMode
+        if (isFetching.current) {
+            return
         }
-        fetchData()
+
+        isFetching.current = true
+        setLoading(true)
+        try {
+            const response = await api.get(`/departments/${departmentId}/teams`)
+            setDepartmentData(response.data.department)
+            setTeams(response.data.teams || [])
+        } catch (err) {
+            console.error('Failed to fetch department teams:', err)
+        } finally {
+            isFetching.current = false
+            setLoading(false)
+        }
     }, [departmentId])
+
+    useEffect(() => {
+        fetchData()
+    }, [fetchData])
 
     // State for global filter input and DataTable filters
     const [globalFilterValue, setGlobalFilterValue] = useState('')
@@ -112,13 +118,20 @@ function DepartmentTeamsPage() {
     const onRowEditComplete = async (e) => {
         const { newData } = e
         try {
-            const response = await api.put(`/teams/${newData.team_id}`, newData)
-            setTeams(prev => prev.map(team =>
-                team.team_id === newData.team_id ? response.data : team
-            ))
+            await api.put(`/teams/${newData.team_id}`, newData)
+            await fetchData() // Refresh data
+            toast.current.show({ severity: 'success', summary: t('common.success'), detail: t('teams.updateSuccess', 'Team updated successfully'), life: 3000 })
             await refreshLookups()
         } catch (err) {
             console.error('Failed to update team:', err)
+            toast.current.show({ severity: 'error', summary: t('common.error'), detail: err.message || t('teams.updateError', 'Failed to update team'), life: 5000 })
+            // Revert changes in local state by re-fetching
+            try {
+                const response = await api.get(`/departments/${departmentId}/teams`)
+                setTeams(response.data.teams || [])
+            } catch (fetchErr) {
+                console.error('Failed to revert team changes:', fetchErr)
+            }
         }
     }
 
@@ -132,7 +145,7 @@ function DepartmentTeamsPage() {
             accept: async () => {
                 try {
                     await api.delete(`/teams/${rowData.team_id}`)
-                    setTeams(prev => prev.filter(team => team.team_id !== rowData.team_id))
+                    await fetchData() // Refresh data
                     toast.current?.show({ severity: 'success', summary: t('common.success'), detail: t('teams.deleteSuccess'), life: 3000 })
                     await refreshLookups()
                 } catch (err) {
@@ -188,11 +201,11 @@ function DepartmentTeamsPage() {
         }
 
         try {
-            const response = await api.post('/teams', {
+            await api.post('/teams', {
                 ...formData,
                 department_id: parseInt(departmentId),
             })
-            setTeams(prev => [...prev, response.data])
+            await fetchData() // Refresh data
             setFormData({
                 team_abbreviation: '',
                 team_name: '',
@@ -310,7 +323,17 @@ function DepartmentTeamsPage() {
                                 <small className="text-red-500">{formErrors.find(e => e.field === 'active_status_id').message}</small>
                             )}
                         </div>
-                        <Button label={t('common.addNew')} className="!h-[48px]" />
+                        <div className="col-span-1 flex items-center">
+                            <Button label={t('common.addNew')} className="!h-[48px] w-full" />
+                        </div>
+                        {formErrors.find(e => e.field === '') && (
+                            <div className="col-span-full mt-2">
+                                <small className="text-red-500 font-bold block bg-red-50 p-2 rounded border border-red-200">
+                                    <i className="pi pi-exclamation-circle mr-2"></i>
+                                    {formErrors.find(e => e.field === '').message}
+                                </small>
+                            </div>
+                        )}
                     </form>
                 )}
             </div>
@@ -331,6 +354,7 @@ function DepartmentTeamsPage() {
                     paginatorTemplate="FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink RowsPerPageDropdown"
                     currentPageReportTemplate="{first} to {last} of {totalRecords}"
                     editMode="row"
+                    dataKey="team_id"
                     onRowEditComplete={onRowEditComplete}
                     filters={filters}
                     globalFilterFields={['team_abbreviation', 'team_name', 'active_status_id']}

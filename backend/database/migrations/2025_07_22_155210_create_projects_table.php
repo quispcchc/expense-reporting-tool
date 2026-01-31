@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('projects', function (Blueprint $table) {
             $table->id('project_id');
             $table->integer('active_status_id')->nullable();
-            $table->string('project_name', 50)->nullable();
+            $table->string('project_name', 255)->nullable();
             $table->string('project_desc')->nullable();
             $table->foreignId('department_id')->constrained('departments', 'department_id')->onDelete('restrict');
         });

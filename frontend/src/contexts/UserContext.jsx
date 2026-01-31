@@ -1,26 +1,48 @@
-import { createContext, useContext, useReducer, useEffect } from 'react'
+import { createContext, useContext, useReducer, useEffect, useRef } from 'react'
 import api from '../api/api.js'
 
 const UserContext = createContext()
 const UserDispatchContext = createContext()
 
-const initialState = []
+const initialState = {
+    users: [],
+    loading: false,
+    error: null,
+    hasFetched: false,
+}
 
 const userReducer = (state, action) => {
     switch (action.type) {
-        case 'set':
-            return action.payload || []
+        case 'SET_LOADING':
+            return { ...state, loading: true, error: null }
 
-        case 'create':
-            return [...state, action.payload]
+        case 'SET_USERS':
+            return { ...state, loading: false, users: action.payload || [], hasFetched: true }
 
-        case 'update':
-            return state.map(user =>
-                user.user_id === action.payload.user_id ? { ...user, ...action.payload } : user,
-            )
+        case 'SET_ERROR':
+            return { ...state, loading: false, error: action.payload }
 
-        case 'delete':
-            return state.filter(u => u.user_id !== action.payload)
+        case 'CREATE_USER':
+            return { ...state, loading: false, users: [...state.users, action.payload] }
+
+        case 'UPDATE_USER':
+            return {
+                ...state,
+                loading: false,
+                users: state.users.map(user =>
+                    user.user_id === action.payload.user_id ? { ...user, ...action.payload } : user,
+                ),
+            }
+
+        case 'DELETE_USER':
+            return {
+                ...state,
+                loading: false,
+                users: state.users.filter(u => u.user_id !== action.payload),
+            }
+
+        case 'RESET_FETCH_STATE':
+            return { ...state, hasFetched: false }
 
         default:
             return state
@@ -29,65 +51,88 @@ const userReducer = (state, action) => {
 
 export const UserProvider = ({ children }) => {
     const [state, dispatch] = useReducer(userReducer, initialState)
+    const isFetching = useRef(false)
 
-    // Fetch users from backend on mount
-    const getUsers = async () => {
+    // Fetch users from backend
+    const getUsers = async (force = false) => {
+        // Prevent duplicate calls unless forced
+        if (!force && (state.hasFetched || isFetching.current)) {
+            return
+        }
+
+        isFetching.current = true
+        dispatch({ type: 'SET_LOADING' })
+
         try {
             const res = await api.get('/admin/users')
-            console.log('users',res.data);
-            
-            dispatch({ type: 'set', payload: res.data })
+            dispatch({ type: 'SET_USERS', payload: res.data })
         } catch (err) {
             console.error('Failed to fetch users', err)
+            dispatch({ type: 'SET_ERROR', payload: err.message })
+        } finally {
+            isFetching.current = false
         }
     }
 
     useEffect(() => {
-        getUsers()
-    }, [])
+        if (!state.hasFetched) {
+            getUsers()
+        }
+    }, [state.hasFetched])
 
     // Actions exposed to components
     const createUser = async (userData) => {
+        dispatch({ type: 'SET_LOADING' })
         try {
-            // existing backend route for admin create
-            await api.post('/admin/create-user', userData)
-            // refresh list after creation
-            await getUsers()
+            const res = await api.post('/admin/create-user', userData)
+            dispatch({ type: 'CREATE_USER', payload: res.data })
+            return res.data
         } catch (err) {
+            dispatch({ type: 'SET_ERROR', payload: err.message })
             throw err
         }
     }
 
     const updateUser = async (userData) => {
+        dispatch({ type: 'SET_LOADING' })
         try {
-            await api.put(`/admin/users/${ userData.user_id }`, userData)
-            dispatch({ type: 'update', payload: userData })
+            const res = await api.put(`/admin/users/${userData.user_id}`, userData)
+            dispatch({ type: 'UPDATE_USER', payload: res.data || userData })
+            return res.data
         } catch (err) {
+            dispatch({ type: 'SET_ERROR', payload: err.message })
             throw err
         }
     }
 
     const deleteUser = async (userId) => {
+        dispatch({ type: 'SET_LOADING' })
         try {
-            await api.delete(`/admin/users/${ userId }`)
-            dispatch({ type: 'delete', payload: userId })
+            await api.delete(`/admin/users/${userId}`)
+            dispatch({ type: 'DELETE_USER', payload: userId })
         } catch (err) {
+            dispatch({ type: 'SET_ERROR', payload: err.message })
             throw err
         }
     }
 
+    const refreshUsers = () => {
+        dispatch({ type: 'RESET_FETCH_STATE' })
+    }
+
     return (
-        <UserContext.Provider value={ state }>
-            <UserDispatchContext.Provider value={{ createUser, updateUser, deleteUser, refresh: getUsers }}>
-                { children }
+        <UserContext.Provider value={state}>
+            <UserDispatchContext.Provider value={{ createUser, updateUser, deleteUser, refresh: refreshUsers }}>
+                {children}
             </UserDispatchContext.Provider>
         </UserContext.Provider>
     )
 }
 
-export const useUser = ()=> {
+export const useUser = () => {
     return useContext(UserContext)
 }
-export const useUserDispatch = ()=> {
+
+export const useUserDispatch = () => {
     return useContext(UserDispatchContext)
 }

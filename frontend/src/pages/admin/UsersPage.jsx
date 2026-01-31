@@ -75,7 +75,12 @@ function UsersPage() {
 
     // Sync local users state whenever the context state changes
     useEffect(() => {
-        setUsers(usersState)
+        if (usersState && Array.isArray(usersState.users)) {
+            setUsers(usersState.users)
+        } else if (Array.isArray(usersState)) {
+            // Fallback for backward compatibility if context structure changes
+            setUsers(usersState)
+        }
         console.log(usersState)
     }, [usersState])
 
@@ -339,7 +344,7 @@ function UsersPage() {
                     {/* Edit/save and delete button columns */}
                     <Column rowEditor header={t('common.actions')} />
                     <Column body={renderDeleteButton} header={t('common.delete', 'Delete')} style={{ width: '6rem', textAlign: 'center' }} />
-                    
+
                 </DataTable>
             </div>
         </>

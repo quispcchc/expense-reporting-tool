@@ -9,6 +9,51 @@ x-logging: &default-logging
     max-file: "3"
 
 services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: expense_postgres
+    expose:
+      - "5432"
+    environment:
+      - POSTGRES_DB=expense_db
+      - POSTGRES_USER=expense_user
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-expense_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - expense_network
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U expense_user -d expense_db" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging: *default-logging
+    command: [ "postgres", "-c", "shared_buffers=1GB", "-c", "effective_cache_size=3GB", "-c", "work_mem=16MB", "-c", "maintenance_work_mem=256MB" ]
+
+  # PgBouncer Connection Pooler
+  pgbouncer:
+    image: edoburu/pgbouncer
+    container_name: expense_pgbouncer
+    environment:
+      - DB_USER=expense_user
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-expense_password}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=expense_db
+      - POOL_MODE=session
+      - MAX_CLIENT_CONN=100
+      - DEFAULT_POOL_SIZE=20
+      - LISTEN_PORT=6432
+      - AUTH_TYPE=scram-sha-256
+    depends_on:
+      - postgres
+    networks:
+      - expense_network
+    restart: unless-stopped
+    logging: *default-logging
+
   # Nginx Reverse Proxy (Entry Point)
   nginx:
     image: nginx:alpine
@@ -41,8 +86,16 @@ services:
       - APP_ENV=production
       - APP_DEBUG=false
       - APP_URL=http://deneb.ddns.net
-      - DB_CONNECTION=sqlite
-      - DB_DATABASE=/var/www/html/database/database.sqlite
+      # SQLite Configuration (Default)
+      # - DB_CONNECTION=sqlite
+      # - DB_DATABASE=/var/www/html/database/database.sqlite
+      # PostgreSQL Configuration (Uncomment to switch)
+      - DB_CONNECTION=pgsql
+      - DB_HOST=pgbouncer
+      - DB_PORT=6432
+      - DB_DATABASE=expense_db
+      - DB_USERNAME=expense_user
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-expense_password}
       - QUEUE_CONNECTION=database
       - SESSION_EXPIRE_ON_CLOSE=true
       - SESSION_LIFETIME=60
@@ -50,10 +103,12 @@ services:
       - ALT_FRONTEND_URL=http://deneb.ddns.net
     depends_on:
       - queue
+      - pgbouncer
+      - postgres
     restart: unless-stopped
     networks:
       - expense_network
-    command: sh -c "php artisan migrate --force && rm -rf public/storage && php artisan storage:link && php artisan config:cache && php artisan route:cache && sqlite3 /var/www/html/database/database.sqlite 'DELETE FROM sessions; DELETE FROM personal_access_tokens;' && php artisan serve --host=0.0.0.0 --port=8000"
+    command: sh -c "DB_HOST=postgres DB_PORT=5432 php artisan migrate --force && rm -rf public/storage && php artisan storage:link && php artisan config:cache && php artisan route:cache && php artisan serve --host=0.0.0.0 --port=8000"
     logging: *default-logging
 
   # Laravel Queue Worker
@@ -67,9 +122,20 @@ services:
       - ./backend/database:/var/www/html/database
     environment:
       - APP_ENV=production
-      - DB_CONNECTION=sqlite
-      - DB_DATABASE=/var/www/html/database/database.sqlite
+      # SQLite Configuration (Default)
+      # - DB_CONNECTION=sqlite
+      # - DB_DATABASE=/var/www/html/database/database.sqlite
+      # PostgreSQL Configuration (Uncomment to switch)
+      - DB_CONNECTION=pgsql
+      - DB_HOST=pgbouncer
+      - DB_PORT=6432
+      - DB_DATABASE=expense_db
+      - DB_USERNAME=expense_user
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-expense_password}
       - QUEUE_CONNECTION=database
+    depends_on:
+      - pgbouncer
+      - postgres
     restart: always
     networks:
       - expense_network
@@ -92,3 +158,6 @@ services:
 networks:
   expense_network:
     driver: bridge
+
+volumes:
+  postgres_data:

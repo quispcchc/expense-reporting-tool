@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useReducer } from 'react'
+import { createContext, useContext, useEffect, useReducer, useRef } from 'react'
 import api from '../api/api.js'
 
 const CostCentreContext = createContext()
@@ -9,6 +9,7 @@ const initialState = {
     costCentres: [],
     loading: false,
     error: null,
+    hasFetched: false,
 }
 
 function costCentreReducer(state, action) {
@@ -16,7 +17,7 @@ function costCentreReducer(state, action) {
         case 'SET_LOADING':
             return { ...state, loading: true, error: null }
         case 'SET_INITIAL_DATA':
-            return { ...state, loading: false, costCentres: action.payload }
+            return { ...state, loading: false, costCentres: action.payload, hasFetched: true }
         case 'SET_ERROR':
             return { ...state, loading: false, error: action.payload }
         case 'CREATE_COST_CENTRE':
@@ -35,6 +36,8 @@ function costCentreReducer(state, action) {
                 loading: false,
                 costCentres: state.costCentres.filter(cc => cc.cost_centre_id !== action.payload),
             }
+        case 'RESET_FETCH_STATE':
+            return { ...state, hasFetched: false }
         default:
             return state
     }
@@ -42,23 +45,33 @@ function costCentreReducer(state, action) {
 
 export const CostCentreProvider = ({ children }) => {
     const [state, dispatch] = useReducer(costCentreReducer, initialState)
+    const isFetching = useRef(false)
 
     // Load initial data
     useEffect(() => {
         async function fetchData() {
+            // Prevent duplicate calls
+            if (state.hasFetched || isFetching.current) {
+                return
+            }
+
+            isFetching.current = true
             dispatch({ type: 'SET_LOADING' })
+
             try {
                 const { data } = await api.get('/cost-centres')
-                console.log(data)
                 dispatch({ type: 'SET_INITIAL_DATA', payload: data })
             }
             catch (err) {
                 dispatch({ type: 'SET_ERROR', payload: err.message })
             }
+            finally {
+                isFetching.current = false
+            }
         }
 
         fetchData()
-    }, [])
+    }, [state.hasFetched])
 
     const actions = {
         createCostCentre: async (costCentre) => {
@@ -77,7 +90,6 @@ export const CostCentreProvider = ({ children }) => {
             catch (err) {
                 dispatch({ type: 'SET_ERROR', payload: err.message })
             }
-
         },
 
         updateCostCentre: async (newData) => {
@@ -98,7 +110,6 @@ export const CostCentreProvider = ({ children }) => {
             catch (err) {
                 dispatch({ type: 'SET_ERROR', payload: err.message })
             }
-
         },
 
         deleteCostCentre: async (costCentreId) => {
@@ -107,10 +118,14 @@ export const CostCentreProvider = ({ children }) => {
                 const response = await api.delete(`cost-centres/${costCentreId}`)
                 dispatch({ type: 'DELETE_COST_CENTRE', payload: costCentreId })
                 return response
-
             } catch (err) {
                 dispatch({ type: 'SET_ERROR', payload: err.message })
             }
+        },
+
+        // Force refresh data from server
+        refreshCostCentres: () => {
+            dispatch({ type: 'RESET_FETCH_STATE' })
         }
     }
 

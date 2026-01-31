@@ -10,6 +10,11 @@ use Illuminate\Validation\Rule;
 class TeamController extends Controller
 {
     /**
+     * Cache TTL in seconds (5 minutes)
+     */
+    private const CACHE_TTL = 300;
+
+    /**
      * Display a listing of teams.
      */
     public function index(Request $request)
@@ -19,24 +24,21 @@ class TeamController extends Controller
 
         // Super admin sees all teams
         if ($roleLevel === 1) {
-            $teams = Team::with(['activeStatus'])->get();
+            $cacheKey = 'teams_all';
+            $teams = Cache::remember($cacheKey, self::CACHE_TTL, function () {
+                return Team::with(['activeStatus', 'department'])->get();
+            });
 
             return $this->successResponse($teams);
         }
 
-        // Admin sees their department's teams
-        if ($roleLevel === 2) {
-            $teams = Team::where('department_id', $user->department_id)
-                ->with(['activeStatus'])
+        // Admin and regular users see their department's teams
+        $cacheKey = "teams_dept_{$user->department_id}";
+        $teams = Cache::remember($cacheKey, self::CACHE_TTL, function () use ($user) {
+            return Team::where('department_id', $user->department_id)
+                ->with(['activeStatus', 'department'])
                 ->get();
-
-            return $this->successResponse($teams);
-        }
-
-        // Regular users see their department's teams
-        $teams = Team::where('department_id', $user->department_id)
-            ->with(['activeStatus'])
-            ->get();
+        });
 
         return $this->successResponse($teams);
     }
@@ -57,10 +59,10 @@ class TeamController extends Controller
         ]);
 
         $team = Team::create($validated);
-        $team->load(['activeStatus']);
+        $team->load(['activeStatus', 'department']);
 
-        // Invalidate teams cache
-        Cache::forget('teams_active');
+        // Clear all team caches
+        $this->clearTeamCaches();
 
         return $this->successResponse($team, 'Team created successfully.', 201);
     }
@@ -70,7 +72,7 @@ class TeamController extends Controller
      */
     public function show($id)
     {
-        $team = Team::with(['activeStatus'])->findOrFail($id);
+        $team = Team::with(['activeStatus', 'department'])->findOrFail($id);
 
         return $this->successResponse($team);
     }
@@ -99,10 +101,10 @@ class TeamController extends Controller
         ]);
 
         $team->update($validated);
-        $team->load(['activeStatus']);
+        $team->load(['activeStatus', 'department']);
 
-        // Invalidate teams cache
-        Cache::forget('teams_active');
+        // Clear all team caches
+        $this->clearTeamCaches();
 
         return $this->successResponse($team, 'Team updated successfully.');
     }
@@ -115,9 +117,30 @@ class TeamController extends Controller
         $team = Team::findOrFail($id);
         $team->delete();
 
-        // Invalidate teams cache
-        Cache::forget('teams_active');
+        // Clear all team caches
+        $this->clearTeamCaches();
 
         return $this->successResponse(null, 'Team deleted successfully.');
     }
+
+    /**
+     * Clear all team and related caches.
+     */
+    private function clearTeamCaches(): void
+    {
+        // Clear main team caches
+        Cache::forget('teams_all');
+        Cache::forget('teams_active');
+        
+        // Clear department-specific team caches
+        $departments = \App\Models\Department::pluck('department_id');
+        foreach ($departments as $deptId) {
+            Cache::forget("teams_dept_{$deptId}");
+            Cache::forget("department_{$deptId}_teams");
+        }
+
+        // Clear lookup cache since it includes teams
+        LookupController::clearCache();
+    }
 }
+

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback } from 'react'
+import { createContext, useContext, useState, useCallback, useRef } from 'react'
 import api from '../api/api.js'
 
 const TagContext = createContext()
@@ -7,19 +7,29 @@ export function TagProvider({ children }) {
     const [tags, setTags] = useState([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
+    const [hasFetched, setHasFetched] = useState(false)
+    const isFetching = useRef(false)
 
-    const fetchTags = useCallback(async () => {
+    const fetchTags = useCallback(async (force = false) => {
+        // Prevent duplicate calls unless forced
+        if (!force && (hasFetched || isFetching.current)) {
+            return
+        }
+
+        isFetching.current = true
         setLoading(true)
         setError(null)
         try {
             const response = await api.get('tags')
             setTags(response.data)
+            setHasFetched(true)
         } catch (err) {
             setError(err.message || 'Failed to fetch tags')
         } finally {
+            isFetching.current = false
             setLoading(false)
         }
-    }, [])
+    }, [hasFetched])
 
     const createTag = async (tag_name) => {
         setLoading(true)
@@ -63,8 +73,23 @@ export function TagProvider({ children }) {
         }
     }
 
+    const refreshTags = useCallback(() => {
+        setHasFetched(false)
+        return fetchTags(true)
+    }, [fetchTags])
+
     return (
-        <TagContext.Provider value={{ tags, loading, error, fetchTags, createTag, updateTag, deleteTag }}>
+        <TagContext.Provider value={{
+            tags,
+            loading,
+            error,
+            hasFetched,
+            fetchTags,
+            createTag,
+            updateTag,
+            deleteTag,
+            refreshTags
+        }}>
             {children}
         </TagContext.Provider>
     )

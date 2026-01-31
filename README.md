@@ -21,18 +21,38 @@ Before you begin, ensure you have the following installed on your machine:
     ```bash
     cp backend/.env.example backend/.env
     ```
+    > [!NOTE]
+    > The application now uses **PostgreSQL**. Ensure your `.env` file is configured with `DB_CONNECTION=pgsql` and matches the Docker service credentials.
 
-3.  **Database Setup**
-    Ensure the SQLite database file exists. The Docker setup expects this file to be present.
+### 🐘 Manual PostgreSQL Setup (Local Host)
+
+If you prefer to run PostgreSQL directly on your local machine instead of using Docker, follow these steps:
+
+1.  **Install PostgreSQL**
+    - Download and install the version appropriate for your OS from the [official PostgreSQL download page](https://www.postgresql.org/download/).
+
+2.  **Create Database**
+    - Use `pgAdmin` or the terminal to create a database.
+    - Ensure the database name matches the `DB_DATABASE` value in your `.env` file (default: `expense_db`).
+    ```sql
+    CREATE DATABASE expense_db;
+    ```
+
+3.  **Configure Environment**
+    - Update your `.env` file with your local PostgreSQL credentials (`DB_USERNAME`, `DB_PASSWORD`, `DB_PORT`, etc.).
+
+4.  **Run Migrations**
+    - Run the migrations from the backend directory:
     ```bash
-    # Linux/Mac
-    touch backend/database/database.sqlite
-
-    # Windows (PowerShell)
-    New-Item -ItemType File -Path backend/database/database.sqlite -Force
+    cd backend
+    php artisan migrate
     ```
 
 ## 🚀 Running the Application
+
+> [!IMPORTANT]
+> **Recommended: Use Docker for Backend**
+> For the best development experience and to avoid environment inconsistencies, it is **strongly recommended** to run the backend and database-related services using Docker. The manual setup instructions above are provided for users who specifically need to run PostgreSQL locally on their host machine.
 
 This project supports multiple development and deployment configurations:
 
@@ -265,7 +285,12 @@ docker compose logs -f queue
 
 ### Common Issues
 
-- **Database Errors**: If you encounter errors related to the database (e.g., "no such table"), ensure `database.sqlite` exists and migrations have been run.
+- **Database Errors**: If you encounter connection errors, ensure the PostgreSQL container is healthy.
+    ```bash
+    docker compose logs -f postgres
+    ```
+
+- **Migrations**: If tables are missing, run migrations manually:
     ```bash
     docker compose exec backend php artisan migrate
     ```
@@ -276,6 +301,57 @@ docker compose logs -f queue
     ```
 
 - **Port Conflicts**: Ensure ports `8000` (Backend) and `5173` (Frontend) are not being used by other applications.
+
+- **PostgreSQL Sequence Out of Sync**: If you encounter "duplicate key" errors after seeding data, reset all sequences:
+    ```bash
+    # For Production
+    docker compose -f docker-compose.prod.yml exec postgres psql -U expense_user -d expense_db -c "
+    DO \$\$
+    DECLARE
+        rec RECORD;
+        seq_name TEXT;
+        max_val BIGINT;
+    BEGIN
+        FOR rec IN 
+            SELECT c.table_name, c.column_name
+            FROM information_schema.columns c
+            JOIN information_schema.tables t ON c.table_name = t.table_name
+            WHERE c.column_default LIKE 'nextval%'
+            AND t.table_schema = 'public'
+        LOOP
+            seq_name := pg_get_serial_sequence(rec.table_name, rec.column_name);
+            IF seq_name IS NOT NULL THEN
+                EXECUTE format('SELECT COALESCE(MAX(%I), 0) FROM %I', rec.column_name, rec.table_name) INTO max_val;
+                EXECUTE format('SELECT setval(%L, %s)', seq_name, max_val + 1);
+            END IF;
+        END LOOP;
+    END \$\$;
+    "
+
+    # For Development (docker-compose.yml)
+    docker compose exec postgres psql -U expense_user -d expense_db -c "
+    DO \$\$
+    DECLARE
+        rec RECORD;
+        seq_name TEXT;
+        max_val BIGINT;
+    BEGIN
+        FOR rec IN 
+            SELECT c.table_name, c.column_name
+            FROM information_schema.columns c
+            JOIN information_schema.tables t ON c.table_name = t.table_name
+            WHERE c.column_default LIKE 'nextval%'
+            AND t.table_schema = 'public'
+        LOOP
+            seq_name := pg_get_serial_sequence(rec.table_name, rec.column_name);
+            IF seq_name IS NOT NULL THEN
+                EXECUTE format('SELECT COALESCE(MAX(%I), 0) FROM %I', rec.column_name, rec.table_name) INTO max_val;
+                EXECUTE format('SELECT setval(%L, %s)', seq_name, max_val + 1);
+            END IF;
+        END LOOP;
+    END \$\$;
+    "
+    ```
 
 ---
 
@@ -376,20 +452,21 @@ docker system prune -a --volumes
 
 #### Database Operations
 
-> [!CAUTION]
-> **SQLite Database Locking**: The queue worker (`expense_queue`) maintains a persistent connection to the SQLite database. Running `migrate:fresh` or other destructive database commands while the queue worker is active will cause a **"database is locked"** error. Always stop the queue worker first.
+> [!TIP]
+> **Database Management**: The application uses **PostgreSQL**. Data is persisted in the `postgres_data` Docker volume.
 
 ```bash
-# ⚠️ IMPORTANT: Stop queue worker before running migrate:fresh
-docker compose stop queue
-docker compose exec backend php artisan migrate:fresh --seed
-docker compose start queue
+# Run migrations (safe to run, will only run pending migrations)
+docker compose exec backend php artisan migrate
 
 # Run seeder (creates initial users and data)
 docker compose exec backend php artisan db:seed
 
-# Backup SQLite database
-docker cp expense_backend:/var/www/html/database/database.sqlite ./backup.sqlite
+# Backup PostgreSQL database
+docker exec expense_postgres pg_dump -U expense_user expense_db > backup.sql
+
+# Restore PostgreSQL database
+cat backup.sql | docker exec -i expense_postgres psql -U expense_user expense_db
 ```
 
 #### 🌱 Production Seeder
@@ -455,7 +532,7 @@ docker compose exec backend php artisan migrate:fresh --seed
 **SQL Alternative:**
 If you prefer direct SQL import instead of Laravel seeder:
 ```bash
-sqlite3 database/database.sqlite < database/data_production.sql
+cat database/data_production.sql | docker exec -i expense_postgres psql -U expense_user expense_db
 ```
 
 ### 🐙 Useful Git Commands

@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, useEffect } from 'react'
+import { createContext, useContext, useReducer, useEffect, useRef } from 'react'
 import api from '../api/api.js'
 
 const DepartmentContext = createContext()
@@ -8,6 +8,7 @@ const initialState = {
     departments: [],
     loading: false,
     error: null,
+    hasFetched: false,
 }
 
 const departmentReducer = (state, action) => {
@@ -15,7 +16,7 @@ const departmentReducer = (state, action) => {
         case 'SET_LOADING':
             return { ...state, loading: true, error: null }
         case 'SET_INITIAL_DATA':
-            return { ...state, loading: false, departments: action.payload }
+            return { ...state, loading: false, departments: action.payload, hasFetched: true }
         case 'SET_ERROR':
             return { ...state, loading: false, error: action.payload }
         case 'CREATE_DEPARTMENT':
@@ -34,6 +35,8 @@ const departmentReducer = (state, action) => {
                 loading: false,
                 departments: state.departments.filter(dept => dept.department_id !== action.payload),
             }
+        case 'RESET_FETCH_STATE':
+            return { ...state, hasFetched: false }
         default:
             return state
     }
@@ -41,23 +44,31 @@ const departmentReducer = (state, action) => {
 
 export const DepartmentProvider = ({ children }) => {
     const [state, dispatch] = useReducer(departmentReducer, initialState)
+    const isFetching = useRef(false)
 
     // Load initial data
     useEffect(() => {
         async function fetchData() {
+            // Prevent duplicate calls
+            if (state.hasFetched || isFetching.current) {
+                return
+            }
+
+            isFetching.current = true
             dispatch({ type: 'SET_LOADING' })
+
             try {
                 const response = await api.get('/departments')
-                console.log('DepartmentContext: API response', response)
-                console.log('DepartmentContext: response.data', response.data)
                 dispatch({ type: 'SET_INITIAL_DATA', payload: response.data })
             } catch (err) {
                 console.error('DepartmentContext: Error fetching departments', err)
                 dispatch({ type: 'SET_ERROR', payload: err.message })
+            } finally {
+                isFetching.current = false
             }
         }
         fetchData()
-    }, [])
+    }, [state.hasFetched])
 
     const actions = {
         createDepartment: async (departmentData) => {
@@ -98,6 +109,11 @@ export const DepartmentProvider = ({ children }) => {
                 return { success: false, error: errorMessage }
             }
         },
+
+        // Force refresh data from server
+        refreshDepartments: () => {
+            dispatch({ type: 'RESET_FETCH_STATE' })
+        },
     }
 
     return (
@@ -116,3 +132,4 @@ export const useDepartment = () => {
 export const useDepartmentDispatch = () => {
     return useContext(DepartmentDispatchContext)
 }
+

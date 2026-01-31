@@ -93,10 +93,23 @@
 }
 
 /* Apply theme to body */
+html {
+    height: 100%;
+    overflow: hidden;
+}
+
+/* Apply theme to body */
 body {
     background-color: var(--color-bg-secondary);
     color: var(--color-text-primary);
     transition: background-color 0.2s ease, color 0.2s ease;
+    overflow: hidden;
+    height: 100%;
+    margin: 0;
+}
+
+#root {
+    height: 100%;
 }
 
 /* Utility Classes for Theme Colors */
@@ -485,6 +498,16 @@ nav {
 .p-datatable-tbody {
     font-size: 14px;
 }
+
+/* DataTable loading overlay - make background transparent */
+.p-datatable-loading-overlay {
+    background-color: transparent !important;
+}
+
+/* Optional: hide the loading spinner icon as well */
+/* .p-datatable-loading-icon {
+    display: none;
+} */
 
 
 /* ============================================

@@ -39,10 +39,14 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
 
     useEffect(() => {
         const fetchData = async () => {
-            await Promise.all([fetchClaims(), fetchMyClaims()])
+            if (user === 'admin') {
+                await fetchClaims()
+            } else {
+                await fetchMyClaims()
+            }
         }
         fetchData()
-    }, [])
+    }, [user])
 
     const { lookups: { claimStatus, claimTypes } } = useLookups()
 
@@ -185,7 +189,11 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
             accept: async () => {
                 try {
                     await api.post('claims/bulk-approve', payload)
-                    await Promise.all([fetchClaims(), fetchMyClaims()])
+                    if (user === 'admin') {
+                        await fetchClaims(true)
+                    } else {
+                        await fetchMyClaims(true)
+                    }
                     showToast(toastRef, { severity: 'success', summary: t('toast.success', 'Success'), detail: t('claims.bulkApproveSuccess', 'Selected claims has been approved successfully!') })
                 }
                 catch (error) {
@@ -212,7 +220,11 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
             accept: async () => {
                 try {
                     await api.post('claims/bulk-reject', payload)
-                    await Promise.all([fetchClaims(), fetchMyClaims()])
+                    if (user === 'admin') {
+                        await fetchClaims(true)
+                    } else {
+                        await fetchMyClaims(true)
+                    }
                     showToast(toastRef, { severity: 'success', summary: t('toast.success', 'Success'), detail: t('claims.bulkRejectSuccess', 'Selected claims has been rejected successfully!') })
                 }
                 catch (error) {

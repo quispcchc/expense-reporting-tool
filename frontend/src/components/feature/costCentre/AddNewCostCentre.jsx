@@ -56,7 +56,7 @@ function AddNewCostCentre({ createdToast }) {
     return (
         <div className="bg-white rounded-xl p-6">
             {loading && (
-                <div className="absolute inset-0 flex justify-center items-center bg-white/50 z-10">
+                <div className="absolute inset-0 flex justify-center items-center z-10">
                     <ProgressSpinner />
                 </div>
             )}

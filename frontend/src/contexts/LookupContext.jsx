@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
 import api from '../api/api.js'
 import { useAuth } from './AuthContext.jsx'
 
@@ -21,16 +21,21 @@ export function LookupProvider({ children }) {
     })
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
-    const [retryCount, setRetryCount] = useState(0)
+    const [hasFetched, setHasFetched] = useState(false)
+    const isFetching = useRef(false)
 
-    const fetchLookups = useCallback(async () => {
+    const fetchLookups = useCallback(async (force = false) => {
+        // Prevent duplicate calls unless forced (for refresh)
+        if (!force && (hasFetched || isFetching.current)) {
+            return true
+        }
+
         try {
+            isFetching.current = true
             setError(null)
 
             // Require auth token before fetching
-            // Use AuthContext to check authentication status
             if (!isAuthenticated()) {
-                // If not authenticated, we shouldn't necessarily error out loudly, just don't fetch
                 console.log('LookupContext: Not authenticated, skipping fetch.')
                 return false
             }
@@ -57,56 +62,43 @@ export function LookupProvider({ children }) {
                     claimStatus: data.claimStatus || [],
                     tags: data.tags || []
                 })
-                setRetryCount(0) // Reset retry count on success
-                return true // Indicate success
+                setHasFetched(true)
+                return true
             } else {
-                // Data is empty, might need to retry
                 console.warn('LookupContext: Data fetched but seems empty.')
-                // setError('No lookup data available') // Don't block UI with error for empty lookups maybe?
-                return true // Treated as success but empty
+                setHasFetched(true)
+                return true
             }
         } catch (err) {
             setError(err.message || 'Failed to fetch lookups')
             console.error('Error fetching lookups:', err)
             return false
         } finally {
+            isFetching.current = false
             setLoading(false)
         }
-    }, [isAuthenticated])
+    }, [isAuthenticated, hasFetched])
 
-    // Initial fetch with retry logic
+    // Initial fetch
     useEffect(() => {
-        const maxRetries = 3
-        const retryDelay = 2000 // 2 seconds
-
-        const fetchWithRetry = async () => {
-            if (!isAuthenticated()) {
-                setLoading(false)
-                return
-            }
-
-            const success = await fetchLookups()
-
-            if (!success && retryCount < maxRetries) {
-                // Only retry if we are still authenticated
-                if (isAuthenticated()) {
-                    setTimeout(() => {
-                        setRetryCount(prev => prev + 1)
-                        setLoading(true)
-                    }, retryDelay)
-                }
-            }
+        if (!hasFetched && isAuthenticated()) {
+            fetchLookups()
+        } else if (!isAuthenticated()) {
+            setLoading(false)
         }
+    }, [isAuthenticated, hasFetched, fetchLookups])
 
-        fetchWithRetry()
-    }, [isAuthenticated, retryCount, fetchLookups])
+    // Refresh function that forces a new fetch
+    const refreshLookups = useCallback(async () => {
+        setHasFetched(false)
+        return fetchLookups(true)
+    }, [fetchLookups])
 
     const value = {
         lookups,
         loading,
         error,
-        retryCount,
-        refreshLookups: fetchLookups // Expose refresh function for external use
+        refreshLookups
     }
 
     return (

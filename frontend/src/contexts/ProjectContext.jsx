@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback } from 'react'
+import { createContext, useContext, useState, useCallback, useRef } from 'react'
 import api from '../api/api.js'
 
 const ProjectContext = createContext()
@@ -7,19 +7,29 @@ export function ProjectProvider({ children }) {
     const [projects, setProjects] = useState([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
+    const [hasFetched, setHasFetched] = useState(false)
+    const isFetching = useRef(false)
 
-    const fetchProjects = useCallback(async () => {
+    const fetchProjects = useCallback(async (force = false) => {
+        // Prevent duplicate calls unless forced
+        if (!force && (hasFetched || isFetching.current)) {
+            return
+        }
+
+        isFetching.current = true
         setLoading(true)
         setError(null)
         try {
             const response = await api.get('projects')
             setProjects(response.data)
+            setHasFetched(true)
         } catch (err) {
             setError(err.message || 'Failed to fetch projects')
         } finally {
+            isFetching.current = false
             setLoading(false)
         }
-    }, [])
+    }, [hasFetched])
 
     const createProject = async (projectData) => {
         setLoading(true)
@@ -64,8 +74,23 @@ export function ProjectProvider({ children }) {
         }
     }
 
+    const refreshProjects = useCallback(() => {
+        setHasFetched(false)
+        return fetchProjects(true)
+    }, [fetchProjects])
+
     return (
-        <ProjectContext.Provider value={{ projects, loading, error, fetchProjects, createProject, updateProject, deleteProject }}>
+        <ProjectContext.Provider value={{
+            projects,
+            loading,
+            error,
+            hasFetched,
+            fetchProjects,
+            createProject,
+            updateProject,
+            deleteProject,
+            refreshProjects
+        }}>
             {children}
         </ProjectContext.Provider>
     )
