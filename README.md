@@ -302,6 +302,57 @@ docker compose logs -f queue
 
 - **Port Conflicts**: Ensure ports `8000` (Backend) and `5173` (Frontend) are not being used by other applications.
 
+- **PostgreSQL Sequence Out of Sync**: If you encounter "duplicate key" errors after seeding data, reset all sequences:
+    ```bash
+    # For Production
+    docker compose -f docker-compose.prod.yml exec postgres psql -U expense_user -d expense_db -c "
+    DO \$\$
+    DECLARE
+        rec RECORD;
+        seq_name TEXT;
+        max_val BIGINT;
+    BEGIN
+        FOR rec IN 
+            SELECT c.table_name, c.column_name
+            FROM information_schema.columns c
+            JOIN information_schema.tables t ON c.table_name = t.table_name
+            WHERE c.column_default LIKE 'nextval%'
+            AND t.table_schema = 'public'
+        LOOP
+            seq_name := pg_get_serial_sequence(rec.table_name, rec.column_name);
+            IF seq_name IS NOT NULL THEN
+                EXECUTE format('SELECT COALESCE(MAX(%I), 0) FROM %I', rec.column_name, rec.table_name) INTO max_val;
+                EXECUTE format('SELECT setval(%L, %s)', seq_name, max_val + 1);
+            END IF;
+        END LOOP;
+    END \$\$;
+    "
+
+    # For Development (docker-compose.yml)
+    docker compose exec postgres psql -U expense_user -d expense_db -c "
+    DO \$\$
+    DECLARE
+        rec RECORD;
+        seq_name TEXT;
+        max_val BIGINT;
+    BEGIN
+        FOR rec IN 
+            SELECT c.table_name, c.column_name
+            FROM information_schema.columns c
+            JOIN information_schema.tables t ON c.table_name = t.table_name
+            WHERE c.column_default LIKE 'nextval%'
+            AND t.table_schema = 'public'
+        LOOP
+            seq_name := pg_get_serial_sequence(rec.table_name, rec.column_name);
+            IF seq_name IS NOT NULL THEN
+                EXECUTE format('SELECT COALESCE(MAX(%I), 0) FROM %I', rec.column_name, rec.table_name) INTO max_val;
+                EXECUTE format('SELECT setval(%L, %s)', seq_name, max_val + 1);
+            END IF;
+        END LOOP;
+    END \$\$;
+    "
+    ```
+
 ---
 
 ### 🐳 Useful Docker Commands
