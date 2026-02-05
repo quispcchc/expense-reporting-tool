@@ -13,7 +13,7 @@ class Project extends Model
 
     protected $primaryKey = 'project_id';
 
-    public $incrementing = false;
+    public $incrementing = true;
 
     protected $keyType = 'int';
 
