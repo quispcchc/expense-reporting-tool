@@ -45,12 +45,13 @@ function AddNewCostCentre({ createdToast }) {
         if (validation.isValid) {
             const response = await createCostCentre(costCentreFormData)
 
-            if (response?.success) {
+            if (response?.status === 201) {
                 setCostCentreFormData(initialData)
                 createdToast()
             }
         }
         setValidationErrors(validation.errors)
+        
 
     }
     return (
