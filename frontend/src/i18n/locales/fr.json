@@ -28,7 +28,9 @@
         "success": "Succès",
         "error": "Erreur",
         "collapse": "Réduire",
-        "expand": "Développer"
+        "expand": "Développer",
+        "underConstruction": "En construction",
+        "comingSoon": "Cette page est encore en construction. Veuillez vérifier bientôt!"
     },
     "filter": {
         "select": "Sélectionner",
@@ -333,5 +335,8 @@
         "department": "Département",
         "status": "Statut",
         "select_department": "Sélectionner un département"
+    },
+    "dashboard": {
+        "title": "Tableau de bord"
     }
 }
