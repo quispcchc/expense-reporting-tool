@@ -69,20 +69,24 @@ function UsersPage() {
 
     // Local state to manage the current list of users
     const [users, setUsers] = useState(null)
+    
 
     const { lookups } = useLookups()
-    console.log(lookups)
 
     // Sync local users state whenever the context state changes
     useEffect(() => {
         if (usersState && Array.isArray(usersState.users)) {
             setUsers(usersState.users)
+            
         } else if (Array.isArray(usersState)) {
             // Fallback for backward compatibility if context structure changes
             setUsers(usersState)
         }
-        console.log(usersState)
+
+        
     }, [usersState])
+
+    console.log('users',users);
 
     // States for global search filter
     const [globalFilterValue, setGlobalFilterValue] = useState('')
@@ -106,11 +110,10 @@ function UsersPage() {
     const statusOptions = lookups.activeStatuses.map(s => ({ label: s.active_status_name, value: s.active_status_id }))
     const departmentOptions = lookups.departments.map(d => ({ label: d.department_name, value: d.department_id }))
     // Render custom UI for user status
-    const renderStatus = (rowData) => (<ActiveStatusTab status={rowData.status} />)
+    const renderStatus = (rowData) => (<ActiveStatusTab status={rowData.active_status_id} />)
 
     // Render department name (as formatted badge)
     const renderDepartment = (rowData) => {
-        console.log('rowdata', rowData)
         if (!rowData.department_id) return ''
 
         const dept = departmentOptions.find(d => d.value === rowData.department_id)
@@ -339,7 +342,7 @@ function UsersPage() {
                     <Column field="email" header={t('users.email', "Email")} sortable editor={textInputEditor} />
                     {/*<Column field="position" header="Position" sortable editor={ textInputEditor }/>*/}
                     <Column field="role_id" header={t('users.role')} body={renderRole} sortable editor={roleEditor} />
-                    <Column field="status" header={t('user.status', 'Status')} body={renderStatus} sortable editor={statusEditor} />
+                    <Column field="active_status_id" header={t('user.status', 'Status')} body={renderStatus} sortable editor={statusEditor} />
 
                     {/* Edit/save and delete button columns */}
                     <Column rowEditor header={t('common.actions')} />

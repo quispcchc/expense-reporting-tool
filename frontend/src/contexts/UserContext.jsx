@@ -85,8 +85,10 @@ export const UserProvider = ({ children }) => {
         dispatch({ type: 'SET_LOADING' })
         try {
             const res = await api.post('/admin/create-user', userData)
-            dispatch({ type: 'CREATE_USER', payload: res.data })
-            return res.data
+
+            dispatch({ type: 'CREATE_USER', payload: res.data.user })
+            
+            return res.data.user
         } catch (err) {
             dispatch({ type: 'SET_ERROR', payload: err.message })
             throw err
