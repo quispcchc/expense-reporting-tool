@@ -167,7 +167,7 @@
     },
     "users": {
         "title": "Users",
-        "addNewUser": "Add new user",
+        "addNewUser": "Add New user",
         "addNewUserDescription": "Fill in the form below to register a new user to the system.",
         "firstName": "First Name",
         "lastName": "Last Name",

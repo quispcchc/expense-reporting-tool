@@ -40,7 +40,7 @@ export default function AddProject({ onSave, onCancel, initialProject, departmen
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <h3 className="text-lg font-semibold text-grey-600 mb-2">
+            <h3 className="text-lg text-grey-600 mb-2">
                 {t('projects.add_new', 'Add Project')}
             </h3>
             <InputText

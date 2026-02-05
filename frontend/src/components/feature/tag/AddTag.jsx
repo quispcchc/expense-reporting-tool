@@ -28,7 +28,7 @@ export default function AddTag({ onSave, onCancel, initialTag }) {
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <h3 className="text-lg font-semibold text-grey-600 mb-2">
+            <h3 className="text-lg text-grey-600 mb-2">
                 {t('tags.add_new', 'Add Tag')}
             </h3>
             <InputText

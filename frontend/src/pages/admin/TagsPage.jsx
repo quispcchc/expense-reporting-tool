@@ -214,7 +214,7 @@ function TagsPage() {
                         tabIndex={0}
                         onKeyPress={e => { if (e.key === 'Enter' || e.key === ' ') setIsTagsOpen(prev => !prev) }}
                     >
-                        <span className="text-xl font-semibold text-gray- flex items-center gap-2">
+                        <span className="text-[22px] text-gray- flex items-center gap-2">
                             {t('tags.title')}
                             <i className={`pi ${isTagsOpen ? 'pi-chevron-up' : 'pi-chevron-down'} text-base ml-2`} />
                         </span>
@@ -282,7 +282,7 @@ function TagsPage() {
                         tabIndex={0}
                         onKeyPress={e => { if (e.key === 'Enter' || e.key === ' ') setIsProjectsOpen(prev => !prev) }}
                     >
-                        <span className="text-xl font-semibold text-gray- flex items-center gap-2">
+                        <span className="text-[22px] text-gray- flex items-center gap-2">
                             {t('projects.title')}
                             <i className={`pi ${isProjectsOpen ? 'pi-chevron-up' : 'pi-chevron-down'} text-base ml-2`} />
                         </span>
@@ -298,7 +298,11 @@ function TagsPage() {
                             <AddProject
                                 onSave={handleAddNewProject}
                                 onCancel={() => { }}
-                                initialProject={null}
+                                initialProject={{
+                                    project_name: '',
+                                    project_desc: '',
+                                    department_id: '',
+                                }}
                                 departments={departmentOptions}
                                 statuses={statusOptions}
                             />
