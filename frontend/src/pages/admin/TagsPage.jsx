@@ -205,7 +205,7 @@ function TagsPage() {
                 className="flex flex-col gap-8 mt-6 items-stretch w-full h-screen"
             >
                 {/* TAGS SECTION*/}
-                <div className="bg-white rounded-xl shadow p-4 mb-6 w-full">
+                <div className="bg-white rounded-xl p-4 mb-6 w-full">
                     <div
                         className="flex items-center justify-between cursor-pointer select-none px-2 py-3 border-b border-gray-300 hover:bg-gray-50 transition"
                         onClick={() => setIsTagsOpen(prev => !prev)}
@@ -273,7 +273,7 @@ function TagsPage() {
                 </div>
 
                 {/* PROJECTS SECTION */}
-                <div className="bg-white rounded-xl shadow p-4 mb-6 w-full">
+                <div className="bg-white rounded-xl p-4 mb-6 w-full">
                     <div
                         className="flex items-center justify-between cursor-pointer select-none px-2 py-3 border-b border-gray-300 hover:bg-gray-50 transition"
                         onClick={() => setIsProjectsOpen(prev => !prev)}
