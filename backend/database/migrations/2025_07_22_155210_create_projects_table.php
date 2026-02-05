@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('project_name', 255)->nullable();
             $table->string('project_desc')->nullable();
             $table->foreignId('department_id')->constrained('departments', 'department_id')->onDelete('restrict');
+            $table->timestamps();
         });
     }
 
