@@ -83,9 +83,12 @@ export const CostCentreProvider = ({ children }) => {
                 description: costCentre.description,
             }
             try {
-                const { data } = await api.post('cost-centres', newCostCentre)
-                dispatch({ type: 'CREATE_COST_CENTRE', payload: data })
-                return data
+                const response = await api.post('cost-centres', newCostCentre)
+                console.log(response);
+                
+                
+                dispatch({ type: 'CREATE_COST_CENTRE', payload: response.data })
+                return response
             }
             catch (err) {
                 dispatch({ type: 'SET_ERROR', payload: err.message })
@@ -103,9 +106,9 @@ export const CostCentreProvider = ({ children }) => {
             }
 
             try {
-                const { data } = await api.put(`cost-centres/${newData.cost_centre_id}`, updatedCostCentre)
-                dispatch({ type: 'UPDATE_COST_CENTRE', payload: data })
-                return data
+                const response = await api.put(`cost-centres/${newData.cost_centre_id}`, updatedCostCentre)
+                dispatch({ type: 'UPDATE_COST_CENTRE', payload: response.data })
+                return response
             }
             catch (err) {
                 dispatch({ type: 'SET_ERROR', payload: err.message })

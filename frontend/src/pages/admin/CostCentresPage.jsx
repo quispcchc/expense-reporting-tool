@@ -126,7 +126,7 @@ function CostCentresPage() {
 
     const onRowEditComplete = async (e) => {
         const response = await updateCostCentre(e.newData)
-        if (response?.success) {
+        if (response?.status === 200) {
             toasts.updated()
         }
     }

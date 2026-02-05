@@ -120,7 +120,22 @@ class CreateUserController extends Controller
         // Return the created user object in the response so frontend can append without re-fetching.
         return response()->json([
             'message' => 'User created. A verification email has been sent.',
-            'user' => $user,
+            'user' => [
+                'user_id' => $user->user_id,
+                'first_name' => $user->first_name,
+                'last_name' => $user->last_name,
+                'email' => $user->email,
+                'role_id' => $user->role_id,
+                'department_id' => $user->department_id,
+                'teams' => $user->teams->map(function ($team) {
+                    return [
+                        'team_id' => $team->team_id,
+                        'team_name' => $team->team_name,
+                        'team_abbreviation' => $team->team_abbreviation,
+                    ];
+                }),
+                'active_status_id' => $user->active_status_id,
+            ]
         ], 201);
     }
 }

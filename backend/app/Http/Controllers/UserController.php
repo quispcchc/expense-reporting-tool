@@ -129,7 +129,7 @@ class UserController extends Controller
                         'team_abbreviation' => $team->team_abbreviation,
                     ];
                 }),
-                'status' => $user->active_status_id,
+                'active_status_id' => $user->active_status_id,
             ];
         });
     }

@@ -28,7 +28,9 @@
         "success": "Success",
         "error": "Error",
         "collapse": "Collapse",
-        "expand": "Expand"
+        "expand": "Expand",
+        "underConstruction": "Under Construction",
+        "comingSoon": "This page is still under construction. Please check back soon!"
     },
     "filter": {
         "select": "Select",
@@ -167,7 +169,7 @@
     },
     "users": {
         "title": "Users",
-        "addNewUser": "Add new user",
+        "addNewUser": "Add New user",
         "addNewUserDescription": "Fill in the form below to register a new user to the system.",
         "firstName": "First Name",
         "lastName": "Last Name",
@@ -352,5 +354,8 @@
         "department": "Department",
         "status": "Status",
         "select_department": "Select"
+    },
+    "dashboard": {
+        "title": "Dashboard"
     }
 }

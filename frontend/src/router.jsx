@@ -24,8 +24,7 @@ import { UserProvider } from './contexts/UserContext.jsx'
 import { DepartmentProvider } from './contexts/DepartmentContext.jsx'
 import { CostCentreProvider } from './contexts/CostCentreContext.jsx'
 import UserCreateClaimPage from './pages/user/UserCreateClaimPage.jsx'
-
-
+import DashboardPage from './pages/admin/DashboardPage.jsx'
 import RootRedirect from './components/feature/auth/RootRedirect.jsx'
 
 const router = createBrowserRouter(
@@ -143,6 +142,10 @@ const router = createBrowserRouter(
                 {
                     path: 'settings',
                     element: <SettingsPage />,
+                },
+                {
+                    path: 'dashboard',
+                    element: <DashboardPage />
                 },
                 {
                     path: '*',

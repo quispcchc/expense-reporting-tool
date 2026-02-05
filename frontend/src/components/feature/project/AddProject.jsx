@@ -13,15 +13,6 @@ export default function AddProject({ onSave, onCancel, initialProject, departmen
     })
     const [error, setError] = useState('')
 
-    useEffect(() => {
-        setProject({
-            project_name: initialProject?.project_name || '',
-            project_desc: initialProject?.project_desc || '',
-            department_id: initialProject?.department_id || '',
-            active_status_id: initialProject?.active_status_id || '',
-        })
-    }, [initialProject])
-
     const handleChange = (e) => {
         const { name, value } = e.target
         setProject(prev => ({ ...prev, [name]: value }))
@@ -37,23 +28,19 @@ export default function AddProject({ onSave, onCancel, initialProject, departmen
             return
         }
         setError('')
+        setProject(initialProject)  
         onSave(project)
     }
 
     const handleCancel = () => {
-        setProject({
-            project_name: initialProject?.project_name || '',
-            project_desc: initialProject?.project_desc || '',
-            department_id: initialProject?.department_id || '',
-            active_status_id: initialProject?.active_status_id || '',
-        });
+        setProject(initialProject);
         setError('');
         onCancel();
     };
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <h3 className="text-lg font-semibold text-grey-600 mb-2">
+            <h3 className="text-lg text-grey-600 mb-2">
                 {t('projects.add_new', 'Add Project')}
             </h3>
             <InputText

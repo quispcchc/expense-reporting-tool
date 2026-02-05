@@ -33,10 +33,19 @@ function AddNewUser() {
 
     const handleUserFormChange = (e) => {
         const { name, value } = e.target
-        setUserFormData(prev => ({
-            ...prev,
-            [name]: value,
-        }))
+        setUserFormData(prev => {
+            if (name === 'department') {
+                return {
+                    ...prev,
+                    department: value,
+                    teams: [], // Clear teams when department changes
+                }
+            }
+            return {
+                ...prev,
+                [name]: value,
+            }
+        })
     }
 
     // For MultiSelect teams

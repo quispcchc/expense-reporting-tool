@@ -205,7 +205,7 @@ function TagsPage() {
                 className="flex flex-col gap-8 mt-6 items-stretch w-full h-screen"
             >
                 {/* TAGS SECTION*/}
-                <div className="bg-white rounded-xl shadow p-4 mb-6 w-full">
+                <div className="bg-white rounded-xl p-4 mb-6 w-full">
                     <div
                         className="flex items-center justify-between cursor-pointer select-none px-2 py-3 border-b border-gray-300 hover:bg-gray-50 transition"
                         onClick={() => setIsTagsOpen(prev => !prev)}
@@ -214,7 +214,7 @@ function TagsPage() {
                         tabIndex={0}
                         onKeyPress={e => { if (e.key === 'Enter' || e.key === ' ') setIsTagsOpen(prev => !prev) }}
                     >
-                        <span className="text-xl font-semibold text-gray- flex items-center gap-2">
+                        <span className="text-[22px] text-gray- flex items-center gap-2">
                             {t('tags.title')}
                             <i className={`pi ${isTagsOpen ? 'pi-chevron-up' : 'pi-chevron-down'} text-base ml-2`} />
                         </span>
@@ -273,7 +273,7 @@ function TagsPage() {
                 </div>
 
                 {/* PROJECTS SECTION */}
-                <div className="bg-white rounded-xl shadow p-4 mb-6 w-full">
+                <div className="bg-white rounded-xl p-4 mb-6 w-full">
                     <div
                         className="flex items-center justify-between cursor-pointer select-none px-2 py-3 border-b border-gray-300 hover:bg-gray-50 transition"
                         onClick={() => setIsProjectsOpen(prev => !prev)}
@@ -282,7 +282,7 @@ function TagsPage() {
                         tabIndex={0}
                         onKeyPress={e => { if (e.key === 'Enter' || e.key === ' ') setIsProjectsOpen(prev => !prev) }}
                     >
-                        <span className="text-xl font-semibold text-gray- flex items-center gap-2">
+                        <span className="text-[22px] text-gray- flex items-center gap-2">
                             {t('projects.title')}
                             <i className={`pi ${isProjectsOpen ? 'pi-chevron-up' : 'pi-chevron-down'} text-base ml-2`} />
                         </span>
@@ -298,7 +298,11 @@ function TagsPage() {
                             <AddProject
                                 onSave={handleAddNewProject}
                                 onCancel={() => { }}
-                                initialProject={null}
+                                initialProject={{
+                                    project_name: '',
+                                    project_desc: '',
+                                    department_id: '',
+                                }}
                                 departments={departmentOptions}
                                 statuses={statusOptions}
                             />
