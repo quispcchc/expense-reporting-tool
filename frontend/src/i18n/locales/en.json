@@ -353,7 +353,7 @@
         "description": "Description",
         "department": "Department",
         "status": "Status",
-        "select_department": "Select"
+        "select_department": "Select a Department"
     },
     "dashboard": {
         "title": "Dashboard"

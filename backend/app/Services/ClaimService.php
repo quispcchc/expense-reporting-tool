@@ -29,10 +29,14 @@ class ClaimService
                 ->where('user_id', '!=', $user->user_id);
 
         } elseif ($role_level === RoleLevel::TEAM_LEAD) {
-            // Team-level access or own claims
-            $query->where('team_id', $user->team_id)
-                ->where('user_id', '!=', $user->user_id);
-
+            // Team-level access, exclude own claims and claims from other approvers
+            // (approver claims should escalate to admin/department manager)
+            $teamIds = $user->teams->pluck('team_id')->toArray();
+            $query->whereIn('team_id', $teamIds)
+                ->where('user_id', '!=', $user->user_id)
+                ->whereHas('user.role', function ($q) {
+                    $q->where('role_level', '>', RoleLevel::TEAM_LEAD);
+                });
         } elseif ($role_level === RoleLevel::USER) {
             // User-level access
             $query->where('user_id', $user->user_id);
@@ -53,7 +57,7 @@ class ClaimService
 
     public function getClaimById(int $claimId)
     {
-        return Claim::with(['expenses.tags', 'expenses.receipts', 'claimType', 'status', 'position', 'user', 'department', 'team', 'claimNotes.user'])
+        return Claim::with(['expenses.tags', 'expenses.receipts', 'claimType', 'status', 'position', 'user', 'department', 'team', 'claimNotes.user', 'claimApprovals.approvedByUser'])
             ->where('claim_id', $claimId)
             ->first();
     }
@@ -170,24 +174,24 @@ class ClaimService
     /**
      * Approve or reject selected claims
      */
-    public function bulkApproveClaim(array $claimIds): void
+    public function bulkApproveClaim(array $claimIds, User $approver): void
     {
         foreach ($claimIds as $claimId) {
-            $this->updateClaimStatus($claimId, ClaimStatus::APPROVED);
+            $this->updateClaimStatus($claimId, ClaimStatus::APPROVED, $approver);
         }
     }
 
-    public function bulkRejectClaim(array $claimIds): void
+    public function bulkRejectClaim(array $claimIds, User $approver): void
     {
         foreach ($claimIds as $claimId) {
-            $this->updateClaimStatus($claimId, ClaimStatus::REJECTED);
+            $this->updateClaimStatus($claimId, ClaimStatus::REJECTED, $approver);
         }
     }
 
     /**
      * Shared logic for approving/rejecting with error handling
      */
-    private function updateClaimStatus(int $claimId, int $newStatusId)
+    private function updateClaimStatus(int $claimId, int $newStatusId, User $approver = null)
     {
         DB::beginTransaction();
 
@@ -217,6 +221,16 @@ class ClaimService
             foreach ($claim->expenses as $expense) {
                 $expense->update([
                     'approval_status_id' => $newStatusId,
+                ]);
+            }
+
+            // Record who approved/rejected
+            if ($approver) {
+                \App\Models\ClaimApproval::create([
+                    'claim_id' => $claim->claim_id,
+                    'approved_by' => $approver->user_id,
+                    'approval_status_id' => $newStatusId,
+                    'claim_approval_details' => $newStatusId === ClaimStatus::APPROVED ? 'Approved' : 'Rejected',
                 ]);
             }
 

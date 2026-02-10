@@ -69,8 +69,6 @@ function UsersPage() {
 
     // Local state to manage the current list of users
     const [users, setUsers] = useState(null)
-    
-
     const { lookups } = useLookups()
 
     // Sync local users state whenever the context state changes
@@ -83,10 +81,7 @@ function UsersPage() {
             setUsers(usersState)
         }
 
-        
     }, [usersState])
-
-    console.log('users',users);
 
     // States for global search filter
     const [globalFilterValue, setGlobalFilterValue] = useState('')
@@ -242,7 +237,7 @@ function UsersPage() {
                         email: newData.email,
                         department_id: newData.department_id,
                         role_id: newData.role_id,
-                        active_status_id: newData.status,
+                        active_status_id: newData.active_status_id,
                         team_ids: Array.isArray(newData.teams)
                             ? newData.teams.map(t => t.team_id || t.value || t)
                             : [],
@@ -251,8 +246,10 @@ function UsersPage() {
                     Object.keys(updatePayload).forEach(key =>
                         updatePayload[key] === undefined && delete updatePayload[key]
                     )
+                    
                     await updateUser(updatePayload)
                     await refresh(); // Refresh user list from backend
+
                     // Show success toast
                     if (toastRef.current) {
                         toastRef.current.show({

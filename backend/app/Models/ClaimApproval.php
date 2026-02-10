@@ -10,7 +10,7 @@ class ClaimApproval extends Model
 
     protected $primaryKey = 'claim_approval_id';
 
-    public $incrementing = false;
+    public $incrementing = true;
 
     protected $keyType = 'int';
 
@@ -36,7 +36,7 @@ class ClaimApproval extends Model
         return $this->belongsTo(ApprovalStatus::class, 'approval_status_id', 'approval_status_id');
     }
 
-    public function approvedBy()
+    public function approvedByUser()
     {
         return $this->belongsTo(User::class, 'approved_by', 'user_id');
     }

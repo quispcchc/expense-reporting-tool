@@ -75,14 +75,32 @@ class ExpenseController extends Controller
 
     }
 
-    public function approveExpense(int $expenseId)
+    public function approveExpense(Request $request, int $expenseId)
     {
-        $this->expenseService->approveExpense($expenseId);
+        $user = $request->user();
+        $expense = Expense::with('claim')->findOrFail($expenseId);
+
+        if ($user->cannot('approve', $expense->claim)) {
+            return $this->errorResponse(trans('messages.not_authorized_approve', ['id' => $expense->claim->claim_id]), 403);
+        }
+
+        $this->expenseService->approveExpense($expenseId, $user);
+
+        return $this->successResponse(null, 'Expense approved successfully');
     }
 
-    public function rejectExpense(int $expenseId)
+    public function rejectExpense(Request $request, int $expenseId)
     {
-        $this->expenseService->rejectExpense($expenseId);
+        $user = $request->user();
+        $expense = Expense::with('claim')->findOrFail($expenseId);
+
+        if ($user->cannot('reject', $expense->claim)) {
+            return $this->errorResponse(trans('messages.not_authorized_reject', ['id' => $expense->claim->claim_id]), 403);
+        }
+
+        $this->expenseService->rejectExpense($expenseId, $user);
+
+        return $this->successResponse(null, 'Expense rejected successfully');
     }
 
     public function destroy($id)

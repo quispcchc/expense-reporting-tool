@@ -12,25 +12,25 @@ use Illuminate\Support\Facades\Storage;
 
 class ExpenseService
 {
-    public function approveExpense(int $expenseId)
+    public function approveExpense(int $expenseId, $approver = null)
     {
-        DB::transaction(function () use ($expenseId) {
+        DB::transaction(function () use ($expenseId, $approver) {
             $expense = Expense::findOrFail($expenseId);
 
             $expense->update(['approval_status_id' => ClaimStatus::APPROVED]);
 
-            $this->updateClaimStatus($expense->claim_id);
+            $this->updateClaimStatus($expense->claim_id, $approver);
         });
     }
 
-    public function rejectExpense(int $expenseId)
+    public function rejectExpense(int $expenseId, $approver = null)
     {
-        DB::transaction(function () use ($expenseId) {
+        DB::transaction(function () use ($expenseId, $approver) {
             $expense = Expense::findOrFail($expenseId);
 
             $expense->update(['approval_status_id' => ClaimStatus::REJECTED]);
 
-            $this->updateClaimStatus($expense->claim_id);
+            $this->updateClaimStatus($expense->claim_id, $approver);
         });
     }
 
@@ -164,19 +164,35 @@ class ExpenseService
 
     }
 
-    private function updateClaimStatus($claimId)
+    private function updateClaimStatus($claimId, $approver = null)
     {
         $claim = Claim::with('expenses')->findOrFail($claimId);
 
+        $newStatusId = ClaimStatus::PENDING;
+
         if ($claim->expenses->isEmpty()) {
-            $claim->update(['claim_status_id' => ClaimStatus::PENDING]); // Pending (Empty)
+            $newStatusId = ClaimStatus::PENDING;
         } elseif ($claim->expenses->every(fn ($expense) => $expense->approval_status_id == ClaimStatus::APPROVED)) {
-            $claim->update(['claim_status_id' => ClaimStatus::APPROVED]); // All approved
+            $newStatusId = ClaimStatus::APPROVED;
         } elseif ($claim->expenses->contains(fn ($e) => $e->approval_status_id == ClaimStatus::REJECTED)) {
-            $claim->update(['claim_status_id' => ClaimStatus::REJECTED]); // Any rejected
-        } else {
-            $claim->update(['claim_status_id' => ClaimStatus::PENDING]); // Pending
+            $newStatusId = ClaimStatus::REJECTED;
         }
+
+        $claim->update(['claim_status_id' => $newStatusId]);
+
+        // Record who approved/rejected only when claim reaches a final status
+        if ($approver && $newStatusId !== ClaimStatus::PENDING) {
+            // Remove any previous approval records for this claim to keep only the latest
+            \App\Models\ClaimApproval::where('claim_id', $claimId)->delete();
+
+            \App\Models\ClaimApproval::create([
+                'claim_id' => $claimId,
+                'approved_by' => $approver->user_id,
+                'approval_status_id' => $newStatusId,
+                'claim_approval_details' => $newStatusId === ClaimStatus::APPROVED ? 'Claim approved' : 'Claim rejected',
+            ]);
+        }
+
         $claim->user->notify(new ClaimUpdatedNotification($claim));
     }
 
