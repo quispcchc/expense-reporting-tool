@@ -80,4 +80,9 @@ class Claim extends Model
     {
         return $this->hasMany(ClaimNote::class, 'claim_id', 'claim_id');
     }
+
+    public function claimApprovals()
+    {
+        return $this->hasMany(\App\Models\ClaimApproval::class, 'claim_id', 'claim_id');
+    }
 }

@@ -130,6 +130,21 @@ function ClaimDetail({ curClaim, toastRef, onClaimRefetch }) {
                             team => ({ label: team.team_name, value: team.team_id }))}
                         onChange={(value) => handleSelectChange('team_id', value)}
                     />
+
+                    {/* Show who ultimately approved/rejected the claim */}
+                    {curClaim?.claim_approvals && curClaim.claim_approvals.length > 0 && (() => {
+                        const lastApproval = curClaim.claim_approvals[curClaim.claim_approvals.length - 1]
+                        return (
+                            <ClaimDetailRow
+                                title={lastApproval.approval_status_id === 2
+                                    ? t('claims.approvedBy', 'Approved by') + ':'
+                                    : t('claims.rejectedBy', 'Rejected by') + ':'}
+                                value={lastApproval.approved_by_user
+                                    ? `${lastApproval.approved_by_user.first_name} ${lastApproval.approved_by_user.last_name}`
+                                    : t('common.unknown', 'Unknown')}
+                            />
+                        )
+                    })()}
                 </tbody>
             </table>
 

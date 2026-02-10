@@ -113,7 +113,7 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
         // Reset form data and files after adding expense
         setExpenseFormData(initialExpenseFormData)
         setFiles([])
-        setTags(['Client Travelling'])
+        setTags([])
 
     }
 

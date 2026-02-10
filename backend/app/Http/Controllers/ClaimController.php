@@ -130,7 +130,7 @@ class ClaimController extends Controller
                 return $this->errorResponse(trans('messages.not_authorized_approve', ['id' => $claim->claim_id]), 403);
             }
         }
-        $this->claimService->bulkApproveClaim($claimIds);
+        $this->claimService->bulkApproveClaim($claimIds, $user);
     }
 
     public function bulkRejectClaim(Request $request)
@@ -145,7 +145,7 @@ class ClaimController extends Controller
                 return $this->errorResponse(trans('messages.not_authorized_reject', ['id' => $claim->claim_id]), 403);
             }
 
-            $this->claimService->bulkRejectClaim($claimIds);
+            $this->claimService->bulkRejectClaim($claimIds, $user);
         }
     }
 
