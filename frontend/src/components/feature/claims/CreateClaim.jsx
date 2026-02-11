@@ -11,6 +11,9 @@ import { useClaims } from '../../../contexts/ClaimContext.jsx'
 import { useAuth } from '../../../contexts/AuthContext.jsx'
 import { showToast } from '../../../utils/helpers.js'
 import { useTranslation } from 'react-i18next'
+//Mileage imports
+import MileageToggle from '../mileage/MileageToggle.jsx'
+import MileageSection from '../mileage/MileageSection.jsx'
 
 const calculateTotalAmount = (formData) => {
     const claimItemsTotal = formData.claimItems.reduce(
@@ -29,6 +32,17 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
     const [tags, setTags] = useState([])
     const [files, setFiles] = useState([])
 
+    // Mileage components
+    const [includeMileage, setIncludeMileage] = useState(false);
+    const initialMileageData = {
+    travel_from: "",
+    travel_to: "",
+    period_of_from: "",
+    period_of_to: "",
+    transactions: [],
+    };
+    const [mileageData, setMileageData] = useState(initialMileageData);
+    ///
     const [expenseErrors, setExpenseErrors] = useState([])
     const [claimErrors, setClaimErrors] = useState()
     const [validationDialog, setValidationDialog] = useState({ visible: false, header: '', message: '' })
@@ -68,6 +82,17 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
             [name]: value,
         }))
     }
+
+    // Mileage handlers
+        const handleMileageToggle = (checked) => {
+        setIncludeMileage(checked)
+
+        // If user turns mileage OFF, clear mileage data so it won't be submitted by accident
+        if (!checked) {
+            setMileageData(initialMileageData)
+        }
+        }
+    //
 
     const handleExpenseFieldChange = (e) => {
         const { name, value } = e.target
@@ -113,7 +138,7 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
         // Reset form data and files after adding expense
         setExpenseFormData(initialExpenseFormData)
         setFiles([])
-        setTags([])
+        setTags(['Client Travelling'])
 
     }
 
@@ -217,6 +242,18 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
                 <ClaimForm claimFormData={claimFormData} onFieldChange={handleFormFieldChange}
                     errors={claimErrors} />
             </div>
+
+            {/* Mileage parts */}
+            <div className="mt-6">
+                <MileageToggle value={includeMileage} onChange={handleMileageToggle} />
+
+                {includeMileage && (
+                    <div className="mt-4">
+                    <MileageSection mileageData={mileageData} setMileageData={setMileageData} />
+                    </div>
+                )}
+            </div>
+
             <div className="mt-6">
                 <AddExpenseForm claimFormData={claimFormData} onClaimItemsUpdate={handleClaimItemsUpdate}
                     expenseFormData={expenseFormData} onSetExpenseForm={setExpenseFormData}

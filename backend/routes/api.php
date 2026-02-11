@@ -16,6 +16,8 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UpdatePasswordController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VerifyEmailController;
+use App\Http\Controllers\MileageTransactionController;
+use App\Http\Controllers\MileageReceiptController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -104,3 +106,31 @@ Route::post('expenses/{expenseId}/reject', [ExpenseController::class, 'rejectExp
 //    Route::post('/expenses', [ExpenseController::class, 'store']);
 //    Route::post('/mileages', [MileageController::class, 'store']);
 // });
+
+// Mileage API
+
+//Route::middleware('auth:sanctum')->group(function () {
+// ===== Mileage (header: 1 per claim) =====
+    Route::post('/mileages', [MileageController::class, 'store']); 
+    Route::get('/claims/{claimId}/mileage', [MileageController::class, 'showByClaim']);
+    Route::put('/mileages/{mileageId}', [MileageController::class, 'update']);
+    Route::delete('/mileages/{mileageId}', [MileageController::class, 'destroy']);
+
+    // ===== Mileage Transactions =====
+    Route::post('/mileage-transactions', [MileageTransactionController::class, 'store']);
+    Route::put('/mileage-transactions/{transactionId}', [MileageTransactionController::class, 'update']);
+    Route::delete('/mileage-transactions/{transactionId}', [MileageTransactionController::class, 'destroy']);
+
+    // ===== Receipts =====
+    // add multiple receipts to an existing transaction
+    Route::post('/mileage-transactions/{transactionId}/receipts', [MileageReceiptController::class, 'storeForTransaction']);
+
+    // replace one receipt file
+    Route::put('/mileage-receipts/{receiptId}', [MileageReceiptController::class, 'update']);
+
+    // delete one receipt
+    Route::delete('/mileage-receipts/{receiptId}', [MileageReceiptController::class, 'destroy']);
+
+    // bulk delete receipts
+    Route::delete('/mileage-receipts', [MileageReceiptController::class, 'bulkDestroy']);
+//});
