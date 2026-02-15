@@ -42,8 +42,8 @@ function ViewClaimPage() {
             </div>
 
             <div className="flex flex-wrap gap-5 my-5">
-                <div className="flex-1"><ClaimDetail curClaim={curClaim} onClaimRefetch={fetchClaim} /></div>
-                <div className="flex-1">
+                <div className="flex-1 min-w-[280px]"><ClaimDetail curClaim={curClaim} onClaimRefetch={fetchClaim} /></div>
+                <div className="flex-1 min-w-[280px]">
                     {/* when in view claim mode, disable add note function*/}
                     <ClaimNotes notes={curClaim.notes} curClaim={curClaim} mode='view' />
                 </div>

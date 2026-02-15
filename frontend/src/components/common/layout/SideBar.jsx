@@ -145,7 +145,7 @@ function SideBar() {
                     flex flex-col
                     transition-all duration-300 ease-in-out
                     ${isMobile
-                        ? `fixed top-0 left-0 z-50 w-80 max-w-[85vw] shadow-xl ${showMobileMenu
+                        ? `fixed top-0 left-0 z-50 w-64 max-w-[75vw] shadow-xl ${showMobileMenu
                             ? 'translate-x-0'
                             : '-translate-x-full'}`
                         : `shrink-0 ${isCollapsed ? 'w-16' : 'w-55'}`}`}

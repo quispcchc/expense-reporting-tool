@@ -9,6 +9,7 @@ import { InputText } from 'primereact/inputtext'
 import { Column } from 'primereact/column'
 import { Dropdown } from 'primereact/dropdown'
 import { Button } from 'primereact/button'
+import { Dialog } from 'primereact/dialog'
 import { FilterMatchMode } from 'primereact/api'
 import { useLookups } from '../../contexts/LookupContext.jsx'
 import { IconField } from 'primereact/iconfield'
@@ -16,10 +17,12 @@ import { InputIcon } from 'primereact/inputicon'
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog'
 import { Toast } from 'primereact/toast'
 import { useTranslation } from 'react-i18next'
+import { useIsMobile } from '../../hooks/useIsMobile.js'
 
 function DepartmentsPage() {
     const { t } = useTranslation()
     const navigate = useNavigate()
+    const isMobile = useIsMobile()
 
     // Access global department state and actions from context
     const { state: { departments, loading }, actions: { updateDepartment, deleteDepartment } } = useDepartment()
@@ -38,6 +41,10 @@ function DepartmentsPage() {
         global: { value: null, matchMode: FilterMatchMode.CONTAINS },
     })
 
+    // Mobile edit dialog state
+    const [editDialog, setEditDialog] = useState(false)
+    const [editData, setEditData] = useState(null)
+
     // Handle global search input changes
     const onGlobalFilterChange = (e) => {
         const value = e.target.value
@@ -49,7 +56,6 @@ function DepartmentsPage() {
 
     // Custom renderer to display the status badge/tab
     const renderStatus = (rowData) => {
-        // Use the eager-loaded active_status relation from API response
         const statusName = rowData.active_status?.active_status_name || 'Unknown'
         return <StatusTab status={statusName} />
     }
@@ -80,7 +86,6 @@ function DepartmentsPage() {
     const onRowEditComplete = async (e) => {
         const { newData } = e
         await updateDepartment(newData)
-        // Refresh lookups so other pages (like Create Claim) get updated data
         await refreshLookups()
     }
 
@@ -100,7 +105,6 @@ function DepartmentsPage() {
                 const result = await deleteDepartment(rowData.department_id)
                 if (result.success) {
                     toast.current?.show({ severity: 'success', summary: t('common.success'), detail: t('departments.deleteSuccess'), life: 3000 })
-                    // Refresh lookups so other pages (like Create Claim) get updated data
                     await refreshLookups()
                 } else {
                     toast.current?.show({ severity: 'error', summary: t('common.error'), detail: result.error, life: 5000 })
@@ -109,19 +113,14 @@ function DepartmentsPage() {
         })
     }
 
-    // Delete button template
-    const deleteTemplate = (rowData) => {
-        return (
-            <Button
-                icon="pi pi-trash"
-                rounded
-                text
-                severity="danger"
-                tooltip={t('common.delete')}
-                tooltipOptions={{ position: 'top' }}
-                onClick={() => handleDelete(rowData)}
-            />
-        )
+    // Mobile edit dialog save
+    const handleMobileEditSave = async () => {
+        if (!editData) return
+        await updateDepartment(editData)
+        await refreshLookups()
+        toast.current?.show({ severity: 'success', summary: t('common.success'), detail: t('departments.updateSuccess', 'Department updated'), life: 3000 })
+        setEditDialog(false)
+        setEditData(null)
     }
 
     // Combined actions column template (Delete + Manage Teams)
@@ -166,48 +165,172 @@ function DepartmentsPage() {
         )
     }
 
+    // Filter departments for mobile search
+    const filteredDepartments = departments?.filter(dept => {
+        if (!globalFilterValue) return true
+        const q = globalFilterValue.toLowerCase()
+        return (
+            dept.department_abbreviation?.toLowerCase().includes(q) ||
+            dept.department_name?.toLowerCase().includes(q)
+        )
+    }) || []
+
+    // Mobile card view
+    const MobileCardView = () => (
+        <div className="admin-mobile-container">
+            <div className="admin-mobile-search">
+                <IconField iconPosition="left">
+                    <InputIcon className="pi pi-search" />
+                    <InputText
+                        value={globalFilterValue}
+                        onChange={onGlobalFilterChange}
+                        placeholder={t('common.keywordSearch')}
+                    />
+                </IconField>
+            </div>
+
+            <div className="admin-mobile-list">
+                {filteredDepartments.length === 0 ? (
+                    <div className="text-center text-gray-500 py-8">
+                        {t('common.noResults')}
+                    </div>
+                ) : (
+                    filteredDepartments.map(dept => {
+                        const statusName = dept.active_status?.active_status_name || 'Unknown'
+                        return (
+                            <div key={dept.department_id} className="admin-card">
+                                <div className="admin-card-header">
+                                    <div>
+                                        <div className="admin-card-title">{dept.department_name}</div>
+                                        <div className="admin-card-subtitle">{dept.department_abbreviation}</div>
+                                    </div>
+                                    <StatusTab status={statusName} />
+                                </div>
+                                <div className="admin-card-actions">
+                                    <Button
+                                        icon="pi pi-users"
+                                        label={t('departments.manageTeams')}
+                                        size="small"
+                                        text
+                                        onClick={() => handleManageTeams(dept)}
+                                    />
+                                    <Button
+                                        icon="pi pi-pencil"
+                                        size="small"
+                                        text
+                                        onClick={() => {
+                                            setEditData({ ...dept })
+                                            setEditDialog(true)
+                                        }}
+                                    />
+                                    <Button
+                                        icon="pi pi-trash"
+                                        size="small"
+                                        text
+                                        severity="danger"
+                                        onClick={() => handleDelete(dept)}
+                                    />
+                                </div>
+                            </div>
+                        )
+                    })
+                )}
+            </div>
+        </div>
+    )
+
+    // Desktop table view
+    const DesktopTableView = () => (
+        <div className="bg-white rounded-xl p-6 mt-5">
+            <DataTable
+                value={departments}
+                paginator
+                rows={5}
+                rowsPerPageOptions={[5, 10, 25, 50]}
+                paginatorTemplate="FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink RowsPerPageDropdown"
+                currentPageReportTemplate="{first} to {last} of {totalRecords}"
+                editMode="row"
+                onRowEditComplete={onRowEditComplete}
+                filters={filters}
+                globalFilterFields={['department_abbreviation', 'department_name', 'active_status_id']}
+                header={renderHeader()}
+                emptyMessage={t('common.noResults')}
+                sortMode="multiple"
+                removableSort
+                loading={loading}
+                scrollable
+                tableStyle={{ minWidth: '40rem' }}
+            >
+                <Column field="department_abbreviation" header={t('departments.code')} sortable editor={textInputEditor}></Column>
+                <Column field="department_name" header={t('departments.name')} sortable editor={textInputEditor} body={(rowData) => (
+                    <span
+                        className="text-brand-primary hover:underline cursor-pointer"
+                        onClick={() => navigate(`/admin/departments/${rowData.department_id}/teams`)}
+                    >
+                        {rowData.department_name}
+                    </span>
+                )}></Column>
+                <Column field="active_status_id" header={t('common.status')} body={renderStatus} sortable editor={statusEditor}></Column>
+                <Column rowEditor={true} header={t('common.edit')} headerStyle={{ width: '4rem', minWidth: '4rem' }} bodyStyle={{ textAlign: 'center' }}></Column>
+                <Column header={t('common.actions')} body={combinedActionsTemplate} headerStyle={{ width: '5rem', minWidth: '5rem' }} bodyStyle={{ textAlign: 'center' }}></Column>
+            </DataTable>
+        </div>
+    )
+
     return (
         <>
+            <Toast ref={toast} />
+            <ConfirmDialog />
             {/* Page title and navigation */}
             <ContentHeader title={t('departments.title')} homePath="/admin" iconKey="sidebar.teams" />
             {/* Add new department form component */}
             <AddNewDepartment toastRef={toast} />
-            <div className="bg-white rounded-xl p-6 mt-5">
-                {/* DataTable for listing and editing departments */}
-                <DataTable
-                    value={departments}
-                    paginator
-                    rows={5}
-                    rowsPerPageOptions={[5, 10, 25, 50]}
-                    paginatorTemplate="FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink RowsPerPageDropdown"
-                    currentPageReportTemplate="{first} to {last} of {totalRecords}"
-                    editMode="row"
-                    onRowEditComplete={onRowEditComplete}
-                    filters={filters}
-                    globalFilterFields={['department_abbreviation', 'department_name', 'active_status_id']}
-                    header={renderHeader()}
-                    emptyMessage={t('common.noResults')}
-                    sortMode="multiple"
-                    removableSort
-                    loading={loading}
-                >
-                    {/* Columns with inline editing */}
-                    <Column field="department_abbreviation" header={t('departments.code')} sortable editor={textInputEditor}></Column>
-                    <Column field="department_name" header={t('departments.name')} sortable editor={textInputEditor} body={(rowData) => (
-                        <span
-                            className="text-brand-primary hover:underline cursor-pointer"
-                            onClick={() => navigate(`/admin/departments/${rowData.department_id}/teams`)}
-                        >
-                            {rowData.department_name}
-                        </span>
-                    )}></Column>
-                    <Column field="active_status_id" header={t('common.status')} body={renderStatus} sortable editor={statusEditor}></Column>
-                    <Column rowEditor={true} header={t('common.edit')} headerStyle={{ width: '4rem', minWidth: '4rem' }} bodyStyle={{ textAlign: 'center' }}></Column>
-                    <Column header={t('common.actions')} body={combinedActionsTemplate} headerStyle={{ width: '5rem', minWidth: '5rem' }} bodyStyle={{ textAlign: 'center' }}></Column>
-                </DataTable>
-                <ConfirmDialog />
-                <Toast ref={toast} />
-            </div>
+
+            {isMobile ? <MobileCardView /> : <DesktopTableView />}
+
+            {/* Mobile Edit Dialog */}
+            <Dialog
+                header={t('departments.editDepartment', 'Edit Department')}
+                visible={editDialog}
+                style={{ width: '90vw', maxWidth: '450px' }}
+                onHide={() => { setEditDialog(false); setEditData(null) }}
+                className="mobile-edit-dialog"
+                footer={
+                    <div className="flex justify-end gap-2">
+                        <Button label={t('common.cancel', 'Cancel')} icon="pi pi-times" outlined onClick={() => { setEditDialog(false); setEditData(null) }} />
+                        <Button label={t('common.save', 'Save')} icon="pi pi-check" onClick={handleMobileEditSave} />
+                    </div>
+                }
+            >
+                {editData && (
+                    <>
+                        <div className="edit-field">
+                            <label>{t('departments.code')}</label>
+                            <InputText
+                                value={editData.department_abbreviation || ''}
+                                onChange={(e) => setEditData({ ...editData, department_abbreviation: e.target.value })}
+                            />
+                        </div>
+                        <div className="edit-field">
+                            <label>{t('departments.name')}</label>
+                            <InputText
+                                value={editData.department_name || ''}
+                                onChange={(e) => setEditData({ ...editData, department_name: e.target.value })}
+                            />
+                        </div>
+                        <div className="edit-field">
+                            <label>{t('common.status')}</label>
+                            <Dropdown
+                                value={editData.active_status_id}
+                                onChange={(e) => setEditData({ ...editData, active_status_id: e.value })}
+                                options={statusOptions}
+                                optionLabel="label"
+                                optionValue="value"
+                            />
+                        </div>
+                    </>
+                )}
+            </Dialog>
         </>
     )
 }
