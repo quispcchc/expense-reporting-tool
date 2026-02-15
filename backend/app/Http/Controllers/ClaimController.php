@@ -169,7 +169,8 @@ class ClaimController extends Controller
             // Build filename reflecting date filters
             $from = $filters['date_from'] ?? 'all';
             $to   = $filters['date_to']   ?? now()->format('Y-m-d');
-            $filename = "claims_export_{$from}_to_{$to}.csv";
+            $timestamp = now()->format('Ymd_His');
+            $filename = "claims_export_{$from}_to_{$to}_{$timestamp}.csv";
 
             $headers = [
                 'Content-Type'        => 'text/csv; charset=UTF-8',
