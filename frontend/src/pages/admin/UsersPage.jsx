@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState, useRef, useCallback } from 'react'
 import ContentHeader from '../../components/common/layout/ContentHeader.jsx'
 import AddNewUser from '../../components/feature/user/AddNewUser.jsx'
 import { DataTable } from 'primereact/datatable'
@@ -30,6 +30,11 @@ function UsersPage() {
     // Mobile edit dialog state
     const [editDialog, setEditDialog] = useState(false)
     const [editData, setEditData] = useState(null)
+
+    // Controlled row editing state (preserves edit mode across re-renders)
+    const [editingRows, setEditingRows] = useState({})
+    // Tracks department changes per editing row: { [userId]: departmentId }
+    const [editingDepartmentMap, setEditingDepartmentMap] = useState({})
 
     // Delete user with confirmation dialog
     const handleDeleteUser = (rowData) => {
@@ -150,8 +155,12 @@ function UsersPage() {
     )
 
     // Dropdown editor for teams field (multi-select)
-    const teamsEditor = (editorOptions) => {
-        const departmentId = editorOptions.rowData?.department_id || null;
+    const teamsEditor = useCallback((editorOptions) => {
+        const rowKey = editorOptions.rowData?.user_id;
+        // Use editingDepartmentMap if available (user changed department during this edit session)
+        const departmentId = rowKey != null && editingDepartmentMap[rowKey] !== undefined
+            ? editingDepartmentMap[rowKey]
+            : editorOptions.rowData?.department_id || null;
         const filteredTeams = departmentId
             ? lookups.teams.filter(team => team.department_id === departmentId)
             : [];
@@ -165,6 +174,12 @@ function UsersPage() {
             value = [];
         }
 
+        // If department was changed during this edit, filter out teams that no longer belong
+        if (rowKey != null && editingDepartmentMap[rowKey] !== undefined) {
+            const validTeamIds = new Set(filteredTeams.map(ft => ft.team_id));
+            value = value.filter(tid => validTeamIds.has(tid));
+        }
+
         return (
             <MultiSelect
                 value={value}
@@ -172,16 +187,16 @@ function UsersPage() {
                 options={filteredTeams.map(option => ({ label: option.team_name, value: option.team_id }))}
                 optionLabel="label"
                 optionValue="value"
-                display="chip"
+                maxSelectedLabels={2}
                 placeholder={departmentId ? t('users.selectTeam', 'Select team') : t('users.selectDepartmentFirst', 'Select department first')}
                 disabled={!departmentId}
                 className="w-full"
             />
         );
-    }
+    }, [editingDepartmentMap, lookups.teams, t])
 
     // Dropdown editor for roles field
-    const roleEditor = (editorOptions) => (
+    const roleEditor = useCallback((editorOptions) => (
         <Dropdown
             value={editorOptions.value}
             onChange={(e) => editorOptions.editorCallback(e.target.value)}
@@ -189,18 +204,26 @@ function UsersPage() {
             optionLabel="label"
             optionValue="value"
         />
-    )
+    ), [roleOptions])
 
     // Dropdown editor for department field
-    const departmentEditor = (editorOptions) => (
+    const departmentEditor = useCallback((editorOptions) => (
         <Dropdown
             value={editorOptions.value}
-            onChange={(e) => editorOptions.editorCallback(e.target.value)}
+            onChange={(e) => {
+                const newDeptId = e.target.value;
+                editorOptions.editorCallback(newDeptId);
+                // Track department change so teamsEditor can react
+                const rowKey = editorOptions.rowData?.user_id;
+                if (rowKey != null) {
+                    setEditingDepartmentMap(prev => ({ ...prev, [rowKey]: newDeptId }));
+                }
+            }}
             options={departmentOptions}
             optionLabel="label"
             optionValue="value"
         />
-    )
+    ), [departmentOptions])
 
     // Dropdown editor for status field
     const statusEditor = (editorOptions) => (
@@ -211,10 +234,23 @@ function UsersPage() {
         />
     )
 
+    // Controlled editing rows change handler
+    const onRowEditChange = useCallback((e) => {
+        setEditingRows(e.data)
+    }, [])
+
     // Called when a row is edited and saved
-    const onRowEditComplete = (e) => {
+    const onRowEditComplete = useCallback((e) => {
         let _users = [...users]
         let { newData, index } = e
+
+        // Clean up editing department tracking for this row
+        const rowKey = newData.user_id;
+        setEditingDepartmentMap(prev => {
+            const next = { ...prev };
+            delete next[rowKey];
+            return next;
+        });
 
         _users[index] = newData
         setUsers(_users)
@@ -260,7 +296,19 @@ function UsersPage() {
                     setUsers(users)
                 }
             })()
-    }
+    }, [users, updateUser, refresh, t])
+
+    // Called when row edit is cancelled
+    const onRowEditCancel = useCallback((e) => {
+        const rowKey = e.data?.user_id;
+        if (rowKey != null) {
+            setEditingDepartmentMap(prev => {
+                const next = { ...prev };
+                delete next[rowKey];
+                return next;
+            });
+        }
+    }, [])
 
     // Mobile edit dialog save
     const handleMobileEditSave = async () => {
@@ -438,7 +486,11 @@ function UsersPage() {
                 header={renderHeader}
                 emptyMessage={t('common.noResults')}
                 editMode="row"
+                editingRows={editingRows}
+                onRowEditChange={onRowEditChange}
                 onRowEditComplete={onRowEditComplete}
+                onRowEditCancel={onRowEditCancel}
+                dataKey="user_id"
                 sortMode="multiple"
                 removableSort
                 scrollable
