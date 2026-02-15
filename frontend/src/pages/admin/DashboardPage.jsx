@@ -186,8 +186,7 @@ function DashboardPage() {
             }
 
             const disposition = response.headers['content-disposition']
-            const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
-            let filename = `claims_export_${ts}.csv`
+            let filename = `claims_export_${Date.now()}.csv`
             if (disposition) {
                 const match = disposition.match(/filename="?([^"]+)"?/)
                 if (match) filename = match[1]
