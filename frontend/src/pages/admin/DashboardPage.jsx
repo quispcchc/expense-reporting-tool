@@ -2,19 +2,21 @@ import React, { useState, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import ContentHeader from '../../components/common/layout/ContentHeader.jsx'
 import { useLookups } from '../../contexts/LookupContext.jsx'
-import { Calendar } from 'primereact/calendar'
 import { Dropdown } from 'primereact/dropdown'
 import { MultiSelect } from 'primereact/multiselect'
 import { InputNumber } from 'primereact/inputnumber'
 import { InputText } from 'primereact/inputtext'
 import { Button } from 'primereact/button'
 import { Toast } from 'primereact/toast'
-import { ProgressSpinner } from 'primereact/progressspinner'
+import { DataTable } from 'primereact/datatable'
+import { Column } from 'primereact/column'
+import StatusTab from '../../components/common/ui/StatusTab.jsx'
 import { showToast } from '../../utils/helpers.js'
 import api from '../../api/api.js'
 
 const INITIAL_FILTERS = {
-    dateRange: null,
+    date_from: '',
+    date_to: '',
     claim_type_id: null,
     claim_status_id: null,
     department_id: null,
@@ -33,7 +35,9 @@ function DashboardPage() {
     const toast = useRef(null)
 
     const [filters, setFilters] = useState({ ...INITIAL_FILTERS })
-    const [loading, setLoading] = useState(false)
+    const [exporting, setExporting] = useState(false)
+    const [searching, setSearching] = useState(false)
+    const [previewData, setPreviewData] = useState(null) // null = not searched yet
 
     const updateFilter = (key, value) => {
         setFilters(prev => ({ ...prev, [key]: value }))
@@ -41,45 +45,137 @@ function DashboardPage() {
 
     const clearFilters = () => {
         setFilters({ ...INITIAL_FILTERS })
+        setPreviewData(null)
     }
 
-    const handleExport = async () => {
-        setLoading(true)
+    /**
+     * Build query params from current filter state.
+     */
+    const buildParams = () => {
+        const params = {}
+
+        if (filters.date_from) params.date_from = filters.date_from
+        if (filters.date_to) params.date_to = filters.date_to
+
+        const directKeys = [
+            'claim_type_id', 'claim_status_id', 'department_id',
+            'team_id', 'project_id', 'cost_centre_id',
+            'amount_min', 'amount_max',
+        ]
+        directKeys.forEach(key => {
+            if (filters[key] != null) params[key] = filters[key]
+        })
+
+        if (filters.submitter?.trim()) {
+            params.submitter = filters.submitter.trim()
+        }
+
+        if (filters.tag_ids?.length) {
+            params.tag_ids = filters.tag_ids.join(',')
+        }
+
+        return params
+    }
+
+    /**
+     * Fetch filtered claims for preview table.
+     */
+    const handleSearch = async () => {
+        setSearching(true)
         try {
-            const params = {}
-
-            // Map date range
-            if (filters.dateRange && filters.dateRange[0]) {
-                params.date_from = filters.dateRange[0].toISOString().split('T')[0]
-            }
-            if (filters.dateRange && filters.dateRange[1]) {
-                params.date_to = filters.dateRange[1].toISOString().split('T')[0]
-            }
-
-            // Map simple filters
-            const directKeys = [
-                'claim_type_id', 'claim_status_id', 'department_id',
-                'team_id', 'project_id', 'cost_centre_id',
-                'amount_min', 'amount_max',
-            ]
-            directKeys.forEach(key => {
-                if (filters[key] != null) params[key] = filters[key]
-            })
-
-            if (filters.submitter?.trim()) {
-                params.submitter = filters.submitter.trim()
-            }
-
-            if (filters.tag_ids?.length) {
-                params.tag_ids = filters.tag_ids.join(',')
-            }
-
+            const params = buildParams()
             const response = await api.get('claims/export-csv', {
                 params,
                 responseType: 'blob',
             })
 
-            // Check for empty response
+            // Parse CSV blob into rows for preview
+            const text = await response.data.text()
+            const lines = text.split('\n').filter(line => line.trim())
+
+            if (lines.length <= 1) {
+                setPreviewData([])
+                showToast(toast, {
+                    severity: 'warn',
+                    summary: t('dashboard.export.noData', 'No Data'),
+                    detail: t('dashboard.export.noDataDetail', 'No records match the current filters.'),
+                })
+                return
+            }
+
+            // Parse CSV header + rows
+            const parseCSVLine = (line) => {
+                const result = []
+                let current = ''
+                let inQuotes = false
+                for (let i = 0; i < line.length; i++) {
+                    const ch = line[i]
+                    if (ch === '"') {
+                        if (inQuotes && line[i + 1] === '"') {
+                            current += '"'
+                            i++
+                        } else {
+                            inQuotes = !inQuotes
+                        }
+                    } else if (ch === ',' && !inQuotes) {
+                        result.push(current)
+                        current = ''
+                    } else {
+                        current += ch
+                    }
+                }
+                result.push(current)
+                return result
+            }
+
+            // Remove BOM from first line if present
+            let headerLine = lines[0]
+            if (headerLine.charCodeAt(0) === 0xFEFF) {
+                headerLine = headerLine.substring(1)
+            }
+
+            const headers = parseCSVLine(headerLine)
+            const rows = lines.slice(1).map((line, idx) => {
+                const values = parseCSVLine(line)
+                const row = { _rowIndex: idx }
+                headers.forEach((h, i) => {
+                    row[h] = values[i] || ''
+                })
+                return row
+            })
+
+            setPreviewData(rows)
+
+            showToast(toast, {
+                severity: 'success',
+                summary: t('dashboard.search.found', 'Results Found'),
+                detail: t('dashboard.search.foundDetail', '{{count}} record(s) found.', { count: rows.length }),
+            })
+        } catch (error) {
+            console.error('Search failed:', error)
+            setPreviewData([])
+            showToast(toast, {
+                severity: 'error',
+                summary: t('dashboard.search.error', 'Search Failed'),
+                detail: error.message || t('dashboard.search.errorDetail', 'An error occurred while searching.'),
+            })
+        } finally {
+            setSearching(false)
+        }
+    }
+
+    /**
+     * Download CSV file.
+     */
+    const handleExport = async () => {
+        setExporting(true)
+        try {
+            const params = buildParams()
+            const response = await api.get('claims/export-csv', {
+                params,
+                responseType: 'blob',
+            })
+
             if (response.data.size === 0) {
                 showToast(toast, {
                     severity: 'warn',
@@ -89,7 +185,6 @@ function DashboardPage() {
                 return
             }
 
-            // Extract filename from Content-Disposition header if available
             const disposition = response.headers['content-disposition']
             let filename = 'claims_export.csv'
             if (disposition) {
@@ -97,7 +192,6 @@ function DashboardPage() {
                 if (match) filename = match[1]
             }
 
-            // Trigger download
             const url = URL.createObjectURL(new Blob([response.data], { type: 'text/csv' }))
             const link = document.createElement('a')
             link.href = url
@@ -120,45 +214,47 @@ function DashboardPage() {
                 detail: error.message || t('dashboard.export.errorDetail', 'An error occurred during export.'),
             })
         } finally {
-            setLoading(false)
+            setExporting(false)
         }
     }
 
-    // Dropdown options from lookups
+    // Dropdown options
     const claimTypeOptions = lookups.claimTypes.map(ct => ({
-        label: ct.claim_type_name,
-        value: ct.claim_type_id,
+        label: ct.claim_type_name, value: ct.claim_type_id,
     }))
-
     const claimStatusOptions = lookups.claimStatus.map(cs => ({
-        label: cs.claim_status_name,
-        value: cs.claim_status_id,
+        label: cs.claim_status_name, value: cs.claim_status_id,
     }))
-
     const departmentOptions = lookups.departments.map(d => ({
-        label: d.department_name,
-        value: d.department_id,
+        label: d.department_name, value: d.department_id,
     }))
-
     const teamOptions = lookups.teams.map(tm => ({
-        label: tm.team_name,
-        value: tm.team_id,
+        label: tm.team_name, value: tm.team_id,
     }))
-
     const projectOptions = lookups.projects.map(p => ({
-        label: p.project_name,
-        value: p.project_id,
+        label: p.project_name, value: p.project_id,
     }))
-
     const costCentreOptions = lookups.costCentres.map(cc => ({
         label: `${cc.cost_centre_code} - ${cc.cost_centre_name ?? ''}`.trim(),
         value: cc.cost_centre_id,
     }))
-
     const tagOptions = lookups.tags.map(tg => ({
-        label: tg.tag_name,
-        value: tg.tag_id,
+        label: tg.tag_name, value: tg.tag_id,
     }))
+
+    // Status body template for table
+    const statusBodyTemplate = (rowData) => {
+        const statusName = rowData['Claim Status']
+        if (!statusName) return null
+        return <StatusTab status={statusName} />
+    }
+
+    // Amount body template
+    const amountBodyTemplate = (rowData) => {
+        const amount = rowData['Total Claim Amount']
+        if (!amount) return null
+        return <>${parseFloat(amount).toFixed(2)}</>
+    }
 
     return (
         <>
@@ -178,21 +274,31 @@ function DashboardPage() {
                 </h3>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {/* Date Range */}
+                    {/* Date From */}
                     <div className="flex flex-col gap-1">
                         <label className="text-sm font-medium text-gray-600">
-                            {t('dashboard.filters.dateRange', 'Date Range')}
+                            {t('dashboard.filters.dateFrom', 'Date From')}
                         </label>
-                        <Calendar
-                            id="dateRange"
-                            value={filters.dateRange}
-                            onChange={e => updateFilter('dateRange', e.value)}
-                            selectionMode="range"
-                            readOnlyInput
-                            showIcon
-                            dateFormat="yy-mm-dd"
-                            placeholder={t('dashboard.filters.selectDateRange', 'Select date range')}
-                            className="w-full"
+                        <input
+                            type="date"
+                            id="dateFrom"
+                            value={filters.date_from}
+                            onChange={e => updateFilter('date_from', e.target.value)}
+                            className="p-inputtext p-component w-full"
+                        />
+                    </div>
+
+                    {/* Date To */}
+                    <div className="flex flex-col gap-1">
+                        <label className="text-sm font-medium text-gray-600">
+                            {t('dashboard.filters.dateTo', 'Date To')}
+                        </label>
+                        <input
+                            type="date"
+                            id="dateTo"
+                            value={filters.date_to}
+                            onChange={e => updateFilter('date_to', e.target.value)}
+                            className="p-inputtext p-component w-full"
                         />
                     </div>
 
@@ -292,7 +398,7 @@ function DashboardPage() {
                         />
                     </div>
 
-                    {/* Submitter Search */}
+                    {/* Submitter */}
                     <div className="flex flex-col gap-1">
                         <label className="text-sm font-medium text-gray-600">
                             {t('dashboard.filters.submitter', 'Submitter')}
@@ -368,24 +474,77 @@ function DashboardPage() {
                         onClick={clearFilters}
                     />
                     <Button
+                        id="searchBtn"
+                        label={searching
+                            ? t('dashboard.search.searching', 'Searching...')
+                            : t('dashboard.search.button', 'Search')}
+                        icon={searching ? 'pi pi-spin pi-spinner' : 'pi pi-search'}
+                        severity="info"
+                        onClick={handleSearch}
+                        disabled={searching || exporting}
+                    />
+                    <Button
                         id="exportCsvBtn"
-                        label={t('dashboard.export.button', 'Export to CSV')}
-                        icon={loading ? 'pi pi-spin pi-spinner' : 'pi pi-file'}
+                        label={exporting
+                            ? t('dashboard.export.exporting', 'Exporting...')
+                            : t('dashboard.export.button', 'Export to CSV')}
+                        icon={exporting ? 'pi pi-spin pi-spinner' : 'pi pi-file'}
                         severity="success"
                         onClick={handleExport}
-                        disabled={loading}
+                        disabled={searching || exporting}
                     />
-                    {loading && (
-                        <div className="flex items-center gap-2 text-sm text-gray-500">
-                            <ProgressSpinner
-                                style={{ width: '20px', height: '20px' }}
-                                strokeWidth="4"
-                            />
-                            {t('dashboard.export.loading', 'Generating CSV...')}
-                        </div>
-                    )}
                 </div>
             </div>
+
+            {/* Preview Results Table */}
+            {previewData !== null && (
+                <div className="bg-white rounded-xl p-4 md:p-6 mt-5">
+                    <h3 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                        <i className="pi pi-list" />
+                        {t('dashboard.results.title', 'Filtered Results')}
+                        <span className="text-sm font-normal text-gray-500 ml-2">
+                            ({previewData.length} {t('dashboard.results.records', 'records')})
+                        </span>
+                    </h3>
+
+                    <DataTable
+                        value={previewData}
+                        paginator
+                        rows={10}
+                        rowsPerPageOptions={[5, 10, 25, 50]}
+                        paginatorTemplate="FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink RowsPerPageDropdown"
+                        currentPageReportTemplate="{first} to {last} of {totalRecords}"
+                        dataKey="_rowIndex"
+                        emptyMessage={t('dashboard.results.empty', 'No records match the current filters.')}
+                        scrollable
+                        tableStyle={{ minWidth: '60rem' }}
+                        stripedRows
+                    >
+                        <Column field="Claim ID" header={t('dashboard.results.claimId', 'Claim ID')}
+                            style={{ minWidth: '5rem' }} />
+                        <Column field="Submitter" header={t('dashboard.results.submitter', 'Submitter')}
+                            style={{ minWidth: '8rem' }} />
+                        <Column field="Claim Type" header={t('dashboard.results.claimType', 'Claim Type')}
+                            style={{ minWidth: '7rem' }} />
+                        <Column field="Department" header={t('dashboard.results.department', 'Department')}
+                            style={{ minWidth: '7rem' }} />
+                        <Column field="Claim Submitted Date" header={t('dashboard.results.submittedDate', 'Submitted')}
+                            style={{ minWidth: '7rem' }} />
+                        <Column field="Total Claim Amount" header={t('dashboard.results.totalAmount', 'Amount')}
+                            body={amountBodyTemplate}
+                            style={{ minWidth: '6rem' }} />
+                        <Column field="Claim Status" header={t('dashboard.results.status', 'Status')}
+                            body={statusBodyTemplate}
+                            style={{ minWidth: '6rem' }} />
+                        <Column field="Expense Description" header={t('dashboard.results.description', 'Expense')}
+                            style={{ minWidth: '10rem' }} />
+                        <Column field="Vendor" header={t('dashboard.results.vendor', 'Vendor')}
+                            style={{ minWidth: '7rem' }} />
+                        <Column field="Expense Amount" header={t('dashboard.results.expenseAmount', 'Exp. Amount')}
+                            style={{ minWidth: '6rem' }} />
+                    </DataTable>
+                </div>
+            )}
         </>
     )
 }
