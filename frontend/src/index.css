@@ -954,3 +954,131 @@ nav {
 .text-gray-800 {
     color: #1f2937;
 }
+
+/* ============================================
+   Admin Mobile Card View Styles
+   ============================================ */
+.admin-mobile-container {
+    width: 100%;
+}
+
+.admin-mobile-search {
+    margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.admin-mobile-search .p-iconfield {
+    width: 100%;
+}
+
+.admin-mobile-search .p-inputtext {
+    width: 100%;
+}
+
+.admin-mobile-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.admin-card {
+    background: var(--color-bg-primary);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s ease;
+}
+
+.admin-card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.admin-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+}
+
+.admin-card-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+.admin-card-subtitle {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    margin-top: 2px;
+}
+
+.admin-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.admin-card-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+}
+
+.admin-card-label {
+    color: var(--color-text-secondary);
+    font-weight: 500;
+}
+
+.admin-card-value {
+    color: var(--color-text-primary);
+}
+
+.admin-card-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--color-border);
+    justify-content: flex-end;
+}
+
+.admin-card-actions .p-button {
+    height: 36px;
+    font-size: 13px;
+}
+
+.admin-card-status {
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+/* Mobile edit dialog */
+.mobile-edit-dialog .p-dialog-content {
+    padding: 20px;
+}
+
+.mobile-edit-dialog .edit-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 16px;
+}
+
+.mobile-edit-dialog .edit-field label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+}
+
+.mobile-edit-dialog .edit-field .p-inputtext,
+.mobile-edit-dialog .edit-field .p-dropdown,
+.mobile-edit-dialog .edit-field .p-multiselect {
+    width: 100%;
+}

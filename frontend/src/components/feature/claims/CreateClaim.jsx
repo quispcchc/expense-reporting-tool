@@ -227,7 +227,7 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
                     toastRef={toastRef}
                 />
             </div>
-            <Dialog header={validationDialog.header} visible={validationDialog.visible} style={{ width: '450px' }}
+            <Dialog header={validationDialog.header} visible={validationDialog.visible} style={{ width: '90vw', maxWidth: '450px' }}
                 onHide={() => setValidationDialog(prev => ({ ...prev, visible: false }))}
                 footer={
                     <Button label={t('common.ok')} icon="pi pi-check" onClick={() => setValidationDialog(prev => ({ ...prev, visible: false }))}

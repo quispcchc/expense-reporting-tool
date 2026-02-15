@@ -8,14 +8,14 @@ function DashboardPage() {
     return (
         <>
             {/* Page title/header */}
-            <ContentHeader 
-                title={t('dashboard.title', 'Dashboard')} 
-                homePath="/admin" 
-                iconKey="sidebar.dashboard" 
+            <ContentHeader
+                title={t('dashboard.title', 'Dashboard')}
+                homePath="/admin"
+                iconKey="sidebar.dashboard"
             />
 
             {/* Main content area */}
-            <div className="bg-white rounded-xl p-8 mt-5 text-center">
+            <div className="bg-white rounded-xl p-4 md:p-8 mt-5 text-center">
                 <div className="flex flex-col items-center justify-center min-h-96">
                     <div className="mb-6">
                         <span className="text-6xl text-gray-300">

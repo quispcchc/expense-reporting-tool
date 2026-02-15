@@ -32,8 +32,8 @@ function ContentHeader({ title, homePath, className = 'mb-4', iconKey, breadcrum
             const isLast = index === arr.length - 1
             return {
                 template: () => isLast ? (
-                    <span className="flex items-center gap-2 text-brand-primary font-semibold text-xl">
-                        {Icon && <Icon className="text-2xl" />}
+                    <span className="flex items-center gap-2 text-brand-primary font-semibold text-lg md:text-xl">
+                        {Icon && <Icon className="text-xl md:text-2xl" />}
                         {item.label}
                     </span>
                 ) : (
@@ -46,8 +46,8 @@ function ContentHeader({ title, homePath, className = 'mb-4', iconKey, breadcrum
     } else if (title) {
         items = [{
             template: () => (
-                <span className="flex items-center gap-2 text-brand-primary font-semibold text-xl">
-                    {Icon && <Icon className="text-2xl" />}
+                <span className="flex items-center gap-2 text-brand-primary font-semibold text-lg md:text-xl">
+                    {Icon && <Icon className="text-xl md:text-2xl" />}
                     {title}
                 </span>
             )
