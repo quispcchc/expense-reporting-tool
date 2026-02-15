@@ -13,7 +13,7 @@ function SettingsPage() {
     }
     return (
         <>
-            <div className='flex justify-between'>
+            <div className='flex justify-between flex-wrap items-center gap-2'>
                 <ContentHeader title={t('sidebar.settings')} homePath="/admin" iconKey="sidebar.settings" />
                 <Button label={t('common.save')} onClick={handleRateSubmit} />
 

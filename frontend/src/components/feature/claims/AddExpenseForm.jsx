@@ -30,7 +30,7 @@ function AddExpenseForm({
 
     return (
         <div className="bg-white h-full rounded-2xl shadow-sm">
-            <div className={`flex justify-between items-center rounded-t-2xl p-6 bg-brand-light`}>
+            <div className={`flex justify-between items-center flex-wrap rounded-t-2xl p-4 md:p-6 bg-brand-light gap-2`}>
                 <div>
                     <p className="text-xl font-semibold text-text-primary">{t('expenses.addExpense')}</p>
                     <p className="text-text-secondary text-sm">{t('expenses.addExpenseDescription')}</p>
@@ -45,10 +45,10 @@ function AddExpenseForm({
             </div>
 
             {/* Main form content split into two columns */}
-            <div className="flex justify-between my-5 gap-10 flex-wrap px-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 my-5 gap-6 md:gap-10 px-4 md:px-6">
 
                 {/* Left column with input fields */}
-                <div className="flex-1">
+                <div>
                     <div className="flex flex-col gap-3">
 
                         {/* Program select dropdown */}
@@ -98,15 +98,15 @@ function AddExpenseForm({
                             errors={errors} />
 
                         {/* Amount and Buyer inputs side by side */}
-                        <div className="flex justify-between flex-wrap gap-3">
-                            <div className="flex-1">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
                                 <Input name="amount" id="amount" label={t('expenses.amount')}
                                     value={expenseFormData.amount}
                                     onChange={onExpenseChange}
                                     placeholder={t('expenses.enterAmount', 'Please enter amount')}
                                     errors={errors} />
                             </div>
-                            <div className="flex-1">
+                            <div>
                                 <Input name="buyer" id="buyer" label={t('expenses.buyer')}
                                     value={expenseFormData.buyer}
                                     onChange={onExpenseChange}
@@ -118,7 +118,7 @@ function AddExpenseForm({
                 </div>
 
                 {/* Right column with description, notes, attachments, and tags */}
-                <div className="flex-1">
+                <div>
 
                     {/* Expense Description textarea */}
                     <div className="mb-5">
@@ -157,7 +157,7 @@ function AddExpenseForm({
             </div>
 
             {/* Buttons for adding expense and autofill form (autofill:for quick test) */}
-            <div className="flex justify-end gap-2 p-5">
+            <div className="flex justify-end gap-2 p-4 md:p-5 flex-wrap">
                 <Button label={t('expenses.addExpense')} type="button" icon="pi pi-check" iconPos="right"
                     onClick={onAddExpense} />
                 <Button label={t('common.autoFill', 'Auto Fill Form')} type="button" onClick={() => autoFillForm(onSetExpenseForm)} />

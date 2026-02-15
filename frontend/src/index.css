@@ -954,3 +954,214 @@ nav {
 .text-gray-800 {
     color: #1f2937;
 }
+
+/* ============================================
+   Admin Mobile Card View Styles
+   ============================================ */
+.admin-mobile-container {
+    width: 100%;
+}
+
+.admin-mobile-search {
+    margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.admin-mobile-search .p-iconfield {
+    width: 100%;
+}
+
+.admin-mobile-search .p-inputtext {
+    width: 100%;
+}
+
+.admin-mobile-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.admin-card {
+    background: var(--color-bg-primary);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s ease;
+}
+
+.admin-card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.admin-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+}
+
+.admin-card-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+.admin-card-subtitle {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    margin-top: 2px;
+}
+
+.admin-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.admin-card-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+}
+
+.admin-card-label {
+    color: var(--color-text-secondary);
+    font-weight: 500;
+}
+
+.admin-card-value {
+    color: var(--color-text-primary);
+}
+
+.admin-card-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--color-border);
+    justify-content: flex-end;
+}
+
+.admin-card-actions .p-button {
+    height: 36px;
+    font-size: 13px;
+}
+
+.admin-card-status {
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+/* Mobile edit dialog */
+.mobile-edit-dialog .p-dialog-content {
+    padding: 20px;
+}
+
+.mobile-edit-dialog .edit-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 16px;
+}
+
+.mobile-edit-dialog .edit-field label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+}
+
+.mobile-edit-dialog .edit-field .p-inputtext,
+.mobile-edit-dialog .edit-field .p-dropdown,
+.mobile-edit-dialog .edit-field .p-multiselect {
+    width: 100%;
+}
+
+/* =====================================================
+   Mobile Expense Full-Screen Detail View
+   ===================================================== */
+.mobile-expense-detail {
+    @apply bg-white rounded-xl shadow-sm;
+    min-height: 60vh;
+    margin: -8px -12px;
+    /* Negative margin to fill parent padding and feel full-screen */
+}
+
+.mobile-expense-detail-header {
+    @apply flex items-center gap-2 px-4 py-3 bg-gray-50 border-b border-gray-200;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.mobile-expense-detail-body {
+    @apply p-4;
+}
+
+
+.mobile-detail-row {
+    @apply flex flex-col gap-1 py-2 border-b border-gray-50;
+}
+
+.mobile-detail-label {
+    @apply text-xs text-gray-500 font-medium;
+}
+
+.mobile-detail-value {
+    @apply text-sm text-gray-800 break-words;
+}
+
+.mobile-detail-row-stacked {
+    @apply flex flex-col gap-1 py-2 border-b border-gray-50;
+}
+
+.mobile-detail-text {
+    @apply text-sm text-gray-800 break-words whitespace-pre-wrap;
+}
+
+.mobile-expense-detail-expansion {
+    @apply border-t border-gray-200 p-4;
+}
+
+/* Force expansion content to remove extra padding */
+.mobile-expense-detail-expansion .px-18 {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+/* Force all expansion rows to stack vertically: label on one line, value on next */
+.mobile-expense-detail-expansion .flex.items-center.gap-4,
+.mobile-expense-detail-expansion .flex.items-start.gap-4 {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 4px !important;
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+/* Remove min-width on labels inside mobile detail expansion */
+.mobile-expense-detail-expansion label {
+    min-width: unset !important;
+    font-size: 13px;
+    color: #6b7280;
+}
+
+/* Ensure values take full width */
+.mobile-expense-detail-expansion .flex-1 {
+    width: 100%;
+}
+
+.mobile-expense-detail-expansion .flex-1 p,
+.mobile-expense-detail-expansion .flex-1>span {
+    word-break: break-word;
+    white-space: pre-wrap;
+}
+
+.mobile-expense-detail-actions {
+    @apply flex justify-end gap-2 p-3 border-t border-gray-200 flex-wrap;
+}

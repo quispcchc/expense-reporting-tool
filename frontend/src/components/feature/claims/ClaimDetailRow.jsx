@@ -10,7 +10,7 @@ function ClaimDetailRow({ title, value, isEdit, options, onChange }) {
         <tr>
             <th className="text-left py-2 font-medium">{title}</th>
 
-            <td className="py-2">
+            <td className="py-2 break-words">
                 {isEdit ? (
                     <Dropdown
                         options={options}

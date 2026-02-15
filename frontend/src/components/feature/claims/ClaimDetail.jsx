@@ -30,12 +30,12 @@ function ClaimDetail({ curClaim, toastRef, onClaimRefetch }) {
     async function handleSelectSave() {
         try {
             await api.put(`/claims/${curClaim.claim_id}`, claimDetail)
-            
+
             // Fetch fresh claim data from server
             if (onClaimRefetch) {
                 await onClaimRefetch()
             }
-            
+
             showToast(toastRef, { severity: 'success', summary: 'Updated', detail: 'Claim Updated Successfully' })
             setIsEditing(false)
         } catch (error) {
@@ -99,7 +99,11 @@ function ClaimDetail({ curClaim, toastRef, onClaimRefetch }) {
 
             </div>
 
-            <table className="table-auto w-full text-left">
+            <table className="table-fixed w-full text-left">
+                <colgroup>
+                    <col className="w-[120px] md:w-[160px]" />
+                    <col />
+                </colgroup>
                 <tbody>
                     {/* Claim Type */}
                     <ClaimDetailRow

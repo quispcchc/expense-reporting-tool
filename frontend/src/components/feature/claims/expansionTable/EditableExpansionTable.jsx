@@ -15,6 +15,7 @@ import api, { API_BASE_URL } from '../../../../api/api.js'
 import { BUTTON_STYLE } from '../../../../utils/customizeStyle.js'
 import { confirmDialog } from 'primereact/confirmdialog'
 import { useTranslation } from 'react-i18next'
+import { useIsMobile } from '../../../../hooks/useIsMobile.js'
 
 // Helper function to map data based on mode
 const mapExpenseData = (data, mode) => {
@@ -55,7 +56,9 @@ const mapExpenseData = (data, mode) => {
 
 function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toastRef, onClaimUpdated }) {
     const { t } = useTranslation()
+    const isMobile = useIsMobile()
     const [expenseItems, setExpenseItems] = useState(() => mapExpenseData(data, mode))
+    const [mobileExpandedId, setMobileExpandedId] = useState(null)
 
     const { updateClaim } = useClaims()
 
@@ -617,15 +620,175 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
         />
     )
 
+    // Format currency helper
+    const formatCurrency = (amount) => new Intl.NumberFormat(APP_SETTINGS.currency.locale, {
+        style: 'currency',
+        currency: APP_SETTINGS.currency.code,
+    }).format(amount || 0)
+
+    // Get selected expense detail for mobile full-screen view
+    const selectedExpense = mobileExpandedId
+        ? expenseItems.find(item => item.transactionId === mobileExpandedId)
+        : null
+
+    // Mobile expense card (summary only, tappable)
+    const MobileExpenseCard = ({ item }) => {
+        const isProcessed = item.status === 2 || item.status === 3
+        return (
+            <div
+                className="admin-card cursor-pointer"
+                onClick={() => setMobileExpandedId(item.transactionId)}
+            >
+                <div className="admin-card-header">
+                    <div className="flex-1 min-w-0">
+                        <div className="admin-card-title text-sm">
+                            #{item.transactionId} — {formatCurrency(item.amount)}
+                        </div>
+                        <div className="admin-card-subtitle text-xs">
+                            {item.transactionDate} · {item.vendor || '—'}
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        {mode !== 'create' && <StatusTab status={item.status} />}
+                        <i className="pi pi-chevron-right text-gray-400 text-xs" />
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+    // Mobile full-screen detail view
+    const MobileDetailView = ({ item }) => {
+        const isProcessed = item.status === 2 || item.status === 3
+        return (
+            <div className="mobile-expense-detail">
+                {/* Header with back button */}
+                <div className="mobile-expense-detail-header">
+                    <Button
+                        icon="pi pi-arrow-left"
+                        text
+                        rounded
+                        severity="secondary"
+                        onClick={() => setMobileExpandedId(null)}
+                        className="!p-1"
+                    />
+                    <h4 className="text-base font-semibold flex-1">
+                        {t('expenses.title')} #{item.transactionId}
+                    </h4>
+                    {mode !== 'create' && <StatusTab status={item.status} />}
+                </div>
+
+                {/* Detail fields */}
+                <div className="mobile-expense-detail-body">
+                    <div className="mobile-detail-row">
+                        <span className="mobile-detail-label">{t('expenses.amount')}</span>
+                        <span className="mobile-detail-value font-semibold">{formatCurrency(item.amount)}</span>
+                    </div>
+                    <div className="mobile-detail-row">
+                        <span className="mobile-detail-label">{t('expenses.transactionDate')}</span>
+                        <span className="mobile-detail-value">{item.transactionDate || '—'}</span>
+                    </div>
+                    <div className="mobile-detail-row">
+                        <span className="mobile-detail-label">{t('expenses.vendor')}</span>
+                        <span className="mobile-detail-value">{item.vendor || '—'}</span>
+                    </div>
+                    <div className="mobile-detail-row">
+                        <span className="mobile-detail-label">{t('expenses.buyer')}</span>
+                        <span className="mobile-detail-value">{item.buyer || '—'}</span>
+                    </div>
+                    <div className="mobile-detail-row">
+                        <span className="mobile-detail-label">{t('expenses.accountNumber')}</span>
+                        <span className="mobile-detail-value text-sm">{accountNumMap[item.accountNum] || '—'}</span>
+                    </div>
+                    <div className="mobile-detail-row">
+                        <span className="mobile-detail-label">{t('expenses.costCentre')}</span>
+                        <span className="mobile-detail-value text-sm">{costCentreMap[item.costCentre] || '—'}</span>
+                    </div>
+                    {item.description && (
+                        <div className="mobile-detail-row-stacked">
+                            <span className="mobile-detail-label">{t('expenses.description')}</span>
+                            <p className="mobile-detail-text">{item.description}</p>
+                        </div>
+                    )}
+                </div>
+
+                {/* Expansion content (program, tags, notes, attachments) */}
+                <div className="mobile-expense-detail-expansion">
+                    <ClaimRowExpansion
+                        rowData={item}
+                        editingRowId={currentlyEditingRowId}
+                        claimItems={expenseItems}
+                        expandedRowData={unsavedExpansionChanges}
+                        handleInputChange={handleExpansionFieldChange}
+                        mode={mode}
+                    />
+                </div>
+
+                {/* Action buttons */}
+                {(mode !== 'view') && (
+                    <div className="mobile-expense-detail-actions">
+                        {mode !== 'view' && (
+                            <Button
+                                icon="pi pi-trash"
+                                size="small"
+                                text
+                                severity="danger"
+                                label={t('common.delete')}
+                                onClick={() => {
+                                    deleteExpenseItem(item.transactionId)
+                                    setMobileExpandedId(null)
+                                }}
+                            />
+                        )}
+                        {mode === 'edit' && (
+                            <>
+                                <Button
+                                    icon="pi pi-check"
+                                    size="small"
+                                    outlined
+                                    severity="success"
+                                    label={t('claims.approve', 'Approve')}
+                                    onClick={() => approveExpense(item.transactionId)}
+                                    disabled={isProcessed}
+                                />
+                                <Button
+                                    icon="pi pi-times"
+                                    size="small"
+                                    outlined
+                                    severity="danger"
+                                    label={t('claims.reject', 'Reject')}
+                                    onClick={() => rejectExpense(item.transactionId)}
+                                    disabled={isProcessed}
+                                />
+                            </>
+                        )}
+                    </div>
+                )}
+            </div>
+        )
+    }
+
+    // Mobile view: show list or detail
+    const MobileView = () => {
+        if (selectedExpense) {
+            return <MobileDetailView item={selectedExpense} />
+        }
+        return (
+            <div className="admin-mobile-list">
+                {expenseItems.map(item => (
+                    <MobileExpenseCard key={item.transactionId} item={item} />
+                ))}
+            </div>
+        )
+    }
+
     return (
-        <div className="bg-white h-full p-6">
-
-
+        <div className="bg-white h-full p-3 md:p-6">
 
             {/* Expenses Header*/}
-            <div className="flex justify-between items-center mb-4">
-                <div className="flex items-center gap-4">
-                    <h3 className="text-[22px] font-semibold">{t('expenses.title')}</h3>
+            <div className="flex flex-wrap justify-between items-center mb-4 gap-2">
+                <div className="flex items-center gap-2 md:gap-4 flex-wrap">
+                    <h3 className="text-lg md:text-[22px] font-semibold">{t('expenses.title')}</h3>
 
                     {/* deferred deletion control buttons */}
                     {pendingDeletions.length > 0 && (
@@ -658,14 +821,8 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                 </div>
 
                 <div className="text-sm text-gray-600">
-
-                    <div className="text-sm text-gray-600">
-                        {expenseItems.length} {expenseItems.length === 1 ? t('expenses.item') : t('expenses.items')} •
-                        {t('claims.total', 'Total')}: {new Intl.NumberFormat(APP_SETTINGS.currency.locale, {
-                            style: 'currency',
-                            currency: APP_SETTINGS.currency.code,
-                        }).format(expenseItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0))}
-                    </div>
+                    {expenseItems.length} {expenseItems.length === 1 ? t('expenses.item') : t('expenses.items')} •
+                    {t('claims.total', 'Total')}: {formatCurrency(expenseItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0))}
                 </div>
             </div>
 
@@ -680,6 +837,8 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                         }
                     </p>
                 </div>
+            ) : isMobile ? (
+                <MobileView />
             ) : (
                 <DataTable
                     // Data & Identity
@@ -708,6 +867,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                     tableStyle={{ minWidth: '50rem' }}
                     emptyMessage={t('expenses.noExpensesDisplay')}
                     size="small"
+                    scrollable
                 >
                     <Column expander />
                     <Column
