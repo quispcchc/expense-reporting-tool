@@ -150,6 +150,107 @@ class ClaimController extends Controller
     }
 
     /**
+     * Export filtered claims as CSV (one row per expense line).
+     */
+    public function exportCsv(Request $request)
+    {
+        try {
+            $filters = $request->only([
+                'date_from', 'date_to',
+                'claim_type_id', 'claim_status_id',
+                'department_id', 'team_id',
+                'project_id', 'cost_centre_id',
+                'submitter', 'tag_ids',
+                'amount_min', 'amount_max',
+            ]);
+
+            $claims = $this->claimService->getFilteredClaimsForExport($filters);
+
+            // Build filename reflecting date filters
+            $from = $filters['date_from'] ?? 'all';
+            $to   = $filters['date_to']   ?? now()->format('Y-m-d');
+            $filename = "claims_export_{$from}_to_{$to}.csv";
+
+            $headers = [
+                'Content-Type'        => 'text/csv; charset=UTF-8',
+                'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+                'Cache-Control'       => 'no-cache, no-store, must-revalidate',
+                'Pragma'              => 'no-cache',
+                'Expires'             => '0',
+            ];
+
+            $csvColumns = [
+                'Claim ID', 'Claim Date', 'Claim Type', 'Claim Status', 'Claim Total',
+                'Submitter', 'Department', 'Team', 'Position',
+                'Expense ID', 'Buyer Name', 'Vendor Name', 'Transaction Date',
+                'Expense Amount', 'Description', 'Notes', 'Expense Status',
+                'Project', 'Cost Centre', 'Account Number', 'Tags', 'Claim Notes',
+            ];
+
+            $callback = function () use ($claims, $csvColumns) {
+                // Add UTF-8 BOM for Excel compatibility
+                $handle = fopen('php://output', 'w');
+                fprintf($handle, chr(0xEF) . chr(0xBB) . chr(0xBF));
+                fputcsv($handle, $csvColumns);
+
+                foreach ($claims as $claim) {
+                    $claimNotes = $claim->notes
+                        ->map(fn ($n) => $n->claim_note_text)
+                        ->implode(' | ');
+
+                    $claimBase = [
+                        $claim->claim_id,
+                        $claim->claim_submitted,
+                        $claim->claimType->claim_type_name ?? '',
+                        $claim->status->claim_status_name ?? '',
+                        $claim->total_amount,
+                        trim(($claim->user->first_name ?? '') . ' ' . ($claim->user->last_name ?? '')),
+                        $claim->department->department_name ?? '',
+                        $claim->team->team_name ?? '',
+                        $claim->position->position_name ?? '',
+                    ];
+
+                    if ($claim->expenses->isEmpty()) {
+                        // Output claim-level row even if no expenses
+                        fputcsv($handle, array_merge($claimBase, array_fill(0, 13, '')));
+                        continue;
+                    }
+
+                    foreach ($claim->expenses as $expense) {
+                        $tags = $expense->tags
+                            ->pluck('tag_name')
+                            ->implode(', ');
+
+                        fputcsv($handle, array_merge($claimBase, [
+                            $expense->expense_id,
+                            $expense->buyer_name ?? '',
+                            $expense->vendor_name ?? '',
+                            $expense->transaction_date ?? '',
+                            $expense->expense_amount ?? '',
+                            $expense->transaction_desc ?? '',
+                            $expense->transaction_notes ?? '',
+                            $expense->approvalStatus->approval_status_name ?? '',
+                            $expense->project->project_name ?? '',
+                            $expense->costCentre->cost_centre_code ?? '',
+                            $expense->accountNumber->account_number_code ?? '',
+                            $tags,
+                            $claimNotes,
+                        ]));
+                    }
+                }
+
+                fclose($handle);
+            };
+
+            return response()->stream($callback, 200, $headers);
+        } catch (Throwable $e) {
+            Log::error('CSV Export Error: ' . $e->getMessage());
+
+            return $this->errorResponse('Failed to export CSV: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
      * Export claim as PDF with all expenses and receipts
      */
     public function exportPdf($claimId)

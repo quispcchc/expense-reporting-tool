@@ -79,6 +79,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 Route::get('lookups', [LookupController::class, 'index'])->middleware('auth:sanctum');
 
 // Claim API
+Route::get('claims/export-csv', [ClaimController::class, 'exportCsv'])->middleware('auth:sanctum');
 Route::apiResource('claims', ClaimController::class)->middleware('auth:sanctum');
 Route::get('my-claims', [ClaimController::class, 'getClaimsByUser'])->middleware('auth:sanctum');
 Route::get('claims/{claimId}/export-pdf', [ClaimController::class, 'exportPdf'])->middleware('auth:sanctum');
