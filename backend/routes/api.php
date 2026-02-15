@@ -80,7 +80,7 @@ Route::get('lookups', [LookupController::class, 'index'])->middleware('auth:sanc
 
 // Claim API
 Route::get('claims/export-csv', [ClaimController::class, 'exportCsv'])->middleware('auth:sanctum');
-Route::apiResource('claims', ClaimController::class)->middleware('auth:sanctum');
+Route::apiResource('claims', ClaimController::class)->middleware('auth:sanctum')->where(['claim' => '[0-9]+']);
 Route::get('my-claims', [ClaimController::class, 'getClaimsByUser'])->middleware('auth:sanctum');
 Route::get('claims/{claimId}/export-pdf', [ClaimController::class, 'exportPdf'])->middleware('auth:sanctum');
 Route::post('claims/export-multiple-pdf', [ClaimController::class, 'exportMultiplePdf'])->middleware('auth:sanctum');
