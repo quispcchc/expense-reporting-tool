@@ -183,7 +183,7 @@ function CostCentresPage() {
     }) || []
 
     // Mobile card view
-    const MobileCardView = () => (
+    const mobileCardView = (
         <div className="admin-mobile-container">
             <div className="admin-mobile-search">
                 <IconField iconPosition="left">
@@ -243,7 +243,7 @@ function CostCentresPage() {
     )
 
     // Desktop table view
-    const DesktopTableView = () => (
+    const desktopTableView = (
         <div className="bg-white rounded-xl p-6 mt-5">
             <DataTable value={costCentres} paginator rows={5} rowsPerPageOptions={[5, 10, 25, 50]}
                 paginatorTemplate="FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink RowsPerPageDropdown"
@@ -285,7 +285,7 @@ function CostCentresPage() {
             <ContentHeader title={t('sidebar.costCentre')} homePath="/admin" iconKey="sidebar.costCentre" />
             <AddNewCostCentre createdToast={toasts.created} />
 
-            {isMobile ? <MobileCardView /> : <DesktopTableView />}
+            {isMobile ? mobileCardView : desktopTableView}
 
             {/* Mobile Edit Dialog */}
             <Dialog

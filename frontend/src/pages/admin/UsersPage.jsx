@@ -390,7 +390,7 @@ function UsersPage() {
     }
 
     // Mobile card view
-    const MobileCardView = () => (
+    const mobileCardView = (
         <div className="admin-mobile-container">
             <div className="admin-mobile-search">
                 <IconField iconPosition="left">
@@ -469,7 +469,7 @@ function UsersPage() {
     )
 
     // Desktop table view
-    const DesktopTableView = () => (
+    const desktopTableView = (
         <div className="bg-white rounded-xl p-6 mt-5">
             <DataTable
                 value={users}
@@ -518,7 +518,7 @@ function UsersPage() {
             <ContentHeader title={t('users.title')} homePath="/admin" iconKey="sidebar.users" />
             <AddNewUser />
 
-            {isMobile ? <MobileCardView /> : <DesktopTableView />}
+            {isMobile ? mobileCardView : desktopTableView}
 
             {/* Mobile Edit Dialog */}
             <Dialog

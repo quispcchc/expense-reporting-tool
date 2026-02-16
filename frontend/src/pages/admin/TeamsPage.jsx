@@ -134,7 +134,7 @@ function TeamsPage() {
     }) || []
 
     // Mobile card view
-    const MobileCardView = () => (
+    const mobileCardView = (
         <div className="admin-mobile-container">
             <div className="admin-mobile-search">
                 <IconField iconPosition="left">
@@ -184,7 +184,7 @@ function TeamsPage() {
     )
 
     // Desktop table view
-    const DesktopTableView = () => (
+    const desktopTableView = (
         <div className="bg-white rounded-xl p-6 mt-5">
             <DataTable
                 value={teams}
@@ -221,7 +221,7 @@ function TeamsPage() {
             {/* Add new team form component */}
             <AddNewTeam />
 
-            {isMobile ? <MobileCardView /> : <DesktopTableView />}
+            {isMobile ? mobileCardView : desktopTableView}
 
             {/* Mobile Edit Dialog */}
             <Dialog
