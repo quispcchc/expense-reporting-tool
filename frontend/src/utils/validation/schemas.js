@@ -138,5 +138,13 @@ export const validationSchemas = {
         description: [
             { rule: 'required', message: 'Description is required' },
         ]
+    },
+    addAccountNumber: {
+        accountNumber: [
+            { rule: 'required', message: 'Account Number is required' },
+        ],
+        description: [
+            { rule: 'required', message: 'Description is required' },
+        ]
     }
 }

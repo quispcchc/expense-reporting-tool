@@ -56,7 +56,7 @@ class Expense extends Model
 
     public function accountNumber()
     {
-        return $this->hasOne(AccountNumber::class, 'account_number_id', 'account_number_id');
+        return $this->belongsTo(AccountNumber::class, 'account_number_id', 'account_number_id');
     }
 
     public function project()

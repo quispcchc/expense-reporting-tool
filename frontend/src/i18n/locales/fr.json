@@ -76,6 +76,7 @@
         "users": "Utilisateurs",
         "teams": "Départements",
         "costCentre": "Centre de coûts",
+        "accountNumbers": "Numéros de compte",
         "tags": "Étiquettes",
         "settings": "Paramètres"
     },
@@ -192,6 +193,21 @@
         "enterCode": "Entrez le code",
         "description": "Description",
         "enterDescription": "Entrez la description"
+    },
+    "accountNumbers": {
+        "title": "Numéros de compte",
+        "addNewAccountNumber": "Ajouter un nouveau numéro de compte",
+        "addNewDescription": "Remplissez les détails ci-dessous pour ajouter un nouveau numéro de compte au système.",
+        "editAccountNumber": "Modifier le numéro de compte",
+        "accountNumber": "Numéro de compte",
+        "description": "Description",
+        "enterAccountNumber": "Entrez le numéro de compte",
+        "enterDescription": "Entrez la description",
+        "deleteConfirmMessage": "Êtes-vous sûr de vouloir supprimer ce numéro de compte? Cette action ne peut pas être annulée.",
+        "deleteItem": "Supprimer le numéro de compte",
+        "createSuccess": "Numéro de compte créé avec succès!",
+        "updateSuccess": "Numéro de compte mis à jour avec succès!",
+        "deleteSuccess": "Numéro de compte supprimé avec succès!"
     },
     "upload": {
         "uploadFile": "Télécharger un fichier",
