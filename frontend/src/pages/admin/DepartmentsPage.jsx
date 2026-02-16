@@ -176,7 +176,7 @@ function DepartmentsPage() {
     }) || []
 
     // Mobile card view
-    const MobileCardView = () => (
+    const mobileCardView = (
         <div className="admin-mobile-container">
             <div className="admin-mobile-search">
                 <IconField iconPosition="left">
@@ -240,7 +240,7 @@ function DepartmentsPage() {
     )
 
     // Desktop table view
-    const DesktopTableView = () => (
+    const desktopTableView = (
         <div className="bg-white rounded-xl p-6 mt-5">
             <DataTable
                 value={departments}
@@ -286,7 +286,7 @@ function DepartmentsPage() {
             {/* Add new department form component */}
             <AddNewDepartment toastRef={toast} />
 
-            {isMobile ? <MobileCardView /> : <DesktopTableView />}
+            {isMobile ? mobileCardView : desktopTableView}
 
             {/* Mobile Edit Dialog */}
             <Dialog

@@ -237,7 +237,7 @@ function DepartmentTeamsPage() {
     ]
 
     // Mobile card view
-    const MobileCardView = () => (
+    const mobileCardView = (
         <div className="admin-mobile-container">
             <div className="admin-mobile-search">
                 <div className="flex items-center gap-2 w-full">
@@ -311,7 +311,7 @@ function DepartmentTeamsPage() {
     )
 
     // Desktop table view
-    const DesktopTableView = () => (
+    const desktopTableView = (
         <div className="bg-white rounded-xl p-6 mt-5">
             <div className="mb-4 pb-2 border-b border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-700">
@@ -437,7 +437,7 @@ function DepartmentTeamsPage() {
             </div>
 
             {/* Teams list */}
-            {isMobile ? <MobileCardView /> : <DesktopTableView />}
+            {isMobile ? mobileCardView : desktopTableView}
 
             {/* Mobile Edit Dialog */}
             <Dialog
