@@ -240,7 +240,7 @@ function DashboardPage() {
         label: p.project_name, value: p.project_id,
     }))
     const costCentreOptions = lookups.costCentres.map(cc => ({
-        label: `${cc.cost_centre_code} - ${cc.cost_centre_name ?? ''}`.trim(),
+        label: `${cc.cost_centre_code} - ${cc.description ?? ''}`.trim(),
         value: cc.cost_centre_id,
     }))
     const tagOptions = lookups.tags.map(tg => ({
