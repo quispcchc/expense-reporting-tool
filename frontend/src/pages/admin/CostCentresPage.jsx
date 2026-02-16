@@ -176,7 +176,7 @@ function CostCentresPage() {
         if (!globalFilterValue) return true
         const q = globalFilterValue.toLowerCase()
         return (
-            cc.cost_centre_code?.toLowerCase().includes(q) ||
+            String(cc.cost_centre_code || '').toLowerCase().includes(q) ||
             cc.description?.toLowerCase().includes(q) ||
             cc.department?.department_name?.toLowerCase().includes(q)
         )
