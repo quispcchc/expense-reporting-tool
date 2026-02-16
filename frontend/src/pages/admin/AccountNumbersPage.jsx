@@ -68,31 +68,31 @@ function AccountNumbersPage() {
     const toasts = {
         created: () => {
             toast.current.show(
-                { severity: 'success', summary: t('accountNumbers.createSuccess', 'Created'), detail: t('accountNumbers.createSuccess', 'Account Number created successfully!'), life: 3000 })
+                { severity: 'success', summary: t('common.success', 'Success'), detail: t('accountNumbers.createSuccess', 'Account Number created successfully!'), life: 3000 })
             refreshLookups()
         },
         updated: () => {
             toast.current.show(
-                { severity: 'success', summary: t('accountNumbers.updateSuccess', 'Updated'), detail: t('accountNumbers.updateSuccess', 'Account Number updated successfully!'), life: 3000 })
+                { severity: 'success', summary: t('common.success', 'Success'), detail: t('accountNumbers.updateSuccess', 'Account Number updated successfully!'), life: 3000 })
             refreshLookups()
         },
         error: () => {
             toast.current.show(
-                { severity: 'error', summary: 'Error', detail: error || 'Something went wrong.', life: 3000 })
+                { severity: 'error', summary: t('common.error', 'Error'), detail: error || 'Something went wrong.', life: 3000 })
         },
         accept: async (accountNumberId) => {
             const response = await deleteAccountNumber(accountNumberId)
             if (response && !response.error) {
                 toast.current.show(
-                    { severity: 'success', summary: t('accountNumbers.deleteSuccess', 'Deleted'), detail: t('accountNumbers.deleteSuccess', 'Account Number deleted successfully!'), life: 3000 })
+                    { severity: 'success', summary: t('common.success', 'Success'), detail: t('accountNumbers.deleteSuccess', 'Account Number deleted successfully!'), life: 3000 })
                 refreshLookups()
             } else {
                 toast.current.show(
-                    { severity: 'error', summary: 'Error', detail: response?.error || 'Delete failed', life: 3000 })
+                    { severity: 'error', summary: t('common.error', 'Error'), detail: response?.error || 'Delete failed', life: 3000 })
             }
         },
         reject: () => {
-            toast.current.show({ severity: 'info', summary: 'Cancelled', detail: 'Cancelled', life: 3000 })
+            toast.current.show({ severity: 'info', summary: t('common.cancelled', 'Cancelled'), detail: t('common.operationCancelled', 'Operation cancelled'), life: 3000 })
         },
     }
 
