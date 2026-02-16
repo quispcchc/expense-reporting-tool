@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AccountNumberController;
 use App\Http\Controllers\ClaimController;
 use App\Http\Controllers\ClaimNotesController;
 use App\Http\Controllers\CostCentreController;
@@ -68,6 +69,9 @@ Route::apiResource('teams', \App\Http\Controllers\TeamController::class)->middle
 // Departments Management
 Route::apiResource('departments', \App\Http\Controllers\DepartmentController::class)->middleware('auth:sanctum');
 Route::get('departments/{departmentId}/teams', [\App\Http\Controllers\DepartmentController::class, 'getTeams'])->middleware('auth:sanctum');
+
+// Account Numbers Management
+Route::apiResource('account-numbers', AccountNumberController::class)->middleware('auth:sanctum');
 
 // Tag Management
 Route::middleware(['auth:sanctum'])->group(function () {

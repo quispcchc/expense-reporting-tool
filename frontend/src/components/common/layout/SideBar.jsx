@@ -40,6 +40,7 @@ function SideBar() {
                     { icon: TbUsers, label: t('sidebar.users'), path: '/admin/users' },
                     { icon: PiOfficeChair, label: t('sidebar.teams'), path: '/admin/departments' },
                     { icon: IoDocumentTextOutline, label: t('sidebar.costCentre'), path: '/admin/cost-centre' },
+                    { icon: IoDocumentTextOutline, label: t('sidebar.accountNumbers'), path: '/admin/account-numbers' },
                     { icon: BsTag, label: t('sidebar.tags'), path: '/admin/tags' },
                     { icon: IoSettingsOutline, label: t('sidebar.settings'), path: '/admin/settings' },
                     { icon: MdOutlineDashboard, label: t('sidebar.dashboard'), path: '/admin/dashboard' },
