@@ -1,7 +1,7 @@
 import React from "react";
 import Input from "../../common/ui/Input.jsx";
 import { Button } from "primereact/button";
-import MileageReceiptInput from './MileageReceiptInput.jsx';
+import MileageReceiptsInput from './MileageReceiptsInput.jsx';
 
 export default function MileageTransactionRow({ index, tx, setMileageData, onRemove }) {
   const updateTxField = (e) => {
@@ -59,7 +59,7 @@ export default function MileageTransactionRow({ index, tx, setMileageData, onRem
 
       <div className="mt-4">
         <label className="block text-sm font-medium mb-2">Receipts (optional)</label>
-        <MileageReceiptInput
+        <MileageReceiptsInput
             files={tx.receipts}
             onChange={(files) => {
                 setMileageData(prev => {

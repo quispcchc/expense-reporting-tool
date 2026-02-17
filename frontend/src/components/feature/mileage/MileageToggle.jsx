@@ -2,7 +2,7 @@ import React from "react";
 
 export default function MileageToggle({ value, onChange }) {
   return (
-    <div className="flex items-center gap-3 mt-6">
+    <div className="flex items-center gap-3">
       <input
         id="includeMileage"
         type="checkbox"

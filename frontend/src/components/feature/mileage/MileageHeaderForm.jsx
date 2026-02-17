@@ -8,7 +8,7 @@ export default function MileageHeaderForm({ mileageData, setMileageData }) {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
       <Input
         label="Travel From"
         name="travel_from"

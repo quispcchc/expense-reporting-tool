@@ -1,35 +1,47 @@
-import React from 'react';
+import React, { useRef } from "react";
 
-export default function MileageReceiptInput({ files = [], onChange }) {
+export default function MileageReceiptsInput({ files = [], onChange, buttonLabel = "Upload a file" }) {
+  const inputRef = useRef(null);
+
   const handleFileChange = (e) => {
     const selected = Array.from(e.target.files || []);
     onChange(selected);
   };
 
-  const removeFile = (index) => {
-    const updated = files.filter((_, i) => i !== index);
-    onChange(updated);
-  };
-
   return (
     <div>
-      <input type="file" multiple onChange={handleFileChange} />
+      <input
+        ref={inputRef}
+        type="file"
+        multiple
+        className="hidden"
+        onChange={handleFileChange}
+      />
+
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        className="w-full border border-blue-500 text-blue-600 rounded-lg py-2 px-3 text-sm font-medium flex items-center justify-center gap-2 hover:bg-blue-50"
+      >
+        {buttonLabel}
+        <span className="text-base">☁️</span>
+      </button>
 
       {files.length > 0 && (
-        <ul className="mt-2 text-sm text-gray-600">
-          {files.map((file, idx) => (
-            <li key={idx} className="flex justify-between items-center">
-              <span>{file.name}</span>
+        <div className="mt-2 text-xs text-gray-600 space-y-1">
+          {files.map((f, i) => (
+            <div key={i} className="flex items-center justify-between">
+              <span className="truncate max-w-[220px]">{f.name}</span>
               <button
                 type="button"
-                onClick={() => removeFile(idx)}
-                className="text-red-500 text-xs"
+                onClick={() => onChange(files.filter((_, idx) => idx !== i))}
+                className="text-red-500 hover:underline"
               >
-                Remove
+                remove
               </button>
-            </li>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   );
