@@ -1,5 +1,5 @@
 import React from 'react'
-import { Checkbox } from 'primereact/checkbox'
+import { InputSwitch } from 'primereact/inputswitch'
 import { useTranslation } from 'react-i18next'
 
 function MileageToggle({ checked, onChange }) {
@@ -7,14 +7,14 @@ function MileageToggle({ checked, onChange }) {
 
     return (
         <div className="flex items-center gap-2">
-            <Checkbox
-                inputId="mileageToggle"
-                checked={checked}
-                onChange={(e) => onChange(e.checked)}
-            />
             <label htmlFor="mileageToggle" className="text-sm font-medium cursor-pointer">
                 {t('mileage.includeMileage', 'Include Mileage')}
             </label>
+            <InputSwitch
+                inputId="mileageToggle"
+                checked={checked}
+                onChange={(e) => onChange(e.value)}
+            />
         </div>
     )
 }

@@ -11,7 +11,6 @@ import { useClaims } from '../../../contexts/ClaimContext.jsx'
 import { useAuth } from '../../../contexts/AuthContext.jsx'
 import { showToast } from '../../../utils/helpers.js'
 import { useTranslation } from 'react-i18next'
-import MileageToggle from '../mileage/MileageToggle.jsx'
 import MileageSection from '../mileage/MileageSection.jsx'
 import api from '../../../api/api.js'
 
@@ -276,7 +275,6 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
             <div className="flex justify-between items-start flex-wrap gap-4 mb-4">
                 <ContentHeader title={t('claims.createClaim')} homePath={homePath} className="" iconKey="claims.createClaim" />
                 <div className="flex gap-5 items-center">
-                    <MileageToggle checked={includeMileage} onChange={handleMileageToggle} />
                     <div className="flex flex-col items-end">
                         <p className="text-lg font-medium">{t('claims.totalAmount')}</p>
                         <p className="text-blue-500 text-xl">${totalAmount.toFixed(2)}</p>
@@ -288,7 +286,8 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
 
             <div className="mt-4">
                 <ClaimForm claimFormData={claimFormData} onFieldChange={handleFormFieldChange}
-                    errors={claimErrors} />
+                    errors={claimErrors}
+                    includeMileage={includeMileage} onMileageToggle={handleMileageToggle} />
             </div>
             <div className="mt-6">
                 <AddExpenseForm claimFormData={claimFormData} onClaimItemsUpdate={handleClaimItemsUpdate}

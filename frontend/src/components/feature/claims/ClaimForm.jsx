@@ -4,14 +4,18 @@ import Input from '../../common/ui/Input.jsx'
 import Select from '../../common/ui/Select.jsx'
 import { useLookups } from '../../../contexts/LookupContext.jsx'
 import { useTranslation } from 'react-i18next'
+import MileageToggle from '../mileage/MileageToggle.jsx'
 
-function ClaimForm({ claimFormData, onFieldChange, errors }) {
+function ClaimForm({ claimFormData, onFieldChange, errors, includeMileage, onMileageToggle }) {
     const { t } = useTranslation()
     const { lookups: { departments, claimTypes, positions, teams } } = useLookups()
 
     return (
         // Main container with title and description
-        <ComponentContainer title={t('claimForm.title', 'Expense Claim Form')}>
+        <ComponentContainer
+            title={t('claimForm.title', 'Expense Claim Form')}
+            headerRight={onMileageToggle && <MileageToggle checked={includeMileage} onChange={onMileageToggle} />}
+        >
             <p className="text-gray-400 text-sm mb-5">{t('claimForm.description', 'Please complete all required fields to submit your expense claim.')}</p>
 
             {/* Two autofilled input fields side by side: Employee Name (disabled) and Position */}
