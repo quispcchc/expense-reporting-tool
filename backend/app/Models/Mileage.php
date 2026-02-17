@@ -10,31 +10,27 @@ class Mileage extends Model
 
     protected $primaryKey = 'mileage_id';
 
-    public $incrementing = false;
-
-    protected $keyType = 'int';
-
-    public $timestamps = false;
-
     protected $fillable = [
-        'mileage_id',
+        'claim_id',
+        'travel_from',
+        'travel_to',
         'period_of_from',
         'period_of_to',
-        'transaction_date',
-        'distance_km',
-        'meter_km',
-        'parking_amount',
-        'receipt_id',
     ];
 
-    // relationships
-    public function receipt()
+    protected $casts = [
+        'claim_id' => 'integer',
+        'period_of_from' => 'date',
+        'period_of_to' => 'date',
+    ];
+
+    public function claim()
     {
-        return $this->belongsTo(Receipt::class, 'receipt_id', 'receipt_id');
+        return $this->belongsTo(Claim::class, 'claim_id', 'claim_id');
     }
 
-    public function expenses()
+    public function transactions()
     {
-        return $this->hasMany(Expense::class, 'mileage_id', 'mileage_id');
+        return $this->hasMany(MileageTransaction::class, 'mileage_id', 'mileage_id');
     }
 }

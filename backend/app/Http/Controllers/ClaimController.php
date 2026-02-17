@@ -67,9 +67,9 @@ class ClaimController extends Controller
             'total_amount' => 'required|numeric|min:2',
 
             // expense item validation
-            'expenses' => 'required|array',
+            'expenses' => 'nullable|array',
             'expenses.*.transaction_date' => 'required_with:expenses|date',
-            'expenses.*.account_number_id' => 'required_with:expense|integer|exists:account_numbers,account_number_id',
+            'expenses.*.account_number_id' => 'required_with:expenses|integer|exists:account_numbers,account_number_id',
             'expenses.*.buyer_name' => 'required_with:expenses|string',
             'expenses.*.vendor_name' => 'required_with:expenses|string',
             'expenses.*.transaction_desc' => 'nullable|string',
@@ -80,7 +80,20 @@ class ClaimController extends Controller
             'expenses.*.cost_centre_id' => 'required_with:expenses|integer',
             'expenses.*.tags' => 'nullable|array',
             'expenses.*.tags.*' => 'integer|exists:tags,tag_id',
+
+            // mileage validation
             'mileage' => 'nullable|array',
+            'mileage.travel_from' => 'required_with:mileage|string|max:255',
+            'mileage.travel_to' => 'required_with:mileage|string|max:255',
+            'mileage.period_of_from' => 'required_with:mileage|date',
+            'mileage.period_of_to' => 'required_with:mileage|date',
+            'mileage.transactions' => 'required_with:mileage|array|min:1',
+            'mileage.transactions.*.transaction_date' => 'required|date',
+            'mileage.transactions.*.distance_km' => 'required|numeric|min:0',
+            'mileage.transactions.*.meter_km' => 'nullable|numeric',
+            'mileage.transactions.*.parking_amount' => 'nullable|numeric',
+            'mileage.transactions.*.buyer' => 'nullable|string',
+            'mileage.transactions.*.file.*' => 'file|mimes:pdf,png,jpg,jpeg|max:20480',
         ]);
 
         try {

@@ -300,7 +300,8 @@
         "statusRequired": "Status is required",
         "descriptionRequired": "Description is required",
         "tagNameRequired": "Tag name is required",
-        "projectNameRequired": "Project name is required"
+        "projectNameRequired": "Project name is required",
+        "noItems": "Please add at least one expense or mileage transaction before submitting."
     },
     "passwordReset": {
         "forgotPassword": "Forgot your password",
@@ -373,5 +374,50 @@
     },
     "dashboard": {
         "title": "Dashboard"
+    },
+    "mileage": {
+        "title": "Mileage",
+        "addMileage": "Add Mileage",
+        "addMileageDescription": "Add mileage details for travel reimbursement",
+        "includeMileage": "Include Mileage",
+        "travelFrom": "Travel From",
+        "travelTo": "Travel To",
+        "travelFromPlaceholder": "Enter departure location",
+        "travelToPlaceholder": "Enter destination",
+        "periodFrom": "Period From",
+        "periodTo": "Period To",
+        "travelDetails": "Travel Details",
+        "addTransaction": "Add Mileage Transaction",
+        "transactionDate": "Date",
+        "date": "Date",
+        "distance": "Distance (km)",
+        "meter": "Meter ($)",
+        "parking": "Parking ($)",
+        "buyer": "Buyer",
+        "buyerPlaceholder": "Enter buyer name",
+        "receipt": "Receipt",
+        "totalAmount": "Total",
+        "mileageTotal": "Mileage Total",
+        "rate": "Rate",
+        "draftTotal": "Draft Total",
+        "noMileage": "No mileage transactions",
+        "addFirstMileage": "Add your first mileage transaction above.",
+        "noMileageItems": "No mileage transactions recorded.",
+        "item": "item",
+        "items": "items",
+        "editCancelled": "Edit cancelled",
+        "updatedLocally": "Mileage updated locally",
+        "updated": "Mileage transaction updated",
+        "removeItemsMessage": "Remove mileage item(s)?",
+        "deleteItemsMessage": "Permanently delete mileage item(s)?",
+        "deleteItems": "Delete Items",
+        "itemsDeleted": "Items deleted",
+        "deleteFailed": "Failed to delete",
+        "deletionCancelled": "Deletion cancelled"
+    },
+    "settings": {
+        "mileageRate": "Default mileage rate (per km)",
+        "saved": "Settings saved successfully",
+        "saveFailed": "Failed to save settings"
     }
 }

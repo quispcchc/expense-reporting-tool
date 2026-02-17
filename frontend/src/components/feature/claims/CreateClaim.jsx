@@ -11,13 +11,22 @@ import { useClaims } from '../../../contexts/ClaimContext.jsx'
 import { useAuth } from '../../../contexts/AuthContext.jsx'
 import { showToast } from '../../../utils/helpers.js'
 import { useTranslation } from 'react-i18next'
+import MileageToggle from '../mileage/MileageToggle.jsx'
+import MileageSection from '../mileage/MileageSection.jsx'
+import api from '../../../api/api.js'
 
-const calculateTotalAmount = (formData) => {
+const calculateTotalAmount = (formData, mileageData, includeMileage) => {
     const claimItemsTotal = formData.claimItems.reduce(
         (sum, item) => sum + (parseFloat(item.amount) || 0),
         0,
     )
-    return claimItemsTotal
+    const mileageTotal = includeMileage
+        ? (mileageData.transactions || []).reduce(
+            (sum, tx) => sum + (parseFloat(tx.total_amount) || 0),
+            0,
+        )
+        : 0
+    return claimItemsTotal + mileageTotal
 }
 
 function CreateClaim({ navigateTo, homePath, toastRef }) {
@@ -32,6 +41,40 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
     const [expenseErrors, setExpenseErrors] = useState([])
     const [claimErrors, setClaimErrors] = useState()
     const [validationDialog, setValidationDialog] = useState({ visible: false, header: '', message: '' })
+
+    // Mileage state
+    const [includeMileage, setIncludeMileage] = useState(false)
+    const [mileageRate, setMileageRate] = useState(0.5)
+    const initialMileageData = {
+        travel_from: '',
+        travel_to: '',
+        period_of_from: '',
+        period_of_to: '',
+        transactions: [],
+    }
+    const [mileageData, setMileageData] = useState(initialMileageData)
+
+    // Fetch mileage rate from settings on mount
+    useEffect(() => {
+        const fetchMileageRate = async () => {
+            try {
+                const response = await api.get('settings')
+                if (response.data?.mileage_rate !== undefined) {
+                    setMileageRate(parseFloat(response.data.mileage_rate))
+                }
+            } catch (error) {
+                console.error('Failed to fetch mileage rate:', error)
+            }
+        }
+        fetchMileageRate()
+    }, [])
+
+    const handleMileageToggle = (checked) => {
+        setIncludeMileage(checked)
+        if (!checked) {
+            setMileageData(initialMileageData)
+        }
+    }
 
     const initialClaimFormData = {
         employeeName: authUser.full_name,
@@ -123,15 +166,16 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
         const validation = validateForm(claimFormData, claimSchema)
         setClaimErrors(validation.errors)
 
-        if (claimFormData.claimItems.length <= 0) {
-            if (claimFormData.claimItems.length <= 0) {
-                setValidationDialog({
-                    visible: true,
-                    header: t('validation.confirmationRequired', 'Confirmation Required'),
-                    message: t('validation.noExpenseItems', 'No expense items found. Please add at least one expense before submitting.')
-                })
-                return
-            }
+        const hasExpenses = claimFormData.claimItems.length > 0
+        const hasMileage = includeMileage && (mileageData.transactions || []).length > 0
+
+        if (!hasExpenses && !hasMileage) {
+            setValidationDialog({
+                visible: true,
+                header: t('validation.confirmationRequired', 'Confirmation Required'),
+                message: t('validation.noItems', 'Please add at least one expense or mileage transaction before submitting.')
+            })
+            return
         }
 
         if (!validation.isValid) {
@@ -143,6 +187,8 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
             return
         }
 
+        const totalAmount = calculateTotalAmount(claimFormData, mileageData, includeMileage)
+
         const formData = new FormData()
 
         // Add claim fields
@@ -151,7 +197,7 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
         formData.append('department_id', claimFormData.department)
         formData.append('team_id', claimFormData.team)
         formData.append('claim_notes', claimFormData.note)
-        formData.append('total_amount', calculateTotalAmount(claimFormData))
+        formData.append('total_amount', totalAmount)
 
         // Add expenses - properly handling files
         claimFormData.claimItems.forEach((expense, index) => {
@@ -183,9 +229,33 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
                         formData.append(fieldName, att.file)
                     }
                 })
-            } else {
             }
         })
+
+        // Add mileage data
+        if (includeMileage && (mileageData.transactions || []).length > 0) {
+            formData.append('mileage[travel_from]', mileageData.travel_from)
+            formData.append('mileage[travel_to]', mileageData.travel_to)
+            formData.append('mileage[period_of_from]', mileageData.period_of_from)
+            formData.append('mileage[period_of_to]', mileageData.period_of_to)
+
+            mileageData.transactions.forEach((tx, index) => {
+                formData.append(`mileage[transactions][${index}][transaction_date]`, tx.transaction_date)
+                formData.append(`mileage[transactions][${index}][distance_km]`, tx.distance_km)
+                formData.append(`mileage[transactions][${index}][meter_km]`, tx.meter_km ?? '')
+                formData.append(`mileage[transactions][${index}][parking_amount]`, tx.parking_amount ?? '')
+                formData.append(`mileage[transactions][${index}][buyer]`, tx.buyer ?? '')
+
+                // Mileage receipt files
+                if (Array.isArray(tx.attachment) && tx.attachment.length > 0) {
+                    tx.attachment.forEach((att, attIndex) => {
+                        if (att?.file instanceof File) {
+                            formData.append(`mileage[transactions][${index}][file][${attIndex}]`, att.file)
+                        }
+                    })
+                }
+            })
+        }
 
         try {
             await createClaim(formData)
@@ -199,14 +269,17 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
 
     }
 
+    const totalAmount = calculateTotalAmount(claimFormData, mileageData, includeMileage)
+
     return (
         <form onSubmit={handleClaimSubmit}>
             <div className="flex justify-between items-start flex-wrap gap-4 mb-4">
                 <ContentHeader title={t('claims.createClaim')} homePath={homePath} className="" iconKey="claims.createClaim" />
                 <div className="flex gap-5 items-center">
+                    <MileageToggle checked={includeMileage} onChange={handleMileageToggle} />
                     <div className="flex flex-col items-end">
                         <p className="text-lg font-medium">{t('claims.totalAmount')}</p>
-                        <p className="text-blue-500 text-xl">${calculateTotalAmount(claimFormData).toFixed(2)}</p>
+                        <p className="text-blue-500 text-xl">${totalAmount.toFixed(2)}</p>
                     </div>
                     <Button label={t('claims.submitClaim', 'Submit claim')} type="submit" icon="pi pi-plus"
                         iconPos="right" />
@@ -227,6 +300,18 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
                     toastRef={toastRef}
                 />
             </div>
+
+            {includeMileage && (
+                <div className="mt-6">
+                    <MileageSection
+                        mileageData={mileageData}
+                        setMileageData={setMileageData}
+                        mileageRate={mileageRate}
+                        toastRef={toastRef}
+                    />
+                </div>
+            )}
+
             <Dialog header={validationDialog.header} visible={validationDialog.visible} style={{ width: '90vw', maxWidth: '450px' }}
                 onHide={() => setValidationDialog(prev => ({ ...prev, visible: false }))}
                 footer={

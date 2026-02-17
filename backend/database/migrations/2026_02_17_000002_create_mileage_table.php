@@ -12,14 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('mileage', function (Blueprint $table) {
-            $table->integer('mileage_id')->primary();
-            $table->text('period_of_from');
-            $table->text('period_of_to');
-            $table->text('transaction_date');
-            $table->double('distance_km');
-            $table->double('meter_km');
-            $table->double('parking_amount');
-            $table->integer('receipt_id');
+            $table->id('mileage_id');
+            $table->foreignId('claim_id')->constrained('claims', 'claim_id')
+                ->onUpdate('no action')
+                ->onDelete('cascade');
+            $table->string('travel_from', 255)->nullable();
+            $table->string('travel_to', 255)->nullable();
+            $table->date('period_of_from')->nullable();
+            $table->date('period_of_to')->nullable();
+            $table->timestamps();
         });
     }
 

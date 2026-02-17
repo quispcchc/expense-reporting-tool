@@ -17,7 +17,7 @@ function AttachmentList({ selectedFile, showRemoveButton = true, handleRemoveFil
     if (!fileUrl) return null
 
     return (
-        <div className="mt-4 text-sm text-gray-700 flex items-center gap-2">
+        <div className="mt-4 text-sm text-gray-700 flex items-center gap-1">
 
             {getFileIcon(fileType)}
 

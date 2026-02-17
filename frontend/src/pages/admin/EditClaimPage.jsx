@@ -6,6 +6,7 @@ import { useClaims } from '../../contexts/ClaimContext.jsx'
 import ClaimNotes from '../../components/feature/claims/addNotes/ClaimNotes.jsx'
 import ClaimStatus from '../../components/feature/claims/ClaimStatus.jsx'
 import EditableExpansionTable from '../../components/feature/claims/expansionTable/EditableExpansionTable.jsx'
+import MileageViewSection from '../../components/feature/mileage/MileageViewSection.jsx'
 import Loader from '../../components/common/ui/Loader.jsx'
 import { Toast } from 'primereact/toast'
 import { ConfirmDialog } from 'primereact/confirmdialog'
@@ -57,6 +58,15 @@ function EditClaimPage() {
             <EditableExpansionTable data={curClaim.expenses} curClaim={curClaim} mode="edit" toastRef={toast}
                 onClaimUpdated={fetchClaim}
             />
+
+            {curClaim.mileage && (
+                <MileageViewSection
+                    mileage={curClaim.mileage}
+                    mode="edit"
+                    toastRef={toast}
+                    onClaimUpdated={fetchClaim}
+                />
+            )}
 
         </div>
     )

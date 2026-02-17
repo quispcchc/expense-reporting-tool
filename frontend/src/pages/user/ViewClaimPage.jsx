@@ -6,6 +6,7 @@ import { useClaims } from '../../contexts/ClaimContext.jsx'
 import ClaimNotes from '../../components/feature/claims/addNotes/ClaimNotes.jsx'
 import ClaimStatus from '../../components/feature/claims/ClaimStatus.jsx'
 import EditableExpansionTable from '../../components/feature/claims/expansionTable/EditableExpansionTable.jsx'
+import MileageViewSection from '../../components/feature/mileage/MileageViewSection.jsx'
 import Loader from '../../components/common/ui/Loader.jsx'
 import { useAuth } from '../../contexts/AuthContext.jsx'
 import { useTranslation } from 'react-i18next'
@@ -50,6 +51,13 @@ function ViewClaimPage() {
             </div>
 
             <EditableExpansionTable data={curClaim.expenses} curClaim={curClaim} mode='view' />
+
+            {curClaim.mileage && (
+                <MileageViewSection
+                    mileage={curClaim.mileage}
+                    mode="view"
+                />
+            )}
 
         </div>
     )

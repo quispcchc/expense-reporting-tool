@@ -7,21 +7,51 @@ use Illuminate\Http\Request;
 
 class MileageController extends Controller
 {
-    public function store(Request $request)
+    /**
+     * Get mileage with transactions and receipts for a claim.
+     */
+    public function showByClaim($claimId)
+    {
+        $mileage = Mileage::with(['transactions.receipts'])
+            ->where('claim_id', $claimId)
+            ->first();
+
+        if (! $mileage) {
+            return $this->successResponse(null);
+        }
+
+        return $this->successResponse($mileage);
+    }
+
+    /**
+     * Update mileage header (travel details, period).
+     */
+    public function update(Request $request, $mileageId)
     {
         $validated = $request->validate([
-            'claim_id' => 'required|integer|exists:claim,claim_id',
-            'period_of_from' => 'required|date',
-            'period_of_to' => 'required|date|after_or_equal:period_of_from',
-            'transaction_date' => 'required|date',
-            'distance_km' => 'required|numeric',
-            'meter_km' => 'nullable|numeric',
-            'parking_amount' => 'nullable|numeric',
-            'receipt_id' => 'nullable|integer',
+            'travel_from' => 'sometimes|string|max:255',
+            'travel_to' => 'sometimes|string|max:255',
+            'period_of_from' => 'sometimes|date',
+            'period_of_to' => 'sometimes|date',
         ]);
 
-        $mileage = Mileage::create($validated);
+        $mileage = Mileage::findOrFail($mileageId);
+        $mileage->update($validated);
 
-        return response()->json(['message' => 'Mileage recorded', 'mileage' => $mileage]);
+        return $this->successResponse(
+            $mileage->load('transactions.receipts'),
+            'Mileage updated'
+        );
+    }
+
+    /**
+     * Delete mileage and all transactions/receipts (cascades).
+     */
+    public function destroy($mileageId)
+    {
+        $mileage = Mileage::findOrFail($mileageId);
+        $mileage->delete();
+
+        return $this->successResponse(null, 'Mileage deleted');
     }
 }

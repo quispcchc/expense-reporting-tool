@@ -4,10 +4,13 @@ namespace App\Services;
 
 use App\Enums\ClaimStatus;
 use App\Enums\RoleLevel;
+use App\Models\AppSetting;
 use App\Models\Claim;
 use App\Models\ClaimNote;
 use App\Models\Expense;
 use App\Models\Mileage;
+use App\Models\MileageReceipt;
+use App\Models\MileageTransaction;
 use App\Models\Receipt;
 use App\Models\Tag;
 use App\Models\User;
@@ -21,7 +24,7 @@ class ClaimService
     {
         $role_level = $user->role->role_level;
 
-        $query = Claim::with(['expenses.receipts', 'expenses', 'claimType', 'department', 'team', 'status']);
+        $query = Claim::with(['expenses.receipts', 'expenses', 'claimType', 'department', 'team', 'status', 'mileage.transactions.receipts']);
 
         if ($role_level === RoleLevel::DEPARTMENT_MANAGER) {
             // Department-level access
@@ -99,13 +102,13 @@ class ClaimService
 
     public function getClaimsByUserId(User $user)
     {
-        return Claim::with(['expenses.receipts', 'expenses', 'claimType', 'department', 'team', 'status'])
+        return Claim::with(['expenses.receipts', 'expenses', 'claimType', 'department', 'team', 'status', 'mileage.transactions.receipts'])
             ->where('user_id', $user->user_id)->get();
     }
 
     public function getClaimById(int $claimId)
     {
-        return Claim::with(['expenses.tags', 'expenses.receipts', 'claimType', 'status', 'position', 'user', 'department', 'team', 'claimNotes.user', 'claimApprovals.approvedByUser'])
+        return Claim::with(['expenses.tags', 'expenses.receipts', 'claimType', 'status', 'position', 'user', 'department', 'team', 'claimNotes.user', 'claimApprovals.approvedByUser', 'mileage.transactions.receipts'])
             ->where('claim_id', $claimId)
             ->first();
     }
@@ -136,13 +139,12 @@ class ClaimService
                 $this->addExpenses($claim, $data['expenses']);
             }
 
-            // Add mileage
+            // Add mileage with transactions and receipts
             if (! empty($data['mileage'])) {
-                $mileage = Mileage::create($data['mileage']);
-                $claim->update(['mileage_id' => $mileage->mileage_id]);
+                $this->addMileage($claim, $data['mileage']);
             }
 
-            return $claim->load(['expenses.receipts', 'expenses', 'claimType', 'department', 'team', 'status']);
+            return $claim->load(['expenses.receipts', 'expenses', 'claimType', 'department', 'team', 'status', 'mileage.transactions.receipts']);
         });
     }
 
@@ -195,6 +197,61 @@ class ClaimService
             // Handle tags: expect $expenseData['tags'] to be an array of tag IDs
             if (! empty($expenseData['tags']) && is_array($expenseData['tags'])) {
                 $expense->tags()->sync($expenseData['tags']);
+            }
+        }
+    }
+
+    protected function addMileage(Claim $claim, array $mileageData)
+    {
+        // Create mileage header
+        $mileage = Mileage::create([
+            'claim_id' => $claim->claim_id,
+            'travel_from' => $mileageData['travel_from'],
+            'travel_to' => $mileageData['travel_to'],
+            'period_of_from' => $mileageData['period_of_from'],
+            'period_of_to' => $mileageData['period_of_to'],
+        ]);
+
+        // Get current mileage rate
+        $rate = (float) AppSetting::getValue('mileage_rate', 0.5);
+
+        // Create transactions
+        if (! empty($mileageData['transactions'])) {
+            foreach ($mileageData['transactions'] as $index => $txData) {
+                $totalAmount = MileageTransaction::calculateTotal(
+                    (float) $txData['distance_km'],
+                    $rate,
+                    (float) ($txData['parking_amount'] ?? 0),
+                    (float) ($txData['meter_km'] ?? 0)
+                );
+
+                $transaction = MileageTransaction::create([
+                    'mileage_id' => $mileage->mileage_id,
+                    'transaction_date' => $txData['transaction_date'],
+                    'distance_km' => $txData['distance_km'],
+                    'meter_km' => $txData['meter_km'] ?? null,
+                    'parking_amount' => $txData['parking_amount'] ?? null,
+                    'mileage_rate' => $rate,
+                    'total_amount' => $totalAmount,
+                    'buyer' => $txData['buyer'] ?? null,
+                ]);
+
+                // Handle receipt file uploads
+                $files = $txData['file'] ?? [];
+                if (! empty($files)) {
+                    $fileArray = is_array($files) ? $files : [$files];
+                    foreach ($fileArray as $file) {
+                        if ($file && $file instanceof \Illuminate\Http\UploadedFile) {
+                            $path = $file->store('mileage_receipts', 'public');
+                            MileageReceipt::create([
+                                'transaction_id' => $transaction->transaction_id,
+                                'file_name' => $file->getClientOriginalName(),
+                                'file_type' => $file->getClientMimeType(),
+                                'file_path' => $path,
+                            ]);
+                        }
+                    }
+                }
             }
         }
     }
