@@ -53,6 +53,7 @@ function MileageTransactionForm({ mileageRate, onAddTransaction }) {
             distance_km: parseFloat(draft.distance_km) || 0,
             meter_km: parseFloat(draft.meter_km) || 0,
             parking_amount: parseFloat(draft.parking_amount) || 0,
+            mileage_rate: parseFloat(mileageRate) || 0,
             total_amount: parseFloat(draftTotal),
             attachment: files,
         })

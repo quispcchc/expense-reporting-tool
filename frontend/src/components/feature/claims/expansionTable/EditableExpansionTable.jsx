@@ -18,7 +18,7 @@ import { useTranslation } from 'react-i18next'
 import { useIsMobile } from '../../../../hooks/useIsMobile.js'
 
 // Helper function to map data based on mode
-const mapExpenseData = (data, mode) => {
+const mapExpenseData = (data, mode, mileage) => {
     if (!data) return []
 
     if (mode === 'create') {
@@ -31,6 +31,15 @@ const mapExpenseData = (data, mode) => {
 
     } else if (mode === 'edit' || mode === 'view') {
         // Map backend fields to frontend form fields
+        // Bind mileage data to the first expense item (mileage is at claim level)
+        const boundMileage = mileage ? {
+            travel_from: mileage.travel_from,
+            travel_to: mileage.travel_to,
+            period_of_from: mileage.period_of_from,
+            period_of_to: mileage.period_of_to,
+            transactions: mileage.transactions || [],
+        } : null
+
         return data.map((expense, index) => ({
             transactionId: expense.expense_id || `temp-${index}-${Date.now()}`,
             buyer: expense.buyer_name,
@@ -49,15 +58,17 @@ const mapExpenseData = (data, mode) => {
                 name: receipt.receipt_name,
                 receipt_id: receipt.receipt_id,
             })) : [],
+            // Bind mileage to first expense only so it shows in expansion
+            ...(index === 0 && boundMileage ? { mileage: boundMileage } : {}),
         }))
     }
     return []
 }
 
-function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toastRef, onClaimUpdated }) {
+function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toastRef, onClaimUpdated, mileage }) {
     const { t } = useTranslation()
     const isMobile = useIsMobile()
-    const [expenseItems, setExpenseItems] = useState(() => mapExpenseData(data, mode))
+    const [expenseItems, setExpenseItems] = useState(() => mapExpenseData(data, mode, mileage))
     const [mobileExpandedId, setMobileExpandedId] = useState(null)
 
     const { updateClaim } = useClaims()
@@ -82,8 +93,8 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
 
     useEffect(() => {
         if (!data) return
-        setExpenseItems(mapExpenseData(data, mode))
-    }, [data, mode])
+        setExpenseItems(mapExpenseData(data, mode, mileage))
+    }, [data, mode, mileage])
 
     const handleExpansionFieldChange = (expenseId, fieldName, newValue) => {
         // For tags, handle both string (from text input) and array (from MultiSelect)
@@ -492,10 +503,19 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
 
     // Display template for currency amounts
     const renderCurrencyAmount = (rowData) => {
-        return new Intl.NumberFormat(APP_SETTINGS.currency.locale, {
+        const formatted = new Intl.NumberFormat(APP_SETTINGS.currency.locale, {
             style: 'currency',
             currency: APP_SETTINGS.currency.code,
         }).format(rowData.amount || 0)
+
+        return (
+            <div className="flex items-center gap-1">
+                <span>{formatted}</span>
+                {rowData.mileage?.transactions?.length > 0 && (
+                    <i className="pi pi-car text-blue-500 text-xs" title={t('mileage.hasMileage', 'Includes mileage')} />
+                )}
+            </div>
+        )
     }
 
     // Approve and Reject a single expense item
@@ -643,6 +663,9 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                     <div className="flex-1 min-w-0">
                         <div className="admin-card-title text-sm">
                             #{item.transactionId} — {formatCurrency(item.amount)}
+                            {item.mileage?.transactions?.length > 0 && (
+                                <i className="pi pi-car text-blue-500 text-xs ml-1" title={t('mileage.hasMileage', 'Includes mileage')} />
+                            )}
                         </div>
                         <div className="admin-card-subtitle text-xs">
                             {item.transactionDate} · {item.vendor || '—'}

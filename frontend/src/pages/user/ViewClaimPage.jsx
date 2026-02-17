@@ -6,7 +6,6 @@ import { useClaims } from '../../contexts/ClaimContext.jsx'
 import ClaimNotes from '../../components/feature/claims/addNotes/ClaimNotes.jsx'
 import ClaimStatus from '../../components/feature/claims/ClaimStatus.jsx'
 import EditableExpansionTable from '../../components/feature/claims/expansionTable/EditableExpansionTable.jsx'
-import MileageViewSection from '../../components/feature/mileage/MileageViewSection.jsx'
 import Loader from '../../components/common/ui/Loader.jsx'
 import { useAuth } from '../../contexts/AuthContext.jsx'
 import { useTranslation } from 'react-i18next'
@@ -35,11 +34,22 @@ function ViewClaimPage() {
 
     if (!curClaim) return <Loader />
 
+    // Total amount is the sum of expense amounts (mileage is included in expense amounts)
+    const totalAmount = (curClaim.expenses || []).reduce(
+        (sum, exp) => sum + (parseFloat(exp.expense_amount) || 0), 0
+    )
+
     return (
         <div>
-            <div className="flex justify-between items-center flex-wrap">
+            <div className="flex justify-between items-center flex-wrap gap-4 mb-4">
                 <ContentHeader title={`${t('claims.claimNumber', 'Claim')} #${claimId}`} homePath={path} />
-                <ClaimStatus curClaim={curClaim} />
+                <div className="flex items-center gap-5">
+                    <div className="flex flex-col items-end">
+                        <p className="text-lg font-medium">{t('claims.totalAmount')}</p>
+                        <p className="text-blue-500 text-xl">${totalAmount.toFixed(2)}</p>
+                    </div>
+                    <ClaimStatus curClaim={curClaim} />
+                </div>
             </div>
 
             <div className="flex flex-wrap gap-5 my-5">
@@ -50,14 +60,9 @@ function ViewClaimPage() {
                 </div>
             </div>
 
-            <EditableExpansionTable data={curClaim.expenses} curClaim={curClaim} mode='view' />
-
-            {curClaim.mileage && (
-                <MileageViewSection
-                    mileage={curClaim.mileage}
-                    mode="view"
-                />
-            )}
+            <EditableExpansionTable data={curClaim.expenses} curClaim={curClaim} mode='view'
+                mileage={curClaim.mileage}
+            />
 
         </div>
     )

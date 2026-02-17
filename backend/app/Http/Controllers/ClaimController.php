@@ -74,7 +74,7 @@ class ClaimController extends Controller
             'expenses.*.vendor_name' => 'required_with:expenses|string',
             'expenses.*.transaction_desc' => 'nullable|string',
             'expenses.*.transaction_notes' => 'nullable|string',
-            'expenses.*.expense_amount' => 'required_with:expenses|integer',
+            'expenses.*.expense_amount' => 'required_with:expenses|numeric',
             'expenses.*.project_id' => 'required_with:expenses|integer|exists:projects,project_id',
             'expenses.*.file.*' => 'file|mimes:pdf,png,jpg,jpeg|max:20480',
             'expenses.*.cost_centre_id' => 'required_with:expenses|integer',

@@ -15,17 +15,19 @@ import MileageSection from '../mileage/MileageSection.jsx'
 import api from '../../../api/api.js'
 
 const calculateTotalAmount = (formData, mileageData, includeMileage) => {
+    // Expense totals (mileage amounts are already included in expense amount when bound)
     const claimItemsTotal = formData.claimItems.reduce(
         (sum, item) => sum + (parseFloat(item.amount) || 0),
         0,
     )
-    const mileageTotal = includeMileage
+    // Only count unbound mileage (transactions still in the mileage section, not yet added to an expense)
+    const unboundMileageTotal = includeMileage
         ? (mileageData.transactions || []).reduce(
             (sum, tx) => sum + (parseFloat(tx.total_amount) || 0),
             0,
         )
         : 0
-    return claimItemsTotal + mileageTotal
+    return claimItemsTotal + unboundMileageTotal
 }
 
 function CreateClaim({ navigateTo, homePath, toastRef }) {
@@ -103,6 +105,25 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
     useEffect(() => {
     }, [claimFormData, expenseFormData, tags])
 
+    // Auto-fill expense form amount from mileage total when mileage transactions change
+    const currentMileageTotal = includeMileage
+        ? (mileageData.transactions || []).reduce((sum, tx) => sum + (parseFloat(tx.total_amount) || 0), 0)
+        : 0
+
+    useEffect(() => {
+        if (includeMileage && mileageData.transactions?.length > 0) {
+            const firstTx = mileageData.transactions[0]
+            setExpenseFormData(prev => ({
+                ...prev,
+                amount: currentMileageTotal.toFixed(2),
+                // Auto-fill buyer from first transaction if expense buyer is empty
+                ...(prev.buyer === '' && firstTx?.buyer ? { buyer: firstTx.buyer } : {}),
+                // Auto-fill date from first transaction if expense date is empty
+                ...(prev.transactionDate === '' && firstTx?.transaction_date ? { transactionDate: firstTx.transaction_date } : {}),
+            }))
+        }
+    }, [includeMileage, currentMileageTotal])
+
     const handleFormFieldChange = (e) => {
         const { name, value } = e.target
         setClaimFormData(prev => ({
@@ -136,6 +157,16 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
             ...expenseFormData,
             tags: [...tags],
             attachment: files, // Use files array directly
+            // Bind mileage data to this expense if mileage is active with transactions
+            ...(includeMileage && mileageData.transactions?.length > 0 ? {
+                mileage: {
+                    travel_from: mileageData.travel_from,
+                    travel_to: mileageData.travel_to,
+                    period_of_from: mileageData.period_of_from,
+                    period_of_to: mileageData.period_of_to,
+                    transactions: [...mileageData.transactions],
+                }
+            } : {}),
         }
 
         if (!validation.isValid) {
@@ -157,6 +188,10 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
         setFiles([])
         setTags([])
 
+        // Reset mileage data after binding to expense
+        if (includeMileage && mileageData.transactions?.length > 0) {
+            setMileageData(initialMileageData)
+        }
     }
 
     const handleClaimSubmit = async (e) => {
@@ -166,9 +201,10 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
         setClaimErrors(validation.errors)
 
         const hasExpenses = claimFormData.claimItems.length > 0
-        const hasMileage = includeMileage && (mileageData.transactions || []).length > 0
+        const hasBoundMileage = claimFormData.claimItems.some(item => item.mileage?.transactions?.length > 0)
+        const hasUnboundMileage = includeMileage && (mileageData.transactions || []).length > 0
 
-        if (!hasExpenses && !hasMileage) {
+        if (!hasExpenses && !hasUnboundMileage) {
             setValidationDialog({
                 visible: true,
                 header: t('validation.confirmationRequired', 'Confirmation Required'),
@@ -231,14 +267,47 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
             }
         })
 
-        // Add mileage data
-        if (includeMileage && (mileageData.transactions || []).length > 0) {
-            formData.append('mileage[travel_from]', mileageData.travel_from)
-            formData.append('mileage[travel_to]', mileageData.travel_to)
-            formData.append('mileage[period_of_from]', mileageData.period_of_from)
-            formData.append('mileage[period_of_to]', mileageData.period_of_to)
+        // Collect mileage data from bound expenses + any unbound mileage still in the section
+        const allMileageTransactions = []
+        let mileageHeader = { travel_from: '', travel_to: '', period_of_from: '', period_of_to: '' }
 
-            mileageData.transactions.forEach((tx, index) => {
+        // Gather mileage bound to expenses
+        claimFormData.claimItems.forEach((expense) => {
+            if (expense.mileage?.transactions?.length > 0) {
+                // Use the first bound mileage header found
+                if (!mileageHeader.travel_from && expense.mileage.travel_from) {
+                    mileageHeader = {
+                        travel_from: expense.mileage.travel_from,
+                        travel_to: expense.mileage.travel_to,
+                        period_of_from: expense.mileage.period_of_from,
+                        period_of_to: expense.mileage.period_of_to,
+                    }
+                }
+                allMileageTransactions.push(...expense.mileage.transactions)
+            }
+        })
+
+        // Also gather any unbound mileage still in the mileage section
+        if (includeMileage && (mileageData.transactions || []).length > 0) {
+            if (!mileageHeader.travel_from && mileageData.travel_from) {
+                mileageHeader = {
+                    travel_from: mileageData.travel_from,
+                    travel_to: mileageData.travel_to,
+                    period_of_from: mileageData.period_of_from,
+                    period_of_to: mileageData.period_of_to,
+                }
+            }
+            allMileageTransactions.push(...mileageData.transactions)
+        }
+
+        // Append mileage to FormData if any transactions exist
+        if (allMileageTransactions.length > 0) {
+            formData.append('mileage[travel_from]', mileageHeader.travel_from)
+            formData.append('mileage[travel_to]', mileageHeader.travel_to)
+            formData.append('mileage[period_of_from]', mileageHeader.period_of_from)
+            formData.append('mileage[period_of_to]', mileageHeader.period_of_to)
+
+            allMileageTransactions.forEach((tx, index) => {
                 formData.append(`mileage[transactions][${index}][transaction_date]`, tx.transaction_date)
                 formData.append(`mileage[transactions][${index}][distance_km]`, tx.distance_km)
                 formData.append(`mileage[transactions][${index}][meter_km]`, tx.meter_km ?? '')
@@ -289,16 +358,7 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
                     errors={claimErrors}
                     includeMileage={includeMileage} onMileageToggle={handleMileageToggle} />
             </div>
-            <div className="mt-6">
-                <AddExpenseForm claimFormData={claimFormData} onClaimItemsUpdate={handleClaimItemsUpdate}
-                    expenseFormData={expenseFormData} onSetExpenseForm={setExpenseFormData}
-                    onExpenseChange={handleExpenseFieldChange}
 
-                    onAddExpense={handleAddExpense} tags={tags} onSetTags={setTags} files={files}
-                    onSetFiles={setFiles} errors={expenseErrors}
-                    toastRef={toastRef}
-                />
-            </div>
 
             {includeMileage && (
                 <div className="mt-6">
@@ -310,6 +370,19 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
                     />
                 </div>
             )}
+
+            <div className="mt-6">
+                <AddExpenseForm claimFormData={claimFormData} onClaimItemsUpdate={handleClaimItemsUpdate}
+                    expenseFormData={expenseFormData} onSetExpenseForm={setExpenseFormData}
+                    onExpenseChange={handleExpenseFieldChange}
+                    onAddExpense={handleAddExpense} tags={tags} onSetTags={setTags} files={files}
+                    onSetFiles={setFiles} errors={expenseErrors}
+                    toastRef={toastRef}
+                    includeMileage={includeMileage}
+                    mileageData={mileageData}
+                />
+            </div>
+
 
             <Dialog header={validationDialog.header} visible={validationDialog.visible} style={{ width: '90vw', maxWidth: '450px' }}
                 onHide={() => setValidationDialog(prev => ({ ...prev, visible: false }))}
