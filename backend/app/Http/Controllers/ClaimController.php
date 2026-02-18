@@ -233,7 +233,7 @@ class ClaimController extends Controller
                             $expense->approvalStatus->approval_status_name ?? '',
                             $expense->project->project_name ?? '',
                             $expense->costCentre->cost_centre_code ?? '',
-                            $expense->accountNumber->account_number_code ?? '',
+                            $expense->accountNumber->account_number ?? '',
                             $tags,
                             $claimNotes,
                         ]));

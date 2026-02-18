@@ -1,11 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react'
 import ContentHeader from '../../components/common/layout/ContentHeader.jsx'
-import AddNewCostCentre from '../../components/feature/costCentre/AddNewCostCentre.jsx'
+import AddNewAccountNumber from '../../components/feature/accountNumber/AddNewAccountNumber.jsx'
 import { DataTable } from 'primereact/datatable'
 import { Column } from 'primereact/column'
-import { useCostCentre } from '../../contexts/CostCentreContext.jsx'
+import { useAccountNumber } from '../../contexts/AccountNumberContext.jsx'
 import { InputText } from 'primereact/inputtext'
-import { Dropdown } from 'primereact/dropdown'
 import { Button } from 'primereact/button'
 import { Dialog } from 'primereact/dialog'
 import { FilterMatchMode } from 'primereact/api'
@@ -14,19 +13,18 @@ import { InputIcon } from 'primereact/inputicon'
 import { useLookups } from '../../contexts/LookupContext.jsx'
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog'
 import { Toast } from 'primereact/toast'
-import ActiveStatusTab from '../../components/common/ui/ActiveStatusTab.jsx'
 import { useTranslation } from 'react-i18next'
 import { useIsMobile } from '../../hooks/useIsMobile.js'
 
-function CostCentresPage() {
+function AccountNumbersPage() {
     const { t } = useTranslation()
-    const { lookups } = useLookups()
+    const { refreshLookups } = useLookups()
     const isMobile = useIsMobile()
 
     const {
-        state: { costCentres, loading, error },
-        actions: { updateCostCentre, deleteCostCentre },
-    } = useCostCentre()
+        state: { accountNumbers, loading, error },
+        actions: { updateAccountNumber, deleteAccountNumber },
+    } = useAccountNumber()
 
     const [globalFilterValue, setGlobalFilterValue] = useState('')
     const [filters, setFilters] = useState({
@@ -57,28 +55,6 @@ function CostCentresPage() {
         )
     }
 
-    const renderStatus = (rowData) => (
-        <ActiveStatusTab status={rowData.active_status_id} />
-    )
-
-    const departmentOptions = lookups.departments.map(d => ({
-        label: d.department_name,
-        value: d.department_id,
-    }))
-
-    const statusOptions = lookups.activeStatuses.map(s => ({
-        label: s.active_status_name,
-        value: s.active_status_id,
-    }))
-
-    const departmentEditor = (editorOptions) => (
-        <Dropdown
-            value={editorOptions.value}
-            onChange={(e) => editorOptions.editorCallback(e.value)}
-            options={departmentOptions}
-        />
-    )
-
     const textInputEditor = (editorOptions) => (
         <InputText
             type="text"
@@ -88,37 +64,35 @@ function CostCentresPage() {
         />
     )
 
-    const statusEditor = (editorOptions) => (
-        <Dropdown
-            value={editorOptions.value}
-            onChange={(e) => { editorOptions.editorCallback(e.value) }}
-            options={statusOptions}
-        />
-    )
-
     const toast = useRef(null)
     const toasts = {
         created: () => {
             toast.current.show(
-                { severity: 'success', summary: 'Created', detail: 'Created successfully!', life: 3000 })
+                { severity: 'success', summary: t('common.success', 'Success'), detail: t('accountNumbers.createSuccess', 'Account Number created successfully!'), life: 3000 })
+            refreshLookups()
         },
         updated: () => {
             toast.current.show(
-                { severity: 'success', summary: 'Updated', detail: 'Updated successfully!', life: 3000 })
+                { severity: 'success', summary: t('common.success', 'Success'), detail: t('accountNumbers.updateSuccess', 'Account Number updated successfully!'), life: 3000 })
+            refreshLookups()
         },
         error: () => {
             toast.current.show(
-                { severity: 'error', summary: 'Error', detail: error || 'Something went wrong.', life: 3000 })
+                { severity: 'error', summary: t('common.error', 'Error'), detail: error || 'Something went wrong.', life: 3000 })
         },
-        accept: async (costCentreId) => {
-            const response = await deleteCostCentre(costCentreId)
-            if (response) {
+        accept: async (accountNumberId) => {
+            const response = await deleteAccountNumber(accountNumberId)
+            if (response && !response.error) {
                 toast.current.show(
-                    { severity: 'success', summary: 'Deleted', detail: 'Deleted successfully!', life: 3000 })
+                    { severity: 'success', summary: t('common.success', 'Success'), detail: t('accountNumbers.deleteSuccess', 'Account Number deleted successfully!'), life: 3000 })
+                refreshLookups()
+            } else {
+                toast.current.show(
+                    { severity: 'error', summary: t('common.error', 'Error'), detail: response?.error || 'Delete failed', life: 3000 })
             }
         },
         reject: () => {
-            toast.current.show({ severity: 'info', summary: 'Cancelled', detail: 'Cancelled', life: 3000 })
+            toast.current.show({ severity: 'info', summary: t('common.cancelled', 'Cancelled'), detail: t('common.operationCancelled', 'Operation cancelled'), life: 3000 })
         },
     }
 
@@ -129,20 +103,27 @@ function CostCentresPage() {
     }, [error])
 
     const onRowEditComplete = async (e) => {
-        const response = await updateCostCentre(e.newData)
+        const response = await updateAccountNumber(e.newData)
         if (response?.status === 200) {
             toasts.updated()
+        } else if (response?.error) {
+            toast.current.show({
+                severity: 'error',
+                summary: 'Update Failed',
+                detail: response.error,
+                life: 5000
+            })
         }
     }
 
-    const onDelete = (costCentreId) => {
+    const onDelete = (accountNumberId) => {
         confirmDialog({
-            message: t('costCentre.deleteConfirmMessage', 'Are you sure you want to delete this item? This action cannot be undone.'),
-            header: t('costCentre.deleteItem', 'Delete Item'),
+            message: t('accountNumbers.deleteConfirmMessage', 'Are you sure you want to delete this account number? This action cannot be undone.'),
+            header: t('accountNumbers.deleteItem', 'Delete Account Number'),
             icon: 'pi pi-info-circle',
             defaultFocus: 'reject',
             acceptClassName: 'p-button-danger',
-            accept: () => toasts.accept(costCentreId),
+            accept: () => toasts.accept(accountNumberId),
             reject: toasts.reject,
         })
     }
@@ -150,10 +131,10 @@ function CostCentresPage() {
     const renderDeleteButton = (rowData) => {
         return (
             <button
-                onClick={() => onDelete(rowData.cost_centre_id)}
+                onClick={() => onDelete(rowData.account_number_id)}
                 type="button"
                 className="p-2 disabled:opacity-50"
-                title="Delete this expense"
+                title="Delete this account number"
             >
                 <i className="pi pi-trash"></i>
             </button>
@@ -163,22 +144,28 @@ function CostCentresPage() {
     // Mobile edit dialog save
     const handleMobileEditSave = async () => {
         if (!editData) return
-        const response = await updateCostCentre(editData)
+        const response = await updateAccountNumber(editData)
         if (response?.status === 200) {
             toasts.updated()
+        } else if (response?.error) {
+            toast.current.show({
+                severity: 'error',
+                summary: 'Update Failed',
+                detail: response.error,
+                life: 5000
+            })
         }
         setEditDialog(false)
         setEditData(null)
     }
 
-    // Filter cost centres for mobile search
-    const filteredCostCentres = costCentres?.filter(cc => {
+    // Filter account numbers for mobile search
+    const filteredAccountNumbers = accountNumbers?.filter(an => {
         if (!globalFilterValue) return true
         const q = globalFilterValue.toLowerCase()
         return (
-            String(cc.cost_centre_code || '').toLowerCase().includes(q) ||
-            cc.description?.toLowerCase().includes(q) ||
-            cc.department?.department_name?.toLowerCase().includes(q)
+            an.account_number?.toString().toLowerCase().includes(q) ||
+            an.description?.toLowerCase().includes(q)
         )
     }) || []
 
@@ -197,24 +184,22 @@ function CostCentresPage() {
             </div>
 
             <div className="admin-mobile-list">
-                {filteredCostCentres.length === 0 ? (
+                {filteredAccountNumbers.length === 0 ? (
                     <div className="text-center text-gray-500 py-8">
                         {t('common.noResults')}
                     </div>
                 ) : (
-                    filteredCostCentres.map(cc => (
-                        <div key={cc.cost_centre_id} className="admin-card">
+                    filteredAccountNumbers.map(an => (
+                        <div key={an.account_number_id} className="admin-card">
                             <div className="admin-card-header">
                                 <div>
-                                    <div className="admin-card-title">{cc.cost_centre_code}</div>
-                                    <div className="admin-card-subtitle">{cc.department?.department_name}</div>
+                                    <div className="admin-card-title">{an.account_number}</div>
                                 </div>
-                                <ActiveStatusTab status={cc.active_status_id} />
                             </div>
                             <div className="admin-card-body">
                                 <div className="admin-card-row">
-                                    <span className="admin-card-label">{t('costCentre.description', 'Description')}</span>
-                                    <span className="admin-card-value">{cc.description || '—'}</span>
+                                    <span className="admin-card-label">{t('accountNumbers.description', 'Description')}</span>
+                                    <span className="admin-card-value">{an.description || '—'}</span>
                                 </div>
                             </div>
                             <div className="admin-card-actions">
@@ -223,7 +208,7 @@ function CostCentresPage() {
                                     size="small"
                                     text
                                     onClick={() => {
-                                        setEditData({ ...cc })
+                                        setEditData({ ...an })
                                         setEditDialog(true)
                                     }}
                                 />
@@ -232,7 +217,7 @@ function CostCentresPage() {
                                     size="small"
                                     text
                                     severity="danger"
-                                    onClick={() => onDelete(cc.cost_centre_id)}
+                                    onClick={() => onDelete(an.account_number_id)}
                                 />
                             </div>
                         </div>
@@ -245,13 +230,11 @@ function CostCentresPage() {
     // Desktop table view
     const desktopTableView = (
         <div className="bg-white rounded-xl p-6 mt-5">
-            <DataTable value={costCentres} paginator rows={5} rowsPerPageOptions={[5, 10, 25, 50]}
+            <DataTable value={accountNumbers} paginator rows={5} rowsPerPageOptions={[5, 10, 25, 50]}
                 paginatorTemplate="FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink RowsPerPageDropdown"
                 currentPageReportTemplate="{first} to {last} of {totalRecords}"
                 filters={filters} globalFilterFields={[
-                    'department.department_name',
-                    'cost_centre_code',
-                    'active_status.active_status_name',
+                    'account_number',
                     'description',
                 ]}
                 header={renderHeader} emptyMessage={t('common.noResults')}
@@ -260,12 +243,8 @@ function CostCentresPage() {
                 loading={loading}
                 scrollable
                 tableStyle={{ minWidth: '50rem' }}>
-                <Column field="department_id" header={t('users.department')} sortable editor={departmentEditor}
-                    body={(rowData) => rowData.department?.department_name}></Column>
-                <Column field="cost_centre_code" header={t('teams.code')} sortable editor={textInputEditor}></Column>
-                <Column field="active_status_id" header={t('common.status')} body={renderStatus} sortable
-                    editor={statusEditor}></Column>
-                <Column field="description" header={t('costCentre.description', 'Description')} sortable editor={textInputEditor}></Column>
+                <Column field="account_number" header={t('accountNumbers.accountNumber', 'Account Number')} sortable editor={textInputEditor}></Column>
+                <Column field="description" header={t('accountNumbers.description', 'Description')} sortable editor={textInputEditor}></Column>
                 <Column
                     rowEditor={true}
                     header={t('common.edit')}
@@ -282,14 +261,14 @@ function CostCentresPage() {
         <>
             <Toast ref={toast} />
             <ConfirmDialog />
-            <ContentHeader title={t('sidebar.costCentre')} homePath="/admin" iconKey="sidebar.costCentre" />
-            <AddNewCostCentre createdToast={toasts.created} />
+            <ContentHeader title={t('accountNumbers.title', 'Account Numbers')} homePath="/admin" iconKey="sidebar.accountNumbers" />
+            <AddNewAccountNumber createdToast={toasts.created} />
 
             {isMobile ? mobileCardView : desktopTableView}
 
             {/* Mobile Edit Dialog */}
             <Dialog
-                header={t('costCentre.editCostCentre', 'Edit Cost Centre')}
+                header={t('accountNumbers.editAccountNumber', 'Edit Account Number')}
                 visible={editDialog}
                 style={{ width: '90vw', maxWidth: '450px' }}
                 onHide={() => { setEditDialog(false); setEditData(null) }}
@@ -304,34 +283,15 @@ function CostCentresPage() {
                 {editData && (
                     <>
                         <div className="edit-field">
-                            <label>{t('users.department')}</label>
-                            <Dropdown
-                                value={editData.department_id}
-                                onChange={(e) => setEditData({ ...editData, department_id: e.value })}
-                                options={departmentOptions}
-                                optionLabel="label"
-                                optionValue="value"
-                            />
-                        </div>
-                        <div className="edit-field">
-                            <label>{t('teams.code')}</label>
+                            <label>{t('accountNumbers.accountNumber', 'Account Number')}</label>
                             <InputText
-                                value={editData.cost_centre_code || ''}
-                                onChange={(e) => setEditData({ ...editData, cost_centre_code: e.target.value })}
+                                type="number"
+                                value={editData.account_number || ''}
+                                onChange={(e) => setEditData({ ...editData, account_number: e.target.value })}
                             />
                         </div>
                         <div className="edit-field">
-                            <label>{t('common.status')}</label>
-                            <Dropdown
-                                value={editData.active_status_id}
-                                onChange={(e) => setEditData({ ...editData, active_status_id: e.value })}
-                                options={statusOptions}
-                                optionLabel="label"
-                                optionValue="value"
-                            />
-                        </div>
-                        <div className="edit-field">
-                            <label>{t('costCentre.description', 'Description')}</label>
+                            <label>{t('accountNumbers.description', 'Description')}</label>
                             <InputText
                                 value={editData.description || ''}
                                 onChange={(e) => setEditData({ ...editData, description: e.target.value })}
@@ -344,4 +304,4 @@ function CostCentresPage() {
     )
 }
 
-export default CostCentresPage
+export default AccountNumbersPage

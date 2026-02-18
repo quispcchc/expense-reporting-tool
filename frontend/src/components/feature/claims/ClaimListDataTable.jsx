@@ -585,7 +585,7 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
         </div>
     )
 
-    const DesktopTableView = () => (
+    const desktopTableView = (
         <>
             {desktopFilterOverlay}
             <ComponentContainer>
@@ -829,7 +829,7 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
         )
     }
 
-    const MobileCardView = () => (
+    const mobileCardView = (
         <div className="mobile-claims-container">
             {mobileFilterModal}
             <MobileHeader />
@@ -853,7 +853,7 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
     // ============================================
     return (
         <div className="claims-list-wrapper">
-            {isMobile ? <MobileCardView /> : <DesktopTableView />}
+            {isMobile ? mobileCardView : desktopTableView}
         </div>
     )
 }

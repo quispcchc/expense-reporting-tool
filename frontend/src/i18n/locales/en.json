@@ -76,6 +76,7 @@
         "users": "Users",
         "teams": "Departments",
         "costCentre": "Cost Centre",
+        "accountNumbers": "Account Numbers",
         "tags": "Tags & Projects",
         "settings": "Settings"
     },
@@ -211,6 +212,21 @@
         "enterCode": "Enter code",
         "description": "Description",
         "enterDescription": "Enter description"
+    },
+    "accountNumbers": {
+        "title": "Account Numbers",
+        "addNewAccountNumber": "Add New Account Number",
+        "addNewDescription": "Fill in the details below to add a new account number to the system.",
+        "editAccountNumber": "Edit Account Number",
+        "accountNumber": "Account Number",
+        "description": "Description",
+        "enterAccountNumber": "Enter account number",
+        "enterDescription": "Enter description",
+        "deleteConfirmMessage": "Are you sure you want to delete this account number? This action cannot be undone.",
+        "deleteItem": "Delete Account Number",
+        "createSuccess": "Account Number created successfully!",
+        "updateSuccess": "Account Number updated successfully!",
+        "deleteSuccess": "Account Number deleted successfully!"
     },
     "upload": {
         "uploadFile": "Upload a file",

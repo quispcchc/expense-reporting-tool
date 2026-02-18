@@ -228,14 +228,19 @@ function DashboardPage() {
     const departmentOptions = lookups.departments.map(d => ({
         label: d.department_name, value: d.department_id,
     }))
-    const teamOptions = lookups.teams.map(tm => ({
+    // Filter teams based on selected department
+    const teamOptions = filters.department_id
+        ? lookups.teams
+            .filter(tm => tm.department_id === filters.department_id)
+            .map(tm => ({
         label: tm.team_name, value: tm.team_id,
     }))
+        : []
     const projectOptions = lookups.projects.map(p => ({
         label: p.project_name, value: p.project_id,
     }))
     const costCentreOptions = lookups.costCentres.map(cc => ({
-        label: `${cc.cost_centre_code} - ${cc.cost_centre_name ?? ''}`.trim(),
+        label: `${cc.cost_centre_code} - ${cc.description ?? ''}`.trim(),
         value: cc.cost_centre_id,
     }))
     const tagOptions = lookups.tags.map(tg => ({
@@ -343,7 +348,13 @@ function DashboardPage() {
                             id="department"
                             value={filters.department_id}
                             options={departmentOptions}
-                            onChange={e => updateFilter('department_id', e.value)}
+                            onChange={e => {
+                                updateFilter('department_id', e.value)
+                                // Clear team selection when department changes
+                                if (filters.team_id) {
+                                    updateFilter('team_id', null)
+                                }
+                            }}
                             placeholder={t('dashboard.filters.selectAll', 'All')}
                             showClear
                             className="w-full"
@@ -360,8 +371,13 @@ function DashboardPage() {
                             value={filters.team_id}
                             options={teamOptions}
                             onChange={e => updateFilter('team_id', e.value)}
-                            placeholder={t('dashboard.filters.selectAll', 'All')}
+                            placeholder={
+                                filters.department_id
+                                    ? t('dashboard.filters.selectAll', 'All')
+                                    : t('dashboard.filters.selectDepartmentFirst', 'Select department first')
+                            }
                             showClear
+                            disabled={!filters.department_id}
                             className="w-full"
                         />
                     </div>
