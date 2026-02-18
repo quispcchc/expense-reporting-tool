@@ -146,6 +146,19 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
         )
     }
 
+    const togglePendingFilter = () => {
+        const pendingStatusName = claimStatus?.find(s => s.claim_status_id === 1)?.claim_status_name || 'Pending'
+        const isPendingActive = filterValues.status === pendingStatusName
+
+        const newStatus = isPendingActive ? '' : pendingStatusName
+
+        setFilterValues(prev => ({ ...prev, status: newStatus }))
+
+        let _filters = { ...filters }
+        _filters['status.claim_status_name'].value = newStatus || null
+        setFilters(_filters)
+    }
+
     const claimTypeFilterTemplate = (options) => (
         <Dropdown value={options.value}
             options={claimTypes.map(opt => ({ label: opt.claim_type_name, value: opt.claim_type_name }))}
@@ -528,6 +541,15 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
                     badgeClassName="p-badge-info"
                     className="filter-button"
                 />
+                <Button
+                    label="Pending"
+                    icon="pi pi-clock"
+                    outlined={filterValues.status !== (claimStatus?.find(s => s.claim_status_id === 1)?.claim_status_name || 'Pending')}
+                    severity={filterValues.status === (claimStatus?.find(s => s.claim_status_id === 1)?.claim_status_name || 'Pending') ? 'info' : 'secondary'}
+                    onClick={togglePendingFilter}
+                    className={`filter-button ${filterValues.status === (claimStatus?.find(s => s.claim_status_id === 1)?.claim_status_name || 'Pending') ? 'bg-blue-50 border-blue-200 text-blue-600' : ''}`}
+                    tooltip="Show Pending Claims"
+                />
             </div>
 
             <div className="flex gap-2 flex-wrap">
@@ -733,6 +755,14 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
                     <i className="pi pi-filter" />
                     <span>{t('claims.filter', 'Filter')}</span>
                     {hasActiveFilters && <span className="mobile-filter-badge">●</span>}
+                </button>
+
+                <button
+                    className={`mobile-filter-btn ${filterValues.status === (claimStatus?.find(s => s.claim_status_id === 1)?.claim_status_name || 'Pending') ? 'mobile-filter-btn-active bg-blue-50 border-blue-200 text-blue-600' : ''}`}
+                    onClick={togglePendingFilter}
+                >
+                    <i className="pi pi-clock" />
+                    <span className="hidden sm:inline">Pending</span>
                 </button>
 
                 {/* Approve/Reject icon buttons for admin */}
