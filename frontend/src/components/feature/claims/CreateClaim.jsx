@@ -11,6 +11,9 @@ import { useClaims } from '../../../contexts/ClaimContext.jsx'
 import { useAuth } from '../../../contexts/AuthContext.jsx'
 import { showToast } from '../../../utils/helpers.js'
 import { useTranslation } from 'react-i18next'
+//Mileage imports
+import MileageToggle from '../mileage/MileageToggle.jsx'
+import MileageSection from '../mileage/MileageSection.jsx'
 
 const calculateTotalAmount = (formData) => {
     const claimItemsTotal = formData.claimItems.reduce(
@@ -29,6 +32,26 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
     const [tags, setTags] = useState([])
     const [files, setFiles] = useState([])
 
+    // Mileage components
+    const [includeMileage, setIncludeMileage] = useState(false);
+
+    const initialMileageHeader = {
+        travel_from: "",
+        travel_to: "",
+        period_of_from: "",
+        period_of_to: "",
+    };
+
+    const [mileageData, setMileageData] = useState(initialMileageHeader);
+    const [mileages, setMileages] = useState([]);
+    const mileageTotal =
+        (mileageData.transactions || []).reduce(
+            (sum, tx) =>
+                sum +
+                5 * Number(tx.meter_km || 0),
+            0
+        ) || 0;
+    ///
     const [expenseErrors, setExpenseErrors] = useState([])
     const [claimErrors, setClaimErrors] = useState()
     const [validationDialog, setValidationDialog] = useState({ visible: false, header: '', message: '' })
@@ -68,6 +91,18 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
             [name]: value,
         }))
     }
+
+    // Mileage handlers
+    const handleMileageToggle = (checked) => {
+        setIncludeMileage(checked)
+
+        // If user turns mileage OFF, clear mileage data so it won't be submitted by accident
+        if (!checked) {
+            setMileageData(initialMileageHeader);
+            setMileages([]);
+        }
+    }
+    //
 
     const handleExpenseFieldChange = (e) => {
         const { name, value } = e.target
@@ -113,7 +148,7 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
         // Reset form data and files after adding expense
         setExpenseFormData(initialExpenseFormData)
         setFiles([])
-        setTags([])
+        setTags(['Client Travelling'])
 
     }
 
@@ -204,10 +239,15 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
             <div className="flex justify-between items-start flex-wrap gap-4 mb-4">
                 <ContentHeader title={t('claims.createClaim')} homePath={homePath} className="" iconKey="claims.createClaim" />
                 <div className="flex gap-5 items-center">
+
                     <div className="flex flex-col items-end">
                         <p className="text-lg font-medium">{t('claims.totalAmount')}</p>
                         <p className="text-blue-500 text-xl">${calculateTotalAmount(claimFormData).toFixed(2)}</p>
                     </div>
+
+                    {/* Mileage parts */}
+                    <MileageToggle value={includeMileage} onChange={handleMileageToggle} />
+
                     <Button label={t('claims.submitClaim', 'Submit claim')} type="submit" icon="pi pi-plus"
                         iconPos="right" />
                 </div>
@@ -217,6 +257,10 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
                 <ClaimForm claimFormData={claimFormData} onFieldChange={handleFormFieldChange}
                     errors={claimErrors} />
             </div>
+
+
+
+
             <div className="mt-6">
                 <AddExpenseForm claimFormData={claimFormData} onClaimItemsUpdate={handleClaimItemsUpdate}
                     expenseFormData={expenseFormData} onSetExpenseForm={setExpenseFormData}
@@ -227,6 +271,20 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
                     toastRef={toastRef}
                 />
             </div>
+
+            {/* Mileage part */}
+            {includeMileage && (
+                <div className="mt-6">
+                    <MileageSection
+                        mileageData={mileageData}
+                        setMileageData={setMileageData}
+                        mileages={mileages}
+                        setMileages={setMileages}
+                        totalAmount={mileageTotal}
+                    />
+                </div>
+            )}
+
             <Dialog header={validationDialog.header} visible={validationDialog.visible} style={{ width: '90vw', maxWidth: '450px' }}
                 onHide={() => setValidationDialog(prev => ({ ...prev, visible: false }))}
                 footer={

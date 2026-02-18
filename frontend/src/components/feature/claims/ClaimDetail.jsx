@@ -6,6 +6,7 @@ import { Button } from 'primereact/button'
 import api from '../../../api/api.js'
 import { showToast } from '../../../utils/helpers.js'
 import { useTranslation } from 'react-i18next'
+import MileageByClaim from '../mileage/MileageByClaim.jsx'
 
 // ClaimDetail component shows details of a single claim
 // Used in both view and edit claim pages
@@ -60,7 +61,7 @@ function ClaimDetail({ curClaim, toastRef, onClaimRefetch }) {
     const submittedDate = curClaim?.date_submitted || curClaim?.claim_submitted
 
     return (
-
+        <>
         <ComponentContainer>
             <div className="flex justify-between items-start mb-4">
                 <div>
@@ -134,26 +135,16 @@ function ClaimDetail({ curClaim, toastRef, onClaimRefetch }) {
                             team => ({ label: team.team_name, value: team.team_id }))}
                         onChange={(value) => handleSelectChange('team_id', value)}
                     />
-
-                    {/* Show who ultimately approved/rejected the claim */}
-                    {curClaim?.claim_approvals && curClaim.claim_approvals.length > 0 && (() => {
-                        const lastApproval = curClaim.claim_approvals[curClaim.claim_approvals.length - 1]
-                        return (
-                            <ClaimDetailRow
-                                title={lastApproval.approval_status_id === 2
-                                    ? t('claims.approvedBy', 'Approved by') + ':'
-                                    : t('claims.rejectedBy', 'Rejected by') + ':'}
-                                value={lastApproval.approved_by_user
-                                    ? `${lastApproval.approved_by_user.first_name} ${lastApproval.approved_by_user.last_name}`
-                                    : t('common.unknown', 'Unknown')}
-                            />
-                        )
-                    })()}
                 </tbody>
             </table>
 
         </ComponentContainer>
 
+        {/* Mileage details section - only show if claim has mileage */ }
+        {!!curClaim?.claim_id && (
+            <MileageByClaim claimId={curClaim.claim_id} toastRef={toastRef} />
+        )}
+        </>
     )
 }
 
