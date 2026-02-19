@@ -30,14 +30,11 @@ function UploadMileageAttachment({ files, onSetFiles, errors }) {
 
     return (
         <div className="relative">
-            <div className='flex flex-col justify-between p-1'>
-                <label className='block text-sm font-medium'>Receipt</label>
-                <Upload handleFileSelect={handleFileSelect} />
-
+            <div className="flex items-center gap-2 mb-2">
+                <label className='block text-sm font-medium'>{t('mileage.receipt', 'Receipt')}</label>
             </div>
-
+            <Upload handleFileSelect={handleFileSelect} className="w-full" />
             <AttachmentList files={files} onRemoveFile={handleRemoveFile} />
-
         </div>
     )
 }
