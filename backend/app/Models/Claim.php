@@ -58,7 +58,14 @@ class Claim extends Model
 
     public function mileage()
     {
-        return $this->hasOne(Mileage::class, 'claim_id', 'claim_id');
+        return $this->hasManyThrough(
+            Mileage::class,
+            Expense::class,
+            'claim_id',   // FK on expenses pointing to claims
+            'expense_id', // FK on mileage pointing to expenses
+            'claim_id',   // local key on claims
+            'expense_id'  // local key on expenses
+        );
     }
 
     public function status()

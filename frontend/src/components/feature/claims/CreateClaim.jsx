@@ -201,17 +201,27 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
         setClaimErrors(validation.errors)
 
         const hasExpenses = claimFormData.claimItems.length > 0
-        const hasBoundMileage = claimFormData.claimItems.some(item => item.mileage?.transactions?.length > 0)
         const hasUnboundMileage = includeMileage && (mileageData.transactions || []).length > 0
 
-        if (!hasExpenses && !hasUnboundMileage) {
+            // Mileage must be bound to an expense before submitting
+        if (hasUnboundMileage) {
             setValidationDialog({
                 visible: true,
                 header: t('validation.confirmationRequired', 'Confirmation Required'),
-                message: t('validation.noItems', 'Please add at least one expense or mileage transaction before submitting.')
+                message: t('validation.unboundMileage', 'You have mileage transactions that are not yet added to an expense. Please click "Add Expense" to include them before submitting.')
             })
             return
         }
+        if (!hasExpenses) {
+            setValidationDialog({
+                visible: true,
+                header: t('validation.confirmationRequired', 'Confirmation Required'),
+                message: t('validation.noItems', 'Please add at least one expense before submitting.')
+            })
+            return
+        }
+
+    
 
         if (!validation.isValid) {
             setValidationDialog({
@@ -265,65 +275,32 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
                     }
                 })
             }
-        })
 
-        // Collect mileage data from bound expenses + any unbound mileage still in the section
-        const allMileageTransactions = []
-        let mileageHeader = { travel_from: '', travel_to: '', period_of_from: '', period_of_to: '' }
-
-        // Gather mileage bound to expenses
-        claimFormData.claimItems.forEach((expense) => {
+            // Mileage nested inside the expense that owns it
             if (expense.mileage?.transactions?.length > 0) {
-                // Use the first bound mileage header found
-                if (!mileageHeader.travel_from && expense.mileage.travel_from) {
-                    mileageHeader = {
-                        travel_from: expense.mileage.travel_from,
-                        travel_to: expense.mileage.travel_to,
-                        period_of_from: expense.mileage.period_of_from,
-                        period_of_to: expense.mileage.period_of_to,
+                const mil = expense.mileage
+                formData.append(`expenses[${index}][mileage][travel_from]`, mil.travel_from)
+                formData.append(`expenses[${index}][mileage][travel_to]`, mil.travel_to)
+                formData.append(`expenses[${index}][mileage][period_of_from]`, mil.period_of_from)
+                formData.append(`expenses[${index}][mileage][period_of_to]`, mil.period_of_to)
+
+                mil.transactions.forEach((tx, txIdx) => {
+                    formData.append(`expenses[${index}][mileage][transactions][${txIdx}][transaction_date]`, tx.transaction_date)
+                    formData.append(`expenses[${index}][mileage][transactions][${txIdx}][distance_km]`, tx.distance_km)
+                    formData.append(`expenses[${index}][mileage][transactions][${txIdx}][meter_km]`, tx.meter_km ?? '')
+                    formData.append(`expenses[${index}][mileage][transactions][${txIdx}][parking_amount]`, tx.parking_amount ?? '')
+                    formData.append(`expenses[${index}][mileage][transactions][${txIdx}][buyer]`, tx.buyer ?? '')
+
+                    if (Array.isArray(tx.attachment) && tx.attachment.length > 0) {
+                        tx.attachment.forEach((att, attIdx) => {
+                            if (att?.file instanceof File) {
+                                formData.append(`expenses[${index}][mileage][transactions][${txIdx}][file][${attIdx}]`, att.file)
+                            }
+                        })
                     }
-                }
-                allMileageTransactions.push(...expense.mileage.transactions)
+                })
             }
         })
-
-        // Also gather any unbound mileage still in the mileage section
-        if (includeMileage && (mileageData.transactions || []).length > 0) {
-            if (!mileageHeader.travel_from && mileageData.travel_from) {
-                mileageHeader = {
-                    travel_from: mileageData.travel_from,
-                    travel_to: mileageData.travel_to,
-                    period_of_from: mileageData.period_of_from,
-                    period_of_to: mileageData.period_of_to,
-                }
-            }
-            allMileageTransactions.push(...mileageData.transactions)
-        }
-
-        // Append mileage to FormData if any transactions exist
-        if (allMileageTransactions.length > 0) {
-            formData.append('mileage[travel_from]', mileageHeader.travel_from)
-            formData.append('mileage[travel_to]', mileageHeader.travel_to)
-            formData.append('mileage[period_of_from]', mileageHeader.period_of_from)
-            formData.append('mileage[period_of_to]', mileageHeader.period_of_to)
-
-            allMileageTransactions.forEach((tx, index) => {
-                formData.append(`mileage[transactions][${index}][transaction_date]`, tx.transaction_date)
-                formData.append(`mileage[transactions][${index}][distance_km]`, tx.distance_km)
-                formData.append(`mileage[transactions][${index}][meter_km]`, tx.meter_km ?? '')
-                formData.append(`mileage[transactions][${index}][parking_amount]`, tx.parking_amount ?? '')
-                formData.append(`mileage[transactions][${index}][buyer]`, tx.buyer ?? '')
-
-                // Mileage receipt files
-                if (Array.isArray(tx.attachment) && tx.attachment.length > 0) {
-                    tx.attachment.forEach((att, attIndex) => {
-                        if (att?.file instanceof File) {
-                            formData.append(`mileage[transactions][${index}][file][${attIndex}]`, att.file)
-                        }
-                    })
-                }
-            })
-        }
 
         try {
             await createClaim(formData)

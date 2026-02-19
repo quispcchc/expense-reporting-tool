@@ -8,19 +8,16 @@ use Illuminate\Http\Request;
 class MileageController extends Controller
 {
     /**
-     * Get mileage with transactions and receipts for a claim.
+     * Get all mileage records (with transactions and receipts) for a claim.
+     * Mileage is now linked per-expense, so a claim may have multiple records.
      */
     public function showByClaim($claimId)
     {
-        $mileage = Mileage::with(['transactions.receipts'])
-            ->where('claim_id', $claimId)
-            ->first();
+        $mileage = Mileage::whereHas('expense', fn ($q) => $q->where('claim_id', $claimId))
+            ->with(['transactions.receipts'])
+            ->get();
 
-        if (! $mileage) {
-            return $this->successResponse(null);
-        }
-
-        return $this->successResponse($mileage);
+        return $this->successResponse($mileage->isEmpty() ? null : $mileage);
     }
 
     /**

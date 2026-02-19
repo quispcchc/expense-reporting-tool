@@ -24,7 +24,7 @@ class ClaimService
     {
         $role_level = $user->role->role_level;
 
-        $query = Claim::with(['expenses.receipts', 'expenses', 'claimType', 'department', 'team', 'status', 'mileage.transactions.receipts']);
+        $query = Claim::with(['expenses.receipts', 'expenses.mileage.transactions.receipts', 'claimType', 'department', 'team', 'status']);
 
         if ($role_level === RoleLevel::DEPARTMENT_MANAGER) {
             // Department-level access
@@ -102,13 +102,13 @@ class ClaimService
 
     public function getClaimsByUserId(User $user)
     {
-        return Claim::with(['expenses.receipts', 'expenses', 'claimType', 'department', 'team', 'status', 'mileage.transactions.receipts'])
+        return Claim::with(['expenses.receipts', 'expenses.mileage.transactions.receipts', 'claimType', 'department', 'team', 'status'])
             ->where('user_id', $user->user_id)->get();
     }
 
     public function getClaimById(int $claimId)
     {
-        return Claim::with(['expenses.tags', 'expenses.receipts', 'claimType', 'status', 'position', 'user', 'department', 'team', 'claimNotes.user', 'claimApprovals.approvedByUser', 'mileage.transactions.receipts'])
+        return Claim::with(['expenses.tags', 'expenses.receipts', 'expenses.mileage.transactions.receipts', 'claimType', 'status', 'position', 'user', 'department', 'team', 'claimNotes.user', 'claimApprovals.approvedByUser'])
             ->where('claim_id', $claimId)
             ->first();
     }
@@ -134,17 +134,12 @@ class ClaimService
                 $this->addNote($claim, $user, $data['claim_notes']);
             }
 
-            // Add expenses
+            // Add expenses (mileage is handled per-expense inside addExpenses)
             if (! empty($data['expenses'])) {
                 $this->addExpenses($claim, $data['expenses']);
             }
 
-            // Add mileage with transactions and receipts
-            if (! empty($data['mileage'])) {
-                $this->addMileage($claim, $data['mileage']);
-            }
-
-            return $claim->load(['expenses.receipts', 'expenses', 'claimType', 'department', 'team', 'status', 'mileage.transactions.receipts']);
+            return $claim->load(['expenses.receipts', 'expenses.mileage.transactions.receipts', 'claimType', 'department', 'team', 'status']);
         });
     }
 
@@ -163,9 +158,10 @@ class ClaimService
             $expenseData['claim_id'] = $claim->claim_id;
             $expenseData['approval_status_id'] = ClaimStatus::PENDING;
 
-            // Extract files array (can be single or multiple files)
+            // Extract files and mileage before creating the expense record
             $files = $expenseData['file'] ?? [];
-            unset($expenseData['file']);
+            $mileageData = $expenseData['mileage'] ?? null;
+            unset($expenseData['file'], $expenseData['mileage']);
 
             \Log::info('Adding expense', [
                 'expense_index' => $index,
@@ -198,14 +194,19 @@ class ClaimService
             if (! empty($expenseData['tags']) && is_array($expenseData['tags'])) {
                 $expense->tags()->sync($expenseData['tags']);
             }
+
+            // Handle mileage bound to this expense
+            if (! empty($mileageData)) {
+                $this->addMileage($expense, $mileageData);
+            }
         }
     }
 
-    protected function addMileage(Claim $claim, array $mileageData)
+    protected function addMileage(Expense $expense, array $mileageData)
     {
-        // Create mileage header
+        // Create mileage header linked to the expense that represents this mileage cost
         $mileage = Mileage::create([
-            'claim_id' => $claim->claim_id,
+            'expense_id' => $expense->expense_id,
             'travel_from' => $mileageData['travel_from'],
             'travel_to' => $mileageData['travel_to'],
             'period_of_from' => $mileageData['period_of_from'],

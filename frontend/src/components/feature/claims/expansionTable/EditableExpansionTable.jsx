@@ -18,7 +18,7 @@ import { useTranslation } from 'react-i18next'
 import { useIsMobile } from '../../../../hooks/useIsMobile.js'
 
 // Helper function to map data based on mode
-const mapExpenseData = (data, mode, mileage) => {
+const mapExpenseData = (data, mode) => {
     if (!data) return []
 
     if (mode === 'create') {
@@ -30,16 +30,8 @@ const mapExpenseData = (data, mode, mileage) => {
         }))
 
     } else if (mode === 'edit' || mode === 'view') {
-        // Map backend fields to frontend form fields
-        // Bind mileage data to the first expense item (mileage is at claim level)
-        const boundMileage = mileage ? {
-            travel_from: mileage.travel_from,
-            travel_to: mileage.travel_to,
-            period_of_from: mileage.period_of_from,
-            period_of_to: mileage.period_of_to,
-            transactions: mileage.transactions || [],
-        } : null
-
+        // Map backend fields to frontend form fields.
+        // Mileage is now per-expense (expense.mileage from the backend).
         return data.map((expense, index) => ({
             transactionId: expense.expense_id || `temp-${index}-${Date.now()}`,
             buyer: expense.buyer_name,
@@ -58,17 +50,17 @@ const mapExpenseData = (data, mode, mileage) => {
                 name: receipt.receipt_name,
                 receipt_id: receipt.receipt_id,
             })) : [],
-            // Bind mileage to first expense only so it shows in expansion
-            ...(index === 0 && boundMileage ? { mileage: boundMileage } : {}),
+            // Each expense carries its own mileage from the backend
+            ...(expense.mileage ? { mileage: expense.mileage } : {}),
         }))
     }
     return []
 }
 
-function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toastRef, onClaimUpdated, mileage }) {
+function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toastRef, onClaimUpdated }) {
     const { t } = useTranslation()
     const isMobile = useIsMobile()
-    const [expenseItems, setExpenseItems] = useState(() => mapExpenseData(data, mode, mileage))
+    const [expenseItems, setExpenseItems] = useState(() => mapExpenseData(data, mode))
     const [mobileExpandedId, setMobileExpandedId] = useState(null)
 
     const { updateClaim } = useClaims()
@@ -93,8 +85,8 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
 
     useEffect(() => {
         if (!data) return
-        setExpenseItems(mapExpenseData(data, mode, mileage))
-    }, [data, mode, mileage])
+        setExpenseItems(mapExpenseData(data, mode))
+    }, [data, mode])
 
     const handleExpansionFieldChange = (expenseId, fieldName, newValue) => {
         // For tags, handle both string (from text input) and array (from MultiSelect)

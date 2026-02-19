@@ -81,19 +81,19 @@ class ClaimController extends Controller
             'expenses.*.tags' => 'nullable|array',
             'expenses.*.tags.*' => 'integer|exists:tags,tag_id',
 
-            // mileage validation
-            'mileage' => 'nullable|array',
-            'mileage.travel_from' => 'required_with:mileage|string|max:255',
-            'mileage.travel_to' => 'required_with:mileage|string|max:255',
-            'mileage.period_of_from' => 'required_with:mileage|date',
-            'mileage.period_of_to' => 'required_with:mileage|date',
-            'mileage.transactions' => 'required_with:mileage|array|min:1',
-            'mileage.transactions.*.transaction_date' => 'required|date',
-            'mileage.transactions.*.distance_km' => 'required|numeric|min:0',
-            'mileage.transactions.*.meter_km' => 'nullable|numeric',
-            'mileage.transactions.*.parking_amount' => 'nullable|numeric',
-            'mileage.transactions.*.buyer' => 'nullable|string',
-            'mileage.transactions.*.file.*' => 'file|mimes:pdf,png,jpg,jpeg|max:20480',
+            // mileage validation (nested per expense — mileage belongs to an expense)
+            'expenses.*.mileage' => 'nullable|array',
+            'expenses.*.mileage.travel_from' => 'nullable|string|max:255',
+            'expenses.*.mileage.travel_to' => 'nullable|string|max:255',
+            'expenses.*.mileage.period_of_from' => 'nullable|date',
+            'expenses.*.mileage.period_of_to' => 'nullable|date',
+            'expenses.*.mileage.transactions' => 'nullable|array',
+            'expenses.*.mileage.transactions.*.transaction_date' => 'required|date',
+            'expenses.*.mileage.transactions.*.distance_km' => 'required|numeric|min:0',
+            'expenses.*.mileage.transactions.*.meter_km' => 'nullable|numeric',
+            'expenses.*.mileage.transactions.*.parking_amount' => 'nullable|numeric',
+            'expenses.*.mileage.transactions.*.buyer' => 'nullable|string',
+            'expenses.*.mileage.transactions.*.file.*' => 'file|mimes:pdf,png,jpg,jpeg|max:20480',
         ]);
 
         try {
