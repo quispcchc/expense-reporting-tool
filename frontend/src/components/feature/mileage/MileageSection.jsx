@@ -4,6 +4,8 @@ import MileageTransactionForm from './MileageTransactionForm.jsx'
 import MileageDataTable from './MileageDataTable.jsx'
 import { useTranslation } from 'react-i18next'
 
+let nextTransactionId = 1
+
 function MileageSection({ mileageData, setMileageData, mileageRate, toastRef }) {
     const { t } = useTranslation()
 
@@ -15,11 +17,12 @@ function MileageSection({ mileageData, setMileageData, mileageRate, toastRef }) 
     }
 
     const handleAddTransaction = (transaction) => {
+        const id = `new-${nextTransactionId++}-${Date.now()}`
         setMileageData(prev => ({
             ...prev,
             transactions: [...(prev.transactions || []), {
                 ...transaction,
-                transactionId: Date.now(), // temp frontend ID
+                transactionId: id,
             }],
         }))
     }

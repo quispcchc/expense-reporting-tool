@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { DataTable } from 'primereact/datatable'
 import { Column } from 'primereact/column'
 import { Button } from 'primereact/button'
@@ -51,8 +51,13 @@ function MileageDataTable({ data, mode, onTransactionsUpdate, toastRef, onClaimU
     const [rows, setRows] = useState(() => mapTransactions(data, mode))
     const [editingRows, setEditingRows] = useState({})
     const [pendingDeletions, setPendingDeletions] = useState([])
+    const internalUpdate = useRef(false)
 
     useEffect(() => {
+        if (internalUpdate.current) {
+            internalUpdate.current = false
+            return
+        }
         setRows(mapTransactions(data, mode))
     }, [data, mode])
 
@@ -69,6 +74,7 @@ function MileageDataTable({ data, mode, onTransactionsUpdate, toastRef, onClaimU
     }
 
     const syncUp = (updated) => {
+        internalUpdate.current = true
         setRows(updated)
         if (onTransactionsUpdate) onTransactionsUpdate(updated)
     }
@@ -168,10 +174,14 @@ function MileageDataTable({ data, mode, onTransactionsUpdate, toastRef, onClaimU
 
     // ─── Transaction delete ──────────────────────────────────────
     const deleteTransaction = (transactionId) => {
-        const txToDelete = rows.find(tx => tx.transactionId === transactionId)
-        if (txToDelete) setPendingDeletions(p => [...p, txToDelete])
-        const remaining = rows.filter(tx => tx.transactionId !== transactionId)
-        syncUp(remaining)
+        setRows(prev => {
+            const txToDelete = prev.find(tx => tx.transactionId === transactionId)
+            if (txToDelete) setPendingDeletions(p => [...p, txToDelete])
+            const remaining = prev.filter(tx => tx.transactionId !== transactionId)
+            internalUpdate.current = true
+            if (onTransactionsUpdate) onTransactionsUpdate(remaining)
+            return remaining
+        })
     }
 
     const triggerConfirmDeletions = () => {
