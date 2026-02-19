@@ -8,8 +8,7 @@ import { confirmDialog } from 'primereact/confirmdialog'
 import { APP_SETTINGS } from '../../../config/settings.js'
 import { showToast } from '../../../utils/helpers.js'
 import api, { API_BASE_URL } from '../../../api/api.js'
-import Upload from '../claims/uploadAttchment/Upload.jsx'
-import AttachmentList from '../claims/uploadAttchment/AttchmentList.jsx'
+import { getFileIcon } from '../claims/uploadAttchment/getFileIcon.jsx'
 import { useTranslation } from 'react-i18next'
 import { useIsMobile } from '../../../hooks/useIsMobile.js'
 
@@ -249,26 +248,55 @@ function MileageDataTable({ data, mode, onTransactionsUpdate, toastRef, onClaimU
     const receiptTemplate = (rowData) => {
         const attachments = rowData.attachment || []
         const isEditing = !!editingRows[rowData.transactionId]
-        const showUpload = mode === 'create' || isEditing
-        const showRemove = mode === 'create' || isEditing
         return (
-            <div className="flex flex-col gap-1">
-                {showUpload && (
-                    <Upload handleFileSelect={(e) => handleReceiptUpload(rowData.transactionId, e)} />
-                )}
-                {attachments.length > 0 ? (
-                    <div className="space-y-1 mt-1">
-                        {attachments.map((att, i) => (
-                            <AttachmentList
-                                key={i}
-                                selectedFile={att}
-                                handleRemoveFile={() => handleReceiptRemove(rowData.transactionId, i)}
-                                showRemoveButton={showRemove}
-                            />
-                        ))}
+            <div className="flex flex-col gap-1.5">
+                {attachments.length > 0 && (
+                    <div className="flex flex-wrap gap-x-3 gap-y-1">
+                        {attachments.map((att, i) => {
+                            const fileName = att.file ? att.file.name : (att.name || 'Attachment')
+                            const fileType = att.file ? att.file.type : 'application/octet-stream'
+                            const fileUrl = att.url || att.path
+                            return (
+                                <div key={i} className="flex items-center gap-1 text-sm leading-tight">
+                                    <span className="shrink-0 [&_svg]:mr-0">{getFileIcon(fileType)}</span>
+                                    <a
+                                        href={fileUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-600 hover:underline truncate max-w-[120px]"
+                                        title={fileName}
+                                    >
+                                        {fileName}
+                                    </a>
+                                    {isEditing && (
+                                        <button
+                                            type="button"
+                                            onClick={() => handleReceiptRemove(rowData.transactionId, i)}
+                                            className="shrink-0 text-red-500 hover:text-red-700 cursor-pointer ml-0.5"
+                                        >
+                                            <i className="pi pi-times text-xs" />
+                                        </button>
+                                    )}
+                                </div>
+                            )
+                        })}
                     </div>
-                ) : (
-                    !showUpload && <span className="text-gray-400 text-sm">—</span>
+                )}
+                {isEditing && (
+                    <label className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 cursor-pointer w-fit">
+                        <i className="pi pi-upload text-xs" />
+                        <span>{t('components.upload', 'Upload')}</span>
+                        <input
+                            type="file"
+                            multiple
+                            accept="image/*,application/pdf"
+                            onChange={(e) => handleReceiptUpload(rowData.transactionId, e)}
+                            className="hidden"
+                        />
+                    </label>
+                )}
+                {attachments.length === 0 && !isEditing && (
+                    <span className="text-gray-400 text-sm">—</span>
                 )}
             </div>
         )
@@ -304,19 +332,29 @@ function MileageDataTable({ data, mode, onTransactionsUpdate, toastRef, onClaimU
                     )}
                 </div>
             </div>
-            <div className="mt-1">
-                {mode !== 'view' && (
-                    <Upload handleFileSelect={(e) => handleReceiptUpload(tx.transactionId, e)} />
-                )}
-                {(tx.attachment || []).map((att, i) => (
-                    <AttachmentList
-                        key={i}
-                        selectedFile={att}
-                        handleRemoveFile={() => handleReceiptRemove(tx.transactionId, i)}
-                        showRemoveButton={mode !== 'view'}
-                    />
-                ))}
-            </div>
+            {(tx.attachment || []).length > 0 && (
+                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+                    {(tx.attachment || []).map((att, i) => {
+                        const fileName = att.file ? att.file.name : (att.name || 'Attachment')
+                        const fileType = att.file ? att.file.type : 'application/octet-stream'
+                        const fileUrl = att.url || att.path
+                        return (
+                            <div key={i} className="flex items-center gap-1 text-sm">
+                                <span className="shrink-0 [&_svg]:mr-0">{getFileIcon(fileType)}</span>
+                                <a
+                                    href={fileUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:underline truncate"
+                                    title={fileName}
+                                >
+                                    {fileName}
+                                </a>
+                            </div>
+                        )
+                    })}
+                </div>
+            )}
         </div>
     )
 

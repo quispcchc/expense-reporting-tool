@@ -1,6 +1,6 @@
 import React from 'react'
 import Upload from '../claims/uploadAttchment/Upload.jsx'
-import AttachmentList from '../claims/uploadAttchment/AttchmentList.jsx'
+import AttachmentList from '../claims/uploadAttchment/AttachmentList.jsx'
 import { useTranslation } from 'react-i18next'
 
 function UploadMileageAttachment({ files, onSetFiles, errors }) {
@@ -35,16 +35,9 @@ function UploadMileageAttachment({ files, onSetFiles, errors }) {
                 <Upload handleFileSelect={handleFileSelect} />
 
             </div>
-            
-            
-            {/* Render each attached file */}
-            {files && files.length > 0 && files.map((file, index) => (
-                <AttachmentList
-                    key={index}
-                    selectedFile={file}
-                    handleRemoveFile={() => handleRemoveFile(index)}
-                />
-            ))}
+
+            <AttachmentList files={files} onRemoveFile={handleRemoveFile} />
+
         </div>
     )
 }

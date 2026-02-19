@@ -1,8 +1,8 @@
 import React from 'react'
 import { getFileIcon } from './getFileIcon.jsx'
 
-// Component to display a list of attached files with optional remove button
-function AttachmentList({ selectedFile, showRemoveButton = true, handleRemoveFile }) {
+// Component to display a single file preview with icon, name link, and optional remove button
+function FilePreview({ selectedFile, showRemoveButton = true, handleRemoveFile }) {
 
     // Check if there's a file - either a new upload or an existing file from backend
     if (!selectedFile || (!selectedFile.file && !selectedFile.url && !selectedFile.path)) return null
@@ -41,4 +41,4 @@ function AttachmentList({ selectedFile, showRemoveButton = true, handleRemoveFil
     )
 }
 
-export default AttachmentList
+export default FilePreview
