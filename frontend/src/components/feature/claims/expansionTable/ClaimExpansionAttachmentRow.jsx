@@ -1,6 +1,6 @@
 import React from 'react'
 import Upload from '../uploadAttchment/Upload.jsx'
-import AttachmentList from '../uploadAttchment/AttchmentList.jsx'
+import AttachmentList from '../uploadAttchment/AttachmentList.jsx'
 import { useTranslation } from 'react-i18next'
 
 // Customized expanded row: attachment editing dropdown in datatable
@@ -80,16 +80,11 @@ function ClaimExpansionAttachmentRow({ label, file, isEditing, rowData, handleIn
         }
 
         return (
-            <div className="space-y-2">
-                {attachments.map((attachment, index) => (
-                    <AttachmentList
-                        key={index}
-                        selectedFile={attachment}
-                        handleRemoveFile={() => handleRemoveFile(index)}
-                        showRemoveButton={showRemoveButton}
-                    />
-                ))}
-            </div>
+            <AttachmentList
+                files={attachments}
+                onRemoveFile={handleRemoveFile}
+                showRemoveButton={showRemoveButton}
+            />
         );
     }
 

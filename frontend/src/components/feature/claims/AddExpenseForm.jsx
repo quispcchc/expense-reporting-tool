@@ -23,10 +23,17 @@ function AddExpenseForm({
     files,
     onSetFiles,
     errors,
-    toastRef
+    toastRef,
+    includeMileage,
+    mileageData,
 }) {
     const { t } = useTranslation()
     const { lookups: { costCentres, projects, accountNums } } = useLookups()
+
+    const mileageTransactions = (includeMileage && mileageData?.transactions) || []
+    const mileageTotal = mileageTransactions.reduce(
+        (sum, tx) => sum + (parseFloat(tx.total_amount) || 0), 0
+    )
 
     return (
         <div className="bg-white h-full rounded-2xl shadow-sm">
@@ -43,6 +50,26 @@ function AddExpenseForm({
                 </div>
 
             </div>
+
+            {/* Mileage binding indicator */}
+            {mileageTransactions.length > 0 && (
+                <div className="mx-4 md:mx-6 mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-3">
+                    <i className="pi pi-car text-blue-600 text-lg" />
+                    <div className="flex-1">
+                        <p className="text-sm font-medium text-blue-800">
+                            {t('mileage.boundToExpense', 'Mileage will be bound to this expense')}
+                        </p>
+                        <p className="text-xs text-blue-600">
+                            {mileageTransactions.length} {t('mileage.transactions', 'transaction(s)')}
+                            {mileageData?.travel_from && mileageData?.travel_to && (
+                                <span> &middot; {mileageData.travel_from} → {mileageData.travel_to}</span>
+                            )}
+                            {' '}&middot; {t('mileage.mileageTotal', 'Mileage Total')}: ${mileageTotal.toFixed(2)}
+                        </p>
+                    </div>
+                    <span className="text-sm font-semibold text-blue-700">${mileageTotal.toFixed(2)}</span>
+                </div>
+            )}
 
             {/* Main form content split into two columns */}
             <div className="grid grid-cols-1 md:grid-cols-2 my-5 gap-6 md:gap-10 px-4 md:px-6">

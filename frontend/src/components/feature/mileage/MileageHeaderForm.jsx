@@ -1,43 +1,51 @@
-import React from "react";
-import Input from '../../common/ui/Input.jsx';
+import React from 'react'
+import Input from '../../common/ui/Input.jsx'
+import { useTranslation } from 'react-i18next'
 
-export default function MileageHeaderForm({ mileageData, setMileageData }) {
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setMileageData((prev) => ({ ...prev, [name]: value }));
-  };
+function MileageHeaderForm({ mileageHeader, onHeaderChange, errors = {} }) {
+    const { t } = useTranslation()
 
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-      <Input
-        label="Travel From"
-        name="travel_from"
-        value={mileageData.travel_from}
-        onChange={handleChange}
-      />
+    const handleChange = (e) => {
+        const { name, value } = e.target
+        onHeaderChange({ ...mileageHeader, [name]: value })
+    }
 
-      <Input
-        label="Travel To"
-        name="travel_to"
-        value={mileageData.travel_to}
-        onChange={handleChange}
-      />
-
-      <Input
-        label="Period From"
-        name="period_of_from"
-        type="date"
-        value={mileageData.period_of_from}
-        onChange={handleChange}
-      />
-
-      <Input
-        label="Period To"
-        name="period_of_to"
-        type="date"
-        value={mileageData.period_of_to}
-        onChange={handleChange}
-      />
-    </div>
-  );
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Input
+                name="travel_from"
+                label={t('mileage.travelFrom', 'Travel From')}
+                value={mileageHeader.travel_from}
+                onChange={handleChange}
+                placeholder={t('mileage.travelFromPlaceholder', 'Enter departure location')}
+                errors={errors}
+            />
+            <Input
+                name="travel_to"
+                label={t('mileage.travelTo', 'Travel To')}
+                value={mileageHeader.travel_to}
+                onChange={handleChange}
+                placeholder={t('mileage.travelToPlaceholder', 'Enter destination')}
+                errors={errors}
+            />
+            <Input
+                name="period_of_from"
+                label={t('mileage.periodFrom', 'Period From')}
+                type="date"
+                value={mileageHeader.period_of_from}
+                onChange={handleChange}
+                errors={errors}
+            />
+            <Input
+                name="period_of_to"
+                label={t('mileage.periodTo', 'Period To')}
+                type="date"
+                value={mileageHeader.period_of_to}
+                onChange={handleChange}
+                errors={errors}
+            />
+        </div>
+    )
 }
+
+export default MileageHeaderForm

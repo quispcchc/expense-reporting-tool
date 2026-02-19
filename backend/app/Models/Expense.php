@@ -29,6 +29,11 @@ class Expense extends Model
     ];
 
     // Relationships
+    public function mileage()
+    {
+        return $this->hasOne(Mileage::class, 'expense_id', 'expense_id');
+    }
+
     public function receipts()
     {
         return $this->hasMany(Receipt::class, 'expense_id', 'expense_id');

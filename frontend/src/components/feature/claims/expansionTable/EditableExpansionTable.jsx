@@ -30,7 +30,8 @@ const mapExpenseData = (data, mode) => {
         }))
 
     } else if (mode === 'edit' || mode === 'view') {
-        // Map backend fields to frontend form fields
+        // Map backend fields to frontend form fields.
+        // Mileage is now per-expense (expense.mileage from the backend).
         return data.map((expense, index) => ({
             transactionId: expense.expense_id || `temp-${index}-${Date.now()}`,
             buyer: expense.buyer_name,
@@ -49,6 +50,8 @@ const mapExpenseData = (data, mode) => {
                 name: receipt.receipt_name,
                 receipt_id: receipt.receipt_id,
             })) : [],
+            // Each expense carries its own mileage from the backend
+            ...(expense.mileage ? { mileage: expense.mileage } : {}),
         }))
     }
     return []
@@ -492,10 +495,19 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
 
     // Display template for currency amounts
     const renderCurrencyAmount = (rowData) => {
-        return new Intl.NumberFormat(APP_SETTINGS.currency.locale, {
+        const formatted = new Intl.NumberFormat(APP_SETTINGS.currency.locale, {
             style: 'currency',
             currency: APP_SETTINGS.currency.code,
         }).format(rowData.amount || 0)
+
+        return (
+            <div className="flex items-center gap-1">
+                <span>{formatted}</span>
+                {rowData.mileage?.transactions?.length > 0 && (
+                    <i className="pi pi-car text-blue-500 text-xs" title={t('mileage.hasMileage', 'Includes mileage')} />
+                )}
+            </div>
+        )
     }
 
     // Approve and Reject a single expense item
@@ -643,6 +655,9 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                     <div className="flex-1 min-w-0">
                         <div className="admin-card-title text-sm">
                             #{item.transactionId} — {formatCurrency(item.amount)}
+                            {item.mileage?.transactions?.length > 0 && (
+                                <i className="pi pi-car text-blue-500 text-xs ml-1" title={t('mileage.hasMileage', 'Includes mileage')} />
+                            )}
                         </div>
                         <div className="admin-card-subtitle text-xs">
                             {item.transactionDate} · {item.vendor || '—'}

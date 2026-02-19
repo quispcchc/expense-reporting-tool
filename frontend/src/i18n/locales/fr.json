@@ -281,7 +281,8 @@
         "statusRequired": "Le statut est requis",
         "descriptionRequired": "La description est requise",
         "projectNameRequired": "Le nom du projet est requis",
-        "tagNameRequired": "Le nom de l'étiquette est requis"
+        "tagNameRequired": "Le nom de l'étiquette est requis",
+        "noItems": "Veuillez ajouter au moins une dépense ou une transaction de kilométrage avant de soumettre."
     },
     "passwordReset": {
         "forgotPassword": "Mot de passe oublié",
@@ -354,5 +355,55 @@
     },
     "dashboard": {
         "title": "Tableau de bord"
+    },
+    "mileage": {
+        "title": "Kilométrage",
+        "addMileage": "Ajouter un kilométrage",
+        "addMileageDescription": "Ajoutez les détails de kilométrage pour le remboursement de voyage",
+        "includeMileage": "Inclure le kilométrage",
+        "travelFrom": "Lieu de départ",
+        "travelTo": "Destination",
+        "travelFromPlaceholder": "Entrez le lieu de départ",
+        "travelToPlaceholder": "Entrez la destination",
+        "periodFrom": "Période du",
+        "periodTo": "Période au",
+        "period": "Période",
+        "travelDetails": "Détails du voyage",
+        "travelReimbursementDetails": "Détails de remboursement de kilométrage",
+        "boundMileage": "Détails du kilométrage",
+        "addTransaction": "Ajouter une transaction de kilométrage",
+        "transactionDate": "Date",
+        "date": "Date",
+        "distance": "Distance (km)",
+        "meter": "Compteur ($)",
+        "parking": "Stationnement ($)",
+        "buyer": "Acheteur",
+        "buyerPlaceholder": "Entrez le nom de l'acheteur",
+        "receipt": "Reçu",
+        "totalAmount": "Total",
+        "totalDistance": "Distance totale",
+        "transactions": "Transactions",
+        "mileageTotal": "Total kilométrage",
+        "rate": "Taux",
+        "draftTotal": "Total provisoire",
+        "noMileage": "Aucune transaction de kilométrage",
+        "addFirstMileage": "Ajoutez votre première transaction de kilométrage ci-dessus.",
+        "noMileageItems": "Aucune transaction de kilométrage enregistrée.",
+        "item": "élément",
+        "items": "éléments",
+        "editCancelled": "Modification annulée",
+        "updatedLocally": "Kilométrage mis à jour localement",
+        "updated": "Transaction de kilométrage mise à jour",
+        "removeItemsMessage": "Supprimer le(s) élément(s) de kilométrage?",
+        "deleteItemsMessage": "Supprimer définitivement le(s) élément(s) de kilométrage?",
+        "deleteItems": "Supprimer les éléments",
+        "itemsDeleted": "Éléments supprimés",
+        "deleteFailed": "Échec de la suppression",
+        "deletionCancelled": "Suppression annulée"
+    },
+    "settings": {
+        "mileageRate": "Taux de kilométrage par défaut (par km)",
+        "saved": "Paramètres enregistrés avec succès",
+        "saveFailed": "Échec de l'enregistrement des paramètres"
     }
 }

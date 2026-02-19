@@ -1,11 +1,13 @@
 <?php
+
 namespace App\Models;
-use App\Models\MileageTransaction;
+
 use Illuminate\Database\Eloquent\Model;
 
 class MileageReceipt extends Model
 {
-    protected $table = 'mileage_receipt';
+    protected $table = 'mileage_receipts';
+
     protected $primaryKey = 'receipt_id';
 
     protected $fillable = [

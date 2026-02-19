@@ -67,20 +67,33 @@ class ClaimController extends Controller
             'total_amount' => 'required|numeric|min:2',
 
             // expense item validation
-            'expenses' => 'required|array',
+            'expenses' => 'nullable|array',
             'expenses.*.transaction_date' => 'required_with:expenses|date',
-            'expenses.*.account_number_id' => 'required_with:expense|integer|exists:account_numbers,account_number_id',
+            'expenses.*.account_number_id' => 'required_with:expenses|integer|exists:account_numbers,account_number_id',
             'expenses.*.buyer_name' => 'required_with:expenses|string',
             'expenses.*.vendor_name' => 'required_with:expenses|string',
             'expenses.*.transaction_desc' => 'nullable|string',
             'expenses.*.transaction_notes' => 'nullable|string',
-            'expenses.*.expense_amount' => 'required_with:expenses|integer',
+            'expenses.*.expense_amount' => 'required_with:expenses|numeric',
             'expenses.*.project_id' => 'required_with:expenses|integer|exists:projects,project_id',
             'expenses.*.file.*' => 'file|mimes:pdf,png,jpg,jpeg|max:20480',
             'expenses.*.cost_centre_id' => 'required_with:expenses|integer',
             'expenses.*.tags' => 'nullable|array',
             'expenses.*.tags.*' => 'integer|exists:tags,tag_id',
-            'mileage' => 'nullable|array',
+
+            // mileage validation (nested per expense — mileage belongs to an expense)
+            'expenses.*.mileage' => 'nullable|array',
+            'expenses.*.mileage.travel_from' => 'nullable|string|max:255',
+            'expenses.*.mileage.travel_to' => 'nullable|string|max:255',
+            'expenses.*.mileage.period_of_from' => 'nullable|date',
+            'expenses.*.mileage.period_of_to' => 'nullable|date',
+            'expenses.*.mileage.transactions' => 'nullable|array',
+            'expenses.*.mileage.transactions.*.transaction_date' => 'required|date',
+            'expenses.*.mileage.transactions.*.distance_km' => 'required|numeric|min:0',
+            'expenses.*.mileage.transactions.*.meter_km' => 'nullable|numeric',
+            'expenses.*.mileage.transactions.*.parking_amount' => 'nullable|numeric',
+            'expenses.*.mileage.transactions.*.buyer' => 'nullable|string',
+            'expenses.*.mileage.transactions.*.file.*' => 'file|mimes:pdf,png,jpg,jpeg|max:20480',
         ]);
 
         try {

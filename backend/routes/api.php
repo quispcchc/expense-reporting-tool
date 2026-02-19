@@ -12,6 +12,7 @@ use App\Http\Controllers\LogoutController;
 use App\Http\Controllers\LookupController;
 use App\Http\Controllers\MileageController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\ResetPasswordController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UpdatePasswordController;
@@ -103,39 +104,15 @@ Route::apiResource('expenses', ExpenseController::class)->middleware('auth:sanct
 Route::post('expenses/{expenseId}/approve', [ExpenseController::class, 'approveExpense'])->middleware('auth:sanctum');
 Route::post('expenses/{expenseId}/reject', [ExpenseController::class, 'rejectExpense'])->middleware('auth:sanctum');
 
-// claim Details
-// Route::middleware('auth:sanctum')->group(function () {
-//    Route::post('/claims', [ClaimController::class, 'store']);
-//    Route::post('/claims/{claimId}/notify', [NotificationController::class, 'notifyClaimUpdate']);
-//
-//    Route::post('/expenses', [ExpenseController::class, 'store']);
-//    Route::post('/mileages', [MileageController::class, 'store']);
-// });
+// Settings API
+Route::get('settings', [SettingsController::class, 'index'])->middleware('auth:sanctum');
+Route::put('settings', [SettingsController::class, 'update'])->middleware('auth:sanctum');
 
 // Mileage API
+Route::put('mileages/{mileageId}', [MileageController::class, 'update'])->middleware('auth:sanctum');
+Route::delete('mileages/{mileageId}', [MileageController::class, 'destroy'])->middleware('auth:sanctum');
 
-//Route::middleware('auth:sanctum')->group(function () {
-// ===== Mileage (header: 1 per claim) =====
-    Route::post('/mileages', [MileageController::class, 'store']); 
-    Route::get('/claims/{claimId}/mileage', [MileageController::class, 'showByClaim']);
-    Route::put('/mileages/{mileageId}', [MileageController::class, 'update']);
-    Route::delete('/mileages/{mileageId}', [MileageController::class, 'destroy']);
-
-    // ===== Mileage Transactions =====
-    Route::post('/mileage-transactions', [MileageTransactionController::class, 'store']);
-    Route::put('/mileage-transactions/{transactionId}', [MileageTransactionController::class, 'update']);
-    Route::delete('/mileage-transactions/{transactionId}', [MileageTransactionController::class, 'destroy']);
-
-    // ===== Receipts =====
-    // add multiple receipts to an existing transaction
-    Route::post('/mileage-transactions/{transactionId}/receipts', [MileageReceiptController::class, 'storeForTransaction']);
-
-    // replace one receipt file
-    Route::put('/mileage-receipts/{receiptId}', [MileageReceiptController::class, 'update']);
-
-    // delete one receipt
-    Route::delete('/mileage-receipts/{receiptId}', [MileageReceiptController::class, 'destroy']);
-
-    // bulk delete receipts
-    Route::delete('/mileage-receipts', [MileageReceiptController::class, 'bulkDestroy']);
-//});
+// Mileage Transaction API
+Route::post('mileage-transactions', [MileageTransactionController::class, 'store'])->middleware('auth:sanctum');
+Route::put('mileage-transactions/{transactionId}', [MileageTransactionController::class, 'update'])->middleware('auth:sanctum');
+Route::delete('mileage-transactions/{transactionId}', [MileageTransactionController::class, 'destroy'])->middleware('auth:sanctum');

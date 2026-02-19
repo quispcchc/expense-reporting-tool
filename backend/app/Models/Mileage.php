@@ -11,7 +11,7 @@ class Mileage extends Model
     protected $primaryKey = 'mileage_id';
 
     protected $fillable = [
-        'claim_id',
+        'expense_id',
         'travel_from',
         'travel_to',
         'period_of_from',
@@ -19,14 +19,14 @@ class Mileage extends Model
     ];
 
     protected $casts = [
-        'claim_id' => 'integer',
+        'expense_id' => 'integer',
         'period_of_from' => 'date',
         'period_of_to' => 'date',
     ];
 
-    public function claim()
+    public function expense()
     {
-        return $this->belongsTo(Claim::class, 'claim_id', 'claim_id');
+        return $this->belongsTo(Expense::class, 'expense_id', 'expense_id');
     }
 
     public function transactions()

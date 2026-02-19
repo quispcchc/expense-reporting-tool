@@ -1,9 +1,9 @@
 import React from 'react'
-import Upload from './Upload.jsx'
-import AttachmentList from './AttachmentList.jsx'
+import Upload from '../claims/uploadAttchment/Upload.jsx'
+import AttachmentList from '../claims/uploadAttchment/AttachmentList.jsx'
 import { useTranslation } from 'react-i18next'
 
-function UploadAttachment({ files, onSetFiles, errors }) {
+function UploadMileageAttachment({ files, onSetFiles, errors }) {
     const { t } = useTranslation()
 
     const handleFileSelect = (e) => {
@@ -29,18 +29,14 @@ function UploadAttachment({ files, onSetFiles, errors }) {
     }
 
     return (
-        <div className="mb-5">
+        <div className="relative">
             <div className="flex items-center gap-2 mb-2">
-                <label className="block text-sm font-medium">{t('expenses.attachments')}</label>
-                {errors.attachment && <span className="text-red-500 text-xs">({errors.attachment})</span>}
+                <label className='block text-sm font-medium'>{t('mileage.receipt', 'Receipt')}</label>
             </div>
-            <p className="text-gray-500 text-xs mb-3">{t('upload.uploadDescription', 'Upload receipts, contracts, or any supporting documents.')}</p>
-            <div className="flex justify-center items-center border border-gray-300 border-dashed rounded-md p-5 bg-gray-50 hover:bg-gray-100 transition-colors">
-                <Upload handleFileSelect={handleFileSelect} />
-            </div>
+            <Upload handleFileSelect={handleFileSelect} className="w-full" />
             <AttachmentList files={files} onRemoveFile={handleRemoveFile} />
         </div>
     )
 }
 
-export default UploadAttachment
+export default UploadMileageAttachment

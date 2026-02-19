@@ -2,92 +2,160 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\MileageTransaction;
+use App\Models\AppSetting;
 use App\Models\MileageReceipt;
+use App\Models\MileageTransaction;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class MileageTransactionController extends Controller
 {
+    /**
+     * Create a mileage transaction with optional receipts.
+     */
     public function store(Request $request)
     {
         $validated = $request->validate([
-            // MUST NOT be nullable
-            'mileage_id' => ['required', 'integer', 'exists:mileage,mileage_id'],
-
-            'transaction_date' => ['required', 'date'],
-            'distance_km' => ['required', 'numeric', 'min:0'],
-            'meter_km' => ['nullable', 'numeric', 'min:0'],
-            'parking_amount' => ['nullable', 'numeric', 'min:0'],
-            'buyer' => ['nullable', 'string', 'max:255'],
-
-            // receipts should usually be optional (not always required)
-            'receipts' => ['nullable', 'array'],
-            'receipts.*' => ['file', 'mimes:pdf,jpeg,jpg,png', 'max:20480'],
+            'mileage_id' => 'required|integer|exists:mileage,mileage_id',
+            'transaction_date' => 'required|date',
+            'distance_km' => 'required|numeric|min:0',
+            'meter_km' => 'nullable|numeric',
+            'parking_amount' => 'nullable|numeric',
+            'buyer' => 'nullable|string',
+            'files.*' => 'file|mimes:pdf,png,jpg,jpeg|max:20480',
         ]);
 
-        return DB::transaction(function () use ($request, $validated) {
-            $transaction = MileageTransaction::create(
-                collect($validated)->except('receipts')->toArray()
-            );
+        $rate = (float) AppSetting::getValue('mileage_rate', 0.5);
+        $totalAmount = MileageTransaction::calculateTotal(
+            (float) $validated['distance_km'],
+            $rate,
+            (float) ($validated['parking_amount'] ?? 0),
+            (float) ($validated['meter_km'] ?? 0)
+        );
 
-            if ($request->hasFile('receipts')) {
-                foreach ($request->file('receipts') as $file) {
-                    $path = $file->store('mileage_receipts', 'public');
+        $transaction = MileageTransaction::create([
+            'mileage_id' => $validated['mileage_id'],
+            'transaction_date' => $validated['transaction_date'],
+            'distance_km' => $validated['distance_km'],
+            'meter_km' => $validated['meter_km'] ?? null,
+            'parking_amount' => $validated['parking_amount'] ?? null,
+            'mileage_rate' => $rate,
+            'total_amount' => $totalAmount,
+            'buyer' => $validated['buyer'] ?? null,
+        ]);
 
-                    MileageReceipt::create([
-                        'transaction_id' => $transaction->transaction_id,
-                        'file_name' => $file->getClientOriginalName(),
-                        'file_type' => $file->getClientMimeType(),
-                        'file_path' => $path,
-                    ]);
-                }
+        // Handle file uploads
+        if ($request->hasFile('files')) {
+            foreach ($request->file('files') as $file) {
+                $path = $file->store('mileage_receipts', 'public');
+                MileageReceipt::create([
+                    'transaction_id' => $transaction->transaction_id,
+                    'file_name' => $file->getClientOriginalName(),
+                    'file_type' => $file->getClientMimeType(),
+                    'file_path' => $path,
+                ]);
             }
+        }
 
-            return response()->json(['transaction' => $transaction->load('receipts')], 201);
-        });
+        return $this->successResponse(
+            $transaction->load('receipts'),
+            'Mileage transaction created',
+            201
+        );
     }
 
+    /**
+     * Update a mileage transaction and optionally manage receipts.
+     */
     public function update(Request $request, $transactionId)
     {
         $validated = $request->validate([
-            'transaction_date' => ['required', 'date'],
-            'distance_km' => ['required', 'numeric', 'min:0'],
-            'meter_km' => ['nullable', 'numeric', 'min:0'],
-            'parking_amount' => ['nullable', 'numeric', 'min:0'],
-            'buyer' => ['nullable', 'string', 'max:255'],
-
-            'receipts' => ['nullable', 'array'],
-            'receipts.*' => ['file', 'mimes:pdf,jpeg,jpg,png', 'max:20480'],
+            'transaction_date' => 'sometimes|date',
+            'distance_km' => 'sometimes|numeric|min:0',
+            'meter_km' => 'nullable|numeric',
+            'parking_amount' => 'nullable|numeric',
+            'buyer' => 'nullable|string',
+            'files.*' => 'file|mimes:pdf,png,jpg,jpeg|max:20480',
+            'deleteReceiptIds' => 'nullable|string',
+            'deleteAttachment' => 'nullable|string',
         ]);
 
-        return DB::transaction(function () use ($request, $validated, $transactionId) {
-            $transaction = MileageTransaction::findOrFail($transactionId);
-            $transaction->update(collect($validated)->except('receipts')->toArray());
+        $transaction = MileageTransaction::findOrFail($transactionId);
 
-            // Optional: add new receipts during update
-            if ($request->hasFile('receipts')) {
-                foreach ($request->file('receipts') as $file) {
-                    $path = $file->store('mileage_receipts', 'public');
+        // Update fields
+        $updateData = array_intersect_key($validated, array_flip([
+            'transaction_date', 'distance_km', 'meter_km', 'parking_amount', 'buyer',
+        ]));
 
-                    MileageReceipt::create([
-                        'transaction_id' => $transaction->transaction_id,
-                        'file_name' => $file->getClientOriginalName(),
-                        'file_type' => $file->getClientMimeType(),
-                        'file_path' => $path,
-                    ]);
+        if (! empty($updateData)) {
+            $transaction->update($updateData);
+        }
+
+        // Recalculate total
+        $transaction->total_amount = MileageTransaction::calculateTotal(
+            (float) $transaction->distance_km,
+            (float) $transaction->mileage_rate,
+            (float) ($transaction->parking_amount ?? 0),
+            (float) ($transaction->meter_km ?? 0)
+        );
+        $transaction->save();
+
+        // Handle receipt deletions by IDs
+        $deleteReceiptIds = $validated['deleteReceiptIds'] ?? null;
+        if ($deleteReceiptIds) {
+            $receiptIds = array_map('trim', explode(',', $deleteReceiptIds));
+            foreach ($receiptIds as $receiptId) {
+                $receipt = MileageReceipt::find($receiptId);
+                if ($receipt && $receipt->transaction_id == $transactionId) {
+                    Storage::disk('public')->delete($receipt->file_path);
+                    $receipt->delete();
                 }
             }
+        }
 
-            return response()->json(['transaction' => $transaction->load('receipts')], 200);
-        });
+        // Handle delete all attachments
+        $deleteAttachment = isset($validated['deleteAttachment']) && ($validated['deleteAttachment'] === 'true' || $validated['deleteAttachment'] === '1');
+        if ($deleteAttachment) {
+            foreach ($transaction->receipts as $receipt) {
+                Storage::disk('public')->delete($receipt->file_path);
+                $receipt->delete();
+            }
+        }
+
+        // Handle new file uploads
+        if ($request->hasFile('files')) {
+            foreach ($request->file('files') as $file) {
+                $path = $file->store('mileage_receipts', 'public');
+                MileageReceipt::create([
+                    'transaction_id' => $transaction->transaction_id,
+                    'file_name' => $file->getClientOriginalName(),
+                    'file_type' => $file->getClientMimeType(),
+                    'file_path' => $path,
+                ]);
+            }
+        }
+
+        return $this->successResponse(
+            $transaction->fresh('receipts'),
+            'Mileage transaction updated'
+        );
     }
 
+    /**
+     * Delete a mileage transaction and its receipts.
+     */
     public function destroy($transactionId)
     {
         $transaction = MileageTransaction::findOrFail($transactionId);
+
+        // Delete receipt files
+        foreach ($transaction->receipts as $receipt) {
+            Storage::disk('public')->delete($receipt->file_path);
+            $receipt->delete();
+        }
+
         $transaction->delete();
 
-        return response()->json(['message' => 'Transaction deleted'], 200);
+        return $this->successResponse(null, 'Mileage transaction deleted');
     }
 }

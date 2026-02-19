@@ -4,10 +4,13 @@ namespace App\Services;
 
 use App\Enums\ClaimStatus;
 use App\Enums\RoleLevel;
+use App\Models\AppSetting;
 use App\Models\Claim;
 use App\Models\ClaimNote;
 use App\Models\Expense;
 use App\Models\Mileage;
+use App\Models\MileageReceipt;
+use App\Models\MileageTransaction;
 use App\Models\Receipt;
 use App\Models\Tag;
 use App\Models\User;
@@ -21,7 +24,7 @@ class ClaimService
     {
         $role_level = $user->role->role_level;
 
-        $query = Claim::with(['expenses.receipts', 'expenses', 'claimType', 'department', 'team', 'status']);
+        $query = Claim::with(['expenses.receipts', 'expenses.mileage.transactions.receipts', 'claimType', 'department', 'team', 'status']);
 
         if ($role_level === RoleLevel::DEPARTMENT_MANAGER) {
             // Department-level access
@@ -99,13 +102,13 @@ class ClaimService
 
     public function getClaimsByUserId(User $user)
     {
-        return Claim::with(['expenses.receipts', 'expenses', 'claimType', 'department', 'team', 'status'])
+        return Claim::with(['expenses.receipts', 'expenses.mileage.transactions.receipts', 'claimType', 'department', 'team', 'status'])
             ->where('user_id', $user->user_id)->get();
     }
 
     public function getClaimById(int $claimId)
     {
-        return Claim::with(['expenses.tags', 'expenses.receipts', 'claimType', 'status', 'position', 'user', 'department', 'team', 'claimNotes.user', 'claimApprovals.approvedByUser'])
+        return Claim::with(['expenses.tags', 'expenses.receipts', 'expenses.mileage.transactions.receipts', 'claimType', 'status', 'position', 'user', 'department', 'team', 'claimNotes.user', 'claimApprovals.approvedByUser'])
             ->where('claim_id', $claimId)
             ->first();
     }
@@ -131,18 +134,12 @@ class ClaimService
                 $this->addNote($claim, $user, $data['claim_notes']);
             }
 
-            // Add expenses
+            // Add expenses (mileage is handled per-expense inside addExpenses)
             if (! empty($data['expenses'])) {
                 $this->addExpenses($claim, $data['expenses']);
             }
 
-            // Add mileage
-            if (! empty($data['mileage'])) {
-                $mileage = Mileage::create($data['mileage']);
-                $claim->update(['mileage_id' => $mileage->mileage_id]);
-            }
-
-            return $claim->load(['expenses.receipts', 'expenses', 'claimType', 'department', 'team', 'status']);
+            return $claim->load(['expenses.receipts', 'expenses.mileage.transactions.receipts', 'claimType', 'department', 'team', 'status']);
         });
     }
 
@@ -161,9 +158,10 @@ class ClaimService
             $expenseData['claim_id'] = $claim->claim_id;
             $expenseData['approval_status_id'] = ClaimStatus::PENDING;
 
-            // Extract files array (can be single or multiple files)
+            // Extract files and mileage before creating the expense record
             $files = $expenseData['file'] ?? [];
-            unset($expenseData['file']);
+            $mileageData = $expenseData['mileage'] ?? null;
+            unset($expenseData['file'], $expenseData['mileage']);
 
             \Log::info('Adding expense', [
                 'expense_index' => $index,
@@ -195,6 +193,66 @@ class ClaimService
             // Handle tags: expect $expenseData['tags'] to be an array of tag IDs
             if (! empty($expenseData['tags']) && is_array($expenseData['tags'])) {
                 $expense->tags()->sync($expenseData['tags']);
+            }
+
+            // Handle mileage bound to this expense
+            if (! empty($mileageData)) {
+                $this->addMileage($expense, $mileageData);
+            }
+        }
+    }
+
+    protected function addMileage(Expense $expense, array $mileageData)
+    {
+        // Create mileage header linked to the expense that represents this mileage cost
+        $mileage = Mileage::create([
+            'expense_id' => $expense->expense_id,
+            'travel_from' => $mileageData['travel_from'],
+            'travel_to' => $mileageData['travel_to'],
+            'period_of_from' => $mileageData['period_of_from'],
+            'period_of_to' => $mileageData['period_of_to'],
+        ]);
+
+        // Get current mileage rate
+        $rate = (float) AppSetting::getValue('mileage_rate', 0.5);
+
+        // Create transactions
+        if (! empty($mileageData['transactions'])) {
+            foreach ($mileageData['transactions'] as $index => $txData) {
+                $totalAmount = MileageTransaction::calculateTotal(
+                    (float) $txData['distance_km'],
+                    $rate,
+                    (float) ($txData['parking_amount'] ?? 0),
+                    (float) ($txData['meter_km'] ?? 0)
+                );
+
+                $transaction = MileageTransaction::create([
+                    'mileage_id' => $mileage->mileage_id,
+                    'transaction_date' => $txData['transaction_date'],
+                    'distance_km' => $txData['distance_km'],
+                    'meter_km' => $txData['meter_km'] ?? null,
+                    'parking_amount' => $txData['parking_amount'] ?? null,
+                    'mileage_rate' => $rate,
+                    'total_amount' => $totalAmount,
+                    'buyer' => $txData['buyer'] ?? null,
+                ]);
+
+                // Handle receipt file uploads
+                $files = $txData['file'] ?? [];
+                if (! empty($files)) {
+                    $fileArray = is_array($files) ? $files : [$files];
+                    foreach ($fileArray as $file) {
+                        if ($file && $file instanceof \Illuminate\Http\UploadedFile) {
+                            $path = $file->store('mileage_receipts', 'public');
+                            MileageReceipt::create([
+                                'transaction_id' => $transaction->transaction_id,
+                                'file_name' => $file->getClientOriginalName(),
+                                'file_type' => $file->getClientMimeType(),
+                                'file_path' => $path,
+                            ]);
+                        }
+                    }
+                }
             }
         }
     }
