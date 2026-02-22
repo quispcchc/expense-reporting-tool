@@ -57,8 +57,10 @@ services:
       - FRONTEND_URL=http://localhost:5173
       - ALT_FRONTEND_URL=http://127.0.0.1:5173
     depends_on:
-      - queue
-      - postgres
+      postgres:
+        condition: service_healthy
+      queue:
+        condition: service_started
     networks:
       - expense_dev_network
     command: sh -c "php artisan migrate --force && rm -rf public/storage && php artisan storage:link && php artisan serve --host=0.0.0.0 --port=8000"
@@ -89,7 +91,8 @@ services:
       - DB_PASSWORD=expense_password
       - QUEUE_CONNECTION=database
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     restart: always
     networks:
       - expense_dev_network
