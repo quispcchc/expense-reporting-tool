@@ -21,10 +21,6 @@ import CostCentresPage from './pages/admin/CostCentresPage.jsx'
 import AccountNumbersPage from './pages/admin/AccountNumbersPage.jsx'
 import TagsPage from './pages/admin/TagsPage.jsx'
 import SettingsPage from './pages/admin/SettingsPage.jsx'
-import { UserProvider } from './contexts/UserContext.jsx'
-import { DepartmentProvider } from './contexts/DepartmentContext.jsx'
-import { CostCentreProvider } from './contexts/CostCentreContext.jsx'
-import { AccountNumberProvider } from './contexts/AccountNumberContext.jsx'
 import UserCreateClaimPage from './pages/user/UserCreateClaimPage.jsx'
 import RootRedirect from './components/feature/auth/RootRedirect.jsx'
 import DashboardPage from './pages/admin/DashboardPage.jsx'
@@ -123,11 +119,11 @@ const router = createBrowserRouter(
                 },
                 {
                     path: 'users',
-                    element: <UserProvider><UsersPage /></UserProvider>,
+                    element: <UsersPage />,
                 },
                 {
                     path: 'departments',
-                    element: <DepartmentProvider><DepartmentsPage /></DepartmentProvider>,
+                    element: <DepartmentsPage />,
                 },
                 {
                     path: 'departments/:departmentId/teams',
@@ -135,11 +131,11 @@ const router = createBrowserRouter(
                 },
                 {
                     path: 'cost-centre',
-                    element: <CostCentreProvider><CostCentresPage /></CostCentreProvider>,
+                    element: <CostCentresPage />,
                 },
                 {
                     path: 'account-numbers',
-                    element: <AccountNumberProvider><AccountNumbersPage /></AccountNumberProvider>,
+                    element: <AccountNumbersPage />,
                 },
                 {
                     path: 'tags',

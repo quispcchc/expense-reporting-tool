@@ -7,7 +7,6 @@ import { AuthProvider } from './contexts/AuthContext.jsx'
 import { ClaimProvider } from './contexts/ClaimContext.jsx'
 import { PrimeReactProvider } from 'primereact/api'
 import { LookupProvider } from './contexts/LookupContext.jsx'
-import { TagProvider } from './contexts/TagContext.jsx'
 import { ThemeProvider } from './contexts/ThemeContext.jsx'
 
 createRoot(document.getElementById('root')).render(
@@ -16,11 +15,9 @@ createRoot(document.getElementById('root')).render(
             <PrimeReactProvider>
                 <AuthProvider>
                     <LookupProvider>
-                        <TagProvider>
-                            <ClaimProvider>
-                                <App />
-                            </ClaimProvider>
-                        </TagProvider>
+                        <ClaimProvider>
+                            <App />
+                        </ClaimProvider>
                     </LookupProvider>
                 </AuthProvider>
             </PrimeReactProvider>

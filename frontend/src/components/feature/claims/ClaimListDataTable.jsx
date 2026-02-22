@@ -40,9 +40,9 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
     useEffect(() => {
         const fetchData = async () => {
             if (user === 'admin') {
-                await fetchClaims(true)
+                await fetchClaims()
             } else {
-                await fetchMyClaims(true)
+                await fetchMyClaims()
             }
         }
         fetchData()
