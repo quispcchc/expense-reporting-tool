@@ -121,7 +121,9 @@
         "submitNote": "Soumettre la note",
         "pleaseEnterNote": "Veuillez entrer une note!",
         "noteSubmitted": "Note soumise avec succès!",
-        "claimDetailDescription": "Consultez et gérez les détails de cette soumission de réclamation de dépenses."
+        "claimDetailDescription": "Consultez et gérez les détails de cette soumission de réclamation de dépenses.",
+        "submitSuccess": "Réclamation soumise avec succès!",
+        "redirectMessage": "Cliquez sur OK pour voir vos réclamations."
     },
     "expenses": {
         "title": "Détails des dépenses",
@@ -176,14 +178,20 @@
         "department": "Département",
         "team": "Équipe",
         "position": "Poste",
-        "role": "Rôle"
+        "role": "Rôle",
+        "editUser": "Modifier l'utilisateur"
     },
     "teams": {
         "title": "Départements",
         "addNewTeam": "Ajouter une nouvelle équipe",
         "addNewTeamDescription": "Remplissez les détails ci-dessous pour enregistrer une nouvelle équipe dans le système.",
         "code": "Code",
-        "name": "Nom"
+        "name": "Nom",
+        "teamsOf": "Équipes de {{departmentName}}",
+        "deleteConfirmTitle": "Supprimer l'équipe",
+        "deleteConfirmMessage": "Êtes-vous sûr de vouloir supprimer {{name}}? Cette action ne peut pas être annulée.",
+        "deleteSuccess": "Équipe supprimée avec succès.",
+        "editTeam": "Modifier l'équipe"
     },
     "costCentre": {
         "title": "Centres de coûts",
@@ -192,7 +200,8 @@
         "selectDepartment": "Sélectionner un département",
         "enterCode": "Entrez le code",
         "description": "Description",
-        "enterDescription": "Entrez la description"
+        "enterDescription": "Entrez la description",
+        "editCostCentre": "Modifier le centre de coûts"
     },
     "accountNumbers": {
         "title": "Numéros de compte",
@@ -331,7 +340,8 @@
         "delete_failed": "Échec de la suppression de l'étiquette",
         "search_placeholder": "Rechercher des étiquettes...",
         "empty_message": "Aucune étiquette trouvée",
-        "name": "Nom de l'étiquette"
+        "name": "Nom de l'étiquette",
+        "editTag": "Modifier l'étiquette"
     },
     "projects": {
         "title": "Projets",
@@ -351,10 +361,64 @@
         "description": "Description",
         "department": "Département",
         "status": "Statut",
-        "select_department": "Sélectionner un département"
+        "select_department": "Sélectionner un département",
+        "editProject": "Modifier le projet"
     },
     "dashboard": {
-        "title": "Tableau de bord"
+        "title": "Tableau de bord",
+        "export": {
+            "noData": "Aucune donnée",
+            "noDataDetail": "Aucun enregistrement ne correspond aux filtres actuels.",
+            "success": "Exportation terminée",
+            "successDetail": "Le fichier CSV a été téléchargé.",
+            "error": "Échec de l'exportation",
+            "errorDetail": "Une erreur s'est produite lors de l'exportation.",
+            "exporting": "Exportation...",
+            "button": "Exporter en CSV"
+        },
+        "search": {
+            "found": "Résultats trouvés",
+            "foundDetail": "{{count}} enregistrement(s) trouvé(s).",
+            "error": "Échec de la recherche",
+            "errorDetail": "Une erreur s'est produite lors de la recherche.",
+            "searching": "Recherche...",
+            "button": "Rechercher"
+        },
+        "filters": {
+            "title": "Filtres d'exportation",
+            "dateFrom": "Date de début",
+            "dateTo": "Date de fin",
+            "claimType": "Type de réclamation",
+            "selectAll": "Tous",
+            "claimStatus": "Statut de la réclamation",
+            "department": "Département",
+            "team": "Équipe",
+            "selectDepartmentFirst": "Sélectionnez d'abord le département",
+            "project": "Projet",
+            "costCentre": "Centre de coûts",
+            "submitter": "Soumetteur",
+            "searchByName": "Rechercher par nom",
+            "tags": "Étiquettes",
+            "selectTags": "Sélectionner des étiquettes",
+            "minAmount": "Montant min",
+            "maxAmount": "Montant max",
+            "clearFilters": "Effacer les filtres"
+        },
+        "results": {
+            "title": "Résultats filtrés",
+            "records": "enregistrements",
+            "empty": "Aucun enregistrement ne correspond aux filtres actuels.",
+            "claimId": "ID de réclamation",
+            "submitter": "Soumetteur",
+            "claimType": "Type de réclamation",
+            "department": "Département",
+            "submittedDate": "Soumis",
+            "totalAmount": "Montant",
+            "status": "Statut",
+            "description": "Dépense",
+            "vendor": "Fournisseur",
+            "expenseAmount": "Montant des dép."
+        }
     },
     "mileage": {
         "title": "Kilométrage",
@@ -405,5 +469,19 @@
         "mileageRate": "Taux de kilométrage par défaut (par km)",
         "saved": "Paramètres enregistrés avec succès",
         "saveFailed": "Échec de l'enregistrement des paramètres"
+    },
+    "departments": {
+        "title": "Départements",
+        "addNewDepartment": "Ajouter un nouveau département",
+        "addNewDepartmentDescription": "Remplissez les détails ci-dessous pour enregistrer un nouveau département dans le système.",
+        "code": "Code",
+        "name": "Nom",
+        "enterName": "Entrez le nom du département",
+        "manageTeams": "Gérer les équipes",
+        "deleteConfirmTitle": "Supprimer le département",
+        "deleteConfirmMessage": "Êtes-vous sûr de vouloir supprimer {{name}}? Cette action ne peut pas être annulée.",
+        "deleteSuccess": "Département supprimé avec succès.",
+        "deleteError": "Impossible de supprimer un département avec des équipes existantes.",
+        "editDepartment": "Modifier le département"
     }
 }

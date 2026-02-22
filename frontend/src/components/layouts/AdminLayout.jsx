@@ -13,7 +13,7 @@ function Layout({ children }) {
                     <SideBar />
                     <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
                         <Header />
-                        <main className="flex-1 px-3 py-8 bg-[var(--color-bg-secondary)] overflow-auto sm:px-4 md:px-6 lg:px-10">
+                        <main className="flex-1 px-3 py-4 md:py-8 bg-[var(--color-bg-secondary)] overflow-auto sm:px-4 md:px-6 lg:px-10">
                             <Outlet />
                         </main>
                     </div>

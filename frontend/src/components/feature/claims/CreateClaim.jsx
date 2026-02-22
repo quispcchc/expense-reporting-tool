@@ -203,7 +203,7 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
         const hasExpenses = claimFormData.claimItems.length > 0
         const hasUnboundMileage = includeMileage && (mileageData.transactions || []).length > 0
 
-            // Mileage must be bound to an expense before submitting
+        // Mileage must be bound to an expense before submitting
         if (hasUnboundMileage) {
             setValidationDialog({
                 visible: true,
@@ -221,7 +221,7 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
             return
         }
 
-    
+
 
         if (!validation.isValid) {
             setValidationDialog({
@@ -318,15 +318,15 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
 
     return (
         <form onSubmit={handleClaimSubmit}>
-            <div className="flex justify-between items-start flex-wrap gap-4 mb-4">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-4 mb-0 sm:mb-4">
                 <ContentHeader title={t('claims.createClaim')} homePath={homePath} className="" iconKey="claims.createClaim" />
-                <div className="flex gap-5 items-center">
-                    <div className="flex flex-col items-end">
-                        <p className="text-lg font-medium">{t('claims.totalAmount')}</p>
-                        <p className="text-blue-500 text-xl">${totalAmount.toFixed(2)}</p>
+                <div className="flex flex-row justify-between sm:justify-end items-center gap-4 w-full sm:w-auto bg-gray-50 sm:bg-transparent p-3 sm:p-0 rounded-xl sm:rounded-none border sm:border-0 border-gray-100">
+                    <div className="flex flex-col items-start sm:items-end">
+                        <p className="text-sm font-medium text-gray-500">{t('claims.totalAmount', 'Amount')}</p>
+                        <p className="text-blue-500 text-xl sm:text-2xl font-semibold -mt-1">${totalAmount.toFixed(2)}</p>
                     </div>
                     <Button label={t('claims.submitClaim', 'Submit claim')} type="submit" icon="pi pi-plus"
-                        iconPos="right" />
+                        iconPos="right" className="flex-1 sm:flex-none sm:w-auto w-full mobile-wrap-text-btn" />
                 </div>
             </div>
 
