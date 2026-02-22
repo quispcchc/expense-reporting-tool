@@ -36,11 +36,11 @@ function AddExpenseForm({
     )
 
     return (
-        <div className="bg-white h-full rounded-2xl shadow-sm">
-            <div className={`flex justify-between items-center flex-wrap rounded-t-2xl p-4 md:p-6 bg-brand-light gap-2`}>
-                <div>
-                    <p className="text-xl font-semibold text-text-primary">{t('expenses.addExpense')}</p>
-                    <p className="text-text-secondary text-sm">{t('expenses.addExpenseDescription')}</p>
+        <div className="bg-white h-full rounded-2xl shadow-sm overflow-hidden">
+            <div className={`flex justify-between items-center sm:flex-wrap flex-nowrap rounded-t-2xl p-4 md:p-6 bg-brand-light gap-2`}>
+                <div className="flex-1 min-w-0 pr-2">
+                    <p className="text-lg sm:text-xl font-semibold text-text-primary whitespace-nowrap sm:whitespace-normal overflow-hidden text-ellipsis">{t('expenses.addExpense')}</p>
+                    <p className="text-text-secondary text-xs sm:text-sm hidden sm:block">{t('expenses.addExpenseDescription')}</p>
                 </div>
                 <div className="text-right">
                     <p className="text-sm text-text-secondary">{t('claims.totalAmount')}</p>

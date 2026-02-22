@@ -178,7 +178,8 @@
         "department": "Department",
         "team": "Team",
         "position": "Position",
-        "role": "Role"
+        "role": "Role",
+        "editUser": "Edit User"
     },
     "teams": {
         "title": "Teams",
@@ -189,7 +190,8 @@
         "teamsOf": "Teams of {{departmentName}}",
         "deleteConfirmTitle": "Delete Team",
         "deleteConfirmMessage": "Are you sure you want to delete {{name}}? This action cannot be undone.",
-        "deleteSuccess": "Team deleted successfully."
+        "deleteSuccess": "Team deleted successfully.",
+        "editTeam": "Edit Team"
     },
     "departments": {
         "title": "Departments",
@@ -202,7 +204,8 @@
         "deleteConfirmTitle": "Delete Department",
         "deleteConfirmMessage": "Are you sure you want to delete {{name}}? This action cannot be undone.",
         "deleteSuccess": "Department deleted successfully.",
-        "deleteError": "Cannot delete department with existing teams."
+        "deleteError": "Cannot delete department with existing teams.",
+        "editDepartment": "Edit Department"
     },
     "costCentre": {
         "title": "Cost Centres",
@@ -211,7 +214,8 @@
         "selectDepartment": "Select a department",
         "enterCode": "Enter code",
         "description": "Description",
-        "enterDescription": "Enter description"
+        "enterDescription": "Enter description",
+        "editCostCentre": "Edit Cost Centre"
     },
     "accountNumbers": {
         "title": "Account Numbers",
@@ -350,7 +354,8 @@
         "delete_failed": "Failed to delete tag",
         "search_placeholder": "Search tags...",
         "empty_message": "No tags found",
-        "name": "Tag Name"
+        "name": "Tag Name",
+        "editTag": "Edit Tag"
     },
     "projects": {
         "title": "Projects",
@@ -370,10 +375,64 @@
         "description": "Description",
         "department": "Department",
         "status": "Status",
-        "select_department": "Select a Department"
+        "select_department": "Select a Department",
+        "editProject": "Edit Project"
     },
     "dashboard": {
-        "title": "Dashboard"
+        "title": "Dashboard",
+        "export": {
+            "noData": "No Data",
+            "noDataDetail": "No records match the current filters.",
+            "success": "Export Complete",
+            "successDetail": "CSV file has been downloaded.",
+            "error": "Export Failed",
+            "errorDetail": "An error occurred during export.",
+            "exporting": "Exporting...",
+            "button": "Export to CSV"
+        },
+        "search": {
+            "found": "Results Found",
+            "foundDetail": "{{count}} record(s) found.",
+            "error": "Search Failed",
+            "errorDetail": "An error occurred while searching.",
+            "searching": "Searching...",
+            "button": "Search"
+        },
+        "filters": {
+            "title": "Export Filters",
+            "dateFrom": "Date From",
+            "dateTo": "Date To",
+            "claimType": "Claim Type",
+            "selectAll": "All",
+            "claimStatus": "Claim Status",
+            "department": "Department",
+            "team": "Team",
+            "selectDepartmentFirst": "Select department first",
+            "project": "Project",
+            "costCentre": "Cost Centre",
+            "submitter": "Submitter",
+            "searchByName": "Search by name",
+            "tags": "Tags",
+            "selectTags": "Select tags",
+            "minAmount": "Min Amount",
+            "maxAmount": "Max Amount",
+            "clearFilters": "Clear Filters"
+        },
+        "results": {
+            "title": "Filtered Results",
+            "records": "records",
+            "empty": "No records match the current filters.",
+            "claimId": "Claim ID",
+            "submitter": "Submitter",
+            "claimType": "Claim Type",
+            "department": "Department",
+            "submittedDate": "Submitted",
+            "totalAmount": "Amount",
+            "status": "Status",
+            "description": "Expense",
+            "vendor": "Vendor",
+            "expenseAmount": "Exp. Amount"
+        }
     },
     "mileage": {
         "title": "Mileage",

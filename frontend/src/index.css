@@ -1165,3 +1165,28 @@ nav {
 .mobile-expense-detail-actions {
     @apply flex justify-end gap-2 p-3 border-t border-gray-200 flex-wrap;
 }
+/* Icon-only button on very small mobile screens */
+@media (max-width: 400px) {
+    .mobile-icon-only-btn .p-button-label {
+        display: none !important;
+    }
+    .mobile-icon-only-btn.p-button {
+        width: 42px !important;
+        min-width: 42px !important;
+        padding: 0 !important;
+        justify-content: center !important;
+    }
+    .mobile-icon-only-btn.p-button .p-button-icon {
+        margin: 0 !important;
+    }
+}
+
+/* Optional: Better handling for wrapping very long button titles on mobile */
+@media screen and (max-width: 640px) {
+    .mobile-wrap-text-btn .p-button-label {
+        white-space: normal !important;
+        line-height: 1.25 !important;
+        font-size: 0.875rem !important; /* text-sm */
+        word-break: break-word !important;
+    }
+}

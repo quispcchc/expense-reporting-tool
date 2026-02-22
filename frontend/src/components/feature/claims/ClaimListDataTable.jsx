@@ -794,7 +794,7 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
                 )}
 
                 <Link to={`${path}/claims/create-claim`}>
-                    <Button icon="pi pi-plus" label={t('common.new', 'New')} size="small" />
+                    <Button icon="pi pi-plus" label={t('common.new', 'New')} size="small" className="mobile-icon-only-btn" />
                 </Link>
             </div>
 

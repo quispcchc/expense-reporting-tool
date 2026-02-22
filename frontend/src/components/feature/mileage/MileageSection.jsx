@@ -40,11 +40,11 @@ function MileageSection({ mileageData, setMileageData, mileageRate, toastRef }) 
     )
 
     return (
-        <div className="bg-white rounded-2xl shadow-sm mt-6">
-            <div className="flex justify-between items-center flex-wrap rounded-t-2xl p-4 md:p-6 bg-brand-light gap-2">
-                <div>
-                    <p className="text-xl font-semibold text-text-primary">{t('mileage.addMileage', 'Add Mileage')}</p>
-                    <p className="text-text-secondary text-sm">{t('mileage.addMileageDescription', 'Add mileage details for travel reimbursement')}</p>
+        <div className="bg-white rounded-2xl shadow-sm mt-6 overflow-hidden">
+            <div className="flex justify-between items-center sm:flex-wrap flex-nowrap rounded-t-2xl p-4 md:p-6 bg-brand-light gap-2">
+                <div className="flex-1 min-w-0 pr-2">
+                    <p className="text-lg sm:text-xl font-semibold text-text-primary whitespace-nowrap sm:whitespace-normal overflow-hidden text-ellipsis">{t('mileage.addMileage', 'Add Mileage')}</p>
+                    <p className="text-text-secondary text-xs sm:text-sm hidden sm:block">{t('mileage.addMileageDescription', 'Add mileage details for travel reimbursement')}</p>
                 </div>
                 <div className="text-right">
                     <p className="text-sm text-text-secondary">{t('mileage.mileageTotal', 'Mileage Total')}</p>

@@ -33,11 +33,11 @@ function ContentHeader({ title, homePath, className = 'mb-4', iconKey, breadcrum
             return {
                 template: () => isLast ? (
                     <span className="flex items-center gap-2 text-brand-primary font-semibold text-lg md:text-xl">
-                        {Icon && <Icon className="text-xl md:text-2xl" />}
-                        {item.label}
+                        {Icon && <Icon className="text-xl md:text-2xl min-w-[24px]" />}
+                        <span className="whitespace-nowrap sm:whitespace-normal">{item.label}</span>
                     </span>
                 ) : (
-                    <Link to={item.path} className="text-text-secondary hover:text-brand-primary transition-colors text-lg">
+                    <Link to={item.path} className="flex items-center text-text-secondary hover:text-brand-primary transition-colors text-lg whitespace-nowrap">
                         {item.label}
                     </Link>
                 )
@@ -57,7 +57,7 @@ function ContentHeader({ title, homePath, className = 'mb-4', iconKey, breadcrum
     }
 
     const home = {
-        template: () => <Link to={homePath} className="text-text-secondary hover:text-brand-primary transition-colors text-lg"><span className="pi pi-home mr-1"></span>{t('common.home')}</Link>,
+        template: () => <Link to={homePath} className="flex items-center whitespace-nowrap text-text-secondary hover:text-brand-primary transition-colors text-lg"><span className="pi pi-home mr-1"></span>{t('common.home')}</Link>,
     }
 
     return (
