@@ -18,16 +18,21 @@ import { useTranslation } from 'react-i18next'
 import { useIsMobile } from '../../hooks/useIsMobile.js'
 import api from '../../api/api.js'
 
+// Module-level cache: persists across mount/unmount cycles
+// Key: departmentId, Value: { department, teams }
+const deptTeamsCache = {}
+
 function DepartmentTeamsPage() {
     const { t } = useTranslation()
     const { departmentId } = useParams()
     const navigate = useNavigate()
     const isMobile = useIsMobile()
 
-    // Local state for this department's data
-    const [departmentData, setDepartmentData] = useState(null)
-    const [teams, setTeams] = useState([])
-    const [loading, setLoading] = useState(true)
+    // Initialize from cache if available
+    const cached = deptTeamsCache[departmentId]
+    const [departmentData, setDepartmentData] = useState(cached?.department || null)
+    const [teams, setTeams] = useState(cached?.teams || [])
+    const [loading, setLoading] = useState(!cached)
     const [isFormOpen, setIsFormOpen] = useState(false)
     const [formErrors, setFormErrors] = useState([])
     const isFetching = useRef(false)
@@ -54,14 +59,26 @@ function DepartmentTeamsPage() {
     })
 
     // Fetch department and its teams
-    const fetchData = React.useCallback(async () => {
+    const fetchData = React.useCallback(async (force = false) => {
+        // Use cache if available and not forced
+        if (!force && deptTeamsCache[departmentId]) {
+            setDepartmentData(deptTeamsCache[departmentId].department)
+            setTeams(deptTeamsCache[departmentId].teams)
+            setLoading(false)
+            return
+        }
+
         if (isFetching.current) return
         isFetching.current = true
         setLoading(true)
         try {
             const response = await api.get(`/departments/${departmentId}/teams`)
-            setDepartmentData(response.data.department)
-            setTeams(response.data.teams || [])
+            const department = response.data.department
+            const fetchedTeams = response.data.teams || []
+            // Update cache
+            deptTeamsCache[departmentId] = { department, teams: fetchedTeams }
+            setDepartmentData(department)
+            setTeams(fetchedTeams)
         } catch (err) {
             console.error('Failed to fetch department teams:', err)
         } finally {
@@ -117,15 +134,14 @@ function DepartmentTeamsPage() {
         const { newData } = e
         try {
             await api.put(`/teams/${newData.team_id}`, newData)
-            await fetchData()
+            await fetchData(true)
             toast.current.show({ severity: 'success', summary: t('common.success'), detail: t('teams.updateSuccess', 'Team updated successfully'), life: 3000 })
             await refreshLookups()
         } catch (err) {
             console.error('Failed to update team:', err)
             toast.current.show({ severity: 'error', summary: t('common.error'), detail: err.message || t('teams.updateError', 'Failed to update team'), life: 5000 })
             try {
-                const response = await api.get(`/departments/${departmentId}/teams`)
-                setTeams(response.data.teams || [])
+                await fetchData(true)
             } catch (fetchErr) {
                 console.error('Failed to revert team changes:', fetchErr)
             }
@@ -141,7 +157,7 @@ function DepartmentTeamsPage() {
             accept: async () => {
                 try {
                     await api.delete(`/teams/${rowData.team_id}`)
-                    await fetchData()
+                    await fetchData(true)
                     toast.current?.show({ severity: 'success', summary: t('common.success'), detail: t('teams.deleteSuccess'), life: 3000 })
                     await refreshLookups()
                 } catch (err) {
@@ -156,7 +172,7 @@ function DepartmentTeamsPage() {
         if (!editData) return
         try {
             await api.put(`/teams/${editData.team_id}`, editData)
-            await fetchData()
+            await fetchData(true)
             toast.current?.show({ severity: 'success', summary: t('common.success'), detail: t('teams.updateSuccess', 'Team updated successfully'), life: 3000 })
             await refreshLookups()
         } catch (err) {
@@ -184,7 +200,7 @@ function DepartmentTeamsPage() {
 
         try {
             await api.post('/teams', { ...formData, department_id: parseInt(departmentId) })
-            await fetchData()
+            await fetchData(true)
             setFormData({ team_abbreviation: '', team_name: '', team_desc: '', active_status_id: '' })
             setFormErrors([])
             setIsFormOpen(false)

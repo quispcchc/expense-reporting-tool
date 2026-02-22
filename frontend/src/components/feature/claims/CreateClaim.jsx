@@ -1,5 +1,5 @@
 import AddExpenseForm from './AddExpenseForm.jsx'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import ContentHeader from '../../common/layout/ContentHeader.jsx'
 import { Button } from 'primereact/button'
 import { Dialog } from 'primereact/dialog'
@@ -55,19 +55,26 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
     }
     const [mileageData, setMileageData] = useState(initialMileageData)
 
+    const isFetchingRate = useRef(false)
+
     // Fetch mileage rate from settings on mount
     useEffect(() => {
-        const fetchMileageRate = async () => {
-            try {
-                const response = await api.get('settings')
-                if (response.data?.mileage_rate !== undefined) {
-                    setMileageRate(parseFloat(response.data.mileage_rate))
+        if (!isFetchingRate.current) {
+            isFetchingRate.current = true
+            const fetchMileageRate = async () => {
+                try {
+                    const response = await api.get('settings')
+                    if (response.data?.mileage_rate !== undefined) {
+                        setMileageRate(parseFloat(response.data.mileage_rate))
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch mileage rate:', error)
+                } finally {
+                    isFetchingRate.current = false
                 }
-            } catch (error) {
-                console.error('Failed to fetch mileage rate:', error)
             }
+            fetchMileageRate()
         }
-        fetchMileageRate()
     }, [])
 
     const handleMileageToggle = (checked) => {

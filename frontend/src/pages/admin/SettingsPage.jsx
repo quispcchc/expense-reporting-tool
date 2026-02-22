@@ -11,9 +11,15 @@ function SettingsPage() {
     const toast = useRef(null)
     const [rate, setRate] = useState('')
     const [loading, setLoading] = useState(false)
+    const isFetching = useRef(false)
 
     useEffect(() => {
-        fetchSettings()
+        if (!isFetching.current) {
+            isFetching.current = true
+            fetchSettings().finally(() => {
+                isFetching.current = false
+            })
+        }
     }, [])
 
     const fetchSettings = async () => {
