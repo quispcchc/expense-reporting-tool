@@ -406,8 +406,28 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                 })
             }
             if (mileage?.transactions?.length) {
+                const deletedReceiptIds = mileage._deletedReceiptIds || {}
                 await Promise.all(mileage.transactions.map(tx => {
                     const txId = tx.transaction_id || tx.transactionId
+                    const newFiles = (tx.attachment || []).filter(a => a.isNew && a.file)
+                    const txDeletedIds = deletedReceiptIds[txId] || []
+                    const hasFileChanges = newFiles.length > 0 || txDeletedIds.length > 0
+
+                    if (hasFileChanges) {
+                        // Use FormData when there are receipt changes
+                        const mileageFormData = new FormData()
+                        mileageFormData.append('_method', 'PUT')
+                        mileageFormData.append('transaction_date', tx.transaction_date)
+                        mileageFormData.append('distance_km', tx.distance_km)
+                        mileageFormData.append('meter_km', tx.meter_km ?? '')
+                        mileageFormData.append('parking_amount', tx.parking_amount ?? '')
+                        mileageFormData.append('buyer', tx.buyer ?? '')
+                        newFiles.forEach(f => mileageFormData.append('files[]', f.file))
+                        if (txDeletedIds.length > 0) {
+                            mileageFormData.append('deleteReceiptIds', txDeletedIds.join(','))
+                        }
+                        return api.post(`mileage-transactions/${txId}`, mileageFormData)
+                    }
                     return api.put(`mileage-transactions/${txId}`, {
                         transaction_date: tx.transaction_date,
                         distance_km: tx.distance_km,
@@ -417,6 +437,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                     })
                 }))
             }
+            if (onClaimUpdated) onClaimUpdated()
         }
 
         // Save all changes to parent

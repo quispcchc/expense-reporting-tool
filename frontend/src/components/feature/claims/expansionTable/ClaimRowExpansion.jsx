@@ -5,6 +5,8 @@ import ClaimExpansionAttachmentRow from './ClaimExpansionAttachmentRow.jsx'
 import { useLookups } from '../../../../contexts/LookupContext.jsx'
 import { useTranslation } from 'react-i18next'
 import ClaimExpansionMultiSelectRow from './ClaimExpansionMultiSelectRow.jsx'
+import { getFileIcon } from '../uploadAttchment/getFileIcon.jsx'
+import { API_BASE_URL } from '../../../../api/api.js'
 
 function ClaimRowExpansion({
     rowData,
@@ -152,6 +154,71 @@ function ClaimRowExpansion({
                     const inputCls = 'border border-blue-300 rounded px-1 py-1 text-xs focus:outline-none focus:border-blue-500 bg-white'
                     const cellInputCls = 'border border-gray-300 rounded px-1 py-1 text-xs focus:outline-none focus:border-blue-400 bg-white'
 
+                    // Get receipts from a transaction (handles backend `receipts` and frontend `attachment` formats)
+                    const getTransactionReceipts = (tx) => {
+                        if (tx.attachment) return tx.attachment
+                        if (tx.receipts) {
+                            return tx.receipts.map(r => ({
+                                url: `${API_BASE_URL}/storage/${r.file_path}`,
+                                name: r.file_name,
+                                fileType: r.file_type,
+                                receipt_id: r.receipt_id,
+                            }))
+                        }
+                        return []
+                    }
+
+                    const handleMileageReceiptUpload = (txIndex, e) => {
+                        const selectedFiles = Array.from(e.target.files)
+                        if (!selectedFiles.length) return
+                        const newFiles = selectedFiles.map(file => ({
+                            file,
+                            url: URL.createObjectURL(file),
+                            name: file.name,
+                            fileType: file.type,
+                            isNew: true,
+                        }))
+                        const updatedTransactions = mileage.transactions.map((tx, i) => {
+                            if (i !== txIndex) return tx
+                            const existing = getTransactionReceipts(tx)
+                            return { ...tx, attachment: [...existing, ...newFiles] }
+                        })
+                        handleInputChange(rowData.transactionId, 'mileage', { ...mileage, transactions: updatedTransactions })
+                        e.target.value = ''
+                    }
+
+                    const handleMileageReceiptRemove = (txIndex, fileIndex) => {
+                        const tx = mileage.transactions[txIndex]
+                        const receipts = getTransactionReceipts(tx)
+                        const fileToRemove = receipts[fileIndex]
+
+                        if (fileToRemove?.url?.startsWith('blob:')) {
+                            URL.revokeObjectURL(fileToRemove.url)
+                        }
+
+                        const updatedReceipts = receipts.filter((_, i) => i !== fileIndex)
+
+                        // Track deleted backend receipt IDs per transaction
+                        let deletedMileageReceiptIds = mileage._deletedReceiptIds || {}
+                        if (fileToRemove?.receipt_id) {
+                            const txId = tx.transaction_id || tx.transactionId
+                            deletedMileageReceiptIds = {
+                                ...deletedMileageReceiptIds,
+                                [txId]: [...(deletedMileageReceiptIds[txId] || []), fileToRemove.receipt_id],
+                            }
+                        }
+
+                        const updatedTransactions = mileage.transactions.map((t, i) => {
+                            if (i !== txIndex) return t
+                            return { ...t, attachment: updatedReceipts }
+                        })
+                        handleInputChange(rowData.transactionId, 'mileage', {
+                            ...mileage,
+                            transactions: updatedTransactions,
+                            _deletedReceiptIds: deletedMileageReceiptIds,
+                        })
+                    }
+
                     return (
                         <div className="mt-3 rounded-xl overflow-hidden border border-blue-200 shadow-sm">
                             {/* Header */}
@@ -238,6 +305,7 @@ function ClaimRowExpansion({
                                             <th className="px-4 py-2.5 text-right font-medium">{t('mileage.parking', 'Parking ($)')}</th>
                                             <th className="px-4 py-2.5 text-left font-medium">{t('mileage.buyer', 'Buyer')}</th>
                                             <th className="px-4 py-2.5 text-right font-medium">{t('mileage.totalAmount', 'Amount')}</th>
+                                            <th className="px-4 py-2.5 text-left font-medium">{t('mileage.receipt', 'Receipt')}</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-100">
@@ -302,6 +370,63 @@ function ClaimRowExpansion({
                                                 <td className="px-4 py-2 text-right font-semibold text-blue-700">
                                                     ${parseFloat(tx.total_amount || 0).toFixed(2)}
                                                 </td>
+                                                <td className="px-4 py-2">
+                                                    {(() => {
+                                                        const receipts = getTransactionReceipts(tx)
+                                                        return (
+                                                            <div className="flex flex-col gap-1">
+                                                                {receipts.length > 0 && (
+                                                                    <div className="flex flex-wrap gap-x-3 gap-y-1">
+                                                                        {receipts.map((att, i) => {
+                                                                            const fileName = att.file ? att.file.name : (att.name || 'Attachment')
+                                                                            const fileType = att.file ? att.file.type : (att.fileType || 'application/octet-stream')
+                                                                            const fileUrl = att.url || att.path
+                                                                            return (
+                                                                                <div key={i} className="flex items-center gap-1 text-xs leading-tight">
+                                                                                    <span className="shrink-0 [&_svg]:mr-0">{getFileIcon(fileType)}</span>
+                                                                                    <a
+                                                                                        href={fileUrl}
+                                                                                        target="_blank"
+                                                                                        rel="noopener noreferrer"
+                                                                                        className="text-blue-600 hover:underline truncate max-w-[100px]"
+                                                                                        title={fileName}
+                                                                                    >
+                                                                                        {fileName}
+                                                                                    </a>
+                                                                                    {isEditing && (
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            onClick={() => handleMileageReceiptRemove(idx, i)}
+                                                                                            className="shrink-0 text-red-500 hover:text-red-700 cursor-pointer ml-0.5"
+                                                                                        >
+                                                                                            <i className="pi pi-times text-[10px]" />
+                                                                                        </button>
+                                                                                    )}
+                                                                                </div>
+                                                                            )
+                                                                        })}
+                                                                    </div>
+                                                                )}
+                                                                {isEditing && (
+                                                                    <label className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 cursor-pointer w-fit">
+                                                                        <i className="pi pi-upload text-[10px]" />
+                                                                        <span>{t('components.upload', 'Upload')}</span>
+                                                                        <input
+                                                                            type="file"
+                                                                            multiple
+                                                                            accept="image/*,application/pdf"
+                                                                            onChange={(e) => handleMileageReceiptUpload(idx, e)}
+                                                                            className="hidden"
+                                                                        />
+                                                                    </label>
+                                                                )}
+                                                                {receipts.length === 0 && !isEditing && (
+                                                                    <span className="text-gray-400 text-xs">—</span>
+                                                                )}
+                                                            </div>
+                                                        )
+                                                    })()}
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -314,6 +439,7 @@ function ClaimRowExpansion({
                                             <td className="px-4 py-2.5" />
                                             <td className="px-4 py-2.5" />
                                             <td className="px-4 py-2.5 text-right text-blue-700">${mileageTotal.toFixed(2)}</td>
+                                            <td className="px-4 py-2.5" />
                                         </tr>
                                     </tfoot>
                                 </table>
