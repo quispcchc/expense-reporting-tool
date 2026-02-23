@@ -393,6 +393,32 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
             return cleanedChanges
         })
 
+        // Save mileage header + transactions if mileage was edited
+        if (changesFromExpansion.mileage) {
+            const mileage = updated.mileage
+            const mileageId = mileage?.mileage_id
+            if (mileageId) {
+                await api.put(`mileages/${mileageId}`, {
+                    travel_from: mileage.travel_from,
+                    travel_to: mileage.travel_to,
+                    period_of_from: mileage.period_of_from,
+                    period_of_to: mileage.period_of_to,
+                })
+            }
+            if (mileage?.transactions?.length) {
+                await Promise.all(mileage.transactions.map(tx => {
+                    const txId = tx.transaction_id || tx.transactionId
+                    return api.put(`mileage-transactions/${txId}`, {
+                        transaction_date: tx.transaction_date,
+                        distance_km: tx.distance_km,
+                        meter_km: tx.meter_km ?? null,
+                        parking_amount: tx.parking_amount ?? null,
+                        buyer: tx.buyer ?? null,
+                    })
+                }))
+            }
+        }
+
         // Save all changes to parent
         saveExpenseItemsToParent(updatedExpenseItems)
         showToast(toastRef, { severity: 'success', summary: 'Updated', detail: 'Updated successfully!' })

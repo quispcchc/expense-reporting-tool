@@ -130,6 +130,28 @@ function ClaimRowExpansion({
                     const totalKm = mileage.transactions.reduce((s, tx) => s + (parseFloat(tx.distance_km) || 0), 0)
                     const rate = mileage.transactions[0]?.mileage_rate
 
+                    const updateMileageHeader = (field, value) => {
+                        handleInputChange(rowData.transactionId, 'mileage', { ...mileage, [field]: value })
+                    }
+
+                    const updateMileageTransaction = (txIndex, field, value) => {
+                        const updatedTransactions = mileage.transactions.map((tx, i) => {
+                            if (i !== txIndex) return tx
+                            const updated = { ...tx, [field]: value }
+                            const r = parseFloat(updated.mileage_rate || rate) || 0
+                            updated.total_amount = parseFloat((
+                                (parseFloat(updated.distance_km) || 0) * r +
+                                (parseFloat(updated.meter_km) || 0) +
+                                (parseFloat(updated.parking_amount) || 0)
+                            ).toFixed(2))
+                            return updated
+                        })
+                        handleInputChange(rowData.transactionId, 'mileage', { ...mileage, transactions: updatedTransactions })
+                    }
+
+                    const inputCls = 'border border-blue-300 rounded px-1 py-1 text-xs focus:outline-none focus:border-blue-500 bg-white'
+                    const cellInputCls = 'border border-gray-300 rounded px-1 py-1 text-xs focus:outline-none focus:border-blue-400 bg-white'
+
                     return (
                         <div className="mt-3 rounded-xl overflow-hidden border border-blue-200 shadow-sm">
                             {/* Header */}
@@ -142,7 +164,25 @@ function ClaimRowExpansion({
                                         <p className="text-sm font-semibold text-blue-900">
                                             {t('mileage.boundMileage', 'Mileage Details')}
                                         </p>
-                                        {(mileage.travel_from || mileage.travel_to) && (
+                                        {isEditing ? (
+                                            <div className="flex items-center gap-1 mt-0.5">
+                                                <input
+                                                    type="text"
+                                                    value={mileage.travel_from || ''}
+                                                    onChange={(e) => updateMileageHeader('travel_from', e.target.value)}
+                                                    placeholder={t('mileage.from', 'From')}
+                                                    className={`${inputCls} w-24`}
+                                                />
+                                                <span className="text-blue-400 text-xs">→</span>
+                                                <input
+                                                    type="text"
+                                                    value={mileage.travel_to || ''}
+                                                    onChange={(e) => updateMileageHeader('travel_to', e.target.value)}
+                                                    placeholder={t('mileage.to', 'To')}
+                                                    className={`${inputCls} w-24`}
+                                                />
+                                            </div>
+                                        ) : (mileage.travel_from || mileage.travel_to) && (
                                             <p className="text-xs text-blue-600">
                                                 {mileage.travel_from} → {mileage.travel_to}
                                             </p>
@@ -150,7 +190,28 @@ function ClaimRowExpansion({
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-4 text-right">
-                                    {(mileage.period_of_from || mileage.period_of_to) && (
+                                    {isEditing ? (
+                                        <div className="flex flex-col gap-0.5">
+                                            <div className="flex items-center gap-1">
+                                                <span className="text-[10px] text-blue-400">{t('mileage.from', 'From')}</span>
+                                                <input
+                                                    type="date"
+                                                    value={mileage.period_of_from?.substring(0, 10) || ''}
+                                                    onChange={(e) => updateMileageHeader('period_of_from', e.target.value)}
+                                                    className={inputCls}
+                                                />
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                <span className="text-[10px] text-blue-400">{t('mileage.to', 'To')}</span>
+                                                <input
+                                                    type="date"
+                                                    value={mileage.period_of_to?.substring(0, 10) || ''}
+                                                    onChange={(e) => updateMileageHeader('period_of_to', e.target.value)}
+                                                    className={inputCls}
+                                                />
+                                            </div>
+                                        </div>
+                                    ) : (mileage.period_of_from || mileage.period_of_to) && (
                                         <div className="hidden sm:block">
                                             <p className="text-[10px] uppercase tracking-wider text-blue-400">{t('mileage.period', 'Period')}</p>
                                             <p className="text-xs font-medium text-blue-700">
@@ -182,13 +243,65 @@ function ClaimRowExpansion({
                                     <tbody className="divide-y divide-gray-100">
                                         {mileage.transactions.map((tx, idx) => (
                                             <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
-                                                <td className="px-4 py-2 text-gray-800">{tx.transaction_date?.substring(0, 10)}</td>
-                                                <td className="px-4 py-2 text-right text-gray-700">{parseFloat(tx.distance_km || 0).toFixed(1)}</td>
-                                                <td className="px-4 py-2 text-right text-gray-700">${parseFloat(tx.mileage_rate || rate || 0).toFixed(2)}</td>
-                                                <td className="px-4 py-2 text-right text-gray-700">${parseFloat(tx.meter_km || 0).toFixed(2)}</td>
-                                                <td className="px-4 py-2 text-right text-gray-700">${parseFloat(tx.parking_amount || 0).toFixed(2)}</td>
-                                                <td className="px-4 py-2 text-gray-700">{tx.buyer || '—'}</td>
-                                                <td className="px-4 py-2 text-right font-semibold text-blue-700">${parseFloat(tx.total_amount || 0).toFixed(2)}</td>
+                                                <td className="px-4 py-2 text-gray-800">
+                                                    {isEditing ? (
+                                                        <input
+                                                            type="date"
+                                                            value={tx.transaction_date?.substring(0, 10) || ''}
+                                                            onChange={(e) => updateMileageTransaction(idx, 'transaction_date', e.target.value)}
+                                                            className={cellInputCls}
+                                                        />
+                                                    ) : tx.transaction_date?.substring(0, 10)}
+                                                </td>
+                                                <td className="px-4 py-2 text-right text-gray-700">
+                                                    {isEditing ? (
+                                                        <input
+                                                            type="number"
+                                                            value={tx.distance_km ?? ''}
+                                                            min="0" step="0.1"
+                                                            onChange={(e) => updateMileageTransaction(idx, 'distance_km', e.target.value)}
+                                                            className={`${cellInputCls} w-20 text-right`}
+                                                        />
+                                                    ) : parseFloat(tx.distance_km || 0).toFixed(1)}
+                                                </td>
+                                                <td className="px-4 py-2 text-right text-gray-700">
+                                                    ${parseFloat(tx.mileage_rate || rate || 0).toFixed(2)}
+                                                </td>
+                                                <td className="px-4 py-2 text-right text-gray-700">
+                                                    {isEditing ? (
+                                                        <input
+                                                            type="number"
+                                                            value={tx.meter_km ?? ''}
+                                                            min="0" step="0.01"
+                                                            onChange={(e) => updateMileageTransaction(idx, 'meter_km', e.target.value)}
+                                                            className={`${cellInputCls} w-20 text-right`}
+                                                        />
+                                                    ) : `$${parseFloat(tx.meter_km || 0).toFixed(2)}`}
+                                                </td>
+                                                <td className="px-4 py-2 text-right text-gray-700">
+                                                    {isEditing ? (
+                                                        <input
+                                                            type="number"
+                                                            value={tx.parking_amount ?? ''}
+                                                            min="0" step="0.01"
+                                                            onChange={(e) => updateMileageTransaction(idx, 'parking_amount', e.target.value)}
+                                                            className={`${cellInputCls} w-20 text-right`}
+                                                        />
+                                                    ) : `$${parseFloat(tx.parking_amount || 0).toFixed(2)}`}
+                                                </td>
+                                                <td className="px-4 py-2 text-gray-700">
+                                                    {isEditing ? (
+                                                        <input
+                                                            type="text"
+                                                            value={tx.buyer || ''}
+                                                            onChange={(e) => updateMileageTransaction(idx, 'buyer', e.target.value)}
+                                                            className={`${cellInputCls} w-full`}
+                                                        />
+                                                    ) : (tx.buyer || '—')}
+                                                </td>
+                                                <td className="px-4 py-2 text-right font-semibold text-blue-700">
+                                                    ${parseFloat(tx.total_amount || 0).toFixed(2)}
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>
