@@ -11,6 +11,30 @@ use Illuminate\Support\Facades\Storage;
 class MileageTransactionController extends Controller
 {
     /**
+     * Recalculate the parent expense amount and claim total
+     * based on the sum of all sibling mileage transactions.
+     */
+    private function syncExpenseAndClaimTotals(MileageTransaction $transaction): void
+    {
+        $mileage = $transaction->mileage;
+        if (!$mileage) return;
+
+        $expense = $mileage->expense;
+        if (!$expense) return;
+
+        // Sum all mileage transaction totals → update expense amount
+        $newExpenseAmount = $mileage->transactions()->sum('total_amount');
+        $expense->update(['expense_amount' => $newExpenseAmount]);
+
+        // Sum all expense amounts → update claim total
+        $claim = $expense->claim;
+        if ($claim) {
+            $newClaimTotal = $claim->expenses()->sum('expense_amount');
+            $claim->update(['total_amount' => $newClaimTotal]);
+        }
+    }
+
+    /**
      * Create a mileage transaction with optional receipts.
      */
     public function store(Request $request)
@@ -140,6 +164,8 @@ class MileageTransactionController extends Controller
                 ]);
             }
         }
+
+        $this->syncExpenseAndClaimTotals($transaction);
 
         return $this->successResponse(
             $transaction->fresh('receipts'),
