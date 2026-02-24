@@ -62,6 +62,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
     const isMobile = useIsMobile()
     const [expenseItems, setExpenseItems] = useState(() => mapExpenseData(data, mode))
     const [mobileExpandedId, setMobileExpandedId] = useState(null)
+    const [mobileEditData, setMobileEditData] = useState(null) // tracks inline field edits on mobile
 
     const { updateClaim } = useClaims()
 
@@ -690,6 +691,86 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
         currency: APP_SETTINGS.currency.code,
     }).format(amount || 0)
 
+    // --- Mobile edit helpers ---
+    const startMobileEdit = (item) => {
+        const editData = {
+            transactionId: item.transactionId,
+            amount: item.amount,
+            transactionDate: item.transactionDate,
+            vendor: item.vendor,
+            buyer: item.buyer,
+            accountNum: item.accountNum,
+            costCentre: item.costCentre,
+        }
+        setMobileEditData(editData)
+        // Also set currentlyEditingRowId so ClaimRowExpansion enters edit mode
+        setCurrentlyEditingRowId(item.transactionId)
+        // Save original data for cancel
+        const expenseIndex = expenseItems.findIndex(e => e.transactionId === item.transactionId)
+        if (expenseIndex >= 0) {
+            setOriginalExpenseData(prev => ({
+                ...prev,
+                [item.transactionId]: { ...expenseItems[expenseIndex] }
+            }))
+        }
+        setUnsavedExpansionChanges(prev => {
+            const cleaned = { ...prev }
+            delete cleaned[item.transactionId]
+            unsavedExpansionChangesRef.current = cleaned
+            return cleaned
+        })
+    }
+
+    const cancelMobileEdit = () => {
+        if (!mobileEditData) return
+        const expenseId = mobileEditData.transactionId
+        // Restore original data
+        setExpenseItems(prev => {
+            const restored = [...prev]
+            const orig = originalExpenseData[expenseId]
+            if (orig) {
+                const idx = restored.findIndex(e => e.transactionId === expenseId)
+                if (idx >= 0) restored[idx] = { ...orig }
+            }
+            return restored
+        })
+        setUnsavedExpansionChanges(prev => {
+            const cleaned = { ...prev }
+            delete cleaned[expenseId]
+            unsavedExpansionChangesRef.current = cleaned
+            return cleaned
+        })
+        setCurrentlyEditingRowId(null)
+        setMobileEditData(null)
+        showToast(toastRef, { severity: 'info', summary: 'Info', detail: t('expenses.editCancelled', 'Edit cancelled!') })
+    }
+
+    const saveMobileEdit = async () => {
+        if (!mobileEditData) return
+        const expenseId = mobileEditData.transactionId
+        const idx = expenseItems.findIndex(e => e.transactionId === expenseId)
+        if (idx < 0) return
+
+        // Build a fake editEvent matching handleRowSaveComplete's expected shape
+        const editEvent = {
+            index: idx,
+            newData: {
+                ...expenseItems[idx],
+                ...mobileEditData,
+            },
+        }
+        await handleRowSaveComplete(editEvent)
+        setMobileEditData(null)
+    }
+
+    const updateMobileField = (field, value) => {
+        setMobileEditData(prev => ({ ...prev, [field]: value }))
+        // Also update expenseItems for live preview
+        setExpenseItems(prev =>
+            prev.map(e => e.transactionId === mobileEditData.transactionId ? { ...e, [field]: value } : e)
+        )
+    }
+
     // Get selected expense detail for mobile full-screen view
     const selectedExpense = mobileExpandedId
         ? expenseItems.find(item => item.transactionId === mobileExpandedId)
@@ -727,6 +808,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
     // Mobile full-screen detail view
     const MobileDetailView = ({ item }) => {
         const isProcessed = item.status === 2 || item.status === 3
+        const isMobileEditing = mobileEditData?.transactionId === item.transactionId
         return (
             <div className="mobile-expense-detail">
                 {/* Header with back button */}
@@ -736,42 +818,131 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                         text
                         rounded
                         severity="secondary"
-                        onClick={() => setMobileExpandedId(null)}
+                        onClick={() => {
+                            if (isMobileEditing) cancelMobileEdit()
+                            setMobileExpandedId(null)
+                        }}
                         className="!p-1"
                     />
                     <h4 className="text-base font-semibold flex-1">
                         {t('expenses.title')} #{item.transactionId}
                     </h4>
                     {mode !== 'create' && <StatusTab status={item.status} />}
+                    {mode !== 'view' && !isMobileEditing && (
+                        <div className="flex items-center gap-1">
+                            <Button
+                                icon="pi pi-pencil"
+                                text
+                                rounded
+                                severity="info"
+                                onClick={() => startMobileEdit(item)}
+                                className="!p-1"
+                            />
+                            <Button
+                                icon="pi pi-trash"
+                                text
+                                rounded
+                                severity="danger"
+                                onClick={() => {
+                                    deleteExpenseItem(item.transactionId)
+                                    setMobileExpandedId(null)
+                                }}
+                                className="!p-1"
+                            />
+                        </div>
+                    )}
                 </div>
 
                 {/* Detail fields */}
                 <div className="mobile-expense-detail-body">
                     <div className="mobile-detail-row">
                         <span className="mobile-detail-label">{t('expenses.amount')}</span>
-                        <span className="mobile-detail-value font-semibold">{formatCurrency(item.amount)}</span>
+                        {isMobileEditing ? (
+                            <InputNumber
+                                value={mobileEditData.amount}
+                                onValueChange={(e) => updateMobileField('amount', e.value)}
+                                mode="currency"
+                                currency={APP_SETTINGS.currency.code}
+                                locale={APP_SETTINGS.currency.locale}
+                                className="w-full"
+                                inputClassName="text-right"
+                            />
+                        ) : (
+                            <span className="mobile-detail-value font-semibold">{formatCurrency(item.amount)}</span>
+                        )}
                     </div>
                     <div className="mobile-detail-row">
                         <span className="mobile-detail-label">{t('expenses.transactionDate')}</span>
-                        <span className="mobile-detail-value">{item.transactionDate || '—'}</span>
+                        {isMobileEditing ? (
+                            <InputText
+                                type="date"
+                                value={mobileEditData.transactionDate || ''}
+                                onChange={(e) => updateMobileField('transactionDate', e.target.value)}
+                                className="w-full"
+                            />
+                        ) : (
+                            <span className="mobile-detail-value">{item.transactionDate || '—'}</span>
+                        )}
                     </div>
                     <div className="mobile-detail-row">
                         <span className="mobile-detail-label">{t('expenses.vendor')}</span>
-                        <span className="mobile-detail-value">{item.vendor || '—'}</span>
+                        {isMobileEditing ? (
+                            <InputText
+                                value={mobileEditData.vendor || ''}
+                                onChange={(e) => updateMobileField('vendor', e.target.value)}
+                                className="w-full"
+                            />
+                        ) : (
+                            <span className="mobile-detail-value">{item.vendor || '—'}</span>
+                        )}
                     </div>
                     <div className="mobile-detail-row">
                         <span className="mobile-detail-label">{t('expenses.buyer')}</span>
-                        <span className="mobile-detail-value">{item.buyer || '—'}</span>
+                        {isMobileEditing ? (
+                            <InputText
+                                value={mobileEditData.buyer || ''}
+                                onChange={(e) => updateMobileField('buyer', e.target.value)}
+                                className="w-full"
+                            />
+                        ) : (
+                            <span className="mobile-detail-value">{item.buyer || '—'}</span>
+                        )}
                     </div>
                     <div className="mobile-detail-row">
                         <span className="mobile-detail-label">{t('expenses.accountNumber')}</span>
-                        <span className="mobile-detail-value text-sm">{accountNumMap[item.accountNum] || '—'}</span>
+                        {isMobileEditing ? (
+                            <Dropdown
+                                value={mobileEditData.accountNum}
+                                onChange={(e) => updateMobileField('accountNum', e.target.value)}
+                                options={accountNums.map(opt => ({
+                                    label: `${opt.account_number} - ${opt.description}`,
+                                    value: opt.account_number_id,
+                                }))}
+                                className="w-full"
+                                placeholder={t('expenses.selectAccountNumber', 'Select account')}
+                            />
+                        ) : (
+                            <span className="mobile-detail-value text-sm">{accountNumMap[item.accountNum] || '—'}</span>
+                        )}
                     </div>
                     <div className="mobile-detail-row">
                         <span className="mobile-detail-label">{t('expenses.costCentre')}</span>
-                        <span className="mobile-detail-value text-sm">{costCentreMap[item.costCentre] || '—'}</span>
+                        {isMobileEditing ? (
+                            <Dropdown
+                                value={mobileEditData.costCentre}
+                                onChange={(e) => updateMobileField('costCentre', e.target.value)}
+                                options={costCentres.map(opt => ({
+                                    label: `${opt.cost_centre_code} - ${opt.description}`,
+                                    value: opt.cost_centre_id,
+                                }))}
+                                className="w-full"
+                                placeholder={t('expenses.selectCostCentre', 'Select cost centre')}
+                            />
+                        ) : (
+                            <span className="mobile-detail-value text-sm">{costCentreMap[item.costCentre] || '—'}</span>
+                        )}
                     </div>
-                    {item.description && (
+                    {!isMobileEditing && item.description && (
                         <div className="mobile-detail-row-stacked">
                             <span className="mobile-detail-label">{t('expenses.description')}</span>
                             <p className="mobile-detail-text">{item.description}</p>
@@ -794,39 +965,48 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                 {/* Action buttons */}
                 {(mode !== 'view') && (
                     <div className="mobile-expense-detail-actions">
-                        {mode !== 'view' && (
-                            <Button
-                                icon="pi pi-trash"
-                                size="small"
-                                text
-                                severity="danger"
-                                label={t('common.delete')}
-                                onClick={() => {
-                                    deleteExpenseItem(item.transactionId)
-                                    setMobileExpandedId(null)
-                                }}
-                            />
-                        )}
-                        {mode === 'edit' && (
+                        {isMobileEditing ? (
                             <>
                                 <Button
                                     icon="pi pi-check"
                                     size="small"
-                                    outlined
                                     severity="success"
-                                    label={t('claims.approve', 'Approve')}
-                                    onClick={() => approveExpense(item.transactionId)}
-                                    disabled={isProcessed}
+                                    label={t('common.save', 'Save')}
+                                    onClick={saveMobileEdit}
                                 />
                                 <Button
                                     icon="pi pi-times"
                                     size="small"
                                     outlined
-                                    severity="danger"
-                                    label={t('claims.reject', 'Reject')}
-                                    onClick={() => rejectExpense(item.transactionId)}
-                                    disabled={isProcessed}
+                                    severity="secondary"
+                                    label={t('common.cancel', 'Cancel')}
+                                    onClick={cancelMobileEdit}
                                 />
+                            </>
+                        ) : (
+                            <>
+                                {mode === 'edit' && (
+                                    <>
+                                        <Button
+                                            icon="pi pi-check"
+                                            size="small"
+                                            outlined
+                                            severity="success"
+                                            label={t('claims.approve', 'Approve')}
+                                            onClick={() => approveExpense(item.transactionId)}
+                                            disabled={isProcessed}
+                                        />
+                                        <Button
+                                            icon="pi pi-times"
+                                            size="small"
+                                            outlined
+                                            severity="danger"
+                                            label={t('claims.reject', 'Reject')}
+                                            onClick={() => rejectExpense(item.transactionId)}
+                                            disabled={isProcessed}
+                                        />
+                                    </>
+                                )}
                             </>
                         )}
                     </div>
