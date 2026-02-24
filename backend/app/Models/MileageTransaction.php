@@ -19,6 +19,8 @@ class MileageTransaction extends Model
         'mileage_rate',
         'total_amount',
         'buyer',
+        'travel_from',
+        'travel_to',
     ];
 
     protected $casts = [

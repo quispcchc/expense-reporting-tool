@@ -11,6 +11,7 @@ import api, { API_BASE_URL } from '../../../api/api.js'
 import { getFileIcon } from '../claims/uploadAttchment/getFileIcon.jsx'
 import { useTranslation } from 'react-i18next'
 import { useIsMobile } from '../../../hooks/useIsMobile.js'
+import Input from '../../common/ui/Input.jsx'
 
 // Map backend transaction data → frontend row format
 const mapTransactions = (transactions, mode) => {
@@ -27,6 +28,8 @@ const mapTransactions = (transactions, mode) => {
     return transactions.map((tx, index) => ({
         transactionId: tx.transaction_id || `temp-${index}-${Date.now()}`,
         transaction_date: tx.transaction_date,
+        travel_from: tx.travel_from,
+        travel_to: tx.travel_to,
         distance_km: tx.distance_km,
         meter_km: tx.meter_km,
         parking_amount: tx.parking_amount,
@@ -99,6 +102,8 @@ function MileageDataTable({ data, mode, onTransactionsUpdate, toastRef, onClaimU
             formData.append('meter_km', tx.meter_km ?? '')
             formData.append('parking_amount', tx.parking_amount ?? '')
             formData.append('buyer', tx.buyer ?? '')
+            formData.append('travel_from', tx.travel_from ?? '')
+            formData.append('travel_to', tx.travel_to ?? '')
 
             api.post(`mileage-transactions/${tx.transactionId}`, formData)
                 .then(() => {
@@ -312,51 +317,206 @@ function MileageDataTable({ data, mode, onTransactionsUpdate, toastRef, onClaimU
         </button>
     )
 
+    // ─── Mobile card edit save ───────────────────────────────────
+    const saveMobileEdit = (transactionId, draft) => {
+        const rate = parseFloat(draft.mileage_rate || mileageRate) || 0
+        const total =
+            (parseFloat(draft.distance_km) || 0) * rate +
+            (parseFloat(draft.parking_amount) || 0) +
+            (parseFloat(draft.meter_km) || 0)
+
+        const idx = rows.findIndex(r => r.transactionId === transactionId)
+        if (idx === -1) return
+
+        const updated = [...rows]
+        updated[idx] = { ...draft, total_amount: parseFloat(total.toFixed(2)) }
+
+        if (mode === 'edit') {
+            const tx = updated[idx]
+            const formData = new FormData()
+            formData.append('_method', 'PUT')
+            formData.append('transaction_date', tx.transaction_date)
+            formData.append('distance_km', tx.distance_km)
+            formData.append('meter_km', tx.meter_km ?? '')
+            formData.append('parking_amount', tx.parking_amount ?? '')
+            formData.append('buyer', tx.buyer ?? '')
+            formData.append('travel_from', tx.travel_from ?? '')
+            formData.append('travel_to', tx.travel_to ?? '')
+
+            api.post(`mileage-transactions/${tx.transactionId}`, formData)
+                .then(() => {
+                    showToast(toastRef, { severity: 'success', summary: t('toast.success'), detail: t('mileage.updated', 'Mileage updated') })
+                    if (onClaimUpdated) onClaimUpdated()
+                })
+                .catch(() => {
+                    showToast(toastRef, { severity: 'error', summary: t('toast.error'), detail: t('mileage.updateFailed', 'Failed to update') })
+                })
+        }
+
+        syncUp(updated)
+    }
+
     // ─── Mobile card view ────────────────────────────────────────
-    const MobileCard = ({ tx }) => (
-        <div className="border rounded-lg p-3 mb-3">
-            <div className="flex justify-between items-start mb-2">
-                <div>
-                    <p className="text-sm font-medium">{formatDate(tx.transaction_date)}</p>
-                    <p className="text-xs text-gray-500">
-                        {tx.distance_km} km · {t('mileage.meter', 'Meter')}: {formatCurrency(tx.meter_km)} · {t('mileage.parking', 'Parking')}: {formatCurrency(tx.parking_amount)}
-                    </p>
-                    <p className="text-xs text-gray-500">{t('mileage.buyer', 'Buyer')}: {tx.buyer || '—'}</p>
-                </div>
-                <div className="text-right">
-                    <p className="text-sm font-semibold text-brand-primary">{formatCurrency(tx.total_amount)}</p>
-                    {mode !== 'view' && (
-                        <button onClick={() => deleteTransaction(tx.transactionId)} type="button" className="text-xs text-red-500 mt-1">
-                            {t('common.delete', 'Delete')}
-                        </button>
-                    )}
-                </div>
-            </div>
-            {(tx.attachment || []).length > 0 && (
-                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
-                    {(tx.attachment || []).map((att, i) => {
-                        const fileName = att.file ? att.file.name : (att.name || 'Attachment')
-                        const fileType = att.file ? att.file.type : 'application/octet-stream'
-                        const fileUrl = att.url || att.path
-                        return (
-                            <div key={i} className="flex items-center gap-1 text-sm">
-                                <span className="shrink-0 [&_svg]:mr-0">{getFileIcon(fileType)}</span>
-                                <a
-                                    href={fileUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 hover:underline truncate"
-                                    title={fileName}
-                                >
-                                    {fileName}
-                                </a>
+    const MobileCard = ({ tx }) => {
+        const [editing, setEditing] = useState(false)
+        const [draft, setDraft] = useState(tx)
+
+        const handleField = (name, value) => setDraft(prev => ({ ...prev, [name]: value }))
+
+        const handleSave = () => {
+            saveMobileEdit(tx.transactionId, draft)
+            setEditing(false)
+        }
+
+        const handleCancel = () => {
+            setDraft(tx)
+            setEditing(false)
+        }
+
+        const attachments = tx.attachment || []
+
+        if (editing) {
+            return (
+                <div className="border border-gray-200 rounded-lg p-3 mb-3">
+                    <div className="grid grid-cols-1 s:grid-cols-2 gap-2 mb-2">
+                        <Input
+                            name="travel_from"
+                            label={t('mileage.travelFrom', 'Travel From')}
+                            value={draft.travel_from || ''}
+                            onChange={e => handleField('travel_from', e.target.value)}
+                        />
+                        <Input
+                            name="travel_to"
+                            label={t('mileage.travelTo', 'Travel To')}
+                            value={draft.travel_to || ''}
+                            onChange={e => handleField('travel_to', e.target.value)}
+                        />
+
+                        <Input
+                            name="buyer"
+                            label={t('mileage.buyer', 'Buyer')}
+                            value={draft.buyer || ''}
+                            onChange={e => handleField('buyer', e.target.value)}
+                        />
+
+                        <Input
+                            name="transaction_date"
+                            label={t('mileage.transactionDate', 'Date')}
+                            type="date"
+                            value={draft.transaction_date ? String(draft.transaction_date).substring(0, 10) : ''}
+                            onChange={e => handleField('transaction_date', e.target.value)}
+                        />
+
+                        <Input
+                            name="distance_km"
+                            label={t('mileage.distance', 'Distance (km)')}
+                            value={draft.distance_km ?? ''}
+                            onChange={e => handleField('distance_km', e.target.value)}
+                        />
+
+                        <Input
+                            name="meter_km"
+                            label={t('mileage.meterAmount', 'Meter Amount ($)')}
+                            value={draft.meter_km ?? ''}
+                            onChange={e => handleField('meter_km', e.target.value)}
+                        />
+
+                        <Input
+                            name="parking_amount"
+                            label={t('mileage.parking', 'Parking ($)')}
+                            value={draft.parking_amount ?? ''}
+                            onChange={e => handleField('parking_amount', e.target.value)}
+                        />
+
+                        <Input
+                            name="buyer"
+                            label={t('mileage.buyer', 'Buyer')}
+                            value={draft.buyer ?? ''}
+                            onChange={e => handleField('buyer', e.target.value)}
+                        />
+
+                    </div>
+
+                    {/* Receipts */}
+                    <div className="mb-2">
+                        {attachments.length > 0 && (
+                            <div className="flex flex-wrap gap-x-3 gap-y-1 mb-1">
+                                {attachments.map((att, i) => {
+                                    const fileName = att.file ? att.file.name : (att.name || 'Attachment')
+                                    const fileType = att.file ? att.file.type : 'application/octet-stream'
+                                    const fileUrl = att.url || att.path
+                                    return (
+                                        <div key={i} className="flex items-center gap-1 text-sm">
+                                            <span className="shrink-0 [&_svg]:mr-0">{getFileIcon(fileType)}</span>
+                                            <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline truncate max-w-[120px]" title={fileName}>{fileName}</a>
+                                            <button type="button" onClick={() => handleReceiptRemove(tx.transactionId, i)} className="text-red-500 hover:text-red-700 cursor-pointer ml-0.5">
+                                                <i className="pi pi-times text-xs" />
+                                            </button>
+                                        </div>
+                                    )
+                                })}
                             </div>
-                        )
-                    })}
+                        )}
+                        <label className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 cursor-pointer">
+                            <i className="pi pi-upload text-xs" />
+                            <span>{t('components.upload', 'Upload')}</span>
+                            <input type="file" multiple accept="image/*,application/pdf" onChange={e => handleReceiptUpload(tx.transactionId, e)} className="hidden" />
+                        </label>
+                    </div>
+
+                    <div className="flex justify-end gap-2">
+                        <Button severity="danger" onClick={handleCancel} >{t('common.cancel', 'Cancel')}</Button>
+                        <Button severity="success" onClick={handleSave}>{t('common.save', 'Save')}</Button>
+                    </div>
                 </div>
-            )}
-        </div>
-    )
+            )
+        }
+
+        return (
+            <div className="border border-gray-300 rounded-lg p-3 mb-3">
+                <div className="flex justify-between items-start mb-2">
+                    <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium">{formatDate(tx.transaction_date)}</p>
+                        <p className="text-xs text-gray-500">
+                            {tx.travel_from || '—'} → {tx.travel_to || '—'}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                            {tx.distance_km} km · {t('mileage.meter', 'Meter')}: {formatCurrency(tx.meter_km)} · {t('mileage.parking', 'Parking')}: {formatCurrency(tx.parking_amount)}
+                        </p>
+                        <p className="text-xs text-gray-500">{t('mileage.buyer', 'Buyer')}: {tx.buyer || '—'}</p>
+                    </div>
+                    <div className="text-right shrink-0 ml-2">
+                        <p className="text-sm font-semibold text-brand-primary">{formatCurrency(tx.total_amount)}</p>
+                        {mode !== 'view' && (
+                            <div className="flex items-center justify-end gap-2 mt-1">
+                                <button onClick={() => setEditing(true)} type="button" className="text-xs text-blue-600 hover:text-blue-800">
+                                    <i className="pi pi-pencil text-xs" />
+                                </button>
+                                <button onClick={() => deleteTransaction(tx.transactionId)} type="button" className="text-xs text-red-500 hover:text-red-700">
+                                    <i className="pi pi-trash text-xs" />
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+                {attachments.length > 0 && (
+                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+                        {attachments.map((att, i) => {
+                            const fileName = att.file ? att.file.name : (att.name || 'Attachment')
+                            const fileType = att.file ? att.file.type : 'application/octet-stream'
+                            const fileUrl = att.url || att.path
+                            return (
+                                <div key={i} className="flex items-center gap-1 text-sm">
+                                    <span className="shrink-0 [&_svg]:mr-0">{getFileIcon(fileType)}</span>
+                                    <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline truncate" title={fileName}>{fileName}</a>
+                                </div>
+                            )
+                        })}
+                    </div>
+                )}
+            </div>
+        )
+    }
 
     const total = rows.reduce((sum, tx) => sum + (parseFloat(tx.total_amount) || 0), 0)
 
@@ -412,6 +572,20 @@ function MileageDataTable({ data, mode, onTransactionsUpdate, toastRef, onClaimU
                         body={(row) => formatDate(row.transaction_date)}
                         editor={mode !== 'view' ? dateEditor : undefined}
                         style={{ minWidth: '130px' }}
+                    />
+                    <Column
+                        field="travel_from"
+                        header={t('mileage.travelFrom', 'Travel From')}
+                        body={(row) => row.travel_from || '—'}
+                        editor={mode !== 'view' ? textEditor : undefined}
+                        style={{ minWidth: '120px' }}
+                    />
+                    <Column
+                        field="travel_to"
+                        header={t('mileage.travelTo', 'Travel To')}
+                        body={(row) => row.travel_to || '—'}
+                        editor={mode !== 'view' ? textEditor : undefined}
+                        style={{ minWidth: '120px' }}
                     />
                     <Column
                         field="distance_km"

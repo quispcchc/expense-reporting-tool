@@ -6,6 +6,8 @@ import { useTranslation } from 'react-i18next'
 
 const initialDraft = {
     transaction_date: '',
+    travel_from: '',
+    travel_to: '',
     distance_km: '',
     meter_km: '',
     parking_amount: '',
@@ -50,6 +52,8 @@ function MileageTransactionForm({ mileageRate, onAddTransaction }) {
 
         onAddTransaction({
             ...draft,
+            travel_from: draft.travel_from,
+            travel_to: draft.travel_to,
             distance_km: parseFloat(draft.distance_km) || 0,
             meter_km: parseFloat(draft.meter_km) || 0,
             parking_amount: parseFloat(draft.parking_amount) || 0,
@@ -76,15 +80,22 @@ function MileageTransactionForm({ mileageRate, onAddTransaction }) {
                     onChange={handleChange}
                     errors={errors}
                 />
-                    <Input
-                    name="buyer"
-                    label={t('mileage.buyer', 'Buyer') + '*'}
-                    value={draft.buyer}
+                <Input
+                    name="travel_from"
+                    label={t('mileage.travelFrom', 'Travel From')}
+                    value={draft.travel_from}
                     onChange={handleChange}
-                    placeholder={t('mileage.buyerPlaceholder', 'Enter buyer name')}
+                    placeholder={t('mileage.travelFromPlaceholder', 'Enter departure location')}
                     errors={errors}
                 />
-
+                <Input
+                    name="travel_to"
+                    label={t('mileage.travelTo', 'Travel To')}
+                    value={draft.travel_to}
+                    onChange={handleChange}
+                    placeholder={t('mileage.travelToPlaceholder', 'Enter destination')}
+                    errors={errors}
+                />
                 <Input
                     name="distance_km"
                     label={t('mileage.distance', 'Distance (km)')}
@@ -112,19 +123,21 @@ function MileageTransactionForm({ mileageRate, onAddTransaction }) {
                     placeholder="0.00"
                     errors={errors}
                 />
-            
-
-
+                <Input
+                    name="buyer"
+                    label={t('mileage.buyer', 'Buyer') + '*'}
+                    value={draft.buyer}
+                    onChange={handleChange}
+                    placeholder={t('mileage.buyerPlaceholder', 'Enter buyer name')}
+                    errors={errors}
+                />
                 <UploadMileageAttachment files={files} onSetFiles={setFiles} errors={{}} />
-
-
                 <div className="flex items-end">
                     <div>
                         <p className="text-sm text-gray-500">{t('mileage.draftTotal', 'Draft Total')}</p>
                         <p className="text-lg font-semibold text-brand-primary">${draftTotal}</p>
                     </div>
                 </div>
-
             </div>
 
 

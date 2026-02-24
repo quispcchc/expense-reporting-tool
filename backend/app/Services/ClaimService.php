@@ -207,8 +207,6 @@ class ClaimService
         // Create mileage header linked to the expense that represents this mileage cost
         $mileage = Mileage::create([
             'expense_id' => $expense->expense_id,
-            'travel_from' => $mileageData['travel_from'],
-            'travel_to' => $mileageData['travel_to'],
             'period_of_from' => $mileageData['period_of_from'],
             'period_of_to' => $mileageData['period_of_to'],
         ]);
@@ -235,6 +233,8 @@ class ClaimService
                     'mileage_rate' => $rate,
                     'total_amount' => $totalAmount,
                     'buyer' => $txData['buyer'] ?? null,
+                    'travel_from' => $txData['travel_from'] ?? null,
+                    'travel_to' => $txData['travel_to'] ?? null,
                 ]);
 
                 // Handle receipt file uploads

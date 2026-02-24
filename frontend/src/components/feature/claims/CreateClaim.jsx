@@ -286,13 +286,13 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
             // Mileage nested inside the expense that owns it
             if (expense.mileage?.transactions?.length > 0) {
                 const mil = expense.mileage
-                formData.append(`expenses[${index}][mileage][travel_from]`, mil.travel_from)
-                formData.append(`expenses[${index}][mileage][travel_to]`, mil.travel_to)
                 formData.append(`expenses[${index}][mileage][period_of_from]`, mil.period_of_from)
                 formData.append(`expenses[${index}][mileage][period_of_to]`, mil.period_of_to)
 
                 mil.transactions.forEach((tx, txIdx) => {
                     formData.append(`expenses[${index}][mileage][transactions][${txIdx}][transaction_date]`, tx.transaction_date)
+                    formData.append(`expenses[${index}][mileage][transactions][${txIdx}][travel_from]`, tx.travel_from ?? '')
+                    formData.append(`expenses[${index}][mileage][transactions][${txIdx}][travel_to]`, tx.travel_to ?? '')
                     formData.append(`expenses[${index}][mileage][transactions][${txIdx}][distance_km]`, tx.distance_km)
                     formData.append(`expenses[${index}][mileage][transactions][${txIdx}][meter_km]`, tx.meter_km ?? '')
                     formData.append(`expenses[${index}][mileage][transactions][${txIdx}][parking_amount]`, tx.parking_amount ?? '')

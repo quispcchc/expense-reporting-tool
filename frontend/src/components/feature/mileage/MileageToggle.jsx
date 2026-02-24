@@ -1,25 +1,23 @@
 import React from 'react'
 import { Checkbox } from 'primereact/checkbox'
 import { useTranslation } from 'react-i18next'
+import { InputSwitch } from 'primereact/inputswitch'
+import { FaCar } from 'react-icons/fa'
 
 function MileageToggle({ checked, onChange }) {
     const { t } = useTranslation()
 
     return (
-        <div
-            className={`flex items-center gap-3 px-4 py-2 border rounded-xl cursor-pointer transition-colors select-none ${checked ? 'bg-blue-50/50 border-blue-200 text-brand-primary' : 'bg-gray-50/50 border-gray-200 text-gray-700 hover:bg-gray-50'
-                }`}
-            onClick={() => onChange(!checked)}
-        >
-            <Checkbox
+        <div className="flex items-center gap-2">
+            <label htmlFor="mileageToggle" className="text-sm font-medium cursor-pointer">
+                <span className="hidden sm:inline">{t('mileage.includeMileage', 'Include Mileage')}</span>
+                <FaCar className="inline sm:hidden" title="Mileage" />
+            </label>
+            <InputSwitch
                 inputId="mileageToggle"
                 checked={checked}
-                onChange={(e) => { e.originalEvent?.stopPropagation(); onChange(e.checked); }}
-                className={checked ? "p-checkbox-checked" : ""}
+                onChange={(e) => onChange(e.value)}
             />
-            <label htmlFor="mileageToggle" className="text-sm font-medium cursor-pointer pointer-events-none">
-                {t('mileage.includeMileage', 'Include Mileage')}
-            </label>
         </div>
     )
 }

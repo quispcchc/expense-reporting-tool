@@ -58,8 +58,6 @@ function MileageSection({ mileageData, setMileageData, mileageRate, toastRef }) 
             <div className="p-4 md:p-6">
                 <MileageHeaderForm
                     mileageHeader={{
-                        travel_from: mileageData.travel_from || '',
-                        travel_to: mileageData.travel_to || '',
                         period_of_from: mileageData.period_of_from || '',
                         period_of_to: mileageData.period_of_to || '',
                     }}

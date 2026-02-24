@@ -11,23 +11,7 @@ function MileageHeaderForm({ mileageHeader, onHeaderChange, errors = {} }) {
     }
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Input
-                name="travel_from"
-                label={t('mileage.travelFrom', 'Travel From')}
-                value={mileageHeader.travel_from}
-                onChange={handleChange}
-                placeholder={t('mileage.travelFromPlaceholder', 'Enter departure location')}
-                errors={errors}
-            />
-            <Input
-                name="travel_to"
-                label={t('mileage.travelTo', 'Travel To')}
-                value={mileageHeader.travel_to}
-                onChange={handleChange}
-                placeholder={t('mileage.travelToPlaceholder', 'Enter destination')}
-                errors={errors}
-            />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
                 name="period_of_from"
                 label={t('mileage.periodFrom', 'Period From')}
