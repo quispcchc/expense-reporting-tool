@@ -13,8 +13,6 @@ class MileageController extends Controller
     public function update(Request $request, $mileageId)
     {
         $validated = $request->validate([
-            'travel_from' => 'sometimes|string|max:255',
-            'travel_to' => 'sometimes|string|max:255',
             'period_of_from' => 'sometimes|date',
             'period_of_to' => 'sometimes|date',
         ]);

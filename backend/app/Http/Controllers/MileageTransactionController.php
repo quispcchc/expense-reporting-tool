@@ -22,6 +22,8 @@ class MileageTransactionController extends Controller
             'meter_km' => 'nullable|numeric',
             'parking_amount' => 'nullable|numeric',
             'buyer' => 'nullable|string',
+            'travel_from' => 'nullable|string|max:255',
+            'travel_to' => 'nullable|string|max:255',
             'files.*' => 'file|mimes:pdf,png,jpg,jpeg|max:20480',
         ]);
 
@@ -42,6 +44,8 @@ class MileageTransactionController extends Controller
             'mileage_rate' => $rate,
             'total_amount' => $totalAmount,
             'buyer' => $validated['buyer'] ?? null,
+            'travel_from' => $validated['travel_from'] ?? null,
+            'travel_to' => $validated['travel_to'] ?? null,
         ]);
 
         // Handle file uploads
@@ -75,6 +79,8 @@ class MileageTransactionController extends Controller
             'meter_km' => 'nullable|numeric',
             'parking_amount' => 'nullable|numeric',
             'buyer' => 'nullable|string',
+            'travel_from' => 'nullable|string|max:255',
+            'travel_to' => 'nullable|string|max:255',
             'files.*' => 'file|mimes:pdf,png,jpg,jpeg|max:20480',
             'deleteReceiptIds' => 'nullable|string',
             'deleteAttachment' => 'nullable|string',
@@ -84,7 +90,7 @@ class MileageTransactionController extends Controller
 
         // Update fields
         $updateData = array_intersect_key($validated, array_flip([
-            'transaction_date', 'distance_km', 'meter_km', 'parking_amount', 'buyer',
+            'transaction_date', 'distance_km', 'meter_km', 'parking_amount', 'buyer', 'travel_from', 'travel_to',
         ]));
 
         if (! empty($updateData)) {

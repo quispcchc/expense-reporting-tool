@@ -27,6 +27,8 @@ const mapTransactions = (transactions, mode) => {
     return transactions.map((tx, index) => ({
         transactionId: tx.transaction_id || `temp-${index}-${Date.now()}`,
         transaction_date: tx.transaction_date,
+        travel_from: tx.travel_from,
+        travel_to: tx.travel_to,
         distance_km: tx.distance_km,
         meter_km: tx.meter_km,
         parking_amount: tx.parking_amount,
@@ -99,6 +101,8 @@ function MileageDataTable({ data, mode, onTransactionsUpdate, toastRef, onClaimU
             formData.append('meter_km', tx.meter_km ?? '')
             formData.append('parking_amount', tx.parking_amount ?? '')
             formData.append('buyer', tx.buyer ?? '')
+            formData.append('travel_from', tx.travel_from ?? '')
+            formData.append('travel_to', tx.travel_to ?? '')
 
             api.post(`mileage-transactions/${tx.transactionId}`, formData)
                 .then(() => {
@@ -319,6 +323,9 @@ function MileageDataTable({ data, mode, onTransactionsUpdate, toastRef, onClaimU
                 <div>
                     <p className="text-sm font-medium">{formatDate(tx.transaction_date)}</p>
                     <p className="text-xs text-gray-500">
+                        {tx.travel_from || '—'} → {tx.travel_to || '—'}
+                    </p>
+                    <p className="text-xs text-gray-500">
                         {tx.distance_km} km · {t('mileage.meter', 'Meter')}: {formatCurrency(tx.meter_km)} · {t('mileage.parking', 'Parking')}: {formatCurrency(tx.parking_amount)}
                     </p>
                     <p className="text-xs text-gray-500">{t('mileage.buyer', 'Buyer')}: {tx.buyer || '—'}</p>
@@ -412,6 +419,20 @@ function MileageDataTable({ data, mode, onTransactionsUpdate, toastRef, onClaimU
                         body={(row) => formatDate(row.transaction_date)}
                         editor={mode !== 'view' ? dateEditor : undefined}
                         style={{ minWidth: '130px' }}
+                    />
+                    <Column
+                        field="travel_from"
+                        header={t('mileage.travelFrom', 'Travel From')}
+                        body={(row) => row.travel_from || '—'}
+                        editor={mode !== 'view' ? textEditor : undefined}
+                        style={{ minWidth: '120px' }}
+                    />
+                    <Column
+                        field="travel_to"
+                        header={t('mileage.travelTo', 'Travel To')}
+                        body={(row) => row.travel_to || '—'}
+                        editor={mode !== 'view' ? textEditor : undefined}
+                        style={{ minWidth: '120px' }}
                     />
                     <Column
                         field="distance_km"

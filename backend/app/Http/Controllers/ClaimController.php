@@ -83,8 +83,6 @@ class ClaimController extends Controller
 
             // mileage validation (nested per expense — mileage belongs to an expense)
             'expenses.*.mileage' => 'nullable|array',
-            'expenses.*.mileage.travel_from' => 'nullable|string|max:255',
-            'expenses.*.mileage.travel_to' => 'nullable|string|max:255',
             'expenses.*.mileage.period_of_from' => 'nullable|date',
             'expenses.*.mileage.period_of_to' => 'nullable|date',
             'expenses.*.mileage.transactions' => 'nullable|array',
@@ -93,6 +91,8 @@ class ClaimController extends Controller
             'expenses.*.mileage.transactions.*.meter_km' => 'nullable|numeric',
             'expenses.*.mileage.transactions.*.parking_amount' => 'nullable|numeric',
             'expenses.*.mileage.transactions.*.buyer' => 'nullable|string',
+            'expenses.*.mileage.transactions.*.travel_from' => 'nullable|string|max:255',
+            'expenses.*.mileage.transactions.*.travel_to' => 'nullable|string|max:255',
             'expenses.*.mileage.transactions.*.file.*' => 'file|mimes:pdf,png,jpg,jpeg|max:20480',
         ]);
 

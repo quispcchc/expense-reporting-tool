@@ -24,7 +24,7 @@ function MileageViewSection({ mileage, mode, toastRef, onClaimUpdated }) {
                 <div>
                     <p className="text-xl font-semibold text-text-primary">{t('mileage.title', 'Mileage')}</p>
                     <p className="text-text-secondary text-sm">
-                        {mileage.travel_from || '—'} → {mileage.travel_to || '—'} · {formatDate(mileage.period_of_from)} → {formatDate(mileage.period_of_to)}
+                        {formatDate(mileage.period_of_from)} → {formatDate(mileage.period_of_to)}
                     </p>
                 </div>
                 <div className="text-right">

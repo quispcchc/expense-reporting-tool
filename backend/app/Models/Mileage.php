@@ -12,8 +12,6 @@ class Mileage extends Model
 
     protected $fillable = [
         'expense_id',
-        'travel_from',
-        'travel_to',
         'period_of_from',
         'period_of_to',
     ];
