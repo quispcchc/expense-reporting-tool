@@ -9,21 +9,22 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Add travel_from and travel_to to mileage_transactions
+        // 1️ Add columns to mileage_transactions
         Schema::table('mileage_transactions', function (Blueprint $table) {
-            $table->string('travel_from', 255)->nullable()->after('buyer');
-            $table->string('travel_to', 255)->nullable()->after('travel_from');
+            $table->string('travel_from', 255)->nullable();
+            $table->string('travel_to', 255)->nullable();
         });
 
-        // Copy existing data from mileage header to each transaction
-        DB::statement('
+        // 2️ Copy data from mileage → mileage_transactions
+        DB::statement("
             UPDATE mileage_transactions mt
-            JOIN mileage m ON mt.mileage_id = m.mileage_id
-            SET mt.travel_from = m.travel_from,
-                mt.travel_to   = m.travel_to
-        ');
+            SET travel_from = m.travel_from,
+                travel_to   = m.travel_to
+            FROM mileage m
+            WHERE mt.mileage_id = m.mileage_id
+        ");
 
-        // Remove columns from mileage table
+        // 3️ Drop columns from mileage
         Schema::table('mileage', function (Blueprint $table) {
             $table->dropColumn(['travel_from', 'travel_to']);
         });
@@ -31,22 +32,29 @@ return new class extends Migration
 
     public function down(): void
     {
+        // 1️ Add columns back to mileage
         Schema::table('mileage', function (Blueprint $table) {
-            $table->string('travel_from', 255)->nullable()->after('expense_id');
-            $table->string('travel_to', 255)->nullable()->after('travel_from');
+            $table->string('travel_from', 255)->nullable();
+            $table->string('travel_to', 255)->nullable();
         });
 
-        DB::statement('
+        // 2️ Copy data back (Postgres-safe way)
+        DB::statement("
             UPDATE mileage m
-            JOIN (
-                SELECT mileage_id, travel_from, travel_to
+            SET travel_from = mt.travel_from,
+                travel_to   = mt.travel_to
+            FROM (
+                SELECT DISTINCT ON (mileage_id)
+                    mileage_id,
+                    travel_from,
+                    travel_to
                 FROM mileage_transactions
-                GROUP BY mileage_id
-            ) mt ON m.mileage_id = mt.mileage_id
-            SET m.travel_from = mt.travel_from,
-                m.travel_to   = mt.travel_to
-        ');
+                ORDER BY mileage_id
+            ) mt
+            WHERE m.mileage_id = mt.mileage_id
+        ");
 
+        // 3️ Drop columns from mileage_transactions
         Schema::table('mileage_transactions', function (Blueprint $table) {
             $table->dropColumn(['travel_from', 'travel_to']);
         });

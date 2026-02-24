@@ -417,11 +417,14 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                         // Use FormData when there are receipt changes
                         const mileageFormData = new FormData()
                         mileageFormData.append('_method', 'PUT')
+                        mileageFormData.append('travel_from', tx.travel_from ?? '')
+                        mileageFormData.append('travel_to', tx.travel_to ?? '')
                         mileageFormData.append('transaction_date', tx.transaction_date)
                         mileageFormData.append('distance_km', tx.distance_km)
                         mileageFormData.append('meter_km', tx.meter_km ?? '')
                         mileageFormData.append('parking_amount', tx.parking_amount ?? '')
                         mileageFormData.append('buyer', tx.buyer ?? '')
+                        
                         newFiles.forEach(f => mileageFormData.append('files[]', f.file))
                         if (txDeletedIds.length > 0) {
                             mileageFormData.append('deleteReceiptIds', txDeletedIds.join(','))
@@ -429,6 +432,8 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                         return api.post(`mileage-transactions/${txId}`, mileageFormData)
                     }
                     return api.put(`mileage-transactions/${txId}`, {
+                        travel_from: tx.travel_from ?? '',
+                        travel_to: tx.travel_to ?? '',  
                         transaction_date: tx.transaction_date,
                         distance_km: tx.distance_km,
                         meter_km: tx.meter_km ?? null,

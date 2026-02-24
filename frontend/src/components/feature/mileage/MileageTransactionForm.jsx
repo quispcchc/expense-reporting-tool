@@ -80,15 +80,6 @@ function MileageTransactionForm({ mileageRate, onAddTransaction }) {
                     onChange={handleChange}
                     errors={errors}
                 />
-                    <Input
-                    name="buyer"
-                    label={t('mileage.buyer', 'Buyer') + '*'}
-                    value={draft.buyer}
-                    onChange={handleChange}
-                    placeholder={t('mileage.buyerPlaceholder', 'Enter buyer name')}
-                    errors={errors}
-                />
-
                 <Input
                     name="travel_from"
                     label={t('mileage.travelFrom', 'Travel From')}
@@ -132,19 +123,21 @@ function MileageTransactionForm({ mileageRate, onAddTransaction }) {
                     placeholder="0.00"
                     errors={errors}
                 />
-            
-
-
+                <Input
+                    name="buyer"
+                    label={t('mileage.buyer', 'Buyer') + '*'}
+                    value={draft.buyer}
+                    onChange={handleChange}
+                    placeholder={t('mileage.buyerPlaceholder', 'Enter buyer name')}
+                    errors={errors}
+                />
                 <UploadMileageAttachment files={files} onSetFiles={setFiles} errors={{}} />
-
-
                 <div className="flex items-end">
                     <div>
                         <p className="text-sm text-gray-500">{t('mileage.draftTotal', 'Draft Total')}</p>
                         <p className="text-lg font-semibold text-brand-primary">${draftTotal}</p>
                     </div>
                 </div>
-
             </div>
 
 
