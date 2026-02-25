@@ -274,6 +274,12 @@
 </head>
 
 <body>
+    @php
+        // Helper to convert null and empty strings to N/A
+        $na = function($value) {
+            return ($value === null || $value === '') ? 'N/A' : $value;
+        };
+    @endphp
     <div class="container">
         <!-- ===== HEADER ===== -->
         <div class="header">
@@ -282,7 +288,7 @@
                     <td class="header-left-cell">
                         <h1>Carlington Community Health Centre</h1>
                         <h2>Volunteer Expense Claim Report</h2>
-                        <p><strong>Request Number:</strong> {{ optional($claim)->claim_id ?? 'N/A' }}</p>
+                        <p><strong>Request Number:</strong> {{ $na(optional($claim)->claim_id) }}</p>
                     </td>
                     <td class="header-right-cell">
                         @php
@@ -301,12 +307,12 @@
         <table class="info-grid">
             <tr>
                 <td class="label">Claim ID:</td>
-                <td>{{ optional($claim)->claim_id ?? 'N/A' }}</td>
+                <td>{{ $na(optional($claim)->claim_id) }}</td>
                 <td class="label">Status:</td>
                 <td>
                     @php
                         $statusId = optional($claim)->claim_status_id ?? 0;
-                        $statusText = optional($claim->status)->claim_status_name ?? 'Unknown';
+                        $statusText = $na(optional($claim->status)->claim_status_name);
                         $statusClass = $statusId === 1 ? 'pending' : ($statusId === 2 ? 'approved' : ($statusId === 3 ? 'rejected' : 'unknown'));
                     @endphp
                     <span class="status-badge status-{{ $statusClass }}">{{ $statusText }}</span>
@@ -314,9 +320,9 @@
             </tr>
             <tr>
                 <td class="label">Claim Type:</td>
-                <td>{{ optional($claim->claimType)->claim_type_name ?? 'N/A' }}</td>
+                <td>{{ $na(optional($claim->claimType)->claim_type_name) }}</td>
                 <td class="label">Submitted Date:</td>
-                <td>{{ optional($claim)->created_at ? optional($claim)->created_at->format('Y-m-d') : 'N/A' }}</td>
+                <td>{{ $na(optional($claim)->created_at ? optional($claim)->created_at->format('Y-m-d') : null) }}</td>
             </tr>
         </table>
 
@@ -325,17 +331,18 @@
         <table class="info-grid">
             <tr>
                 <td class="label">Employee Name:</td>
-                <td>{{ optional($claim->user)->first_name ?? 'N/A' }}
-                    {{ optional($claim->user)->last_name ?? '' }}
-                </td>
+                @php
+                    $fullName = trim((optional($claim->user)->first_name ?? '') . ' ' . (optional($claim->user)->last_name ?? ''));
+                @endphp
+                <td>{{ $fullName ?: 'N/A' }}</td>
                 <td class="label">Position:</td>
-                <td>{{ optional($claim->position)->position_name ?? 'N/A' }}</td>
+                <td>{{ $na(optional($claim->position)->position_name) }}</td>
             </tr>
             <tr>
                 <td class="label">Department:</td>
-                <td>{{ optional($claim->department)->department_name ?? 'N/A' }}</td>
+                <td>{{ $na(optional($claim->department)->department_name) }}</td>
                 <td class="label">Team:</td>
-                <td>{{ optional($claim->team)->team_name ?? 'N/A' }}</td>
+                <td>{{ $na(optional($claim->team)->team_name) }}</td>
             </tr>
         </table>
 
@@ -357,13 +364,13 @@
             <tbody>
                 @forelse(optional($claim)->expenses ?? [] as $expense)
                     <tr>
-                        <td>{{ optional($expense)->expense_id ?? '' }}</td>
-                        <td>{{ optional($expense)->transaction_date ?? 'N/A' }}</td>
-                        <td>{{ optional($expense)->vendor_name ?? 'N/A' }}</td>
-                        <td>{{ Str::limit(optional($expense)->transaction_desc ?? '', 20) ?? 'N/A' }}</td>
-                        <td>{{ optional($expense->accountNumber)->account_number ?? 'N/A' }}</td>
-                        <td>{{ optional($expense->costCentre)->cost_centre_code ?? 'N/A' }}</td>
-                        <td class="amount">${{ number_format(optional($expense)->expense_amount ?? 0, 2) }}</td>
+                        <td>{{ $na(optional($expense)->expense_id) }}</td>
+                        <td>{{ $na(optional($expense)->transaction_date) }}</td>
+                        <td>{{ $na(optional($expense)->vendor_name) }}</td>
+                        <td>{{ $na(Str::limit(optional($expense)->transaction_desc, 20)) }}</td>
+                        <td>{{ $na(optional($expense->accountNumber)->account_number) }}</td>
+                        <td>{{ $na(optional($expense->costCentre)->cost_centre_code) }}</td>
+                        <td class="amount">{{ optional($expense)->expense_amount !== null && optional($expense)->expense_amount !== '' ? '$' . number_format(optional($expense)->expense_amount, 2) : 'N/A' }}</td>
                         <td>
                             @php
                                 $expStatus = optional($expense)->approval_status_id ?? 0;
@@ -389,16 +396,67 @@
             </tbody>
         </table>
 
+        <!-- ===== MILEAGE DETAILS SECTION ===== -->
+        @php
+            $hasMileage = false;
+            if (optional($claim)->expenses) {
+                foreach ($claim->expenses as $exp) {
+                    if ($exp->mileage && $exp->mileage->transactions && count($exp->mileage->transactions) > 0) {
+                        $hasMileage = true;
+                        break;
+                    }
+                }
+            }
+        @endphp
+
+        @if($hasMileage)
+            <div class="section-title">MILEAGE DETAILS</div>
+            <table class="expense-table">
+                <thead>
+                    <tr>
+                        <th style="width: 10%;">Expense ID</th>
+                        <th style="width: 10%;">Date</th>
+                        <th style="width: 14%;">From</th>
+                        <th style="width: 14%;">To</th>
+                        <th style="width: 10%;">Distance (km)</th>
+                        <th style="width: 8%;">Rate</th>
+                        <th style="width: 10%;">Parking</th>
+                        <th style="width: 10%;">Meter (km)</th>
+                        <th style="width: 10%;" class="amount">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach(optional($claim)->expenses ?? [] as $expense)
+                        @if($expense->mileage && $expense->mileage->transactions && count($expense->mileage->transactions) > 0)
+                            @foreach($expense->mileage->transactions as $mt)
+                                <tr>
+                                    <td>{{ $expense->expense_id }}</td>
+                                    <td>{{ optional($mt->transaction_date)->format('Y-m-d') ?? $mt->transaction_date }}</td>
+                                    <td>{{ $na($mt->travel_from) }}</td>
+                                    <td>{{ $na($mt->travel_to) }}</td>
+                                    <td>{{ $na($mt->distance_km) }}</td>
+                                    <td>{{ $mt->mileage_rate !== null && $mt->mileage_rate !== '' ? '$' . number_format($mt->mileage_rate, 2) : 'N/A' }}</td>
+                                    <td>{{ $mt->parking_amount !== null && $mt->parking_amount !== '' ? '$' . number_format($mt->parking_amount, 2) : 'N/A' }}</td>
+                                    <td>{{ $na($mt->meter_km) }}</td>
+                                    <td class="amount">{{ $mt->total_amount !== null && $mt->total_amount !== '' ? '$' . number_format($mt->total_amount, 2) : 'N/A' }}</td>
+                                </tr>
+                            @endforeach
+                        @endif
+                    @endforeach
+                </tbody>
+            </table>
+        @endif
+
         <!-- ===== NOTES SECTION ===== -->
         <div class="section-title">CLAIM NOTES</div>
         <div class="notes-section">
             @forelse(optional($claim)->notes ?? [] as $note)
                 <div class="note-item">
-                    <div class="note-header">{{ optional($note->user)->first_name ?? 'Unknown' }}
-                        {{ optional($note->user)->last_name ?? '' }}
+                    <div class="note-header">{{ $na(optional($note->user)->first_name) }}
+                        {{ $na(optional($note->user)->last_name) }}
                         ({{ optional($note)->created_at ? optional($note)->created_at->format('Y-m-d H:i') : 'N/A' }}):
                     </div>
-                    <div class="note-text">{{ optional($note)->claim_note_text ?? 'N/A' }}</div>
+                    <div class="note-text">{{ $na(optional($note)->claim_note_text) }}</div>
                 </div>
             @empty
                 <p style="color: #999; font-size: 9px;">No notes available</p>
@@ -439,16 +497,34 @@
             }
         @endphp
 
-        @if($hasReceipts)
+        @php
+            $hasMileageReceipts = false;
+            if (optional($claim)->expenses) {
+                foreach ($claim->expenses as $exp) {
+                    if ($exp->mileage && $exp->mileage->transactions) {
+                        foreach ($exp->mileage->transactions as $mt) {
+                            if ($mt->receipts && count($mt->receipts) > 0) {
+                                $hasMileageReceipts = true;
+                                break 2;
+                            }
+                        }
+                    }
+                }
+            }
+        @endphp
+
+        @if($hasReceipts || $hasMileageReceipts)
             <div class="attachment-section">
                 <div class="section-title">ATTACHMENT(S)</div>
+
+                {{-- Expense receipts --}}
                 @foreach(optional($claim)->expenses ?? [] as $expense)
                     @if(optional($expense)->receipts && count(optional($expense)->receipts) > 0)
                         @foreach(optional($expense)->receipts as $receipt)
                             <div class="attachment-container">
                                 <div class="receipt-label" style="text-align: center;">
-                                    Expense #{{ optional($expense)->expense_id ?? 'N/A' }} -
-                                    {{ optional($expense)->vendor_name ?? 'N/A' }}
+                                    Expense #{{ $na(optional($expense)->expense_id) }} -
+                                    {{ $na(optional($expense)->vendor_name) }}
                                 </div>
                                 @if(optional($receipt)->receipt_path)
                                     @php
@@ -464,6 +540,38 @@
                                     <p style="color: #999; font-size: 9px; text-align: center;">No receipt file path available</p>
                                 @endif
                             </div>
+                        @endforeach
+                    @endif
+                @endforeach
+
+                {{-- Mileage receipts --}}
+                @foreach(optional($claim)->expenses ?? [] as $expense)
+                    @if($expense->mileage && $expense->mileage->transactions)
+                        @foreach($expense->mileage->transactions as $mt)
+                            @if($mt->receipts && count($mt->receipts) > 0)
+                                @foreach($mt->receipts as $mReceipt)
+                                    <div class="attachment-container">
+                                        <div class="receipt-label" style="text-align: center;">
+                                            Mileage - Expense #{{ $na($expense->expense_id) }}
+                                            ({{ $na($mt->travel_from) }} &rarr; {{ $na($mt->travel_to) }},
+                                            {{ optional($mt->transaction_date)->format('Y-m-d') ?? $mt->transaction_date }})
+                                        </div>
+                                        @if($mReceipt->file_path)
+                                            @php
+                                                $mImagePath = storage_path('app/public/' . $mReceipt->file_path);
+                                                $mImageExists = file_exists($mImagePath) && is_file($mImagePath);
+                                            @endphp
+                                            @if($mImageExists)
+                                                <img src="{{ $mImagePath }}" class="receipt-image" alt="Mileage Receipt">
+                                            @else
+                                                <p style="color: #999; font-size: 9px; text-align: center;">Receipt file not found at: {{ $mImagePath }}</p>
+                                            @endif
+                                        @else
+                                            <p style="color: #999; font-size: 9px; text-align: center;">No receipt file path available</p>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            @endif
                         @endforeach
                     @endif
                 @endforeach

@@ -69,6 +69,7 @@ class ClaimService
             'expenses.costCentre',
             'expenses.approvalStatus',
             'expenses.project',
+            'expenses.mileage.transactions',
             'notes.user',
         ]);
 
