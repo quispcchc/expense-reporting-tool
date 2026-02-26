@@ -17,14 +17,15 @@ class RoleController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'role_id' => 'required|integer|unique:role,role_id',
+            'role_id' => 'required|integer|unique:roles,role_id',
             'active_status_id' => 'required|integer',
-            'role_name' => 'required|string|max:50|unique:role,role_name',
+            'role_name' => 'required|string|max:50|unique:roles,role_name',
+            'role_level' => 'required|integer',
             'role_desc' => 'nullable|string',
         ]);
 
         $role = Role::create($request->only([
-            'role_id', 'active_status_id', 'role_name', 'role_desc',
+            'role_id', 'active_status_id', 'role_name', 'role_level', 'role_desc',
         ]));
 
         return response()->json(['message' => 'Role created', 'role' => $role]);
@@ -37,7 +38,7 @@ class RoleController extends Controller
 
         $request->validate([
             'active_status_id' => 'required|integer',
-            'role_name' => 'required|string|max:50|unique:role,role_name,'.$id.',role_id',
+            'role_name' => 'required|string|max:50|unique:roles,role_name,'.$id.',role_id',
             'role_desc' => 'nullable|string',
         ]);
 

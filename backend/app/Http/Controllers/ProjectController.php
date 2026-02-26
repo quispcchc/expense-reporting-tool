@@ -51,7 +51,7 @@ class ProjectController extends Controller
             return response()->json(null, 204);
         } catch (\Illuminate\Database\QueryException $e) {
             // Check for foreign key constraint violation (SQLSTATE 23000 or 1451 for MySQL)
-            if ($e->getCode() == '23000' || $e->getCode() == '1451') {
+            if (in_array($e->getCode(), ['23000', '23503', '1451'])) {
                 return response()->json([
                     'message' => 'Cannot delete project: it is referenced by other records (e.g., expenses). Please remove related records first.',
                 ], 409);
