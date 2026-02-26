@@ -31,7 +31,7 @@ export const validateForm = (formData, schema, options = {}) => {
 
             try {
                 // Execute validation based on rule type
-                if (rule === 'matches') {
+                if (rule === 'matches' || rule === 'requiredWithoutAll') {
                     result = validator(fieldValue, formData, params[0], message)
                 } else if (params.length > 0) {
                     result = validator(fieldValue, ...params, message)

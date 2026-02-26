@@ -3,7 +3,7 @@ import api from '../api/api.js'
 
 const ClaimContext = createContext()
 
-const CLAIM_ACTIONS = {
+export const CLAIM_ACTIONS = {
     SET_CLAIMS: 'SET_CLAIMS',
     SET_MY_CLAIMS: 'SET_MY_CLAIMS',
     CREATE_CLAIM: 'CREATE_CLAIM',
@@ -12,7 +12,7 @@ const CLAIM_ACTIONS = {
 }
 
 // Reducer function to handle claim state updates based on dispatched actions
-const claimReducer = (state, action) => {
+export const claimReducer = (state, action) => {
     switch (action.type) {
         // Add new claim to existing claims array
         case CLAIM_ACTIONS.SET_CLAIMS:

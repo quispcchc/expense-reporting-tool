@@ -82,6 +82,8 @@ export const validationSchemas = {
         ],
         amount: [
             { rule: 'required', message: 'Amount is required' },
+            { rule: 'isNumeric', message: 'Amount must be a number' },
+
         ],
         buyer: [
             { rule: 'required', message: 'Buyer is required' },
@@ -146,5 +148,36 @@ export const validationSchemas = {
         description: [
             { rule: 'required', message: 'Description is required' },
         ]
-    }
+    },
+
+    mileageTransaction: {
+        transaction_date: [
+            { rule: 'required', message: 'Transaction Date is required' },
+        ],
+        travel_from: [
+            { rule: 'required', message: 'Travel From is required' },
+        ],
+        travel_to: [
+            { rule: 'required', message: 'Travel To is required' },
+        ],
+        distance_km: [
+            { rule: 'requiredWithoutAll', params: [['meter_km', 'parking_amount']], message: 'Distance, Meter, or Parking is required' },
+            { rule: 'isNumeric', message: 'Distance must be a number' },
+            { rule: 'minValue', params: [0], message: 'Distance cannot be negative' },
+        ],
+        parking_amount: [
+            { rule: 'requiredWithoutAll', params: [['distance_km', 'meter_km']], message: 'Distance, Meter, or Parking is required' },
+            { rule: 'isNumeric', message: 'Parking must be a number' },
+            { rule: 'minValue', params: [0], message: 'Parking cannot be negative' },
+        ],
+        meter_km: [
+            { rule: 'requiredWithoutAll', params: [['distance_km', 'parking_amount']], message: 'Distance, Meter, or Parking is required' },
+            { rule: 'isNumeric', message: 'Meter must be a number' },
+            { rule: 'minValue', params: [0], message: 'Meter cannot be negative' },
+            { rule: 'maxValue', params: [5], message: 'Meter cannot be greater than 5' },
+        ],
+        buyer: [
+            { rule: 'required', message: 'Buyer is required' },
+        ],
+    },
 }

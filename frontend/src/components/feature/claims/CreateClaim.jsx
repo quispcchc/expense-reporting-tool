@@ -42,6 +42,7 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
     const [expenseErrors, setExpenseErrors] = useState([])
     const [claimErrors, setClaimErrors] = useState()
     const [validationDialog, setValidationDialog] = useState({ visible: false, header: '', message: '' })
+    const [isSubmitting, setIsSubmitting] = useState(false)
 
     // Mileage state
     const [includeMileage, setIncludeMileage] = useState(false)
@@ -310,6 +311,7 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
         })
 
         try {
+            setIsSubmitting(true)
             await createClaim(formData)
             setTags([])
             setFiles([])
@@ -317,6 +319,8 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
         } catch (error) {
             const detail = error?.message || 'Failed to submit claim'
             showToast(toastRef, { severity: 'error', summary: 'Submit failed', detail })
+        } finally {
+            setIsSubmitting(false)
         }
 
     }
@@ -333,7 +337,7 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
                         <p className="text-blue-500 text-xl sm:text-2xl font-semibold -mt-1">${totalAmount.toFixed(2)}</p>
                     </div>
                     <Button label={t('claims.submitClaim', 'Submit claim')} type="submit" icon="pi pi-plus"
-                        iconPos="right" className="flex-1 sm:flex-none sm:w-auto w-full mobile-wrap-text-btn" />
+                        iconPos="right" loading={isSubmitting} disabled={isSubmitting} className="flex-1 sm:flex-none sm:w-auto w-full mobile-wrap-text-btn" />
                 </div>
             </div>
 

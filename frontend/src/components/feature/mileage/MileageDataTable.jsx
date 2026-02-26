@@ -12,6 +12,8 @@ import { getFileIcon } from '../claims/uploadAttchment/getFileIcon.jsx'
 import { useTranslation } from 'react-i18next'
 import { useIsMobile } from '../../../hooks/useIsMobile.js'
 import Input from '../../common/ui/Input.jsx'
+import { validateForm } from '../../../utils/validation/validator.js'
+import { validationSchemas } from '../../../utils/validation/schemas.js'
 
 // Map backend transaction data → frontend row format
 const mapTransactions = (transactions, mode) => {
@@ -360,17 +362,30 @@ function MileageDataTable({ data, mode, onTransactionsUpdate, toastRef, onClaimU
     const MobileCard = ({ tx }) => {
         const [editing, setEditing] = useState(false)
         const [draft, setDraft] = useState(tx)
+        const [errors, setErrors] = useState({})
 
-        const handleField = (name, value) => setDraft(prev => ({ ...prev, [name]: value }))
+        const handleField = (name, value) => {
+            setDraft(prev => ({ ...prev, [name]: value }))
+            if (errors[name]) {
+                setErrors(prev => ({ ...prev, [name]: undefined }))
+            }
+        }
 
         const handleSave = () => {
+            const { isValid, errors: validationErrors } = validateForm(draft, validationSchemas.mileageTransaction)
+            if (!isValid) {
+                setErrors(validationErrors)
+                return
+            }
             saveMobileEdit(tx.transactionId, draft)
             setEditing(false)
+            setErrors({})
         }
 
         const handleCancel = () => {
             setDraft(tx)
             setEditing(false)
+            setErrors({})
         }
 
         const attachments = tx.attachment || []
@@ -381,58 +396,61 @@ function MileageDataTable({ data, mode, onTransactionsUpdate, toastRef, onClaimU
                     <div className="grid grid-cols-1 s:grid-cols-2 gap-2 mb-2">
                         <Input
                             name="travel_from"
-                            label={t('mileage.travelFrom', 'Travel From')}
+                            label={t('mileage.travelFrom', 'Travel From') + '*'}
                             value={draft.travel_from || ''}
                             onChange={e => handleField('travel_from', e.target.value)}
+                            errors={errors}
                         />
                         <Input
                             name="travel_to"
-                            label={t('mileage.travelTo', 'Travel To')}
+                            label={t('mileage.travelTo', 'Travel To') + '*'}
                             value={draft.travel_to || ''}
                             onChange={e => handleField('travel_to', e.target.value)}
-                        />
-
-                        <Input
-                            name="buyer"
-                            label={t('mileage.buyer', 'Buyer')}
-                            value={draft.buyer || ''}
-                            onChange={e => handleField('buyer', e.target.value)}
+                            errors={errors}
                         />
 
                         <Input
                             name="transaction_date"
-                            label={t('mileage.transactionDate', 'Date')}
+                            label={t('mileage.transactionDate', 'Date') + '*'}
                             type="date"
                             value={draft.transaction_date ? String(draft.transaction_date).substring(0, 10) : ''}
                             onChange={e => handleField('transaction_date', e.target.value)}
+                            errors={errors}
                         />
 
                         <Input
                             name="distance_km"
+                            inputMode="decimal"
                             label={t('mileage.distance', 'Distance (km)')}
                             value={draft.distance_km ?? ''}
                             onChange={e => handleField('distance_km', e.target.value)}
+                            errors={errors}
                         />
 
                         <Input
                             name="meter_km"
-                            label={t('mileage.meterAmount', 'Meter Amount ($)')}
+                            label={t('mileage.meter', 'Meter (Max. $5/location)')}
+                            inputMode="decimal"
                             value={draft.meter_km ?? ''}
                             onChange={e => handleField('meter_km', e.target.value)}
+                            errors={errors}
                         />
 
                         <Input
                             name="parking_amount"
+                            inputMode="decimal"
                             label={t('mileage.parking', 'Parking ($)')}
                             value={draft.parking_amount ?? ''}
                             onChange={e => handleField('parking_amount', e.target.value)}
+                            errors={errors}
                         />
 
                         <Input
                             name="buyer"
-                            label={t('mileage.buyer', 'Buyer')}
+                            label={t('mileage.buyer', 'Buyer') + '*'}
                             value={draft.buyer ?? ''}
                             onChange={e => handleField('buyer', e.target.value)}
+                            errors={errors}
                         />
 
                     </div>
@@ -465,8 +483,8 @@ function MileageDataTable({ data, mode, onTransactionsUpdate, toastRef, onClaimU
                     </div>
 
                     <div className="flex justify-end gap-2">
-                        <Button severity="danger" onClick={handleCancel} >{t('common.cancel', 'Cancel')}</Button>
-                        <Button severity="success" onClick={handleSave}>{t('common.save', 'Save')}</Button>
+                        <Button type="button" severity="danger" onClick={handleCancel} >{t('common.cancel', 'Cancel')}</Button>
+                        <Button type="button" severity="success" onClick={handleSave}>{t('common.save', 'Save')}</Button>
                     </div>
                 </div>
             )

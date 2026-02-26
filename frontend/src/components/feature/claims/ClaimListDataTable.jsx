@@ -520,59 +520,69 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
     // ============================================
     // DESKTOP TABLE VIEW
     // ============================================
+    const pendingStatusName = claimStatus?.find(s => s.claim_status_id === 1)?.claim_status_name || 'Pending'
+    const isPendingActive = filterValues.status === pendingStatusName
+
     const adminHeaderTemplate = () => (
-        <div className="flex justify-between items-center flex-wrap gap-2">
-            <div className="flex items-center gap-2">
-                <IconField iconPosition="left">
-                    <InputIcon className="pi pi-search" />
-                    <InputText
-                        value={globalFilterValue}
-                        onChange={onGlobalFilterChange}
-                        placeholder={t('common.keywordSearch')}
-                        className="w-64"
+        <>
+            <div className="flex justify-between items-center flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                    <IconField iconPosition="left">
+                        <InputIcon className="pi pi-search" />
+                        <InputText
+                            value={globalFilterValue}
+                            onChange={onGlobalFilterChange}
+                            placeholder={t('common.keywordSearch')}
+                            className="w-64"
+                        />
+                    </IconField>
+                    <Button
+                        label={t('claims.filter', 'Filter')}
+                        icon="pi pi-filter"
+                        outlined
+                        onClick={() => setShowFilterModal(true)}
+                        badge={hasActiveFilters ? "●" : undefined}
+                        badgeClassName="p-badge-info"
+                        className="filter-button"
                     />
-                </IconField>
-                <Button
-                    label={t('claims.filter', 'Filter')}
-                    icon="pi pi-filter"
-                    outlined
-                    onClick={() => setShowFilterModal(true)}
-                    badge={hasActiveFilters ? "●" : undefined}
-                    badgeClassName="p-badge-info"
-                    className="filter-button"
-                />
-                <Button
-                    label="Pending"
-                    icon="pi pi-clock"
-                    outlined={filterValues.status !== (claimStatus?.find(s => s.claim_status_id === 1)?.claim_status_name || 'Pending')}
-                    severity={filterValues.status === (claimStatus?.find(s => s.claim_status_id === 1)?.claim_status_name || 'Pending') ? 'info' : 'secondary'}
-                    onClick={togglePendingFilter}
-                    className={`filter-button ${filterValues.status === (claimStatus?.find(s => s.claim_status_id === 1)?.claim_status_name || 'Pending') ? 'bg-blue-50 border-blue-200 text-blue-600' : ''}`}
-                    tooltip="Show Pending Claims"
-                />
+                    <Button
+                        label={t('claims.pending', 'Pending')}
+                        icon="pi pi-clock"
+                        outlined={!isPendingActive}
+                        severity={isPendingActive ? 'info' : 'secondary'}
+                        onClick={togglePendingFilter}
+                        className={`filter-button ${isPendingActive ? 'bg-blue-50 border-blue-200 text-blue-600' : ''}`}
+                        tooltip={t('claims.showPending', 'Show Pending Claims')}
+                    />
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                    <Button label={t('claims.approve', 'Approve')} outlined className={BUTTON_STYLE.success} icon="pi pi-check" iconPos="right"
+                        onClick={bulkApproveClaim} disabled={isDisabled || isExporting} />
+                    <Button label={t('claims.reject', 'Reject')} outlined className={BUTTON_STYLE.danger} icon="pi pi-times" iconPos="right"
+                        onClick={bulkRejectClaim} disabled={isDisabled || isExporting} />
+                    <Button
+                        label={t('claims.export', 'Export')}
+                        outlined
+                        icon="pi pi-file-export"
+                        iconPos="right"
+                        onClick={handleExportPdf}
+                        disabled={isDisabled || isExporting}
+                        loading={isExporting}
+                    />
+                    <Link to={`${path}/claims/create-claim`}>
+                        <Button label={t('claims.newClaim', 'New Claim')} icon="pi pi-plus" iconPos="right" />
+                    </Link>
+                </div>
             </div>
-
-            <div className="flex gap-2 flex-wrap">
-                <Button label="Approve" outlined className={BUTTON_STYLE.success} icon="pi pi-check" iconPos="right"
-                    onClick={bulkApproveClaim} disabled={isDisabled || isExporting} />
-                <Button label="Reject" outlined className={BUTTON_STYLE.danger} icon="pi pi-times" iconPos="right"
-                    onClick={bulkRejectClaim} disabled={isDisabled || isExporting} />
-                <Button
-                    label={isExporting ? t('claims.exporting', 'Exporting...') : t('claims.export', 'Export')}
-                    outlined
-                    icon={isExporting ? "pi pi-spin pi-spinner" : "pi pi-file-export"}
-                    iconPos="right"
-                    onClick={handleExportPdf}
-                    disabled={isDisabled || isExporting}
-                    loading={isExporting}
-                />
-                <Link to={`${path}/claims/create-claim`}>
-                    <Button label={t('claims.newClaim', 'New Claim')} icon="pi pi-plus" iconPos="right" />
-                </Link>
-
-            </div>
-
-        </div>
+            {selectedClaims.length > 0 && (
+                <div className="mt-2">
+                    <span className="text-sm font-medium text-gray-600">
+                        {selectedClaims.length} {t('common.selected', 'selected')}
+                    </span>
+                </div>
+            )}
+        </>
     )
 
     const userHeaderTemplate = () => (

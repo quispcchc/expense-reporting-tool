@@ -3,6 +3,8 @@ import { Button } from 'primereact/button'
 import Input from '../../common/ui/Input.jsx'
 import UploadMileageAttachment from './UploadMileageAttachment.jsx'
 import { useTranslation } from 'react-i18next'
+import { validateForm } from '../../../utils/validation/validator.js'
+import { validationSchemas } from '../../../utils/validation/schemas.js'
 
 const initialDraft = {
     transaction_date: '',
@@ -37,16 +39,10 @@ function MileageTransactionForm({ mileageRate, onAddTransaction }) {
     ).toFixed(2)
 
     const handleAdd = () => {
-        const newErrors = {}
-        if (!draft.transaction_date) {
-            newErrors.transaction_date = t('validation.required', 'Required')
-        }
-        if (!draft.buyer || !draft.buyer.trim()) {
-            newErrors.buyer = t('validation.required', 'Required')
-        }
+        const { isValid, errors: validationErrors } = validateForm(draft, validationSchemas.mileageTransaction)
 
-        if (Object.keys(newErrors).length > 0) {
-            setErrors(newErrors)
+        if (!isValid) {
+            setErrors(validationErrors)
             return
         }
 
@@ -82,7 +78,7 @@ function MileageTransactionForm({ mileageRate, onAddTransaction }) {
                 />
                 <Input
                     name="travel_from"
-                    label={t('mileage.travelFrom', 'Travel From')}
+                    label={t('mileage.travelFrom', 'Travel From') + '*'}
                     value={draft.travel_from}
                     onChange={handleChange}
                     placeholder={t('mileage.travelFromPlaceholder', 'Enter departure location')}
@@ -90,7 +86,7 @@ function MileageTransactionForm({ mileageRate, onAddTransaction }) {
                 />
                 <Input
                     name="travel_to"
-                    label={t('mileage.travelTo', 'Travel To')}
+                    label={t('mileage.travelTo', 'Travel To') + '*'}
                     value={draft.travel_to}
                     onChange={handleChange}
                     placeholder={t('mileage.travelToPlaceholder', 'Enter destination')}
@@ -99,7 +95,7 @@ function MileageTransactionForm({ mileageRate, onAddTransaction }) {
                 <Input
                     name="distance_km"
                     label={t('mileage.distance', 'Distance (km)')}
-                    type="number"
+                    inputMode="decimal"
                     value={draft.distance_km}
                     onChange={handleChange}
                     placeholder="0"
@@ -107,8 +103,8 @@ function MileageTransactionForm({ mileageRate, onAddTransaction }) {
                 />
                 <Input
                     name="meter_km"
-                    label={t('mileage.meter', 'Meter ($)')}
-                    type="number"
+                    label={t('mileage.meter', 'Meter (Max. $5/location)')}
+                    inputMode="decimal"
                     value={draft.meter_km}
                     onChange={handleChange}
                     placeholder="0.00"
@@ -117,7 +113,7 @@ function MileageTransactionForm({ mileageRate, onAddTransaction }) {
                 <Input
                     name="parking_amount"
                     label={t('mileage.parking', 'Parking ($)')}
-                    type="number"
+                    inputMode="decimal"
                     value={draft.parking_amount}
                     onChange={handleChange}
                     placeholder="0.00"
