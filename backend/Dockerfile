@@ -19,7 +19,8 @@ RUN apk add --no-cache \
     nodejs \
     npm \
     ttf-dejavu \
-    fontconfig
+    fontconfig \
+    ghostscript
 
 # Clear cache
 RUN rm -rf /var/cache/apk/*

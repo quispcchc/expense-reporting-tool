@@ -13,7 +13,22 @@ use Throwable;
 
 class ClaimController extends Controller
 {
+    private const NA = 'N/A';
+
     protected $claimService;
+
+    /**
+     * Convert null or empty string to N/A.
+     * Numeric zero (0, 0.0) is kept as-is since it's a valid value.
+     */
+    private static function na(mixed $value): mixed
+    {
+        if ($value === null || $value === '') {
+            return self::NA;
+        }
+
+        return $value;
+    }
 
     public function __construct(ClaimService $claimService)
     {
@@ -199,6 +214,8 @@ class ClaimController extends Controller
                 'Expense ID', 'Buyer Name', 'Vendor Name', 'Transaction Date',
                 'Expense Amount', 'Description', 'Notes', 'Expense Status',
                 'Project', 'Cost Centre', 'Account Number', 'Tags', 'Claim Notes',
+                'Travel From', 'Travel To', 'Distance (km)', 'Mileage Rate',
+                'Parking Amount', 'Meter (km)', 'Mileage Total',
             ];
 
             $callback = function () use ($claims, $csvColumns) {
@@ -212,21 +229,23 @@ class ClaimController extends Controller
                         ->map(fn ($n) => $n->claim_note_text)
                         ->implode(' | ');
 
+                    $submitter = trim(($claim->user->first_name ?? '') . ' ' . ($claim->user->last_name ?? ''));
+
                     $claimBase = [
-                        $claim->claim_id,
-                        $claim->claim_submitted,
-                        $claim->claimType->claim_type_name ?? '',
-                        $claim->status->claim_status_name ?? '',
-                        $claim->total_amount,
-                        trim(($claim->user->first_name ?? '') . ' ' . ($claim->user->last_name ?? '')),
-                        $claim->department->department_name ?? '',
-                        $claim->team->team_name ?? '',
-                        $claim->position->position_name ?? '',
+                        self::na($claim->claim_id),
+                        self::na($claim->claim_submitted),
+                        self::na($claim->claimType->claim_type_name),
+                        self::na($claim->status->claim_status_name),
+                        self::na($claim->total_amount),
+                        self::na($submitter),
+                        self::na($claim->department->department_name),
+                        self::na($claim->team->team_name),
+                        self::na($claim->position->position_name),
                     ];
 
                     if ($claim->expenses->isEmpty()) {
                         // Output claim-level row even if no expenses
-                        fputcsv($handle, array_merge($claimBase, array_fill(0, 13, '')));
+                        fputcsv($handle, array_merge($claimBase, array_fill(0, 20, self::NA)));
                         continue;
                     }
 
@@ -235,21 +254,40 @@ class ClaimController extends Controller
                             ->pluck('tag_name')
                             ->implode(', ');
 
-                        fputcsv($handle, array_merge($claimBase, [
-                            $expense->expense_id,
-                            $expense->buyer_name ?? '',
-                            $expense->vendor_name ?? '',
-                            $expense->transaction_date ?? '',
-                            $expense->expense_amount ?? '',
-                            $expense->transaction_desc ?? '',
-                            $expense->transaction_notes ?? '',
-                            $expense->approvalStatus->approval_status_name ?? '',
-                            $expense->project->project_name ?? '',
-                            $expense->costCentre->cost_centre_code ?? '',
-                            $expense->accountNumber->account_number ?? '',
-                            $tags,
-                            $claimNotes,
-                        ]));
+                        $expenseBase = [
+                            self::na($expense->expense_id),
+                            self::na($expense->buyer_name),
+                            self::na($expense->vendor_name),
+                            self::na($expense->transaction_date),
+                            self::na($expense->expense_amount),
+                            self::na($expense->transaction_desc),
+                            self::na($expense->transaction_notes),
+                            self::na($expense->approvalStatus->approval_status_name),
+                            self::na($expense->project->project_name),
+                            self::na($expense->costCentre->cost_centre_code),
+                            self::na($expense->accountNumber->account_number),
+                            self::na($tags),
+                            self::na($claimNotes),
+                        ];
+
+                        $mileage = $expense->mileage;
+                        $mileageTransactions = $mileage?->transactions;
+
+                        if ($mileageTransactions && $mileageTransactions->isNotEmpty()) {
+                            foreach ($mileageTransactions as $mt) {
+                                fputcsv($handle, array_merge($claimBase, $expenseBase, [
+                                    self::na($mt->travel_from),
+                                    self::na($mt->travel_to),
+                                    self::na($mt->distance_km),
+                                    self::na($mt->mileage_rate),
+                                    self::na($mt->parking_amount),
+                                    self::na($mt->meter_km),
+                                    self::na($mt->total_amount),
+                                ]));
+                            }
+                        } else {
+                            fputcsv($handle, array_merge($claimBase, $expenseBase, array_fill(0, 7, self::NA)));
+                        }
                     }
                 }
 
@@ -289,6 +327,7 @@ class ClaimController extends Controller
                 'expenses.costCentre',
                 'expenses.approvalStatus',
                 'expenses.receipts',
+                'expenses.mileage.transactions.receipts',
                 'notes.user',
             ])->findOrFail($claimId);
 
@@ -311,6 +350,9 @@ class ClaimController extends Controller
             // Write HTML to PDF
             $mpdf->WriteHTML($html);
 
+            // Render receipt attachments on a new page (images + PDFs)
+            $tempFiles = $this->renderAttachments($mpdf, $claim);
+
             \Log::info('PDF generated successfully for Claim: '.$claimId);
 
             // Generate filename
@@ -319,6 +361,13 @@ class ClaimController extends Controller
             // Get PDF content as string
             $pdfContent = $mpdf->Output($filename, \Mpdf\Output\Destination::STRING_RETURN);
             $contentLength = strlen($pdfContent);
+
+            // Clean up temp Ghostscript images after PDF is rendered
+            foreach ($tempFiles as $tmp) {
+                if (file_exists($tmp)) {
+                    @unlink($tmp);
+                }
+            }
 
             \Log::info('PDF content length: '.$contentLength.' bytes for Claim: '.$claimId);
 
@@ -375,6 +424,7 @@ class ClaimController extends Controller
                     'expenses.costCentre',
                     'expenses.approvalStatus',
                     'expenses.receipts',
+                    'expenses.mileage.transactions.receipts',
                     'notes.user',
                 ])->find($claimId);
 
@@ -388,9 +438,19 @@ class ClaimController extends Controller
                     // Write HTML to PDF
                     $mpdf->WriteHTML($html);
 
+                    // Render receipt attachments on a new page (images + PDFs)
+                    $tempFiles = $this->renderAttachments($mpdf, $claim);
+
                     $filename = 'claim_'.$claimId.'.pdf';
                     $filepath = $tempDir.'/'.$filename;
                     $mpdf->Output($filepath, \Mpdf\Output\Destination::FILE);
+
+                    // Clean up temp Ghostscript images after PDF is rendered
+                    foreach ($tempFiles as $tmp) {
+                        if (file_exists($tmp)) {
+                            @unlink($tmp);
+                        }
+                    }
                     $pdfFiles[] = $filepath;
                 }
             }
@@ -435,6 +495,160 @@ class ClaimController extends Controller
 
             return $this->errorResponse('Failed to generate ZIP file: '.$e->getMessage(), 500);
         }
+    }
+
+    /**
+     * Render all receipt attachments (images + PDFs) on a new page.
+     *
+     * PDF files are converted to PNG via Ghostscript so they display
+     * inline with the same format as image receipts.
+     *
+     * Returns an array of temp file paths to clean up AFTER $mpdf->Output().
+     */
+    private function renderAttachments(Mpdf $mpdf, Claim $claim): array
+    {
+        $receipts = [];
+
+        foreach ($claim->expenses ?? [] as $expense) {
+            $label = 'Expense #'.($expense->expense_id ?? 'N/A')
+                .' - '.($expense->vendor_name ?? 'N/A');
+
+            foreach ($expense->receipts ?? [] as $receipt) {
+                if ($receipt->receipt_path) {
+                    $receipts[] = ['path' => $receipt->receipt_path, 'label' => $label];
+                }
+            }
+
+            if ($expense->mileage && $expense->mileage->transactions) {
+                foreach ($expense->mileage->transactions as $mt) {
+                    $mLabel = 'Mileage - Expense #'.($expense->expense_id ?? 'N/A')
+                        .' ('.($mt->travel_from ?? 'N/A').' → '.($mt->travel_to ?? 'N/A').')';
+
+                    foreach ($mt->receipts ?? [] as $mReceipt) {
+                        if ($mReceipt->file_path) {
+                            $receipts[] = ['path' => $mReceipt->file_path, 'label' => $mLabel];
+                        }
+                    }
+                }
+            }
+        }
+
+        if (empty($receipts)) {
+            return [];
+        }
+
+        // Start attachments on a new page
+        $mpdf->AddPage();
+        $mpdf->WriteHTML(
+            '<div style="font-size:12px; font-weight:bold; border-bottom:1px solid #333; '
+            .'padding:8px 0 5px 0; margin-bottom:8px;">ATTACHMENT(S)</div>'
+        );
+
+        $tempFiles = [];
+
+        foreach ($receipts as $receipt) {
+            $filePath = storage_path('app/public/'.$receipt['path']);
+            $safeLabel = htmlspecialchars($receipt['label']);
+
+            if (! file_exists($filePath) || ! is_file($filePath)) {
+                $mpdf->WriteHTML(
+                    '<div style="text-align:center; margin:10px 0;">'
+                    .'<div style="font-size:9px; font-weight:bold; margin-bottom:5px; color:#666;">'
+                    .$safeLabel.'</div>'
+                    .'<p style="color:#999; font-size:9px;">Receipt file not found</p></div>'
+                );
+
+                continue;
+            }
+
+            $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+            \Log::info('Rendering attachment: '.$filePath.' | ext: '.$ext.' | exists: '.(file_exists($filePath) ? 'YES' : 'NO'));
+
+            if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif'])) {
+                // Image — embed directly
+                $mpdf->WriteHTML(
+                    '<div style="text-align:center; margin:10px 0;">'
+                    .'<div style="font-size:9px; font-weight:bold; margin-bottom:5px; color:#666;">'
+                    .$safeLabel.'</div>'
+                    .'<img src="'.$filePath.'" style="max-width:300px; max-height:400px; '
+                    .'margin:10px auto; border:1px solid #ddd; padding:5px; display:block;">'
+                    .'</div>'
+                );
+            } elseif ($ext === 'pdf') {
+                // PDF — convert each page to PNG via Ghostscript, then embed like images
+                $images = $this->convertPdfToImages($filePath);
+                $tempFiles = array_merge($tempFiles, $images);
+                $pageCount = count($images);
+
+                if ($pageCount === 0) {
+                    $mpdf->WriteHTML(
+                        '<div style="text-align:center; margin:10px 0;">'
+                        .'<div style="font-size:9px; font-weight:bold; margin-bottom:5px; color:#666;">'
+                        .$safeLabel.'</div>'
+                        .'<p style="color:#999; font-size:9px;">Could not render PDF</p></div>'
+                    );
+
+                    continue;
+                }
+
+                foreach ($images as $idx => $imgPath) {
+                    $pageLabel = $pageCount > 1
+                        ? $safeLabel.' (page '.($idx + 1).' of '.$pageCount.')'
+                        : $safeLabel;
+
+                    $mpdf->WriteHTML(
+                        '<div style="text-align:center; margin:10px 0;">'
+                        .'<div style="font-size:9px; font-weight:bold; margin-bottom:5px; color:#666;">'
+                        .$pageLabel.'</div>'
+                        .'<img src="'.$imgPath.'" style="max-width:300px; max-height:400px; '
+                        .'margin:10px auto; border:1px solid #ddd; padding:5px; display:block;">'
+                        .'</div>'
+                    );
+                }
+            }
+        }
+
+        // Return temp files — caller must clean up AFTER $mpdf->Output()
+        return $tempFiles;
+    }
+
+    /**
+     * Convert a PDF file to PNG images using Ghostscript CLI.
+     *
+     * Returns an array of temporary PNG file paths (one per page).
+     */
+    private function convertPdfToImages(string $pdfPath): array
+    {
+        $outputPattern = storage_path('app/temp_gs_'.uniqid().'_%03d.png');
+
+        $command = sprintf(
+            'gs -dNOPAUSE -dBATCH -dSAFER -sDEVICE=png16m -r150 '
+            .'-dTextAlphaBits=4 -dGraphicsAlphaBits=4 '
+            .'-sOutputFile=%s %s 2>&1',
+            escapeshellarg($outputPattern),
+            escapeshellarg($pdfPath)
+        );
+
+        \Log::info('Ghostscript command: '.$command);
+        exec($command, $output, $exitCode);
+        \Log::info('Ghostscript exit code: '.$exitCode.' | output: '.implode("\n", $output));
+
+        if ($exitCode !== 0) {
+            \Log::warning('Ghostscript conversion failed for '.$pdfPath.': '.implode("\n", $output));
+
+            return [];
+        }
+
+        // Ghostscript %03d starts at 001
+        $images = [];
+        $page = 1;
+
+        while (file_exists($path = sprintf($outputPattern, $page))) {
+            $images[] = $path;
+            $page++;
+        }
+
+        return $images;
     }
 
     /**
