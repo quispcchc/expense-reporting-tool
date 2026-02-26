@@ -350,6 +350,9 @@ class ClaimController extends Controller
             // Write HTML to PDF
             $mpdf->WriteHTML($html);
 
+            // Render receipt attachments on a new page (images + PDFs)
+            $tempFiles = $this->renderAttachments($mpdf, $claim);
+
             \Log::info('PDF generated successfully for Claim: '.$claimId);
 
             // Generate filename
@@ -358,6 +361,13 @@ class ClaimController extends Controller
             // Get PDF content as string
             $pdfContent = $mpdf->Output($filename, \Mpdf\Output\Destination::STRING_RETURN);
             $contentLength = strlen($pdfContent);
+
+            // Clean up temp Ghostscript images after PDF is rendered
+            foreach ($tempFiles as $tmp) {
+                if (file_exists($tmp)) {
+                    @unlink($tmp);
+                }
+            }
 
             \Log::info('PDF content length: '.$contentLength.' bytes for Claim: '.$claimId);
 
@@ -428,9 +438,19 @@ class ClaimController extends Controller
                     // Write HTML to PDF
                     $mpdf->WriteHTML($html);
 
+                    // Render receipt attachments on a new page (images + PDFs)
+                    $tempFiles = $this->renderAttachments($mpdf, $claim);
+
                     $filename = 'claim_'.$claimId.'.pdf';
                     $filepath = $tempDir.'/'.$filename;
                     $mpdf->Output($filepath, \Mpdf\Output\Destination::FILE);
+
+                    // Clean up temp Ghostscript images after PDF is rendered
+                    foreach ($tempFiles as $tmp) {
+                        if (file_exists($tmp)) {
+                            @unlink($tmp);
+                        }
+                    }
                     $pdfFiles[] = $filepath;
                 }
             }
@@ -475,6 +495,160 @@ class ClaimController extends Controller
 
             return $this->errorResponse('Failed to generate ZIP file: '.$e->getMessage(), 500);
         }
+    }
+
+    /**
+     * Render all receipt attachments (images + PDFs) on a new page.
+     *
+     * PDF files are converted to PNG via Ghostscript so they display
+     * inline with the same format as image receipts.
+     *
+     * Returns an array of temp file paths to clean up AFTER $mpdf->Output().
+     */
+    private function renderAttachments(Mpdf $mpdf, Claim $claim): array
+    {
+        $receipts = [];
+
+        foreach ($claim->expenses ?? [] as $expense) {
+            $label = 'Expense #'.($expense->expense_id ?? 'N/A')
+                .' - '.($expense->vendor_name ?? 'N/A');
+
+            foreach ($expense->receipts ?? [] as $receipt) {
+                if ($receipt->receipt_path) {
+                    $receipts[] = ['path' => $receipt->receipt_path, 'label' => $label];
+                }
+            }
+
+            if ($expense->mileage && $expense->mileage->transactions) {
+                foreach ($expense->mileage->transactions as $mt) {
+                    $mLabel = 'Mileage - Expense #'.($expense->expense_id ?? 'N/A')
+                        .' ('.($mt->travel_from ?? 'N/A').' → '.($mt->travel_to ?? 'N/A').')';
+
+                    foreach ($mt->receipts ?? [] as $mReceipt) {
+                        if ($mReceipt->file_path) {
+                            $receipts[] = ['path' => $mReceipt->file_path, 'label' => $mLabel];
+                        }
+                    }
+                }
+            }
+        }
+
+        if (empty($receipts)) {
+            return [];
+        }
+
+        // Start attachments on a new page
+        $mpdf->AddPage();
+        $mpdf->WriteHTML(
+            '<div style="font-size:12px; font-weight:bold; border-bottom:1px solid #333; '
+            .'padding:8px 0 5px 0; margin-bottom:8px;">ATTACHMENT(S)</div>'
+        );
+
+        $tempFiles = [];
+
+        foreach ($receipts as $receipt) {
+            $filePath = storage_path('app/public/'.$receipt['path']);
+            $safeLabel = htmlspecialchars($receipt['label']);
+
+            if (! file_exists($filePath) || ! is_file($filePath)) {
+                $mpdf->WriteHTML(
+                    '<div style="text-align:center; margin:10px 0;">'
+                    .'<div style="font-size:9px; font-weight:bold; margin-bottom:5px; color:#666;">'
+                    .$safeLabel.'</div>'
+                    .'<p style="color:#999; font-size:9px;">Receipt file not found</p></div>'
+                );
+
+                continue;
+            }
+
+            $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+            \Log::info('Rendering attachment: '.$filePath.' | ext: '.$ext.' | exists: '.(file_exists($filePath) ? 'YES' : 'NO'));
+
+            if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif'])) {
+                // Image — embed directly
+                $mpdf->WriteHTML(
+                    '<div style="text-align:center; margin:10px 0;">'
+                    .'<div style="font-size:9px; font-weight:bold; margin-bottom:5px; color:#666;">'
+                    .$safeLabel.'</div>'
+                    .'<img src="'.$filePath.'" style="max-width:300px; max-height:400px; '
+                    .'margin:10px auto; border:1px solid #ddd; padding:5px; display:block;">'
+                    .'</div>'
+                );
+            } elseif ($ext === 'pdf') {
+                // PDF — convert each page to PNG via Ghostscript, then embed like images
+                $images = $this->convertPdfToImages($filePath);
+                $tempFiles = array_merge($tempFiles, $images);
+                $pageCount = count($images);
+
+                if ($pageCount === 0) {
+                    $mpdf->WriteHTML(
+                        '<div style="text-align:center; margin:10px 0;">'
+                        .'<div style="font-size:9px; font-weight:bold; margin-bottom:5px; color:#666;">'
+                        .$safeLabel.'</div>'
+                        .'<p style="color:#999; font-size:9px;">Could not render PDF</p></div>'
+                    );
+
+                    continue;
+                }
+
+                foreach ($images as $idx => $imgPath) {
+                    $pageLabel = $pageCount > 1
+                        ? $safeLabel.' (page '.($idx + 1).' of '.$pageCount.')'
+                        : $safeLabel;
+
+                    $mpdf->WriteHTML(
+                        '<div style="text-align:center; margin:10px 0;">'
+                        .'<div style="font-size:9px; font-weight:bold; margin-bottom:5px; color:#666;">'
+                        .$pageLabel.'</div>'
+                        .'<img src="'.$imgPath.'" style="max-width:300px; max-height:400px; '
+                        .'margin:10px auto; border:1px solid #ddd; padding:5px; display:block;">'
+                        .'</div>'
+                    );
+                }
+            }
+        }
+
+        // Return temp files — caller must clean up AFTER $mpdf->Output()
+        return $tempFiles;
+    }
+
+    /**
+     * Convert a PDF file to PNG images using Ghostscript CLI.
+     *
+     * Returns an array of temporary PNG file paths (one per page).
+     */
+    private function convertPdfToImages(string $pdfPath): array
+    {
+        $outputPattern = storage_path('app/temp_gs_'.uniqid().'_%03d.png');
+
+        $command = sprintf(
+            'gs -dNOPAUSE -dBATCH -dSAFER -sDEVICE=png16m -r150 '
+            .'-dTextAlphaBits=4 -dGraphicsAlphaBits=4 '
+            .'-sOutputFile=%s %s 2>&1',
+            escapeshellarg($outputPattern),
+            escapeshellarg($pdfPath)
+        );
+
+        \Log::info('Ghostscript command: '.$command);
+        exec($command, $output, $exitCode);
+        \Log::info('Ghostscript exit code: '.$exitCode.' | output: '.implode("\n", $output));
+
+        if ($exitCode !== 0) {
+            \Log::warning('Ghostscript conversion failed for '.$pdfPath.': '.implode("\n", $output));
+
+            return [];
+        }
+
+        // Ghostscript %03d starts at 001
+        $images = [];
+        $page = 1;
+
+        while (file_exists($path = sprintf($outputPattern, $page))) {
+            $images[] = $path;
+            $page++;
+        }
+
+        return $images;
     }
 
     /**

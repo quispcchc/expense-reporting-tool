@@ -414,15 +414,17 @@
             <table class="expense-table">
                 <thead>
                     <tr>
-                        <th style="width: 10%;">Expense ID</th>
-                        <th style="width: 10%;">Date</th>
-                        <th style="width: 14%;">From</th>
-                        <th style="width: 14%;">To</th>
-                        <th style="width: 10%;">Distance (km)</th>
-                        <th style="width: 8%;">Rate</th>
-                        <th style="width: 10%;">Parking</th>
-                        <th style="width: 10%;">Meter (km)</th>
-                        <th style="width: 10%;" class="amount">Total</th>
+                        
+                        <th style="width: 9%;">Expense ID</th>
+                        <th style="width: 9%;">Mileage ID</th>
+                        <th style="width: 9%;">Date</th>
+                        <th style="width: 9%;">From</th>
+                        <th style="width: 9%;">To</th>
+                        <th style="width: 9%;">Distance (km)</th>
+                        <th style="width: 9%;">Rate</th>
+                        <th style="width: 9%;">Parking</th>
+                        <th style="width: 9%;">Meter (km)</th>
+                        <th style="width: 9%;" class="amount">Total</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -430,6 +432,7 @@
                         @if($expense->mileage && $expense->mileage->transactions && count($expense->mileage->transactions) > 0)
                             @foreach($expense->mileage->transactions as $mt)
                                 <tr>
+                                    <td>{{ $na($expense->mileage->mileage_id) }}</td>
                                     <td>{{ $expense->expense_id }}</td>
                                     <td>{{ optional($mt->transaction_date)->format('Y-m-d') ?? $mt->transaction_date }}</td>
                                     <td>{{ $na($mt->travel_from) }}</td>
@@ -484,99 +487,7 @@
             </table>
         </div>
 
-        <!-- ===== ATTACHMENTS SECTION ===== -->
-        @php
-            $hasReceipts = false;
-            if (optional($claim)->expenses) {
-                foreach (optional($claim)->expenses as $expense) {
-                    if (optional($expense)->receipts && count(optional($expense)->receipts) > 0) {
-                        $hasReceipts = true;
-                        break;
-                    }
-                }
-            }
-        @endphp
-
-        @php
-            $hasMileageReceipts = false;
-            if (optional($claim)->expenses) {
-                foreach ($claim->expenses as $exp) {
-                    if ($exp->mileage && $exp->mileage->transactions) {
-                        foreach ($exp->mileage->transactions as $mt) {
-                            if ($mt->receipts && count($mt->receipts) > 0) {
-                                $hasMileageReceipts = true;
-                                break 2;
-                            }
-                        }
-                    }
-                }
-            }
-        @endphp
-
-        @if($hasReceipts || $hasMileageReceipts)
-            <div class="attachment-section">
-                <div class="section-title">ATTACHMENT(S)</div>
-
-                {{-- Expense receipts --}}
-                @foreach(optional($claim)->expenses ?? [] as $expense)
-                    @if(optional($expense)->receipts && count(optional($expense)->receipts) > 0)
-                        @foreach(optional($expense)->receipts as $receipt)
-                            <div class="attachment-container">
-                                <div class="receipt-label" style="text-align: center;">
-                                    Expense #{{ $na(optional($expense)->expense_id) }} -
-                                    {{ $na(optional($expense)->vendor_name) }}
-                                </div>
-                                @if(optional($receipt)->receipt_path)
-                                    @php
-                                        $imagePath = storage_path('app/public/' . optional($receipt)->receipt_path);
-                                        $imageExists = file_exists($imagePath) && is_file($imagePath);
-                                    @endphp
-                                    @if($imageExists)
-                                        <img src="{{ $imagePath }}" class="receipt-image" alt="Receipt">
-                                    @else
-                                        <p style="color: #999; font-size: 9px; text-align: center;">Receipt file not found at: {{ $imagePath }}</p>
-                                    @endif
-                                @else
-                                    <p style="color: #999; font-size: 9px; text-align: center;">No receipt file path available</p>
-                                @endif
-                            </div>
-                        @endforeach
-                    @endif
-                @endforeach
-
-                {{-- Mileage receipts --}}
-                @foreach(optional($claim)->expenses ?? [] as $expense)
-                    @if($expense->mileage && $expense->mileage->transactions)
-                        @foreach($expense->mileage->transactions as $mt)
-                            @if($mt->receipts && count($mt->receipts) > 0)
-                                @foreach($mt->receipts as $mReceipt)
-                                    <div class="attachment-container">
-                                        <div class="receipt-label" style="text-align: center;">
-                                            Mileage - Expense #{{ $na($expense->expense_id) }}
-                                            ({{ $na($mt->travel_from) }} &rarr; {{ $na($mt->travel_to) }},
-                                            {{ optional($mt->transaction_date)->format('Y-m-d') ?? $mt->transaction_date }})
-                                        </div>
-                                        @if($mReceipt->file_path)
-                                            @php
-                                                $mImagePath = storage_path('app/public/' . $mReceipt->file_path);
-                                                $mImageExists = file_exists($mImagePath) && is_file($mImagePath);
-                                            @endphp
-                                            @if($mImageExists)
-                                                <img src="{{ $mImagePath }}" class="receipt-image" alt="Mileage Receipt">
-                                            @else
-                                                <p style="color: #999; font-size: 9px; text-align: center;">Receipt file not found at: {{ $mImagePath }}</p>
-                                            @endif
-                                        @else
-                                            <p style="color: #999; font-size: 9px; text-align: center;">No receipt file path available</p>
-                                        @endif
-                                    </div>
-                                @endforeach
-                            @endif
-                        @endforeach
-                    @endif
-                @endforeach
-            </div>
-        @endif
+        {{-- Attachments (images + PDFs) are rendered by the controller via renderAttachments() --}}
     </div>
 </body>
 
