@@ -219,7 +219,7 @@ function TeamsPage() {
             {/* Page title and navigation */}
             <ContentHeader title={t('teams.title')} homePath="/admin" iconKey="sidebar.teams" />
             {/* Add new team form component */}
-            <AddNewTeam />
+            <AddNewTeam toastRef={toast} />
 
             {isMobile ? mobileCardView : desktopTableView}
 

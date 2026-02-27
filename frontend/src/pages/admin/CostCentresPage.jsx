@@ -112,7 +112,10 @@ function CostCentresPage() {
         },
         accept: async (costCentreId) => {
             const response = await deleteCostCentre(costCentreId)
-            if (response) {
+            if (response?.error) {
+                toast.current.show(
+                    { severity: 'error', summary: t('common.error', 'Error'), detail: response.error, life: 5000 })
+            } else if (response) {
                 toast.current.show(
                     { severity: 'success', summary: 'Deleted', detail: 'Deleted successfully!', life: 3000 })
             }
@@ -130,7 +133,9 @@ function CostCentresPage() {
 
     const onRowEditComplete = async (e) => {
         const response = await updateCostCentre(e.newData)
-        if (response?.status === 200) {
+        if (response?.error) {
+            toast.current?.show({ severity: 'error', summary: t('common.error', 'Error'), detail: response.error, life: 5000 })
+        } else if (response?.status === 200) {
             toasts.updated()
         }
     }
@@ -164,11 +169,13 @@ function CostCentresPage() {
     const handleMobileEditSave = async () => {
         if (!editData) return
         const response = await updateCostCentre(editData)
-        if (response?.status === 200) {
+        if (response?.error) {
+            toast.current?.show({ severity: 'error', summary: t('common.error', 'Error'), detail: response.error, life: 5000 })
+        } else if (response?.status === 200) {
             toasts.updated()
+            setEditDialog(false)
+            setEditData(null)
         }
-        setEditDialog(false)
-        setEditData(null)
     }
 
     // Filter cost centres for mobile search

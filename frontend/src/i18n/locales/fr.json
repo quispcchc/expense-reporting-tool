@@ -249,6 +249,7 @@
         "needHelp": "Besoin d'aide?",
         "contactSupport": "Contacter le support",
         "goToLogin": "Aller à la connexion",
+        "permissionDenied": "Vous n'avez pas la permission d'effectuer cette action.",
         "unknownError": "Une erreur inconnue s'est produite",
         "networkError": "Aucune réponse du serveur. Cela peut être dû à un délai d'attente ou à une erreur réseau."
     },

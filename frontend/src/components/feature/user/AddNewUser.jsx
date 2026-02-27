@@ -160,6 +160,7 @@ function AddNewUser() {
                             placeholder={t('users.enterFirstName', 'Enter first name')}
                             errors={errors}
                             disabled={isLoading}
+                            error={errors}
                         />
                         <Input
                             name="last_name"
@@ -170,6 +171,7 @@ function AddNewUser() {
                             placeholder={t('users.enterLastName', 'Enter last name')}
                             errors={errors}
                             disabled={isLoading}
+                            error={errors}
                         />
                         <Input
                             name="email"
@@ -180,6 +182,7 @@ function AddNewUser() {
                             placeholder={t('users.enterEmail', 'Enter email address')}
                             errors={errors}
                             disabled={isLoading}
+                            error={errors}
                         />
                     </div>
 

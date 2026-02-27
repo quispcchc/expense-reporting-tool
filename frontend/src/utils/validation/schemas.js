@@ -116,16 +116,28 @@ export const validationSchemas = {
         ],
     },
 
-    addTeam: {
-        code: [
+    addDepartment: {
+        department_abbreviation: [
             { rule: 'required', message: 'Code is required' },
         ],
-        name: [
+        department_name: [
             { rule: 'required', message: 'Name is required' },
         ],
-        status: [
+        active_status_id: [
             { rule: 'required', message: 'Status is required' },
-        ]
+        ],
+    },
+
+    addTeam: {
+        team_abbreviation: [
+            { rule: 'required', message: 'Code is required' },
+        ],
+        team_name: [
+            { rule: 'required', message: 'Name is required' },
+        ],
+        active_status_id: [
+            { rule: 'required', message: 'Status is required' },
+        ],
     },
     addCostCentre: {
         department: [

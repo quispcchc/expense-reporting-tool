@@ -54,6 +54,13 @@ api.interceptors.response.use(
             message = error.response.data?.message || error.response.data?.error || `Error: ${status}`;
             fullError = error.response.data;
 
+            // Handle 403 Forbidden - replace generic policy message with user-friendly one
+            if (status === 403) {
+                if (message === 'This action is unauthorized.') {
+                    message = i18n.t('errors.permissionDenied');
+                }
+            }
+
             // Handle 401 Unauthorized globally
             if (status === 401) {
                 console.warn('Unauthorized access. Clearing session and redirecting.');

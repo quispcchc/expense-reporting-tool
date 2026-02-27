@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import ContentHeader from '../../components/common/layout/ContentHeader.jsx'
+import AddNewTeam from '../../components/feature/team/AddNewTeam.jsx'
 import { DataTable } from 'primereact/datatable'
 import StatusTab from '../../components/common/ui/StatusTab.jsx'
 import { InputText } from 'primereact/inputtext'
@@ -33,8 +34,6 @@ function DepartmentTeamsPage() {
     const [departmentData, setDepartmentData] = useState(cached?.department || null)
     const [teams, setTeams] = useState(cached?.teams || [])
     const [loading, setLoading] = useState(!cached)
-    const [isFormOpen, setIsFormOpen] = useState(false)
-    const [formErrors, setFormErrors] = useState([])
     const isFetching = useRef(false)
 
     const { lookups, refreshLookups } = useLookups()
@@ -49,14 +48,6 @@ function DepartmentTeamsPage() {
         label: s.active_status_name,
         value: s.active_status_id
     }))
-
-    // Form state for adding new team
-    const [formData, setFormData] = useState({
-        team_abbreviation: '',
-        team_name: '',
-        team_desc: '',
-        active_status_id: '',
-    })
 
     // Fetch department and its teams
     const fetchData = React.useCallback(async (force = false) => {
@@ -180,35 +171,6 @@ function DepartmentTeamsPage() {
         }
         setEditDialog(false)
         setEditData(null)
-    }
-
-    const handleFormChange = (e) => {
-        const { name, value } = e.target
-        setFormData(prev => ({
-            ...prev,
-            [name]: value,
-        }))
-    }
-
-    const handleFormSubmit = async (e) => {
-        e.preventDefault()
-        const errors = []
-        if (!formData.team_abbreviation) errors.push({ field: 'team_abbreviation', message: t('validation.codeRequired') })
-        if (!formData.team_name) errors.push({ field: 'team_name', message: t('validation.nameRequired') })
-        if (!formData.active_status_id) errors.push({ field: 'active_status_id', message: t('validation.statusRequired') })
-        if (errors.length > 0) { setFormErrors(errors); return }
-
-        try {
-            await api.post('/teams', { ...formData, department_id: parseInt(departmentId) })
-            await fetchData(true)
-            setFormData({ team_abbreviation: '', team_name: '', team_desc: '', active_status_id: '' })
-            setFormErrors([])
-            setIsFormOpen(false)
-            await refreshLookups()
-        } catch (err) {
-            const errorMessage = err.response?.data?.message || err.message
-            setFormErrors([{ field: '', message: errorMessage }])
-        }
     }
 
     // Render the search bar
@@ -377,80 +339,7 @@ function DepartmentTeamsPage() {
                 breadcrumbItems={breadcrumbItems}
             />
 
-            {/* Add new team form */}
-            <div className="bg-white rounded-xl p-4 md:p-6">
-                <div className="flex justify-between items-center text-gray-700">
-                    <div>
-                        <h4 className="text-lg md:text-[22px]">{t('teams.addNewTeam')}</h4>
-                        <p className="text-xs text-gray-500">{t('teams.addNewTeamDescription')}</p>
-                    </div>
-                    <button
-                        className={`pi ${isFormOpen ? 'pi-chevron-up' : 'pi-chevron-down'} !text-xl`}
-                        onClick={() => setIsFormOpen(prev => !prev)}
-                    ></button>
-                </div>
-
-                {isFormOpen && (
-                    <form
-                        className={`my-5 grid grid-cols-1 sm:grid-cols-8 ${formErrors.length === 0 ? "items-end" : "items-center"} gap-3 md:gap-5`}
-                        onSubmit={handleFormSubmit}
-                    >
-                        <div className="sm:col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('teams.code')}</label>
-                            <InputText
-                                name="team_abbreviation"
-                                value={formData.team_abbreviation}
-                                onChange={handleFormChange}
-                                placeholder={t('costCentre.enterCode')}
-                                className="w-full"
-                            />
-                            {formErrors.find(e => e.field === 'team_abbreviation') && (
-                                <small className="text-red-500">{formErrors.find(e => e.field === 'team_abbreviation').message}</small>
-                            )}
-                        </div>
-                        <div className="sm:col-span-3">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('teams.name')}</label>
-                            <InputText
-                                name="team_name"
-                                value={formData.team_name}
-                                onChange={handleFormChange}
-                                placeholder={t('departments.enterName', 'Enter name')}
-                                className="w-full"
-                            />
-                            {formErrors.find(e => e.field === 'team_name') && (
-                                <small className="text-red-500">{formErrors.find(e => e.field === 'team_name').message}</small>
-                            )}
-                        </div>
-                        <div className="sm:col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.status')}</label>
-                            <Dropdown
-                                name="active_status_id"
-                                value={formData.active_status_id}
-                                onChange={(e) => setFormData(prev => ({ ...prev, active_status_id: e.value }))}
-                                options={statusOptions}
-                                optionLabel="label"
-                                optionValue="value"
-                                placeholder={t('filter.selectOne')}
-                                className="w-full"
-                            />
-                            {formErrors.find(e => e.field === 'active_status_id') && (
-                                <small className="text-red-500">{formErrors.find(e => e.field === 'active_status_id').message}</small>
-                            )}
-                        </div>
-                        <div className="sm:col-span-1 flex items-center">
-                            <Button label={t('common.addNew')} className="!h-[48px] w-full" />
-                        </div>
-                        {formErrors.find(e => e.field === '') && (
-                            <div className="col-span-full mt-2">
-                                <small className="text-red-500 font-bold block bg-red-50 p-2 rounded border border-red-200">
-                                    <i className="pi pi-exclamation-circle mr-2"></i>
-                                    {formErrors.find(e => e.field === '').message}
-                                </small>
-                            </div>
-                        )}
-                    </form>
-                )}
-            </div>
+            <AddNewTeam toastRef={toast} departmentId={departmentId} onCreated={() => fetchData(true)} />
 
             {/* Teams list */}
             {isMobile ? mobileCardView : desktopTableView}

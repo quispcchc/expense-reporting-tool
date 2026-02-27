@@ -28,7 +28,7 @@ function AddExpenseForm({
     mileageData,
 }) {
     const { t } = useTranslation()
-    const { lookups: { costCentres, projects, accountNums } } = useLookups()
+    const { lookups: { costCentres, projects, accountNums} } = useLookups()
 
     const mileageTransactions = (includeMileage && mileageData?.transactions) || []
     const mileageTotal = mileageTransactions.reduce(

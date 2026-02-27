@@ -263,6 +263,7 @@
         "needHelp": "Need help?",
         "contactSupport": "Contact support",
         "goToLogin": "Go to Login",
+        "permissionDenied": "You do not have permission to perform this action.",
         "unknownError": "An unknown error occurred",
         "networkError": "No response from server. This may be a timeout or network error."
     },

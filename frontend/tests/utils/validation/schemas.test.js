@@ -56,8 +56,12 @@ describe('validationSchemas', () => {
         ])
     })
 
-    it('addTeam schema has code, name, and status fields', () => {
-        expect(Object.keys(validationSchemas.addTeam)).toEqual(['code', 'name', 'status'])
+    it('addDepartment schema has department_abbreviation, department_name, and active_status_id fields', () => {
+        expect(Object.keys(validationSchemas.addDepartment)).toEqual(['department_abbreviation', 'department_name', 'active_status_id'])
+    })
+
+    it('addTeam schema has team_abbreviation, team_name, and active_status_id fields', () => {
+        expect(Object.keys(validationSchemas.addTeam)).toEqual(['team_abbreviation', 'team_name', 'active_status_id'])
     })
 
     it('addCostCentre schema has department, code, and description fields', () => {

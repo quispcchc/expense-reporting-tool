@@ -85,8 +85,13 @@ function DepartmentsPage() {
     // Handle row edit completion: update department via context action
     const onRowEditComplete = async (e) => {
         const { newData } = e
-        await updateDepartment(newData)
-        await refreshLookups()
+        const result = await updateDepartment(newData)
+        if (result?.success) {
+            toast.current?.show({ severity: 'success', summary: t('common.success'), detail: t('departments.updateSuccess', 'Department updated'), life: 3000 })
+            await refreshLookups()
+        } else {
+            toast.current?.show({ severity: 'error', summary: t('common.error'), detail: result?.error || t('errors.permissionDenied'), life: 5000 })
+        }
     }
 
     // Navigate to department's teams page
@@ -116,11 +121,15 @@ function DepartmentsPage() {
     // Mobile edit dialog save
     const handleMobileEditSave = async () => {
         if (!editData) return
-        await updateDepartment(editData)
-        await refreshLookups()
-        toast.current?.show({ severity: 'success', summary: t('common.success'), detail: t('departments.updateSuccess', 'Department updated'), life: 3000 })
-        setEditDialog(false)
-        setEditData(null)
+        const result = await updateDepartment(editData)
+        if (result?.success) {
+            await refreshLookups()
+            toast.current?.show({ severity: 'success', summary: t('common.success'), detail: t('departments.updateSuccess', 'Department updated'), life: 3000 })
+            setEditDialog(false)
+            setEditData(null)
+        } else {
+            toast.current?.show({ severity: 'error', summary: t('common.error'), detail: result?.error || t('errors.permissionDenied'), life: 5000 })
+        }
     }
 
     // Combined actions column template (Delete + Manage Teams)
