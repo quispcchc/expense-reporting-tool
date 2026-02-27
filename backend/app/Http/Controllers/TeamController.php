@@ -58,6 +58,8 @@ class TeamController extends Controller
             'team_abbreviation.unique' => 'The team code already exists. Please use a different one.',
         ]);
 
+        $this->authorize('create', new Team($validated));
+
         $team = Team::create($validated);
         $team->load(['activeStatus', 'department']);
 
@@ -83,6 +85,7 @@ class TeamController extends Controller
     public function update(Request $request, $id)
     {
         $team = Team::findOrFail($id);
+        $this->authorize('update', $team);
 
         $validated = $request->validate([
             'team_name' => 'sometimes|required|string|max:100',
@@ -115,6 +118,7 @@ class TeamController extends Controller
     public function destroy($id)
     {
         $team = Team::findOrFail($id);
+        $this->authorize('delete', $team);
         $team->delete();
 
         // Clear all team caches

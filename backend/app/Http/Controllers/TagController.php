@@ -14,6 +14,8 @@ class TagController extends Controller
 
     public function store(Request $request)
     {
+        $this->authorize('create', Tag::class);
+
         $validated = $request->validate([
             'tag_name' => 'required|string|max:50',
         ]);
@@ -25,6 +27,9 @@ class TagController extends Controller
     public function update(Request $request, $id)
     {
         $tag = Tag::findOrFail($id);
+
+        $this->authorize('update', $tag);
+
         $validated = $request->validate([
             'tag_name' => 'required|string|max:50',
         ]);
@@ -36,6 +41,9 @@ class TagController extends Controller
     public function destroy($id)
     {
         $tag = Tag::findOrFail($id);
+
+        $this->authorize('delete', $tag);
+
         // Prevent deletion if tag is linked to any expenses
         if ($tag->expenses()->exists()) {
             return response()->json([

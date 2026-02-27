@@ -11,10 +11,12 @@ class DepartmentControllerTest extends TestCase
 {
     use RefreshDatabase, SeedsLookups;
 
+    // ==================== INDEX (View) ====================
+
     public function test_super_admin_sees_all_departments(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(1); // role_level=1
+        $this->createAuthenticatedUser(1); // super_admin
 
         $response = $this->getJson('/api/departments');
 
@@ -23,10 +25,22 @@ class DepartmentControllerTest extends TestCase
             ->assertJsonCount(2, 'data');
     }
 
-    public function test_regular_user_sees_only_own_department(): void
+    public function test_admin_sees_all_departments(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(4, ['department_id' => 1]); // role_level=4
+        $this->createAuthenticatedUser(2, ['department_id' => 1]); // department_manager
+
+        $response = $this->getJson('/api/departments');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('status', true)
+            ->assertJsonCount(2, 'data');
+    }
+
+    public function test_approver_sees_only_own_department(): void
+    {
+        $this->seedLookups();
+        $this->createAuthenticatedUser(3, ['department_id' => 1]); // team_lead
 
         $response = $this->getJson('/api/departments');
 
@@ -36,7 +50,22 @@ class DepartmentControllerTest extends TestCase
             ->assertJsonPath('data.0.department_id', 1);
     }
 
-    public function test_create_department(): void
+    public function test_regular_user_sees_only_own_department(): void
+    {
+        $this->seedLookups();
+        $this->createAuthenticatedUser(4, ['department_id' => 1]); // user
+
+        $response = $this->getJson('/api/departments');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('status', true)
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.department_id', 1);
+    }
+
+    // ==================== STORE (Create) ====================
+
+    public function test_super_admin_can_create_department(): void
     {
         $this->seedLookups();
         $this->createAuthenticatedUser(1);
@@ -53,6 +82,48 @@ class DepartmentControllerTest extends TestCase
         $this->assertDatabaseHas('departments', ['department_abbreviation' => 'FIN']);
     }
 
+    public function test_admin_cannot_create_department(): void
+    {
+        $this->seedLookups();
+        $this->createAuthenticatedUser(2, ['department_id' => 1]);
+
+        $response = $this->postJson('/api/departments', [
+            'department_name' => 'Finance',
+            'department_abbreviation' => 'FIN',
+            'active_status_id' => 1,
+        ]);
+
+        $response->assertStatus(403);
+    }
+
+    public function test_approver_cannot_create_department(): void
+    {
+        $this->seedLookups();
+        $this->createAuthenticatedUser(3, ['department_id' => 1]);
+
+        $response = $this->postJson('/api/departments', [
+            'department_name' => 'Finance',
+            'department_abbreviation' => 'FIN',
+            'active_status_id' => 1,
+        ]);
+
+        $response->assertStatus(403);
+    }
+
+    public function test_regular_user_cannot_create_department(): void
+    {
+        $this->seedLookups();
+        $this->createAuthenticatedUser(4, ['department_id' => 1]);
+
+        $response = $this->postJson('/api/departments', [
+            'department_name' => 'Finance',
+            'department_abbreviation' => 'FIN',
+            'active_status_id' => 1,
+        ]);
+
+        $response->assertStatus(403);
+    }
+
     public function test_create_department_unique_abbreviation(): void
     {
         $this->seedLookups();
@@ -67,7 +138,9 @@ class DepartmentControllerTest extends TestCase
         $response->assertStatus(422);
     }
 
-    public function test_show_department(): void
+    // ==================== SHOW (View single) ====================
+
+    public function test_super_admin_can_show_any_department(): void
     {
         $this->seedLookups();
         $this->createAuthenticatedUser(1);
@@ -80,7 +153,9 @@ class DepartmentControllerTest extends TestCase
             ->assertJsonPath('data.active_status.active_status_id', 1);
     }
 
-    public function test_update_department(): void
+    // ==================== UPDATE ====================
+
+    public function test_super_admin_can_update_any_department(): void
     {
         $this->seedLookups();
         $this->createAuthenticatedUser(1);
@@ -98,12 +173,67 @@ class DepartmentControllerTest extends TestCase
         ]);
     }
 
-    public function test_delete_department_without_teams(): void
+    public function test_admin_can_update_own_department(): void
+    {
+        $this->seedLookups();
+        $this->createAuthenticatedUser(2, ['department_id' => 1]);
+
+        $response = $this->putJson('/api/departments/1', [
+            'department_name' => 'My Dept Updated',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('status', true)
+            ->assertJsonPath('data.department_name', 'My Dept Updated');
+    }
+
+    public function test_admin_cannot_update_other_department(): void
+    {
+        $this->seedLookups();
+        $this->createAuthenticatedUser(2, ['department_id' => 1]);
+
+        $response = $this->putJson('/api/departments/2', [
+            'department_name' => 'Hacked Name',
+        ]);
+
+        $response->assertStatus(403);
+        $this->assertDatabaseHas('departments', [
+            'department_id' => 2,
+            'department_name' => 'Marketing',
+        ]);
+    }
+
+    public function test_approver_cannot_update_department(): void
+    {
+        $this->seedLookups();
+        $this->createAuthenticatedUser(3, ['department_id' => 1]);
+
+        $response = $this->putJson('/api/departments/1', [
+            'department_name' => 'Hacked',
+        ]);
+
+        $response->assertStatus(403);
+    }
+
+    public function test_regular_user_cannot_update_department(): void
+    {
+        $this->seedLookups();
+        $this->createAuthenticatedUser(4, ['department_id' => 1]);
+
+        $response = $this->putJson('/api/departments/1', [
+            'department_name' => 'Hacked',
+        ]);
+
+        $response->assertStatus(403);
+    }
+
+    // ==================== DESTROY (Delete) ====================
+
+    public function test_super_admin_can_delete_department_without_teams(): void
     {
         $this->seedLookups();
         $this->createAuthenticatedUser(1);
 
-        // Create a department with no teams
         $dept = Department::create([
             'department_name' => 'Temp Dept',
             'department_abbreviation' => 'TMP',
@@ -119,7 +249,7 @@ class DepartmentControllerTest extends TestCase
         ]);
     }
 
-    public function test_delete_department_with_teams_fails(): void
+    public function test_super_admin_cannot_delete_department_with_teams(): void
     {
         $this->seedLookups();
         $this->createAuthenticatedUser(1);
@@ -130,6 +260,83 @@ class DepartmentControllerTest extends TestCase
         $response->assertStatus(422)
             ->assertJsonPath('status', false);
     }
+
+    public function test_admin_can_delete_own_department_without_teams(): void
+    {
+        $this->seedLookups();
+
+        $dept = Department::create([
+            'department_name' => 'Temp Dept',
+            'department_abbreviation' => 'TMP',
+            'active_status_id' => 1,
+        ]);
+
+        $this->createAuthenticatedUser(2, ['department_id' => $dept->department_id]);
+
+        $response = $this->deleteJson("/api/departments/{$dept->department_id}");
+
+        $response->assertStatus(200)
+            ->assertJsonPath('status', true);
+        $this->assertDatabaseMissing('departments', [
+            'department_id' => $dept->department_id,
+        ]);
+    }
+
+    public function test_admin_cannot_delete_other_department(): void
+    {
+        $this->seedLookups();
+
+        $dept = Department::create([
+            'department_name' => 'Other Dept',
+            'department_abbreviation' => 'OTH',
+            'active_status_id' => 1,
+        ]);
+
+        $this->createAuthenticatedUser(2, ['department_id' => 1]);
+
+        $response = $this->deleteJson("/api/departments/{$dept->department_id}");
+
+        $response->assertStatus(403);
+        $this->assertDatabaseHas('departments', [
+            'department_id' => $dept->department_id,
+        ]);
+    }
+
+    public function test_approver_cannot_delete_department(): void
+    {
+        $this->seedLookups();
+
+        $dept = Department::create([
+            'department_name' => 'Temp Dept',
+            'department_abbreviation' => 'TMP',
+            'active_status_id' => 1,
+        ]);
+
+        $this->createAuthenticatedUser(3, ['department_id' => $dept->department_id]);
+
+        $response = $this->deleteJson("/api/departments/{$dept->department_id}");
+
+        $response->assertStatus(403);
+    }
+
+    public function test_regular_user_cannot_delete_department(): void
+    {
+        $this->seedLookups();
+
+        $dept = Department::create([
+            'department_name' => 'Temp Dept',
+            'department_abbreviation' => 'TMP',
+            'active_status_id' => 1,
+        ]);
+
+        $this->createAuthenticatedUser(4, ['department_id' => $dept->department_id]);
+
+        $response = $this->deleteJson("/api/departments/{$dept->department_id}");
+
+        $response->assertStatus(403);
+    }
+
+    // ==================== GET TEAMS ====================
 
     public function test_get_department_teams(): void
     {
@@ -149,10 +356,35 @@ class DepartmentControllerTest extends TestCase
             ]);
     }
 
+    // ==================== AUTHENTICATION ====================
+
     public function test_departments_require_authentication(): void
     {
         $response = $this->getJson('/api/departments');
+        $response->assertStatus(401);
+    }
 
+    public function test_create_department_requires_authentication(): void
+    {
+        $response = $this->postJson('/api/departments', [
+            'department_name' => 'Test',
+            'department_abbreviation' => 'TST',
+            'active_status_id' => 1,
+        ]);
+        $response->assertStatus(401);
+    }
+
+    public function test_update_department_requires_authentication(): void
+    {
+        $response = $this->putJson('/api/departments/1', [
+            'department_name' => 'Test',
+        ]);
+        $response->assertStatus(401);
+    }
+
+    public function test_delete_department_requires_authentication(): void
+    {
+        $response = $this->deleteJson('/api/departments/1');
         $response->assertStatus(401);
     }
 }
