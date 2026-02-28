@@ -18,6 +18,8 @@ import { useTranslation } from 'react-i18next'
 import { useIsMobile } from '../../../../hooks/useIsMobile.js'
 import { validateForm } from '../../../../utils/validation/validator.js'
 import { validationSchemas } from '../../../../utils/validation/schemas.js'
+import Input from '../../../common/ui/Input.jsx'
+import Select from '../../../common/ui/Select.jsx'
 
 // Helper function to map data based on mode
 const mapExpenseData = (data, mode) => {
@@ -261,8 +263,50 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
             ...changesFromExpansion,
         }
 
-
         setCurrentlyEditingRowId(null)
+
+        // Restore original row data and clear expansion changes on validation failure
+        const restoreOriginalRow = () => {
+            const original = originalExpenseData[expenseId]
+            if (original) {
+                setExpenseItems(prev => prev.map(e => e.transactionId === expenseId ? { ...original } : e))
+            }
+            setUnsavedExpansionChanges(prev => {
+                const cleaned = { ...prev }
+                delete cleaned[expenseId]
+                unsavedExpansionChangesRef.current = cleaned
+                return cleaned
+            })
+        }
+
+        // Validate expense fields
+        const { isValid, errors: validationErrors } = validateForm(updated, validationSchemas.expense)
+        if (!isValid) {
+            const messages = Object.values(validationErrors).map(key => t(key)).join(', ')
+            showToast(toastRef, { severity: 'error', summary: t('common.error'), detail: messages, life: 5000 })
+            restoreOriginalRow()
+            return
+        }
+
+        // Validate mileage transactions if present
+        if (updated.mileage?.transactions?.length > 0) {
+            let hasMileageError = false
+            const txErrors = {}
+            for (let i = 0; i < updated.mileage.transactions.length; i++) {
+                const tx = updated.mileage.transactions[i]
+                const { isValid: txValid, errors: errs } = validateForm(tx, validationSchemas.mileageTransaction)
+                if (!txValid) {
+                    hasMileageError = true
+                    txErrors[i] = errs
+                }
+            }
+            if (hasMileageError) {
+                const messages = Object.values(txErrors).flatMap(errs => Object.values(errs).map(key => t(key))).join(', ')
+                showToast(toastRef, { severity: 'error', summary: t('common.error'), detail: messages, life: 5000 })
+                restoreOriginalRow()
+                return
+            }
+        }
 
         // In CREATE mode: only update local state, don't send to server
         // The data will be sent when the claim is submitted

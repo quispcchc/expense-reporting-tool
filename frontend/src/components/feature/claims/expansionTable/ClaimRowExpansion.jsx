@@ -141,7 +141,6 @@ function ClaimRowExpansion({
                     }
 
                     const updateMileageTransaction = (txIndex, field, value) => {
-
                         const updatedTransactions = mileage.transactions.map((tx, i) => {
                             if (i !== txIndex) return tx
                             const updated = { ...tx, [field]: value }
@@ -416,7 +415,7 @@ function ClaimRowExpansion({
                                                             type="date"
                                                             value={tx.transaction_date?.substring(0, 10) || ''}
                                                             onChange={(e) => updateMileageTransaction(idx, 'transaction_date', e.target.value)}
-                                                        />
+                                                                                                                   />
                                                     ) : tx.transaction_date?.substring(0, 10)}
                                                 </td>
                                                 <td className="px-4 py-2 text-gray-700">
@@ -425,7 +424,7 @@ function ClaimRowExpansion({
                                                             name={`tx_travel_from_${idx}`}
                                                             value={tx.travel_from || ''}
                                                             onChange={(e) => updateMileageTransaction(idx, 'travel_from', e.target.value)}
-                                                        />
+                                                                                                                   />
                                                     ) : (tx.travel_from || '—')}
                                                 </td>
                                                 <td className="px-4 py-2 text-gray-700">
@@ -434,7 +433,7 @@ function ClaimRowExpansion({
                                                             name={`tx_travel_to_${idx}`}
                                                             value={tx.travel_to || ''}
                                                             onChange={(e) => updateMileageTransaction(idx, 'travel_to', e.target.value)}
-                                                        />
+                                                                                                                   />
                                                     ) : (tx.travel_to || '—')}
                                                 </td>
                                                 <td className="px-4 py-2 text-right text-gray-700">
@@ -444,7 +443,7 @@ function ClaimRowExpansion({
                                                             type="number"
                                                             value={tx.distance_km ?? ''}
                                                             onChange={(e) => updateMileageTransaction(idx, 'distance_km', e.target.value)}
-                                                        />
+                                                                                                                   />
                                                     ) : parseFloat(tx.distance_km || 0).toFixed(1)}
                                                 </td>
                                                 <td className="px-4 py-2 text-right text-gray-700">
@@ -457,7 +456,7 @@ function ClaimRowExpansion({
                                                             type="number"
                                                             value={tx.meter_km ?? ''}
                                                             onChange={(e) => updateMileageTransaction(idx, 'meter_km', e.target.value)}
-                                                        />
+                                                                                                                   />
                                                     ) : `$${parseFloat(tx.meter_km || 0).toFixed(2)}`}
                                                 </td>
                                                 <td className="px-4 py-2 text-right text-gray-700">
@@ -467,7 +466,7 @@ function ClaimRowExpansion({
                                                             type="number"
                                                             value={tx.parking_amount ?? ''}
                                                             onChange={(e) => updateMileageTransaction(idx, 'parking_amount', e.target.value)}
-                                                        />
+                                                                                                                   />
                                                     ) : `$${parseFloat(tx.parking_amount || 0).toFixed(2)}`}
                                                 </td>
                                                 <td className="px-4 py-2 text-gray-700">
@@ -476,7 +475,7 @@ function ClaimRowExpansion({
                                                             name={`tx_buyer_${idx}`}
                                                             value={tx.buyer || ''}
                                                             onChange={(e) => updateMileageTransaction(idx, 'buyer', e.target.value)}
-                                                        />
+                                                                                                                   />
                                                     ) : (tx.buyer || '—')}
                                                 </td>
                                                 <td className="px-4 py-2 text-right font-semibold text-blue-700">
