@@ -6,6 +6,7 @@ import { Button } from 'primereact/button'
 import api from '../../../api/api.js'
 import { showToast } from '../../../utils/helpers.js'
 import { useTranslation } from 'react-i18next'
+import { APPROVAL_STATUS } from '../../../config/constants.js'
 
 // ClaimDetail component shows details of a single claim
 // Used in both view and edit claim pages
@@ -140,7 +141,7 @@ function ClaimDetail({ curClaim, toastRef, onClaimRefetch }) {
                         const lastApproval = curClaim.claim_approvals[curClaim.claim_approvals.length - 1]
                         return (
                             <ClaimDetailRow
-                                title={lastApproval.approval_status_id === 2
+                                title={lastApproval.approval_status_id === APPROVAL_STATUS.APPROVED
                                     ? t('claims.approvedBy', 'Approved by') + ':'
                                     : t('claims.rejectedBy', 'Rejected by') + ':'}
                                 value={lastApproval.approved_by_user

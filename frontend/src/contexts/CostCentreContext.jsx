@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useReducer, useRef } from 'react'
 import api from '../api/api.js'
+import { ACTIVE_STATUS } from '../config/constants.js'
 
 const CostCentreContext = createContext()
 const CostCentreDispatchContext = createContext()
@@ -79,7 +80,7 @@ export const CostCentreProvider = ({ children }) => {
             const newCostCentre = {
                 department_id: costCentre.department,
                 cost_centre_code: costCentre.code,
-                active_status_id: 1,
+                active_status_id: ACTIVE_STATUS.ACTIVE,
                 description: costCentre.description,
             }
             try {

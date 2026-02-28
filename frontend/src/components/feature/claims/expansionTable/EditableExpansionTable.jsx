@@ -8,6 +8,7 @@ import { Button } from 'primereact/button'
 import StatusTab from '../../../common/ui/StatusTab.jsx'
 import { useLookups } from '../../../../contexts/LookupContext.jsx'
 import { APP_SETTINGS } from '../../../../config/settings.js'
+import { APPROVAL_STATUS } from '../../../../config/constants.js'
 import { showToast } from '../../../../utils/helpers.js'
 import api, { API_BASE_URL } from '../../../../api/api.js'
 import { BUTTON_STYLE } from '../../../../utils/customizeStyle.js'
@@ -626,7 +627,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
     }
 
     const renderActionsButton = (rowData) => {
-        const isProcessed = rowData.status === 2 || rowData.status === 3 // 2=Approved, 3=Rejected
+        const isProcessed = rowData.status === APPROVAL_STATUS.APPROVED || rowData.status === APPROVAL_STATUS.REJECTED
 
         return (
             <div className="flex gap-2">
@@ -658,7 +659,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
 
     // Mobile expense card (summary only, tappable) — plain render function to avoid remount
     const renderMobileExpenseCard = (item) => {
-        const isProcessed = item.status === 2 || item.status === 3
+        const isProcessed = item.status === APPROVAL_STATUS.APPROVED || item.status === APPROVAL_STATUS.REJECTED
         return (
             <div
                 className="admin-card cursor-pointer"
@@ -687,7 +688,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
 
     // Mobile full-screen detail view — plain render function to avoid remount
     const renderMobileDetailView = (item) => {
-        const isProcessed = item.status === 2 || item.status === 3
+        const isProcessed = item.status === APPROVAL_STATUS.APPROVED || item.status === APPROVAL_STATUS.REJECTED
         return (
             <div className="mobile-expense-detail">
                 {/* Header with back button */}
