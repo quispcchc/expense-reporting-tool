@@ -34,7 +34,29 @@ function UsersPage() {
     // Controlled row editing state (preserves edit mode across re-renders)
     const [editingRows, setEditingRows] = useState({})
     // Tracks department changes per editing row: { [userId]: departmentId }
+    // Both state (to trigger re-renders) and refs (to avoid stale closures in PrimeReact's memoized callbacks)
     const [editingDepartmentMap, setEditingDepartmentMap] = useState({})
+    const editingDepartmentMapRef = useRef({})
+    // Tracks teams per editing row so we can clear them when department changes: { [userId]: [teamId, ...] }
+    const [editingTeamsMap, setEditingTeamsMap] = useState({})
+    const editingTeamsMapRef = useRef({})
+
+    // Keep refs in sync with state
+    const updateDepartmentMap = useCallback((updater) => {
+        setEditingDepartmentMap(prev => {
+            const next = typeof updater === 'function' ? updater(prev) : updater
+            editingDepartmentMapRef.current = next
+            return next
+        })
+    }, [])
+
+    const updateTeamsMap = useCallback((updater) => {
+        setEditingTeamsMap(prev => {
+            const next = typeof updater === 'function' ? updater(prev) : updater
+            editingTeamsMapRef.current = next
+            return next
+        })
+    }, [])
 
     // Delete user with confirmation dialog
     const handleDeleteUser = (rowData) => {
@@ -155,35 +177,48 @@ function UsersPage() {
     )
 
     // Dropdown editor for teams field (multi-select)
+    // Reads from refs to avoid stale closures when PrimeReact memoizes BodyCell
     const teamsEditor = useCallback((editorOptions) => {
         const rowKey = editorOptions.rowData?.user_id;
+        const deptMap = editingDepartmentMapRef.current;
+        console.log(deptMap);
+        
+        const teamsMap = editingTeamsMapRef.current;
+
         // Use editingDepartmentMap if available (user changed department during this edit session)
-        const departmentId = rowKey != null && editingDepartmentMap[rowKey] !== undefined
-            ? editingDepartmentMap[rowKey]
+        const departmentId = rowKey != null && deptMap[rowKey] !== undefined
+            ? deptMap[rowKey]
             : editorOptions.rowData?.department_id || null;
         const filteredTeams = departmentId
             ? lookups.teams.filter(team => team.department_id === departmentId)
             : [];
 
-        let value = editorOptions.value;
-        if (!value && Array.isArray(editorOptions.rowData?.teams)) {
-            value = editorOptions.rowData.teams.map(t => t.team_id || t.value || t);
-        } else if (Array.isArray(value)) {
-            value = value.map(t => (typeof t === 'object' && t !== null ? t.team_id || t.value : t));
-        } else if (!value) {
-            value = [];
-        }
-
-        // If department was changed during this edit, filter out teams that no longer belong
-        if (rowKey != null && editingDepartmentMap[rowKey] !== undefined) {
-            const validTeamIds = new Set(filteredTeams.map(ft => ft.team_id));
-            value = value.filter(tid => validTeamIds.has(tid));
+        // Use editingTeamsMap as the source of truth; initialize from row data on first render
+        let value;
+        if (rowKey != null && teamsMap[rowKey] !== undefined) {
+            value = teamsMap[rowKey];
+        } else {
+            // First time entering edit — initialize from row data
+            value = editorOptions.value;
+            if (!value && Array.isArray(editorOptions.rowData?.teams)) {
+                value = editorOptions.rowData.teams.map(t => t.team_id || t.value || t);
+            } else if (Array.isArray(value)) {
+                value = value.map(t => (typeof t === 'object' && t !== null ? t.team_id || t.value : t));
+            } else {
+                value = [];
+            }
         }
 
         return (
             <MultiSelect
                 value={value}
-                onChange={(e) => editorOptions.editorCallback(e.target.value)}
+                onChange={(e) => {
+                    const newTeams = e.target.value;
+                    editorOptions.editorCallback(newTeams);
+                    if (rowKey != null) {
+                        updateTeamsMap(prev => ({ ...prev, [rowKey]: newTeams }));
+                    }
+                }}
                 options={filteredTeams.map(option => ({ label: option.team_name, value: option.team_id }))}
                 optionLabel="label"
                 optionValue="value"
@@ -193,7 +228,7 @@ function UsersPage() {
                 className="w-full"
             />
         );
-    }, [editingDepartmentMap, lookups.teams, t])
+    }, [lookups.teams, t, updateTeamsMap])
 
     // Dropdown editor for roles field
     const roleEditor = useCallback((editorOptions) => (
@@ -213,17 +248,22 @@ function UsersPage() {
             onChange={(e) => {
                 const newDeptId = e.target.value;
                 editorOptions.editorCallback(newDeptId);
-                // Track department change so teamsEditor can react
+                // Track department change and clear teams so teamsEditor reacts in realtime
                 const rowKey = editorOptions.rowData?.user_id;
                 if (rowKey != null) {
-                    setEditingDepartmentMap(prev => ({ ...prev, [rowKey]: newDeptId }));
+                    updateDepartmentMap(prev => ({ ...prev, [rowKey]: newDeptId }));
+                    updateTeamsMap(prev => ({ ...prev, [rowKey]: [] }));
+                    // Force PrimeReact BodyCell re-render by changing rowData (which is in its memo comparison list)
+                    setUsers(prev => prev.map(u =>
+                        u.user_id === rowKey ? { ...u, department_id: newDeptId, teams: [] } : u
+                    ));
                 }
             }}
             options={departmentOptions}
             optionLabel="label"
             optionValue="value"
         />
-    ), [departmentOptions])
+    ), [departmentOptions, updateDepartmentMap, updateTeamsMap])
 
     // Dropdown editor for status field
     const statusEditor = (editorOptions) => (
@@ -244,9 +284,22 @@ function UsersPage() {
         let _users = [...users]
         let { newData, index } = e
 
-        // Clean up editing department tracking for this row
+        // Read from refs to avoid stale closures (PrimeReact memoizes BodyCell)
         const rowKey = newData.user_id;
-        setEditingDepartmentMap(prev => {
+        const teamsMap = editingTeamsMapRef.current;
+        const teamIds = teamsMap[rowKey] !== undefined
+            ? teamsMap[rowKey]
+            : (Array.isArray(newData.teams)
+                ? newData.teams.map(t => t.team_id || t.value || t)
+                : []);
+
+        // Clean up editing tracking for this row (update both state and refs)
+        updateDepartmentMap(prev => {
+            const next = { ...prev };
+            delete next[rowKey];
+            return next;
+        });
+        updateTeamsMap(prev => {
             const next = { ...prev };
             delete next[rowKey];
             return next;
@@ -264,9 +317,7 @@ function UsersPage() {
                         department_id: newData.department_id,
                         role_id: newData.role_id,
                         active_status_id: newData.active_status_id,
-                        team_ids: Array.isArray(newData.teams)
-                            ? newData.teams.map(t => t.team_id || t.value || t)
-                            : [],
+                        team_ids: teamIds,
                     }
                     Object.keys(updatePayload).forEach(key =>
                         updatePayload[key] === undefined && delete updatePayload[key]
@@ -296,19 +347,24 @@ function UsersPage() {
                     setUsers(users)
                 }
             })()
-    }, [users, updateUser, refresh, t])
+    }, [users, updateUser, refresh, t, updateDepartmentMap, updateTeamsMap])
 
     // Called when row edit is cancelled
     const onRowEditCancel = useCallback((e) => {
         const rowKey = e.data?.user_id;
         if (rowKey != null) {
-            setEditingDepartmentMap(prev => {
+            updateDepartmentMap(prev => {
+                const next = { ...prev };
+                delete next[rowKey];
+                return next;
+            });
+            updateTeamsMap(prev => {
                 const next = { ...prev };
                 delete next[rowKey];
                 return next;
             });
         }
-    }, [])
+    }, [updateDepartmentMap, updateTeamsMap])
 
     // Mobile edit dialog save
     const handleMobileEditSave = async () => {
