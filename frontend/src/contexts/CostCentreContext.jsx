@@ -86,10 +86,11 @@ export const CostCentreProvider = ({ children }) => {
             try {
                 const response = await api.post('cost-centres', newCostCentre)
                 dispatch({ type: 'CREATE_COST_CENTRE', payload: response.data })
-                return response
+                return { success: true, data: response.data }
             }
             catch (err) {
                 dispatch({ type: 'SET_ERROR', payload: err.message })
+                return { success: false, error: err.message }
             }
         },
 
@@ -106,21 +107,23 @@ export const CostCentreProvider = ({ children }) => {
             try {
                 const response = await api.put(`cost-centres/${newData.cost_centre_id}`, updatedCostCentre)
                 dispatch({ type: 'UPDATE_COST_CENTRE', payload: response.data })
-                return response
+                return { success: true, data: response.data }
             }
             catch (err) {
                 dispatch({ type: 'SET_ERROR', payload: err.message })
+                return { success: false, error: err.message }
             }
         },
 
         deleteCostCentre: async (costCentreId) => {
             dispatch({ type: 'SET_LOADING' })
             try {
-                const response = await api.delete(`cost-centres/${costCentreId}`)
+                await api.delete(`cost-centres/${costCentreId}`)
                 dispatch({ type: 'DELETE_COST_CENTRE', payload: costCentreId })
-                return response
+                return { success: true }
             } catch (err) {
                 dispatch({ type: 'SET_ERROR', payload: err.message })
+                return { success: false, error: err.message }
             }
         },
 

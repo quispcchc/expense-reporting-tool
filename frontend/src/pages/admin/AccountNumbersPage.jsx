@@ -48,12 +48,12 @@ function AccountNumbersPage() {
             showToast(toast, { severity: 'error', summary: t('common.error'), detail: error || 'Something went wrong.', life: TOAST_LIFE.ERROR })
         },
         accept: async (accountNumberId) => {
-            const response = await deleteAccountNumber(accountNumberId)
-            if (response && !response.error) {
+            const result = await deleteAccountNumber(accountNumberId)
+            if (result?.success) {
                 showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('accountNumbers.deleteSuccess', 'Account Number deleted successfully!'), life: TOAST_LIFE.SUCCESS })
                 refreshLookups()
             } else {
-                showToast(toast, { severity: 'error', summary: t('common.error'), detail: response?.error || 'Delete failed', life: TOAST_LIFE.ERROR })
+                showToast(toast, { severity: 'error', summary: t('common.error'), detail: result?.error || 'Delete failed', life: TOAST_LIFE.ERROR })
             }
         },
         reject: () => {
@@ -74,8 +74,8 @@ function AccountNumbersPage() {
             showToast(toast, { severity: 'error', summary: t('common.error'), detail: messages, life: TOAST_LIFE.ERROR })
             return
         }
-        const response = await updateAccountNumber(e.newData)
-        if (response?.status === 200) {
+        const result = await updateAccountNumber(e.newData)
+        if (result?.success) {
             toasts.updated()
         }
     }
@@ -110,8 +110,8 @@ function AccountNumbersPage() {
         if (!editData) return
         const { isValid } = validate()
         if (!isValid) return
-        const response = await updateAccountNumber(editData)
-        if (response?.status === 200) {
+        const result = await updateAccountNumber(editData)
+        if (result?.success) {
             toasts.updated()
         }
         closeDialog()

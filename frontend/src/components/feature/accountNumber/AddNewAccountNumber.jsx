@@ -38,14 +38,14 @@ function AddNewAccountNumber({ createdToast }) {
         const validation = validateForm(accountNumberFormData, schema)
 
         if (validation.isValid) {
-            const response = await createAccountNumber(accountNumberFormData)
+            const result = await createAccountNumber(accountNumberFormData)
 
-            if (response?.status === 201) {
+            if (result?.success) {
                 setAccountNumberFormData(initialData)
                 setValidationErrors([])
                 createdToast()
-            } else if (response?.error) {
-                setValidationErrors([{ field: '', message: response.error }])
+            } else if (result?.error) {
+                setValidationErrors([{ field: '', message: result.error }])
             }
         } else {
             setValidationErrors(validation.errors)

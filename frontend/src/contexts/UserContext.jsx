@@ -84,13 +84,11 @@ export const UserProvider = ({ children }) => {
         dispatch({ type: 'SET_LOADING' })
         try {
             const res = await api.post('/admin/create-user', userData)
-
             dispatch({ type: 'CREATE_USER', payload: res.data.user })
-            
-            return res.data.user
+            return { success: true, data: res.data.user }
         } catch (err) {
             dispatch({ type: 'SET_ERROR', payload: err.message })
-            throw err
+            return { success: false, error: err.message }
         }
     }
 
@@ -99,10 +97,10 @@ export const UserProvider = ({ children }) => {
         try {
             const res = await api.put(`/admin/users/${userData.user_id}`, userData)
             dispatch({ type: 'UPDATE_USER', payload: res.data || userData })
-            return res.data
+            return { success: true, data: res.data }
         } catch (err) {
             dispatch({ type: 'SET_ERROR', payload: err.message })
-            throw err
+            return { success: false, error: err.message }
         }
     }
 
@@ -111,9 +109,10 @@ export const UserProvider = ({ children }) => {
         try {
             await api.delete(`/admin/users/${userId}`)
             dispatch({ type: 'DELETE_USER', payload: userId })
+            return { success: true }
         } catch (err) {
             dispatch({ type: 'SET_ERROR', payload: err.message })
-            throw err
+            return { success: false, error: err.message }
         }
     }
 

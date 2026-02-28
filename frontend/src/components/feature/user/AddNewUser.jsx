@@ -89,38 +89,34 @@ function AddNewUser() {
         setIsLoading(true);
 
         (async () => {
-            try {
-                await createUser({
-                    first_name: userFormData.first_name,
-                    last_name: userFormData.last_name,
-                    email: userFormData.email,
-                    role_id: userFormData.role,
-                    department_id: userFormData.department || null,
-                    team_ids: userFormData.teams,
-                    position_name: userFormData.position || null,
-                })
+            const result = await createUser({
+                first_name: userFormData.first_name,
+                last_name: userFormData.last_name,
+                email: userFormData.email,
+                role_id: userFormData.role,
+                department_id: userFormData.department || null,
+                team_ids: userFormData.teams,
+                position_name: userFormData.position || null,
+            })
 
+            if (result?.success) {
                 showToast(toastRef, {
                     severity: 'success',
                     summary: t('common.success', 'Success'),
                     detail: t('users.userCreatedSuccess'),
                     life: 3000
                 })
-
                 resetForm()
                 setIsOpen(false)
-            }
-            catch (err) {
+            } else {
                 showToast(toastRef, {
                     severity: 'error',
                     summary: t('common.error', 'Error'),
-                    detail: err.message || t('users.userCreatedError'),
+                    detail: result?.error || t('users.userCreatedError'),
                     life: 4000
                 })
             }
-            finally {
-                setIsLoading(false)
-            }
+            setIsLoading(false)
         })()
     }
 

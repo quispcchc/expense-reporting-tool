@@ -60,15 +60,14 @@ function TagsPage() {
     const handleAddNewTag = async (tagName) => {
         setNewTagLoading(true);
         setNewTagError('');
-        try {
-            await createTag(tagName);
+        const result = await createTag(tagName);
+        if (result?.success) {
             showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('tags.added_success'), life: 2000 });
             await fetchTags();
-        } catch (err) {
-            setNewTagError(err?.message || t('tags.add_failed'));
-        } finally {
-            setNewTagLoading(false);
+        } else {
+            setNewTagError(result?.error || t('tags.add_failed'));
         }
+        setNewTagLoading(false);
     };
 
     // Inline edit for tags
@@ -80,12 +79,12 @@ function TagsPage() {
             showToast(toast, { severity: 'error', summary: t('common.error'), detail: messages, life: 5000 })
             return
         }
-        try {
-            await updateTag(newData.tag_id, newData.tag_name);
+        const result = await updateTag(newData.tag_id, newData.tag_name);
+        if (result?.success) {
             showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('tags.updated_success'), life: 2000 });
             await fetchTags();
-        } catch (err) {
-            showToast(toast, { severity: 'error', summary: t('common.error'), detail: err?.message || t('tags.update_failed'), life: 3000 });
+        } else {
+            showToast(toast, { severity: 'error', summary: t('common.error'), detail: result?.error || t('tags.update_failed'), life: 3000 });
         }
     };
 
@@ -95,13 +94,12 @@ function TagsPage() {
             header: t('tags.delete_header'),
             icon: 'pi pi-exclamation-triangle',
             accept: async () => {
-                try {
-                    await deleteTag(tag.tag_id);
+                const result = await deleteTag(tag.tag_id);
+                if (result?.success) {
                     showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('tags.deleted_success'), life: 3000 })
                     await fetchTags();
-                } catch (err) {
-                    const detail = err?.message || t('tags.delete_failed')
-                    showToast(toast, { severity: 'error', summary: t('common.error'), detail, life: 3000 })
+                } else {
+                    showToast(toast, { severity: 'error', summary: t('common.error'), detail: result?.error || t('tags.delete_failed'), life: 3000 })
                 }
             },
             reject: () => { },
@@ -112,15 +110,14 @@ function TagsPage() {
     const handleAddNewProject = async (projectData) => {
         setNewProjectLoading(true);
         setNewProjectError('');
-        try {
-            await createProject(projectData);
+        const result = await createProject(projectData);
+        if (result?.success) {
             showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('projects.added_success'), life: 2000 });
             await fetchProjects();
-        } catch (err) {
-            setNewProjectError(err?.message || t('projects.add_failed'));
-        } finally {
-            setNewProjectLoading(false);
+        } else {
+            setNewProjectError(result?.error || t('projects.add_failed'));
         }
+        setNewProjectLoading(false);
     };
 
     const onProjectRowEditComplete = async (e) => {
@@ -133,16 +130,15 @@ function TagsPage() {
         }
         setProjectLoading(true);
         setProjectError(null);
-        try {
-            await updateProject(newData.project_id, newData);
+        const result = await updateProject(newData.project_id, newData);
+        if (result?.success) {
             showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('projects.updated_success'), life: 2000 });
             await fetchProjects();
-        } catch (err) {
-            setProjectError(err.message || t('projects.update_failed'));
-            showToast(toast, { severity: 'error', summary: t('common.error'), detail: err?.message || t('projects.update_failed'), life: 3000 });
-        } finally {
-            setProjectLoading(false);
+        } else {
+            setProjectError(result?.error || t('projects.update_failed'));
+            showToast(toast, { severity: 'error', summary: t('common.error'), detail: result?.error || t('projects.update_failed'), life: 3000 });
         }
+        setProjectLoading(false);
     };
 
     const handleDeleteProject = (project) => {
@@ -153,16 +149,15 @@ function TagsPage() {
             accept: async () => {
                 setProjectLoading(true)
                 setProjectError(null)
-                try {
-                    await deleteProject(project.project_id);
+                const result = await deleteProject(project.project_id);
+                if (result?.success) {
                     showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('projects.deleted_success'), life: 2000 })
                     await fetchProjects();
-                } catch (err) {
-                    setProjectError(err.message || t('projects.delete_failed'))
-                    showToast(toast, { severity: 'error', summary: t('common.error'), detail: err?.message || t('projects.delete_failed'), life: 2000 })
-                } finally {
-                    setProjectLoading(false)
+                } else {
+                    setProjectError(result?.error || t('projects.delete_failed'))
+                    showToast(toast, { severity: 'error', summary: t('common.error'), detail: result?.error || t('projects.delete_failed'), life: 2000 })
                 }
+                setProjectLoading(false)
             },
             reject: () => { },
         })
@@ -171,12 +166,12 @@ function TagsPage() {
     // Mobile tag edit save
     const handleMobileTagEditSave = async () => {
         if (!editTagData) return
-        try {
-            await updateTag(editTagData.tag_id, editTagData.tag_name);
+        const result = await updateTag(editTagData.tag_id, editTagData.tag_name);
+        if (result?.success) {
             showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('tags.updated_success'), life: 2000 });
             await fetchTags();
-        } catch (err) {
-            showToast(toast, { severity: 'error', summary: t('common.error'), detail: err?.message || t('tags.update_failed'), life: 3000 });
+        } else {
+            showToast(toast, { severity: 'error', summary: t('common.error'), detail: result?.error || t('tags.update_failed'), life: 3000 });
         }
         setEditTagDialog(false)
         setEditTagData(null)
@@ -186,15 +181,14 @@ function TagsPage() {
     const handleMobileProjectEditSave = async () => {
         if (!editProjectData) return
         setProjectLoading(true)
-        try {
-            await updateProject(editProjectData.project_id, editProjectData);
+        const result = await updateProject(editProjectData.project_id, editProjectData);
+        if (result?.success) {
             showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('projects.updated_success'), life: 2000 });
             await fetchProjects();
-        } catch (err) {
-            showToast(toast, { severity: 'error', summary: t('common.error'), detail: err?.message || t('projects.update_failed'), life: 3000 });
-        } finally {
-            setProjectLoading(false)
+        } else {
+            showToast(toast, { severity: 'error', summary: t('common.error'), detail: result?.error || t('projects.update_failed'), life: 3000 });
         }
+        setProjectLoading(false)
         setEditProjectDialog(false)
         setEditProjectData(null)
     }

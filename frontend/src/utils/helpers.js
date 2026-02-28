@@ -10,16 +10,3 @@ export const showToast = (toastRef, { severity = 'info', summary = '', detail = 
     }
 }
 
-export function autoFillForm(setFormData) {
-    setFormData({
-        program: 1,
-        transactionDate: '2025-07-01',
-        costCentre: 1,
-        vendor: 'Food Basics',
-        accountNum: 1,
-        amount: 33,
-        buyer: 'Shan',
-        description: 'This is for test',
-        notes: 'This is for test',
-    })
-}

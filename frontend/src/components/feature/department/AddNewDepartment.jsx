@@ -7,6 +7,7 @@ import { useLookups } from '../../../contexts/LookupContext.jsx'
 import { useTranslation } from 'react-i18next'
 import { validationSchemas } from '../../../utils/validation/schemas.js'
 import { validateForm } from '../../../utils/validation/validator.js'
+import { showToast, TOAST_LIFE } from '../../../utils/helpers.js'
 
 function AddNewDepartment({ toastRef }) {
     const { t } = useTranslation()
@@ -56,31 +57,31 @@ function AddNewDepartment({ toastRef }) {
                 })
                 setErrors({})
                 setIsOpen(false)
-                toastRef?.current?.show({
+                showToast(toastRef, {
                     severity: 'success',
                     summary: t('common.success'),
                     detail: t('departments.createSuccess', 'Department created successfully'),
-                    life: 3000
+                    life: TOAST_LIFE.SUCCESS
                 })
                 await refreshLookups()
             } else {
                 const errorMsg = result?.error || t('common.unknownError', 'An unknown error occurred')
                 setErrors({ _general: errorMsg })
-                toastRef?.current?.show({
+                showToast(toastRef, {
                     severity: 'error',
                     summary: t('common.error'),
                     detail: errorMsg,
-                    life: 5000
+                    life: TOAST_LIFE.ERROR
                 })
             }
         } catch (err) {
             const errorMsg = err?.message || t('common.networkError', 'Network error occurred')
             setErrors({ _general: errorMsg })
-            toastRef?.current?.show({
+            showToast(toastRef, {
                 severity: 'error',
                 summary: t('common.error'),
                 detail: errorMsg,
-                life: 5000
+                life: TOAST_LIFE.ERROR
             })
         } finally {
             setIsSubmitting(false)

@@ -143,7 +143,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
     const handleRowEditStart = (editEvent) => { // Was: onRowEditInit
 
         // Only show warning if NOT in create mode AND status is not pending (1)
-        if (mode !== 'create' && editEvent.data.status !== 1) {
+        if (mode !== 'create' && editEvent.data.status !== APPROVAL_STATUS.PENDING) {
             confirmDialog({
                 message: t('expenses.editApprovedRejectedMessage', 'Do you want to edit an expense which has already been approved or rejected?'),
                 header: t('expenses.editExpense', 'Edit Expense'),

@@ -37,10 +37,11 @@ export function ProjectProvider({ children }) {
         try {
             const response = await api.post('projects', projectData)
             setProjects(prev => [...prev, response.data])
-            return response.data
+            return { success: true, data: response.data }
         } catch (err) {
-            setError(err.message || 'Failed to create project')
-            throw err
+            const errorMsg = err.message || 'Failed to create project'
+            setError(errorMsg)
+            return { success: false, error: errorMsg }
         } finally {
             setLoading(false)
         }
@@ -52,9 +53,11 @@ export function ProjectProvider({ children }) {
         try {
             const response = await api.put(`projects/${project_id}`, projectData)
             setProjects(prev => prev.map(p => p.project_id === project_id ? response.data : p))
+            return { success: true, data: response.data }
         } catch (err) {
-            setError(err.message || 'Failed to update project')
-            throw err
+            const errorMsg = err.message || 'Failed to update project'
+            setError(errorMsg)
+            return { success: false, error: errorMsg }
         } finally {
             setLoading(false)
         }
@@ -66,9 +69,11 @@ export function ProjectProvider({ children }) {
         try {
             await api.delete(`projects/${project_id}`)
             setProjects(prev => prev.filter(p => p.project_id !== project_id))
+            return { success: true }
         } catch (err) {
-            setError(err.message || 'Failed to delete project')
-            throw err
+            const errorMsg = err.message || 'Failed to delete project'
+            setError(errorMsg)
+            return { success: false, error: errorMsg }
         } finally {
             setLoading(false)
         }

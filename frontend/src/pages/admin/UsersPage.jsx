@@ -69,12 +69,12 @@ function UsersPage() {
             icon: 'pi pi-exclamation-triangle',
             acceptClassName: 'p-button-danger',
             accept: async () => {
-                try {
-                    await deleteUser(rowData.user_id)
+                const result = await deleteUser(rowData.user_id)
+                if (result?.success) {
                     await refresh()
                     showToast(toastRef, { severity: 'success', summary: t('common.success'), detail: t('users.deleteSuccess', 'User deleted successfully'), life: TOAST_LIFE.SUCCESS })
-                } catch (err) {
-                    showToast(toastRef, { severity: 'error', summary: t('common.error'), detail: err.message || t('users.deleteError', 'Failed to delete user'), life: TOAST_LIFE.ERROR })
+                } else {
+                    showToast(toastRef, { severity: 'error', summary: t('common.error'), detail: result?.error || t('users.deleteError', 'Failed to delete user'), life: TOAST_LIFE.ERROR })
                 }
             },
             reject: () => { },
@@ -279,26 +279,26 @@ function UsersPage() {
         _users[index] = newData
         setUsers(_users)
             ; (async () => {
-                try {
-                    const updatePayload = {
-                        user_id: newData.user_id,
-                        first_name: newData.first_name,
-                        last_name: newData.last_name,
-                        email: newData.email,
-                        department_id: newData.department_id,
-                        role_id: newData.role_id,
-                        active_status_id: newData.active_status_id,
-                        team_ids: teamIds,
-                    }
-                    Object.keys(updatePayload).forEach(key =>
-                        updatePayload[key] === undefined && delete updatePayload[key]
-                    )
+                const updatePayload = {
+                    user_id: newData.user_id,
+                    first_name: newData.first_name,
+                    last_name: newData.last_name,
+                    email: newData.email,
+                    department_id: newData.department_id,
+                    role_id: newData.role_id,
+                    active_status_id: newData.active_status_id,
+                    team_ids: teamIds,
+                }
+                Object.keys(updatePayload).forEach(key =>
+                    updatePayload[key] === undefined && delete updatePayload[key]
+                )
 
-                    await updateUser(updatePayload)
+                const result = await updateUser(updatePayload)
+                if (result?.success) {
                     await refresh()
                     showToast(toastRef, { severity: 'success', summary: t('common.success'), detail: t('users.updateSuccess', 'User updated successfully'), life: TOAST_LIFE.SUCCESS })
-                } catch (err) {
-                    showToast(toastRef, { severity: 'error', summary: t('common.error'), detail: err.message || t('users.updateError', 'Failed to update user'), life: TOAST_LIFE.ERROR })
+                } else {
+                    showToast(toastRef, { severity: 'error', summary: t('common.error'), detail: result?.error || t('users.updateError', 'Failed to update user'), life: TOAST_LIFE.ERROR })
                     setUsers(users)
                 }
             })()
@@ -326,27 +326,27 @@ function UsersPage() {
         if (!editData) return
         const { isValid } = validate()
         if (!isValid) return
-        try {
-            const updatePayload = {
-                user_id: editData.user_id,
-                first_name: editData.first_name,
-                last_name: editData.last_name,
-                email: editData.email,
-                department_id: editData.department_id,
-                role_id: editData.role_id,
-                active_status_id: editData.active_status_id,
-                team_ids: Array.isArray(editData.teams)
-                    ? editData.teams.map(t => t.team_id || t.value || t)
-                    : [],
-            }
-            Object.keys(updatePayload).forEach(key =>
-                updatePayload[key] === undefined && delete updatePayload[key]
-            )
-            await updateUser(updatePayload)
+        const updatePayload = {
+            user_id: editData.user_id,
+            first_name: editData.first_name,
+            last_name: editData.last_name,
+            email: editData.email,
+            department_id: editData.department_id,
+            role_id: editData.role_id,
+            active_status_id: editData.active_status_id,
+            team_ids: Array.isArray(editData.teams)
+                ? editData.teams.map(t => t.team_id || t.value || t)
+                : [],
+        }
+        Object.keys(updatePayload).forEach(key =>
+            updatePayload[key] === undefined && delete updatePayload[key]
+        )
+        const result = await updateUser(updatePayload)
+        if (result?.success) {
             await refresh()
             showToast(toastRef, { severity: 'success', summary: t('common.success'), detail: t('users.updateSuccess', 'User updated successfully'), life: TOAST_LIFE.SUCCESS })
-        } catch (err) {
-            showToast(toastRef, { severity: 'error', summary: t('common.error'), detail: err.message || t('users.updateError', 'Failed to update user'), life: TOAST_LIFE.ERROR })
+        } else {
+            showToast(toastRef, { severity: 'error', summary: t('common.error'), detail: result?.error || t('users.updateError', 'Failed to update user'), life: TOAST_LIFE.ERROR })
         }
         closeDialog()
     }

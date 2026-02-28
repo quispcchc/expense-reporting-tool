@@ -25,14 +25,12 @@ function LoginForm() {
     // On component mount, load saved email/password if "remember me" was checked
     useEffect(() => {
         const savedEmail = localStorage.getItem('email') || ''
-        const savedPassword = localStorage.getItem('password') || ''
         const savedRemember = localStorage.getItem('remember') === 'true'
 
         setFormData(prev => (
             {
                 ...prev,
                 email: savedEmail,
-                password: savedPassword,
                 remember: savedRemember,
             }))
     }, [])
@@ -41,13 +39,10 @@ function LoginForm() {
     const rememberEmailAndPassword = () => {
         if (formData.remember) {
             localStorage.setItem('email', formData.email)
-            localStorage.setItem('password', formData.password)
             localStorage.setItem('remember', 'true')
-
         } else {
             localStorage.removeItem('email')
-            localStorage.removeItem('password')
-
+            localStorage.removeItem('remember')
         }
     }
 

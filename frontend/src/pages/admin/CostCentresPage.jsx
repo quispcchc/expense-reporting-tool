@@ -79,11 +79,11 @@ function CostCentresPage() {
             showToast(toast, { severity: 'error', summary: t('common.error'), detail: error || t('common.unknownError'), life: TOAST_LIFE.ERROR })
         },
         accept: async (costCentreId) => {
-            const response = await deleteCostCentre(costCentreId)
-            if (response?.error) {
-                showToast(toast, { severity: 'error', summary: t('common.error'), detail: response.error, life: TOAST_LIFE.ERROR })
-            } else if (response) {
+            const result = await deleteCostCentre(costCentreId)
+            if (result?.success) {
                 showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('costCentre.deleteSuccess'), life: TOAST_LIFE.SUCCESS })
+            } else {
+                showToast(toast, { severity: 'error', summary: t('common.error'), detail: result?.error || t('common.unknownError'), life: TOAST_LIFE.ERROR })
             }
         },
         reject: () => {
@@ -104,11 +104,11 @@ function CostCentresPage() {
             showToast(toast, { severity: 'error', summary: t('common.error'), detail: messages, life: TOAST_LIFE.ERROR })
             return
         }
-        const response = await updateCostCentre(e.newData)
-        if (response?.error) {
-            showToast(toast, { severity: 'error', summary: t('common.error'), detail: response.error, life: TOAST_LIFE.ERROR })
-        } else if (response?.status === 200) {
+        const result = await updateCostCentre(e.newData)
+        if (result?.success) {
             toasts.updated()
+        } else {
+            showToast(toast, { severity: 'error', summary: t('common.error'), detail: result?.error || t('common.unknownError'), life: TOAST_LIFE.ERROR })
         }
     }
 
@@ -142,12 +142,12 @@ function CostCentresPage() {
         if (!editData) return
         const { isValid } = validate()
         if (!isValid) return
-        const response = await updateCostCentre(editData)
-        if (response?.error) {
-            showToast(toast, { severity: 'error', summary: t('common.error'), detail: response.error, life: TOAST_LIFE.ERROR })
-        } else if (response?.status === 200) {
+        const result = await updateCostCentre(editData)
+        if (result?.success) {
             toasts.updated()
             closeDialog()
+        } else {
+            showToast(toast, { severity: 'error', summary: t('common.error'), detail: result?.error || t('common.unknownError'), life: TOAST_LIFE.ERROR })
         }
     }
 

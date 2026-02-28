@@ -83,11 +83,11 @@ export const AccountNumberProvider = ({ children }) => {
             try {
                 const response = await api.post('account-numbers', newAccountNumber)
                 dispatch({ type: 'CREATE_ACCOUNT_NUMBER', payload: response.data })
-                return response
+                return { success: true, data: response.data }
             }
             catch (err) {
                 dispatch({ type: 'SET_ERROR', payload: err.message })
-                return { error: err.response?.data?.message || err.message }
+                return { success: false, error: err.message }
             }
         },
 
@@ -102,23 +102,23 @@ export const AccountNumberProvider = ({ children }) => {
             try {
                 const response = await api.put(`account-numbers/${newData.account_number_id}`, updatedAccountNumber)
                 dispatch({ type: 'UPDATE_ACCOUNT_NUMBER', payload: response.data })
-                return response
+                return { success: true, data: response.data }
             }
             catch (err) {
                 dispatch({ type: 'SET_ERROR', payload: err.message })
-                return { error: err.response?.data?.message || err.message }
+                return { success: false, error: err.message }
             }
         },
 
         deleteAccountNumber: async (accountNumberId) => {
             dispatch({ type: 'SET_LOADING' })
             try {
-                const response = await api.delete(`account-numbers/${accountNumberId}`)
+                await api.delete(`account-numbers/${accountNumberId}`)
                 dispatch({ type: 'DELETE_ACCOUNT_NUMBER', payload: accountNumberId })
-                return response
+                return { success: true }
             } catch (err) {
                 dispatch({ type: 'SET_ERROR', payload: err.message })
-                return { error: err.response?.data?.message || err.message }
+                return { success: false, error: err.message }
             }
         },
 
