@@ -317,8 +317,8 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
             setFiles([])
             navigate(navigateTo, { state: { flashMessage: t('claims.submitSuccess') } })
         } catch (error) {
-            const detail = error?.message || 'Failed to submit claim'
-            showToast(toastRef, { severity: 'error', summary: 'Submit failed', detail })
+            const detail = error?.message || t('claims.submitError')
+            showToast(toastRef, { severity: 'error', summary: t('claims.submitFailed'), detail })
         } finally {
             setIsSubmitting(false)
         }

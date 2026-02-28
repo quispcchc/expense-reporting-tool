@@ -19,8 +19,12 @@ export const validateForm = (formData, schema, options = {}) => {
 
         // Run each validation rule for this field
         fieldRules.forEach(ruleConfig => {
-            const { rule, params = [], message, warning = false } = ruleConfig
+            const { rule, params = [], message: rawMessage, messageKey, warning = false } = ruleConfig
             const validator = validationRules[rule]
+
+            // Use messageKey if available (resolved at render time by components via t()),
+            // otherwise fall back to raw message string
+            const message = messageKey || rawMessage
 
             if (!validator) {
                 console.warn(`Unknown validation rule: ${rule}`)
@@ -67,4 +71,3 @@ export const validateForm = (formData, schema, options = {}) => {
         formData
     }
 }
-

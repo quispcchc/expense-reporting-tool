@@ -36,8 +36,8 @@ function VerifyEmailPage() {
         if (!email || !token) {
             showToast(toastRef, {
                 severity: 'error',
-                summary: 'Error',
-                detail: 'Invalid verification link. Please check your email.',
+                summary: t('common.error'),
+                detail: t('verify.invalidLink'),
             })
             return
         }
@@ -53,7 +53,7 @@ function VerifyEmailPage() {
                     setIsAlreadyVerified(true)
                     showToast(toastRef, {
                         severity: 'info',
-                        summary: 'Info',
+                        summary: t('toast.info'),
                         detail: response.data.message,
                     })
                 }
@@ -64,7 +64,7 @@ function VerifyEmailPage() {
         }
 
         checkVerificationStatus()
-    }, [searchParams])
+    }, [searchParams, t])
 
     const handleChange = (e) => {
         const { name, value } = e.target
@@ -85,15 +85,15 @@ function VerifyEmailPage() {
         const newErrors = {}
 
         if (!formData.password) {
-            newErrors.password = 'Password is required'
+            newErrors.password = 'validation.passwordRequired'
         } else if (formData.password.length < 8) {
-            newErrors.password = 'Password must be at least 8 characters'
+            newErrors.password = 'validation.passwordMinLength'
         }
 
         if (!formData.password_confirmation) {
-            newErrors.password_confirmation = 'Password confirmation is required'
+            newErrors.password_confirmation = 'validation.passwordConfirmRequired'
         } else if (formData.password !== formData.password_confirmation) {
-            newErrors.password_confirmation = 'Passwords do not match'
+            newErrors.password_confirmation = 'validation.passwordMatch'
         }
 
         setErrors(newErrors)
@@ -118,8 +118,8 @@ function VerifyEmailPage() {
 
             showToast(toastRef, {
                 severity: 'success',
-                summary: 'Success',
-                detail: 'Email verified successfully. Redirecting to login...',
+                summary: t('common.success'),
+                detail: t('verify.verifySuccess'),
             })
 
             // Redirect to login after 2 seconds
@@ -127,20 +127,20 @@ function VerifyEmailPage() {
                 navigate('/login')
             }, 2000)
         } catch (error) {
-            const message = error.response?.data?.message || 'Failed to verify email'
-            
+            const message = error.response?.data?.message || t('verify.verifyFailed')
+
             // Check if email is already verified
             if (error.response?.status === 400 && message.includes('already verified')) {
                 setIsAlreadyVerified(true)
                 showToast(toastRef, {
                     severity: 'info',
-                    summary: 'Info',
+                    summary: t('toast.info'),
                     detail: message,
                 })
             } else {
                 showToast(toastRef, {
                     severity: 'error',
-                    summary: 'Error',
+                    summary: t('common.error'),
                     detail: message,
                 })
             }
@@ -153,8 +153,8 @@ function VerifyEmailPage() {
         if (!formData.email) {
             showToast(toastRef, {
                 severity: 'error',
-                summary: 'Error',
-                detail: 'Email is required',
+                summary: t('common.error'),
+                detail: t('verify.emailRequired'),
             })
             return
         }
@@ -167,14 +167,14 @@ function VerifyEmailPage() {
 
             showToast(toastRef, {
                 severity: 'success',
-                summary: 'Success',
-                detail: 'Verification email sent successfully. Please check your inbox.',
+                summary: t('common.success'),
+                detail: t('verify.resendSuccess'),
             })
         } catch (error) {
-            const message = error.response?.data?.message || 'Failed to resend email'
+            const message = error.response?.data?.message || t('verify.resendFailed')
             showToast(toastRef, {
                 severity: 'error',
-                summary: 'Error',
+                summary: t('common.error'),
                 detail: message,
             })
         } finally {
@@ -198,21 +198,21 @@ function VerifyEmailPage() {
 
                         <div>
                             <h1 className="text-3xl font-bold text-gray-800 mb-2">
-                                Email Already Verified
+                                {t('verify.alreadyVerifiedTitle')}
                             </h1>
                             <p className="text-gray-600">
-                                Your email address <span className="font-semibold">{formData.email}</span> is already verified.
+                                {t('verify.alreadyVerifiedMessage', { email: formData.email })}
                             </p>
                         </div>
 
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                             <p className="text-sm text-blue-800">
-                                Your account is fully set up and ready to use. You can now log in with your credentials.
+                                {t('verify.alreadyVerifiedInfo')}
                             </p>
                         </div>
 
                         <Button
-                            label="Go to Login"
+                            label={t('verify.goToLogin')}
                             onClick={() => navigate('/login')}
                             className="w-full !h-[44px]"
                             icon="pi pi-sign-in"
@@ -222,9 +222,9 @@ function VerifyEmailPage() {
                     // Verification Form UI
                     <>
                         <div className="text-center mb-6">
-                            <h1 className="text-3xl font-bold text-gray-800 mb-2">Verify Your Email</h1>
+                            <h1 className="text-3xl font-bold text-gray-800 mb-2">{t('verify.title')}</h1>
                             <p className="text-gray-600">
-                                Set your password to complete your account setup
+                                {t('verify.subtitle')}
                             </p>
                         </div>
 
@@ -232,55 +232,55 @@ function VerifyEmailPage() {
                             {/* Email Display */}
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-1">
-                                    Email
+                                    {t('verify.emailLabel')}
                                 </label>
                                 <InputText
                                     value={formData.email}
                                     disabled
                                     className="w-full"
                                 />
-                                <small className="text-gray-500">This email has been verified</small>
+                                <small className="text-gray-500">{t('verify.emailVerified')}</small>
                             </div>
 
                             {/* Password */}
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-1">
-                                    Password
+                                    {t('verify.passwordLabel')}
                                 </label>
                                 <Password
                                     name="password"
                                     value={formData.password}
                                     onChange={handleChange}
-                                    placeholder="Enter your password"
+                                    placeholder={t('verify.enterPassword')}
                                     toggleMask
                                     className="w-full"
-                                    weakLabel="Too simple"
-                                    mediumLabel="Average complexity"
-                                    strongLabel="Complex password"
+                                    weakLabel={t('verify.weakLabel')}
+                                    mediumLabel={t('verify.mediumLabel')}
+                                    strongLabel={t('verify.strongLabel')}
                                     feedback
                                 />
                                 {errors.password && (
-                                    <small className="text-red-600">{errors.password}</small>
+                                    <small className="text-red-600">{t(errors.password)}</small>
                                 )}
                             </div>
 
                             {/* Password Confirmation */}
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-1">
-                                    Confirm Password
+                                    {t('verify.confirmPasswordLabel')}
                                 </label>
                                 <Password
                                     name="password_confirmation"
                                     value={formData.password_confirmation}
                                     onChange={handleChange}
-                                    placeholder="Confirm your password"
+                                    placeholder={t('verify.confirmPasswordPlaceholder')}
                                     toggleMask
                                     feedback={false}
                                     className="w-full"
                                 />
                                 {errors.password_confirmation && (
                                     <small className="text-red-600">
-                                        {errors.password_confirmation}
+                                        {t(errors.password_confirmation)}
                                     </small>
                                 )}
                             </div>
@@ -288,7 +288,7 @@ function VerifyEmailPage() {
                             {/* Verify Button */}
                             <Button
                                 type="submit"
-                                label={loading ? 'Verifying...' : 'Verify Email & Set Password'}
+                                label={loading ? t('verify.verifying') : t('verify.verifyButton')}
                                 loading={loading}
                                 disabled={loading}
                                 className="w-full !h-[44px]"
@@ -298,11 +298,11 @@ function VerifyEmailPage() {
                         {/* Resend Email Section */}
                         <div className="mt-6 pt-6 border-t border-gray-200">
                             <p className="text-center text-sm text-gray-600 mb-3">
-                                Didn't receive the email?
+                                {t('verify.didntReceive')}
                             </p>
                             <Button
                                 type="button"
-                                label={resendLoading ? 'Sending...' : 'Resend Verification Email'}
+                                label={resendLoading ? t('verify.sending') : t('verify.resendButton')}
                                 onClick={handleResendEmail}
                                 loading={resendLoading}
                                 disabled={resendLoading}
@@ -315,7 +315,7 @@ function VerifyEmailPage() {
                         <div className="mt-4 text-center">
                             <Button
                                 type="button"
-                                label="Back to Login"
+                                label={t('verify.backToLogin')}
                                 onClick={() => navigate('/login')}
                                 text
                                 severity="secondary"

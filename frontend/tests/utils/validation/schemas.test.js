@@ -93,14 +93,14 @@ describe('validationSchemas integration with validateForm', () => {
         const formData = { password: 'longpassword', repeatPassword: 'different' }
         const result = validateForm(formData, validationSchemas.resetPassword)
         expect(result.isValid).toBe(false)
-        expect(result.errors.repeatPassword).toBe('Passwords must match')
+        expect(result.errors.repeatPassword).toBe('validation.passwordMatch')
     })
 
     it('resetPassword schema enforces minLength on password', () => {
         const formData = { password: 'short', repeatPassword: 'short' }
         const result = validateForm(formData, validationSchemas.resetPassword)
         expect(result.isValid).toBe(false)
-        expect(result.errors.password).toBe('Password must be at least 8 characters long')
+        expect(result.errors.password).toBe('validation.passwordMinLength')
     })
 
     it('claim schema passes with all required fields filled', () => {

@@ -503,7 +503,7 @@ function UsersPage() {
                 <Column field="teams" header={t('users.teams', 'Teams')} body={renderTeams} editor={teamsEditor} sortable />
                 <Column field="email" header={t('users.email', "Email")} sortable editor={textInputEditor} />
                 <Column field="role_id" header={t('users.role')} body={renderRole} sortable editor={roleEditor} />
-                <Column field="active_status_id" header={t('user.status', 'Status')} body={renderStatus} sortable editor={statusEditor} />
+                <Column field="active_status_id" header={t('common.status')} body={renderStatus} sortable editor={statusEditor} />
                 <Column rowEditor header={t('common.actions')} />
                 <Column body={renderDeleteButton} header={t('common.delete', 'Delete')} style={{ width: '6rem', textAlign: 'center' }} />
             </DataTable>
@@ -591,7 +591,7 @@ function UsersPage() {
                             />
                         </div>
                         <div className="edit-field">
-                            <label>{t('user.status', 'Status')}</label>
+                            <label>{t('common.status')}</label>
                             <Dropdown
                                 value={editData.active_status_id}
                                 onChange={(e) => setEditData({ ...editData, active_status_id: e.target.value })}

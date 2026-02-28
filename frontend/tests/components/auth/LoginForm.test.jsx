@@ -24,6 +24,7 @@ vi.mock('react-i18next', () => ({
         t: (key, fallback) => key,
         i18n: { changeLanguage: vi.fn() },
     }),
+    initReactI18next: { type: '3rdParty', init: vi.fn() },
 }))
 
 // Mock LanguageSwitcher to avoid pulling in extra dependencies
@@ -88,10 +89,10 @@ describe('LoginForm', () => {
         const submitButton = screen.getByRole('button', { name: /common\.submit/i })
         await user.click(submitButton)
 
-        // Validation messages from schemas.js
+        // Validation messageKeys from schemas.js, resolved through t() mock which returns the key
         await waitFor(() => {
-            expect(screen.getByText(/Email is required/i)).toBeInTheDocument()
-            expect(screen.getByText(/Password is required/i)).toBeInTheDocument()
+            expect(screen.getByText(/validation\.emailRequired/i)).toBeInTheDocument()
+            expect(screen.getByText(/validation\.passwordRequired/i)).toBeInTheDocument()
         })
 
         // login should NOT have been called

@@ -100,28 +100,28 @@ function CostCentresPage() {
     const toasts = {
         created: () => {
             toast.current.show(
-                { severity: 'success', summary: 'Created', detail: 'Created successfully!', life: 3000 })
+                { severity: 'success', summary: t('common.success'), detail: t('costCentre.createSuccess'), life: 3000 })
         },
         updated: () => {
             toast.current.show(
-                { severity: 'success', summary: 'Updated', detail: 'Updated successfully!', life: 3000 })
+                { severity: 'success', summary: t('common.success'), detail: t('costCentre.updateSuccess'), life: 3000 })
         },
         error: () => {
             toast.current.show(
-                { severity: 'error', summary: 'Error', detail: error || 'Something went wrong.', life: 3000 })
+                { severity: 'error', summary: t('common.error'), detail: error || t('common.unknownError'), life: 3000 })
         },
         accept: async (costCentreId) => {
             const response = await deleteCostCentre(costCentreId)
             if (response?.error) {
                 toast.current.show(
-                    { severity: 'error', summary: t('common.error', 'Error'), detail: response.error, life: 5000 })
+                    { severity: 'error', summary: t('common.error'), detail: response.error, life: 5000 })
             } else if (response) {
                 toast.current.show(
-                    { severity: 'success', summary: 'Deleted', detail: 'Deleted successfully!', life: 3000 })
+                    { severity: 'success', summary: t('common.success'), detail: t('costCentre.deleteSuccess'), life: 3000 })
             }
         },
         reject: () => {
-            toast.current.show({ severity: 'info', summary: 'Cancelled', detail: 'Cancelled', life: 3000 })
+            toast.current.show({ severity: 'info', summary: t('toast.info', 'Info'), detail: t('costCentre.cancelled'), life: 3000 })
         },
     }
 

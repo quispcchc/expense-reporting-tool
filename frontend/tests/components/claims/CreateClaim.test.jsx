@@ -47,6 +47,7 @@ vi.mock('react-i18next', () => ({
         t: (key, fallback) => fallback || key,
         i18n: { changeLanguage: vi.fn() },
     }),
+    initReactI18next: { type: '3rdParty', init: vi.fn() },
 }))
 
 // ── Mock showToast ──────────────────────────────────────────────────
@@ -304,7 +305,7 @@ describe('CreateClaim submit workflow', () => {
                 mockToastRef,
                 expect.objectContaining({
                     severity: 'error',
-                    summary: 'Submit failed',
+                    summary: 'claims.submitFailed',
                     detail: 'Network error',
                 }),
             )

@@ -21,19 +21,19 @@ describe('expense schema validation', () => {
     it('empty amount fails with required message', () => {
         const result = validateForm({ ...validExpense, amount: '' }, validationSchemas.expense)
         expect(result.isValid).toBe(false)
-        expect(result.errors.amount).toBe('Amount is required')
+        expect(result.errors.amount).toBe('validation.amountRequired')
     })
 
     it('string amount "abc" fails with isNumeric message', () => {
         const result = validateForm({ ...validExpense, amount: 'abc' }, validationSchemas.expense)
         expect(result.isValid).toBe(false)
-        expect(result.errors.amount).toBe('Amount must be a number')
+        expect(result.errors.amount).toBe('validation.amountNumeric')
     })
 
     it('mixed string "12abc" fails with isNumeric message', () => {
         const result = validateForm({ ...validExpense, amount: '12abc' }, validationSchemas.expense)
         expect(result.isValid).toBe(false)
-        expect(result.errors.amount).toBe('Amount must be a number')
+        expect(result.errors.amount).toBe('validation.amountNumeric')
     })
 
     it('zero amount passes', () => {
@@ -54,18 +54,18 @@ describe('expense schema validation', () => {
     it('missing required fields reports errors', () => {
         const result = validateForm({}, validationSchemas.expense, { abortEarly: true })
         expect(result.isValid).toBe(false)
-        expect(result.errors.program).toBe('Program is required')
-        expect(result.errors.transactionDate).toBe('Transaction Date is required')
-        expect(result.errors.costCentre).toBe('Cost Centre is required')
-        expect(result.errors.vendor).toBe('Vendor is required')
-        expect(result.errors.accountNum).toBe('Account Number is required')
-        expect(result.errors.amount).toBe('Amount is required')
-        expect(result.errors.buyer).toBe('Buyer is required')
+        expect(result.errors.program).toBe('validation.programRequired')
+        expect(result.errors.transactionDate).toBe('validation.transactionDateRequired')
+        expect(result.errors.costCentre).toBe('validation.costCentreRequired')
+        expect(result.errors.vendor).toBe('validation.vendorRequired')
+        expect(result.errors.accountNum).toBe('validation.accountNumRequired')
+        expect(result.errors.amount).toBe('validation.amountRequired')
+        expect(result.errors.buyer).toBe('validation.buyerRequired')
     })
 
     it('whitespace-only amount fails with required message', () => {
         const result = validateForm({ ...validExpense, amount: '   ' }, validationSchemas.expense)
         expect(result.isValid).toBe(false)
-        expect(result.errors.amount).toBe('Amount is required')
+        expect(result.errors.amount).toBe('validation.amountRequired')
     })
 })

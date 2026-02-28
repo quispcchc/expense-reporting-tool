@@ -243,7 +243,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
             return cleanedChanges
         })
 
-        showToast(toastRef, { severity: 'info', summary: 'Info', detail: 'Edit cancelled!' })
+        showToast(toastRef, { severity: 'info', summary: t('toast.info'), detail: t('claims.editCancelled') })
     }
 
     // Handle saving row edit
@@ -278,7 +278,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
 
             // Save all changes to parent
             saveExpenseItemsToParent(updatedExpenseItems)
-            showToast(toastRef, { severity: 'success', summary: 'Updated', detail: 'Expense updated locally!' })
+            showToast(toastRef, { severity: 'success', summary: t('common.success'), detail: t('claims.expenseUpdatedLocally') })
             return
         }
 
@@ -451,7 +451,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
 
         // Save all changes to parent
         saveExpenseItemsToParent(updatedExpenseItems)
-        showToast(toastRef, { severity: 'success', summary: 'Updated', detail: 'Updated successfully!' })
+        showToast(toastRef, { severity: 'success', summary: t('common.success'), detail: t('claims.updatedSuccessfully') })
     }
 
     // Delete an expense item (Soft Delete)
@@ -579,12 +579,12 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
             )
             if (onClaimUpdated) onClaimUpdated()
 
-            showToast(toastRef, { severity: 'success', summary: 'Success', detail: 'Approved successfully!' })
+            showToast(toastRef, { severity: 'success', summary: t('common.success'), detail: t('claims.approvedSuccess') })
 
         }
         catch (error) {
             showToast(
-                toastRef, { severity: 'error', summary: 'Error', detail: 'Ops, something went wrong!' })
+                toastRef, { severity: 'error', summary: t('common.error'), detail: t('claims.approveRejectError') })
         }
     }
 
@@ -602,7 +602,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
 
             if (onClaimUpdated) onClaimUpdated()
 
-            showToast(toastRef, { severity: 'success', summary: 'Success', detail: 'Rejected successfully!' })
+            showToast(toastRef, { severity: 'success', summary: t('common.success'), detail: t('claims.rejectedSuccess') })
         }
         catch (error) {
         }
@@ -613,9 +613,9 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
 
         return (
             <div className="flex gap-2">
-                <Button label="Approve" outlined className={BUTTON_STYLE.success} icon="pi pi-check" iconPos="right"
+                <Button label={t('claims.approve')} outlined className={BUTTON_STYLE.success} icon="pi pi-check" iconPos="right"
                     onClick={() => approveExpense(rowData.transactionId)} disabled={isProcessed} />
-                <Button label="Reject" outlined className={BUTTON_STYLE.danger} icon="pi pi-times" iconPos="right"
+                <Button label={t('claims.reject')} outlined className={BUTTON_STYLE.danger} icon="pi pi-times" iconPos="right"
                     onClick={() => rejectExpense(rowData.transactionId)} disabled={isProcessed} />
             </div>
         )

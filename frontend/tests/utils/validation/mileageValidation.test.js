@@ -23,25 +23,25 @@ describe('mileage transaction schema validation', () => {
     it('missing transaction_date fails', () => {
         const result = validateForm({ ...validMileage, transaction_date: '' }, validationSchemas.mileageTransaction)
         expect(result.isValid).toBe(false)
-        expect(result.errors.transaction_date).toBe('Transaction Date is required')
+        expect(result.errors.transaction_date).toBe('validation.transactionDateRequired')
     })
 
     it('missing travel_from fails', () => {
         const result = validateForm({ ...validMileage, travel_from: '' }, validationSchemas.mileageTransaction)
         expect(result.isValid).toBe(false)
-        expect(result.errors.travel_from).toBe('Travel From is required')
+        expect(result.errors.travel_from).toBe('validation.travelFromRequired')
     })
 
     it('missing travel_to fails', () => {
         const result = validateForm({ ...validMileage, travel_to: '' }, validationSchemas.mileageTransaction)
         expect(result.isValid).toBe(false)
-        expect(result.errors.travel_to).toBe('Travel To is required')
+        expect(result.errors.travel_to).toBe('validation.travelToRequired')
     })
 
     it('missing buyer fails', () => {
         const result = validateForm({ ...validMileage, buyer: '' }, validationSchemas.mileageTransaction)
         expect(result.isValid).toBe(false)
-        expect(result.errors.buyer).toBe('Buyer is required')
+        expect(result.errors.buyer).toBe('validation.buyerRequired')
     })
 
     // ==================== NUMERIC VALIDATION ====================
@@ -49,13 +49,13 @@ describe('mileage transaction schema validation', () => {
     it('string distance_km "abc" fails with isNumeric message', () => {
         const result = validateForm({ ...validMileage, distance_km: 'abc' }, validationSchemas.mileageTransaction)
         expect(result.isValid).toBe(false)
-        expect(result.errors.distance_km).toBe('Distance must be a number')
+        expect(result.errors.distance_km).toBe('validation.distanceNumeric')
     })
 
     it('negative distance_km fails', () => {
         const result = validateForm({ ...validMileage, distance_km: '-10' }, validationSchemas.mileageTransaction)
         expect(result.isValid).toBe(false)
-        expect(result.errors.distance_km).toBe('Distance cannot be negative')
+        expect(result.errors.distance_km).toBe('validation.distanceNonNegative')
     })
 
     it('zero distance passes', () => {
@@ -66,25 +66,25 @@ describe('mileage transaction schema validation', () => {
     it('parking_amount must be numeric if provided', () => {
         const result = validateForm({ ...validMileage, parking_amount: 'abc' }, validationSchemas.mileageTransaction)
         expect(result.isValid).toBe(false)
-        expect(result.errors.parking_amount).toBe('Parking must be a number')
+        expect(result.errors.parking_amount).toBe('validation.parkingNumeric')
     })
 
     it('negative parking_amount fails', () => {
         const result = validateForm({ ...validMileage, parking_amount: '-5' }, validationSchemas.mileageTransaction)
         expect(result.isValid).toBe(false)
-        expect(result.errors.parking_amount).toBe('Parking cannot be negative')
+        expect(result.errors.parking_amount).toBe('validation.parkingNonNegative')
     })
 
     it('meter_km must be numeric if provided', () => {
         const result = validateForm({ ...validMileage, meter_km: 'xyz' }, validationSchemas.mileageTransaction)
         expect(result.isValid).toBe(false)
-        expect(result.errors.meter_km).toBe('Meter must be a number')
+        expect(result.errors.meter_km).toBe('validation.meterNumeric')
     })
 
     it('negative meter_km fails', () => {
         const result = validateForm({ ...validMileage, meter_km: '-3' }, validationSchemas.mileageTransaction)
         expect(result.isValid).toBe(false)
-        expect(result.errors.meter_km).toBe('Meter cannot be negative')
+        expect(result.errors.meter_km).toBe('validation.meterNonNegative')
     })
 
     // ==================== METER MAX VALUE ====================
@@ -92,7 +92,7 @@ describe('mileage transaction schema validation', () => {
     it('meter_km greater than 5 fails', () => {
         const result = validateForm({ ...validMileage, meter_km: '6' }, validationSchemas.mileageTransaction)
         expect(result.isValid).toBe(false)
-        expect(result.errors.meter_km).toBe('Meter cannot be greater than 5')
+        expect(result.errors.meter_km).toBe('validation.meterMaxValue')
     })
 
     it('meter_km equal to 5 passes', () => {
@@ -145,9 +145,9 @@ describe('mileage transaction schema validation', () => {
             parking_amount: '',
         }, validationSchemas.mileageTransaction)
         expect(result.isValid).toBe(false)
-        expect(result.errors.distance_km).toBe('Distance, Meter, or Parking is required')
-        expect(result.errors.meter_km).toBe('Distance, Meter, or Parking is required')
-        expect(result.errors.parking_amount).toBe('Distance, Meter, or Parking is required')
+        expect(result.errors.distance_km).toBe('validation.distanceMeterParkingRequired')
+        expect(result.errors.meter_km).toBe('validation.distanceMeterParkingRequired')
+        expect(result.errors.parking_amount).toBe('validation.distanceMeterParkingRequired')
     })
 
     it('all empty fields report all required errors', () => {

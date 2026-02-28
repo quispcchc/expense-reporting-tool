@@ -256,8 +256,8 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
         if (!selectedClaims || selectedClaims.length === 0) {
             showToast(toastRef, {
                 severity: 'warn',
-                summary: 'Warning',
-                detail: 'Please select at least one claim to export'
+                summary: t('toast.warning'),
+                detail: t('claims.exportSelectWarning')
             })
             return
         }
@@ -291,8 +291,8 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
 
                 showToast(toastRef, {
                     severity: 'success',
-                    summary: 'Success',
-                    detail: 'PDF exported successfully'
+                    summary: t('common.success'),
+                    detail: t('claims.exportSuccess')
                 })
             }
             // Multiple claims - ZIP download
@@ -314,8 +314,8 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
 
                 showToast(toastRef, {
                     severity: 'success',
-                    summary: 'Success',
-                    detail: `${selectedClaims.length} claims exported as ZIP file`
+                    summary: t('common.success'),
+                    detail: t('claims.exportZipSuccess', { count: selectedClaims.length })
                 })
             }
         } catch (error) {
@@ -326,19 +326,19 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
             }
 
             console.error('Error exporting PDF:', error)
-            let errorDetail = 'Failed to export PDF. Please try again.';
+            let errorDetail = t('claims.exportFailed');
 
             if (error?.message) {
                 errorDetail = error.message;
             } else if (error?.response?.status === 500) {
-                errorDetail = 'Server error during PDF generation. Check the server logs for details.';
+                errorDetail = t('claims.exportServerError');
             } else if (error?.response?.status === 408) {
-                errorDetail = 'Request timeout. The PDF generation took too long. Please try again.';
+                errorDetail = t('claims.exportTimeout');
             }
 
             showToast(toastRef, {
                 severity: 'error',
-                summary: 'Error',
+                summary: t('common.error'),
                 detail: errorDetail
             })
         } finally {
