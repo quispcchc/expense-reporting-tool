@@ -147,8 +147,6 @@ function UsersPage() {
     const teamsEditor = useCallback((editorOptions) => {
         const rowKey = editorOptions.rowData?.user_id;
         const deptMap = editingDepartmentMapRef.current;
-        console.log(deptMap);
-        
         const teamsMap = editingTeamsMapRef.current;
 
         // Use editingDepartmentMap if available (user changed department during this edit session)
@@ -300,7 +298,6 @@ function UsersPage() {
                     await refresh()
                     showToast(toastRef, { severity: 'success', summary: t('common.success'), detail: t('users.updateSuccess', 'User updated successfully'), life: TOAST_LIFE.SUCCESS })
                 } catch (err) {
-                    console.error('Failed to update user', err)
                     showToast(toastRef, { severity: 'error', summary: t('common.error'), detail: err.message || t('users.updateError', 'Failed to update user'), life: TOAST_LIFE.ERROR })
                     setUsers(users)
                 }

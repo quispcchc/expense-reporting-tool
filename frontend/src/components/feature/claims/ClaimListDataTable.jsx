@@ -321,11 +321,9 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
         } catch (error) {
             // Ignore aborted requests
             if (error?.name === 'AbortError' || error?.name === 'CanceledError') {
-                console.log('PDF export request was cancelled')
                 return
             }
 
-            console.error('Error exporting PDF:', error)
             let errorDetail = t('claims.exportFailed');
 
             if (error?.message) {

@@ -73,7 +73,7 @@ function DepartmentTeamsPage() {
             setDepartmentData(department)
             setTeams(fetchedTeams)
         } catch (err) {
-            console.error('Failed to fetch department teams:', err)
+            // Error handled by caller
         } finally {
             isFetching.current = false
             setLoading(false)
@@ -116,12 +116,11 @@ function DepartmentTeamsPage() {
             showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('teams.updateSuccess', 'Team updated successfully'), life: TOAST_LIFE.SUCCESS })
             await refreshLookups()
         } catch (err) {
-            console.error('Failed to update team:', err)
             showToast(toast, { severity: 'error', summary: t('common.error'), detail: err.message || t('teams.updateError', 'Failed to update team'), life: TOAST_LIFE.ERROR })
             try {
                 await fetchData(true)
             } catch (fetchErr) {
-                console.error('Failed to revert team changes:', fetchErr)
+                // Error handled by caller
             }
         }
     }

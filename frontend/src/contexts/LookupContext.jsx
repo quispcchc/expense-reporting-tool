@@ -36,7 +36,6 @@ export function LookupProvider({ children }) {
 
             // Require auth token before fetching
             if (!isAuthenticated()) {
-                console.log('LookupContext: Not authenticated, skipping fetch.')
                 return false
             }
 
@@ -65,13 +64,11 @@ export function LookupProvider({ children }) {
                 setHasFetched(true)
                 return true
             } else {
-                console.warn('LookupContext: Data fetched but seems empty.')
                 setHasFetched(true)
                 return true
             }
         } catch (err) {
             setError(err.message || 'Failed to fetch lookups')
-            console.error('Error fetching lookups:', err)
             return false
         } finally {
             isFetching.current = false

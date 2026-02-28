@@ -69,7 +69,7 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
                         setMileageRate(parseFloat(response.data.mileage_rate))
                     }
                 } catch (error) {
-                    console.error('Failed to fetch mileage rate:', error)
+                    // Error handled by caller
                 } finally {
                     isFetchingRate.current = false
                 }

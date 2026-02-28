@@ -67,7 +67,6 @@ export const UserProvider = ({ children }) => {
             const res = await api.get('/admin/users')
             dispatch({ type: 'SET_USERS', payload: res.data })
         } catch (err) {
-            console.error('Failed to fetch users', err)
             dispatch({ type: 'SET_ERROR', payload: err.message })
         } finally {
             isFetching.current = false

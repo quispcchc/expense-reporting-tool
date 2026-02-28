@@ -84,9 +84,6 @@ export const CostCentreProvider = ({ children }) => {
             }
             try {
                 const response = await api.post('cost-centres', newCostCentre)
-                console.log(response);
-                
-                
                 dispatch({ type: 'CREATE_COST_CENTRE', payload: response.data })
                 return response
             }

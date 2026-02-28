@@ -21,8 +21,6 @@ function ClaimExpansionAttachmentRow({ label, file, isEditing, rowData, handleIn
             isNew: true  // Mark as new upload
         }));
 
-        console.log('📤 selected files:', fileObjects);
-
         // Get existing attachments - file prop now correctly represents current state
         // (either expansionChanges.attachment if modified, or original currentData.attachment)
         const currentAttachments = Array.isArray(file) ? file : (file ? [file] : []);
@@ -30,18 +28,13 @@ function ClaimExpansionAttachmentRow({ label, file, isEditing, rowData, handleIn
         // Append new files to existing ones
         const updatedAttachments = [...currentAttachments, ...fileObjects];
 
-        console.log(`📎 Updated attachments for transaction ${rowData.transactionId}:`, updatedAttachments)
-
         // Notify parent to update attachments for this row
         handleInputChange(rowData.transactionId, 'attachment', updatedAttachments);
     }
 
     // Remove a file by its index from the attachments list
     const handleRemoveFile = (indexToRemove) => {
-        console.log('🗑️ Removing file at index:', indexToRemove, 'for transaction ID:', rowData.transactionId);
-
         const currentAttachments = Array.isArray(file) ? file : (file ? [file] : []);
-        console.log('Current attachments before removal:', currentAttachments)
 
         // For existing files (with receipt_id), mark them for deletion instead of removing
         const fileToRemove = currentAttachments[indexToRemove];
@@ -52,16 +45,13 @@ function ClaimExpansionAttachmentRow({ label, file, isEditing, rowData, handleIn
             // Existing file from backend - track the receipt_id for deletion
             deletedReceiptId = fileToRemove.receipt_id;
             updatedAttachments = currentAttachments.filter((_, index) => index !== indexToRemove);
-            console.log('Deleted file from backend. Receipt ID to delete:', deletedReceiptId, 'new array:', updatedAttachments)
         } else {
             // New file - just remove it
             updatedAttachments = currentAttachments.filter((_, index) => index !== indexToRemove);
-            console.log('Deleted new file - new array:', updatedAttachments)
         }
 
         // If no files left, set to empty array (not null, so FormData processes it)
         const finalAttachments = updatedAttachments.length > 0 ? updatedAttachments : []
-        console.log(`Final attachments for transaction ${rowData.transactionId}:`, finalAttachments)
         handleInputChange(rowData.transactionId, 'attachment', finalAttachments);
 
         // If a backend file was deleted, also track the deleted receipt ID

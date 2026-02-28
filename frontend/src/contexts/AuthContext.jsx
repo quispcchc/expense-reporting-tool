@@ -29,17 +29,14 @@ export const AuthProvider = ({ children }) => {
                     setToken(storedToken)
                     setAuthUser(JSON.parse(storedUser))
                 } catch (err) {
-                    console.log('Session check failed:', err)
                     // Only clear session if strictly 401 (Unauthorized)
                     // Network errors or 500s should NOT log the user out immediately
                     if (err.status === 401 || err.response?.status === 401) {
-                        console.log('Session expired (401), logging out.');
                         Cookies.remove('token', { path: '/' })
                         Cookies.remove('authUser', { path: '/' })
                         setAuthUser(null)
                         setToken(null)
                     } else {
-                        console.warn('Server validation failed but not 401. Keeping local session for now.');
                         // We keep the local state. If the token is truly invalid, the next API call will trigger the 401 interceptor in api.js
                         setToken(storedToken)
                         setAuthUser(JSON.parse(storedUser))
@@ -61,8 +58,6 @@ export const AuthProvider = ({ children }) => {
                 // Use access_token from response and alias it to token
                 const { access_token: token, user } = response.data
 
-                console.log(response)
-
                 // Update auth state and persist to Cookies
                 // No expires option means it's a session cookie (removed on browser close)
                 setAuthUser(user)
@@ -77,7 +72,6 @@ export const AuthProvider = ({ children }) => {
             catch (err) {
                 const errorMessage = err.message || 'Login failed. Please try again.'
                 setError(errorMessage)
-                console.log('Error occurred while login', err)
                 return { success: false }
 
             } finally {
@@ -92,7 +86,7 @@ export const AuthProvider = ({ children }) => {
                 await api.post('/logout')
             }
             catch (err) {
-                console.error('Logout error:', err)
+                // Logout errors are non-critical — state is cleared regardless
             } finally {
                 // Clear state regardless of server response
                 setAuthUser(null)

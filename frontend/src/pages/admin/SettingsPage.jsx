@@ -30,7 +30,7 @@ function SettingsPage() {
                 setRate(response.data.mileage_rate)
             }
         } catch (error) {
-            console.error('Failed to load settings:', error)
+            // Error handled by caller
         }
     }
 

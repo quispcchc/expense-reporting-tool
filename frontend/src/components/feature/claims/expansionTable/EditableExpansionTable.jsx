@@ -527,7 +527,6 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
             showToast(toastRef, { severity: 'success', summary: t('toast.success'), detail: t('expenses.itemsDeletedPermanently', 'Items deleted permanently') })
 
         } catch (error) {
-            console.error('Batch Delete failed:', error)
             showToast(toastRef, { severity: 'error', summary: t('toast.error'), detail: t('expenses.deleteItemsFailed', 'Failed to delete some items') })
 
             // Optional: You might want to restore items if they failed, 

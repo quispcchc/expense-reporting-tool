@@ -81,8 +81,6 @@ function AddNewUser() {
         const validation = validateForm(userFormData, schema)
 
         if (!validation.isValid) {
-            console.log(validation.errors);
-
             setErrors(validation.errors)
             return
         }
@@ -113,8 +111,6 @@ function AddNewUser() {
                 setIsOpen(false)
             }
             catch (err) {
-                console.error('Failed to create user', err)
-
                 showToast(toastRef, {
                     severity: 'error',
                     summary: t('common.error', 'Error'),

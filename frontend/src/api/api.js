@@ -83,7 +83,6 @@ api.interceptors.response.use(
             message = error.message;
         }
 
-        console.error('API Error:', message, status);
         return Promise.reject({ message, status, fullError });
     },
 )
