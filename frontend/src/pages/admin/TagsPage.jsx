@@ -17,6 +17,8 @@ import ActiveStatusTab from '../../components/common/ui/ActiveStatusTab.jsx'
 import { InputText } from 'primereact/inputtext'
 import { Dropdown } from 'primereact/dropdown'
 import { useIsMobile } from '../../hooks/useIsMobile.js'
+import { validateForm } from '../../utils/validation/validator.js'
+import { validationSchemas } from '../../utils/validation/schemas.js'
 
 function TagsPage() {
     const { t } = useTranslation()
@@ -72,6 +74,12 @@ function TagsPage() {
     // Inline edit for tags
     const onTagRowEditComplete = async (e) => {
         const { newData } = e;
+        const { isValid, errors: validationErrors } = validateForm(newData, validationSchemas.editTag)
+        if (!isValid) {
+            const messages = Object.values(validationErrors).map(key => t(key)).join(', ')
+            showToast(toast, { severity: 'error', summary: t('common.error'), detail: messages, life: 5000 })
+            return
+        }
         try {
             await updateTag(newData.tag_id, newData.tag_name);
             showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('tags.updated_success'), life: 2000 });
@@ -117,6 +125,12 @@ function TagsPage() {
 
     const onProjectRowEditComplete = async (e) => {
         const { newData } = e;
+        const { isValid, errors: validationErrors } = validateForm(newData, validationSchemas.editProject)
+        if (!isValid) {
+            const messages = Object.values(validationErrors).map(key => t(key)).join(', ')
+            showToast(toast, { severity: 'error', summary: t('common.error'), detail: messages, life: 5000 })
+            return
+        }
         setProjectLoading(true);
         setProjectError(null);
         try {

@@ -16,6 +16,10 @@ import { Toast } from 'primereact/toast'
 import { Button } from 'primereact/button'
 import { Dialog } from 'primereact/dialog'
 import { useIsMobile } from '../../hooks/useIsMobile.js'
+import { validateForm } from '../../utils/validation/validator.js'
+import { validationSchemas } from '../../utils/validation/schemas.js'
+import Input from '../../components/common/ui/Input.jsx'
+import Select from '../../components/common/ui/Select.jsx'
 
 function TeamsPage() {
     const { t } = useTranslation()
@@ -38,6 +42,7 @@ function TeamsPage() {
     // Mobile edit dialog state
     const [editDialog, setEditDialog] = useState(false)
     const [editData, setEditData] = useState(null)
+    const [editErrors, setEditErrors] = useState({})
 
     // Handle global search input changes
     const onGlobalFilterChange = (e) => {
@@ -80,6 +85,12 @@ function TeamsPage() {
     // Handle row edit completion: update team via context action
     const onRowEditComplete = async (e) => {
         const { newData } = e
+        const { isValid, errors: validationErrors } = validateForm(newData, validationSchemas.addTeam)
+        if (!isValid) {
+            const messages = Object.values(validationErrors).map(key => t(key)).join(', ')
+            toast.current.show({ severity: 'error', summary: t('common.error'), detail: messages, life: 5000 })
+            return
+        }
         const result = await updateTeam(newData)
 
         if (result.success) {
@@ -94,6 +105,12 @@ function TeamsPage() {
     // Mobile edit dialog save
     const handleMobileEditSave = async () => {
         if (!editData) return
+        const { isValid, errors: validationErrors } = validateForm(editData, validationSchemas.addTeam)
+        if (!isValid) {
+            setEditErrors(validationErrors)
+            return
+        }
+        setEditErrors({})
         const result = await updateTeam(editData)
 
         if (result.success) {
@@ -228,42 +245,24 @@ function TeamsPage() {
                 header={t('teams.editTeam', 'Edit Team')}
                 visible={editDialog}
                 style={{ width: '90vw', maxWidth: '450px' }}
-                onHide={() => { setEditDialog(false); setEditData(null) }}
+                onHide={() => { setEditDialog(false); setEditData(null); setEditErrors({}) }}
                 className="mobile-edit-dialog"
                 footer={
                     <div className="flex justify-end gap-2">
-                        <Button label={t('common.cancel', 'Cancel')} icon="pi pi-times" outlined onClick={() => { setEditDialog(false); setEditData(null) }} />
+                        <Button label={t('common.cancel', 'Cancel')} icon="pi pi-times" outlined onClick={() => { setEditDialog(false); setEditData(null); setEditErrors({}) }} />
                         <Button label={t('common.save', 'Save')} icon="pi pi-check" onClick={handleMobileEditSave} />
                     </div>
                 }
             >
                 {editData && (
-                    <>
-                        <div className="edit-field">
-                            <label>{t('teams.code')}</label>
-                            <InputText
-                                value={editData.team_abbreviation || ''}
-                                onChange={(e) => setEditData({ ...editData, team_abbreviation: e.target.value })}
-                            />
-                        </div>
-                        <div className="edit-field">
-                            <label>{t('teams.name')}</label>
-                            <InputText
-                                value={editData.team_name || ''}
-                                onChange={(e) => setEditData({ ...editData, team_name: e.target.value })}
-                            />
-                        </div>
-                        <div className="edit-field">
-                            <label>{t('common.status')}</label>
-                            <Dropdown
-                                value={editData.active_status_id}
-                                onChange={(e) => setEditData({ ...editData, active_status_id: e.value })}
-                                options={statusOptions}
-                                optionLabel="label"
-                                optionValue="value"
-                            />
-                        </div>
-                    </>
+                    <div className="flex flex-col gap-4">
+                        <Input name="team_abbreviation" label={t('teams.code')} value={editData.team_abbreviation || ''} errors={editErrors}
+                            onChange={(e) => { setEditData({ ...editData, team_abbreviation: e.target.value }); setEditErrors(prev => ({ ...prev, team_abbreviation: undefined })) }} />
+                        <Input name="team_name" label={t('teams.name')} value={editData.team_name || ''} errors={editErrors}
+                            onChange={(e) => { setEditData({ ...editData, team_name: e.target.value }); setEditErrors(prev => ({ ...prev, team_name: undefined })) }} />
+                        <Select name="active_status_id" label={t('common.status')} value={editData.active_status_id} options={statusOptions} optionValue="value" errors={editErrors}
+                            onChange={(e) => { setEditData({ ...editData, active_status_id: e.value }); setEditErrors(prev => ({ ...prev, active_status_id: undefined })) }} />
+                    </div>
                 )}
             </Dialog>
         </>

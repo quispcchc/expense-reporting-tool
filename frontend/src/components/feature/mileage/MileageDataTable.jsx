@@ -86,6 +86,12 @@ function MileageDataTable({ data, mode, onTransactionsUpdate, toastRef, onClaimU
     // ─── Inline row edit complete ────────────────────────────────
     const onRowEditComplete = (e) => {
         const { newData, index } = e
+        const { isValid, errors: validationErrors } = validateForm(newData, validationSchemas.mileageTransaction)
+        if (!isValid) {
+            const messages = Object.values(validationErrors).map(key => t(key)).join(', ')
+            showToast(toastRef, { severity: 'error', summary: t('toast.error'), detail: messages, life: 5000 })
+            return
+        }
         const rate = parseFloat(newData.mileage_rate || mileageRate) || 0
         const total =
             (parseFloat(newData.distance_km) || 0) * rate +

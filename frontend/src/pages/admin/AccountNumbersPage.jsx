@@ -15,6 +15,9 @@ import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog'
 import { Toast } from 'primereact/toast'
 import { useTranslation } from 'react-i18next'
 import { useIsMobile } from '../../hooks/useIsMobile.js'
+import { validateForm } from '../../utils/validation/validator.js'
+import { validationSchemas } from '../../utils/validation/schemas.js'
+import Input from '../../components/common/ui/Input.jsx'
 
 function AccountNumbersPage() {
     const { t } = useTranslation()
@@ -34,6 +37,7 @@ function AccountNumbersPage() {
     // Mobile edit dialog state
     const [editDialog, setEditDialog] = useState(false)
     const [editData, setEditData] = useState(null)
+    const [editErrors, setEditErrors] = useState({})
 
     const onGlobalFilterChange = (e) => {
         const value = e.target.value
@@ -103,16 +107,15 @@ function AccountNumbersPage() {
     }, [error])
 
     const onRowEditComplete = async (e) => {
+        const { isValid, errors: validationErrors } = validateForm(e.newData, validationSchemas.editAccountNumber)
+        if (!isValid) {
+            const messages = Object.values(validationErrors).map(key => t(key)).join(', ')
+            toast.current?.show({ severity: 'error', summary: t('common.error'), detail: messages, life: 5000 })
+            return
+        }
         const response = await updateAccountNumber(e.newData)
         if (response?.status === 200) {
             toasts.updated()
-        } else if (response?.error) {
-            toast.current.show({
-                severity: 'error',
-                summary: 'Update Failed',
-                detail: response.error,
-                life: 5000
-            })
         }
     }
 
@@ -144,16 +147,15 @@ function AccountNumbersPage() {
     // Mobile edit dialog save
     const handleMobileEditSave = async () => {
         if (!editData) return
+        const { isValid, errors: validationErrors } = validateForm(editData, validationSchemas.editAccountNumber)
+        if (!isValid) {
+            setEditErrors(validationErrors)
+            return
+        }
+        setEditErrors({})
         const response = await updateAccountNumber(editData)
         if (response?.status === 200) {
             toasts.updated()
-        } else if (response?.error) {
-            toast.current.show({
-                severity: 'error',
-                summary: 'Update Failed',
-                detail: response.error,
-                life: 5000
-            })
         }
         setEditDialog(false)
         setEditData(null)
@@ -271,33 +273,22 @@ function AccountNumbersPage() {
                 header={t('accountNumbers.editAccountNumber', 'Edit Account Number')}
                 visible={editDialog}
                 style={{ width: '90vw', maxWidth: '450px' }}
-                onHide={() => { setEditDialog(false); setEditData(null) }}
+                onHide={() => { setEditDialog(false); setEditData(null); setEditErrors({}) }}
                 className="mobile-edit-dialog"
                 footer={
                     <div className="flex justify-end gap-2">
-                        <Button label={t('common.cancel', 'Cancel')} icon="pi pi-times" outlined onClick={() => { setEditDialog(false); setEditData(null) }} />
+                        <Button label={t('common.cancel', 'Cancel')} icon="pi pi-times" outlined onClick={() => { setEditDialog(false); setEditData(null); setEditErrors({}) }} />
                         <Button label={t('common.save', 'Save')} icon="pi pi-check" onClick={handleMobileEditSave} />
                     </div>
                 }
             >
                 {editData && (
-                    <>
-                        <div className="edit-field">
-                            <label>{t('accountNumbers.accountNumber', 'Account Number')}</label>
-                            <InputText
-                                type="number"
-                                value={editData.account_number || ''}
-                                onChange={(e) => setEditData({ ...editData, account_number: e.target.value })}
-                            />
-                        </div>
-                        <div className="edit-field">
-                            <label>{t('accountNumbers.description', 'Description')}</label>
-                            <InputText
-                                value={editData.description || ''}
-                                onChange={(e) => setEditData({ ...editData, description: e.target.value })}
-                            />
-                        </div>
-                    </>
+                    <div className="flex flex-col gap-4">
+                        <Input name="account_number" label={t('accountNumbers.accountNumber', 'Account Number')} type="number" value={editData.account_number || ''} errors={editErrors}
+                            onChange={(e) => { setEditData({ ...editData, account_number: e.target.value }); setEditErrors(prev => ({ ...prev, account_number: undefined })) }} />
+                        <Input name="description" label={t('accountNumbers.description', 'Description')} value={editData.description || ''} errors={editErrors}
+                            onChange={(e) => { setEditData({ ...editData, description: e.target.value }); setEditErrors(prev => ({ ...prev, description: undefined })) }} />
+                    </div>
                 )}
             </Dialog>
         </>

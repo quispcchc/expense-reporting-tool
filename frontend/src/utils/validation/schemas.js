@@ -153,6 +153,61 @@ export const validationSchemas = {
         ],
     },
 
+    editUser: {
+        first_name: [
+            { rule: 'required', messageKey: 'validation.firstNameRequired' },
+        ],
+        last_name: [
+            { rule: 'required', messageKey: 'validation.lastNameRequired' },
+        ],
+        email: [
+            { rule: 'required', messageKey: 'validation.enterEmail' },
+            { rule: 'email', messageKey: 'validation.emailInvalid' },
+        ],
+        department_id: [
+            { rule: 'required', messageKey: 'validation.selectDepartment' },
+        ],
+        role_id: [
+            { rule: 'required', messageKey: 'validation.chooseRole' },
+        ],
+    },
+
+    editCostCentre: {
+        department_id: [
+            { rule: 'required', messageKey: 'validation.departmentRequired' },
+        ],
+        cost_centre_code: [
+            { rule: 'required', messageKey: 'validation.codeRequired' },
+        ],
+        description: [
+            { rule: 'required', messageKey: 'validation.descriptionRequired' },
+        ],
+    },
+
+    editAccountNumber: {
+        account_number: [
+            { rule: 'required', messageKey: 'validation.accountNumRequired' },
+        ],
+        description: [
+            { rule: 'required', messageKey: 'validation.descriptionRequired' },
+        ],
+    },
+
+    editTag: {
+        tag_name: [
+            { rule: 'required', messageKey: 'validation.nameRequired' },
+        ],
+    },
+
+    editProject: {
+        project_name: [
+            { rule: 'required', messageKey: 'validation.nameRequired' },
+        ],
+        department_id: [
+            { rule: 'required', messageKey: 'validation.departmentRequired' },
+        ],
+    },
+
     mileageTransaction: {
         transaction_date: [
             { rule: 'required', messageKey: 'validation.transactionDateRequired' },
