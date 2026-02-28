@@ -1,11 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { DataTable } from 'primereact/datatable'
 import { Column } from 'primereact/column'
-import { InputText } from 'primereact/inputtext'
 import { InputNumber } from 'primereact/inputnumber'
 import ClaimRowExpansion from './ClaimRowExpansion.jsx'
 import { useClaims } from '../../../../contexts/ClaimContext.jsx'
-import { Dropdown } from 'primereact/dropdown'
 import { Button } from 'primereact/button'
 import StatusTab from '../../../common/ui/StatusTab.jsx'
 import { useLookups } from '../../../../contexts/LookupContext.jsx'
@@ -22,54 +20,15 @@ import { validationSchemas } from '../../../../utils/validation/schemas.js'
 import Input from '../../../common/ui/Input.jsx'
 import Select from '../../../common/ui/Select.jsx'
 import { formatCurrency } from '../../../../utils/formatters.js'
-
-// Helper function to map data based on mode
-const mapExpenseData = (data, mode) => {
-    if (!data) return []
-
-    if (mode === 'create') {
-        let frontendId = 1
-        // Create mode: data is already in frontend form shape
-        return data.map(item => ({
-            ...item,
-            transactionId: item.transactionId || frontendId++,
-        }))
-
-    } else if (mode === 'edit' || mode === 'view') {
-        // Map backend fields to frontend form fields.
-        // Mileage is now per-expense (expense.mileage from the backend).
-        return data.map((expense, index) => ({
-            transactionId: expense.expense_id || `temp-${index}-${Date.now()}`,
-            buyer: expense.buyer_name,
-            vendor: expense.vendor_name,
-            transactionDate: expense.transaction_date,
-            accountNum: expense.account_number_id,
-            costCentre: expense.cost_centre_id,
-            amount: expense.expense_amount,
-            description: expense.transaction_desc,
-            notes: expense.transaction_notes,
-            tags: expense.tags,
-            status: expense.approval_status_id,
-            program: expense.project_id,
-            attachment: expense.receipts ? expense.receipts.map(receipt => ({
-                url: `${API_BASE_URL}/storage/${receipt.receipt_path}`,
-                name: receipt.receipt_name,
-                receipt_id: receipt.receipt_id,
-            })) : [],
-            // Each expense carries its own mileage from the backend
-            ...(expense.mileage ? { mileage: expense.mileage } : {}),
-        }))
-    }
-    return []
-}
+import mapExpenseData from './mapExpenseData.js'
+import { useMobileExpenseEdit } from './useMobileExpenseEdit.js'
+import { expenseTextEditor, accountNumEditor, costCentreEditor, currencyInputEditor, dateInputEditor } from './expenseEditors.jsx'
 
 function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toastRef, onClaimUpdated }) {
     const { t } = useTranslation()
     const isMobile = useIsMobile()
     const [expenseItems, setExpenseItems] = useState(() => mapExpenseData(data, mode))
     const [mobileExpandedId, setMobileExpandedId] = useState(null)
-    const [mobileEditData, setMobileEditData] = useState(null) // tracks inline field edits on mobile
-    const [mobileEditErrors, setMobileEditErrors] = useState({})
 
     const { updateClaim } = useClaims()
 
@@ -89,7 +48,17 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
 
     const [pendingDeletions, setPendingDeletions] = useState([]) // Store items waiting to be permanently deleted
 
-    const { lookups: { accountNums, costCentres } } = useLookups()
+    const { lookups, lookups: { accountNums, costCentres } } = useLookups()
+
+    // Ref for handleRowSaveComplete — allows the mobile edit hook to
+    // always access the latest version without circular dependency
+    const handleRowSaveCompleteRef = useRef(null)
+
+    const {
+        mobileEditData, mobileEditErrors,
+        startMobileEdit, cancelMobileEdit, saveMobileEdit,
+        updateMobileField, updateMobileMileageTx,
+    } = useMobileExpenseEdit({ expenseItems, handleRowSaveCompleteRef })
 
     useEffect(() => {
         if (!data) return
@@ -500,6 +469,8 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
         saveExpenseItemsToParent(updatedExpenseItems)
         showToast(toastRef, { severity: 'success', summary: t('common.success'), detail: t('claims.updatedSuccessfully') })
     }
+    // Keep ref in sync for mobile edit hook
+    handleRowSaveCompleteRef.current = handleRowSaveComplete
 
     // Delete an expense item (Soft Delete)
     const deleteExpenseItem = (transactionId) => {
@@ -680,166 +651,6 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
     const costCentreMap = Object.fromEntries(
         costCentres.map(opt => [opt.cost_centre_id, `${opt.cost_centre_code} - ${opt.description}`]),
     )
-
-    // Editor templates for inline editing
-    const textInputEditor = (editorOptions) => (
-        <InputText
-            type="text"
-            value={editorOptions.value || ''}
-            onChange={(e) => editorOptions.editorCallback(e.target.value)}
-            className="w-full"
-        />
-    )
-
-    const accountNumEditor = (editorOptions) => (
-        <Dropdown
-            value={editorOptions.value}
-            onChange={(e) => editorOptions.editorCallback(e.target.value)}
-            options={accountNums.map((opt) => ({
-                label: `${opt.account_number} - ${opt.description}`,
-                value: opt.account_number_id,
-            }))}
-        />
-
-    )
-
-    const costCentreEditor = (editorOptions) => (
-        <Dropdown
-            value={editorOptions.value}
-            onChange={(e) => editorOptions.editorCallback(e.target.value)}
-            options={costCentres.map((opt) => ({
-                label: `${opt.cost_centre_code} - ${opt.description}`,
-                value: opt.cost_centre_id,
-            }))}
-        />
-
-    )
-
-    const currencyInputEditor = (editorOptions) => (
-        <InputNumber
-            value={editorOptions.value}
-            onValueChange={(e) => editorOptions.editorCallback(e.value)}
-            mode="currency"
-            currency={APP_SETTINGS.currency.code}
-            locale={APP_SETTINGS.currency.locale}
-            className="w-full"
-        />
-    )
-
-    const dateInputEditor = (editorOptions) => (
-        <InputText
-            type="date"
-            value={editorOptions.value || ''}
-            onChange={(e) => editorOptions.editorCallback(e.target.value)}
-            className="w-full"
-        />
-    )
-
-    // --- Mobile edit helpers ---
-    const startMobileEdit = (item) => {
-        const editData = {
-            transactionId: item.transactionId,
-            program: item.program,
-            amount: item.amount,
-            transactionDate: item.transactionDate,
-            vendor: item.vendor,
-            buyer: item.buyer,
-            accountNum: item.accountNum,
-            costCentre: item.costCentre,
-            mileage: item.mileage ? {
-                ...item.mileage,
-                transactions: item.mileage.transactions?.map(tx => ({ ...tx })) || [],
-            } : null,
-        }
-        setMobileEditData(editData)
-        setMobileEditErrors({})
-    }
-
-    const cancelMobileEdit = () => {
-        setMobileEditData(null)
-        setMobileEditErrors({})
-    }
-
-    const saveMobileEdit = async () => {
-        if (!mobileEditData) return
-
-        // Validate expense fields
-        const { isValid, errors: validationErrors } = validateForm(mobileEditData, validationSchemas.expense)
-
-        // Validate mileage transactions
-        let hasMileageError = false
-        const mileageTxErrors = {}
-        if (mobileEditData.mileage?.transactions?.length > 0) {
-            for (let i = 0; i < mobileEditData.mileage.transactions.length; i++) {
-                const tx = mobileEditData.mileage.transactions[i]
-                const { isValid: txValid, errors: errs } = validateForm(tx, validationSchemas.mileageTransaction)
-                if (!txValid) {
-                    hasMileageError = true
-                    mileageTxErrors[i] = errs
-                }
-            }
-        }
-
-        if (!isValid || hasMileageError) {
-            setMobileEditErrors({ ...validationErrors, mileageTx: hasMileageError ? mileageTxErrors : undefined })
-            return
-        }
-
-        const expenseId = mobileEditData.transactionId
-        const idx = expenseItems.findIndex(e => e.transactionId === expenseId)
-        if (idx < 0) return
-
-        // Build a fake editEvent matching handleRowSaveComplete's expected shape
-        const editEvent = {
-            index: idx,
-            newData: {
-                ...expenseItems[idx],
-                ...mobileEditData,
-            },
-        }
-        await handleRowSaveComplete(editEvent)
-        setMobileEditData(null)
-        setMobileEditErrors({})
-    }
-
-    const updateMobileField = (field, value) => {
-        setMobileEditData(prev => ({ ...prev, [field]: value }))
-        if (mobileEditErrors[field]) {
-            setMobileEditErrors(prev => ({ ...prev, [field]: undefined }))
-        }
-    }
-
-    const updateMobileMileageTx = (txIndex, field, value) => {
-        setMobileEditData(prev => {
-            const mileage = { ...prev.mileage }
-            const transactions = mileage.transactions.map((tx, i) => {
-                if (i !== txIndex) return tx
-                const updated = { ...tx, [field]: value }
-                const r = parseFloat(updated.mileage_rate || mileage.transactions[0]?.mileage_rate) || 0
-                updated.total_amount = parseFloat((
-                    (parseFloat(updated.distance_km) || 0) * r +
-                    (parseFloat(updated.meter_km) || 0) +
-                    (parseFloat(updated.parking_amount) || 0)
-                ).toFixed(2))
-                return updated
-            })
-            return { ...prev, mileage: { ...mileage, transactions } }
-        })
-        // Clear specific mileage field error
-        setMobileEditErrors(prev => {
-            if (!prev.mileageTx?.[txIndex]?.[field]) return prev
-            const mileageTx = { ...prev.mileageTx }
-            const txErrs = { ...mileageTx[txIndex] }
-            delete txErrs[field]
-            if (Object.keys(txErrs).length === 0) {
-                delete mileageTx[txIndex]
-            } else {
-                mileageTx[txIndex] = txErrs
-            }
-            const hasTxErrors = Object.keys(mileageTx).length > 0
-            return { ...prev, mileageTx: hasTxErrors ? mileageTx : undefined }
-        })
-    }
 
     // Get selected expense detail for mobile full-screen view
     const selectedExpense = mobileExpandedId
@@ -1108,13 +919,13 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                     <Column
                         field="vendor"
                         header={t('expenses.vendor')}
-                        editor={textInputEditor}
+                        editor={expenseTextEditor}
                         style={{ minWidth: '120px' }}
                     />
                     <Column
                         field="accountNum"
                         header={t('expenses.accountNumber')}
-                        editor={accountNumEditor}
+                        editor={accountNumEditor(accountNums)}
                         body={(rowData) => accountNumMap[rowData.accountNum] || ''}
                         style={{ minWidth: '200px' }}
                     />
@@ -1122,7 +933,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                     <Column
                         field="costCentre"
                         header={t('expenses.costCentre')}
-                        editor={costCentreEditor}
+                        editor={costCentreEditor(costCentres)}
                         body={(rowData) => costCentreMap[rowData.costCentre] || ''}
                         style={{ minWidth: '200px' }}
                     />
@@ -1136,7 +947,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                     <Column
                         field="buyer"
                         header={t('expenses.buyer')}
-                        editor={textInputEditor}
+                        editor={expenseTextEditor}
                         style={{ minWidth: '120px' }}
                     />
 
