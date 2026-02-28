@@ -4,19 +4,18 @@ import AddNewCostCentre from '../../components/feature/costCentre/AddNewCostCent
 import { DataTable } from 'primereact/datatable'
 import { Column } from 'primereact/column'
 import { useCostCentre } from '../../contexts/CostCentreContext.jsx'
-import { InputText } from 'primereact/inputtext'
 import { Dropdown } from 'primereact/dropdown'
 import { Button } from 'primereact/button'
 import { Dialog } from 'primereact/dialog'
-import { FilterMatchMode } from 'primereact/api'
-import { IconField } from 'primereact/iconfield'
-import { InputIcon } from 'primereact/inputicon'
 import { useLookups } from '../../contexts/LookupContext.jsx'
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog'
 import { Toast } from 'primereact/toast'
 import ActiveStatusTab from '../../components/common/ui/ActiveStatusTab.jsx'
 import { useTranslation } from 'react-i18next'
 import { useIsMobile } from '../../hooks/useIsMobile.js'
+import { useDataTableFilter } from '../../hooks/useDataTableFilter.js'
+import { textInputEditor } from '../../utils/dataTableEditors.jsx'
+import DataTableSearchHeader from '../../components/common/ui/DataTableSearchHeader.jsx'
 import { validateForm } from '../../utils/validation/validator.js'
 import { validationSchemas } from '../../utils/validation/schemas.js'
 import Input from '../../components/common/ui/Input.jsx'
@@ -32,35 +31,13 @@ function CostCentresPage() {
         actions: { updateCostCentre, deleteCostCentre },
     } = useCostCentre()
 
-    const [globalFilterValue, setGlobalFilterValue] = useState('')
-    const [filters, setFilters] = useState({
-        global: { value: null, matchMode: FilterMatchMode.CONTAINS },
-    })
+    const { globalFilterValue, filters, onGlobalFilterChange } = useDataTableFilter()
 
     // Mobile edit dialog state
     const [editDialog, setEditDialog] = useState(false)
     const [editData, setEditData] = useState(null)
     const [editErrors, setEditErrors] = useState({})
 
-    const onGlobalFilterChange = (e) => {
-        const value = e.target.value
-        let _filters = { ...filters }
-        _filters['global'].value = value
-        setFilters(_filters)
-        setGlobalFilterValue(value)
-    }
-
-    const renderHeader = () => {
-        return (
-            <div className="flex justify-end">
-                <IconField iconPosition="left">
-                    <InputIcon className="pi pi-search" />
-                    <InputText value={globalFilterValue} onChange={onGlobalFilterChange}
-                        placeholder={t('common.keywordSearch')} />
-                </IconField>
-            </div>
-        )
-    }
 
     const renderStatus = (rowData) => (
         <ActiveStatusTab status={rowData.active_status_id} />
@@ -81,15 +58,6 @@ function CostCentresPage() {
             value={editorOptions.value}
             onChange={(e) => editorOptions.editorCallback(e.value)}
             options={departmentOptions}
-        />
-    )
-
-    const textInputEditor = (editorOptions) => (
-        <InputText
-            type="text"
-            value={editorOptions.value || ''}
-            onChange={(e) => editorOptions.editorCallback(e.target.value)}
-            className="w-full"
         />
     )
 
@@ -210,14 +178,7 @@ function CostCentresPage() {
     const mobileCardView = (
         <div className="admin-mobile-container">
             <div className="admin-mobile-search">
-                <IconField iconPosition="left">
-                    <InputIcon className="pi pi-search" />
-                    <InputText
-                        value={globalFilterValue}
-                        onChange={onGlobalFilterChange}
-                        placeholder={t('common.keywordSearch')}
-                    />
-                </IconField>
+                <DataTableSearchHeader value={globalFilterValue} onChange={onGlobalFilterChange} />
             </div>
 
             <div className="admin-mobile-list">
@@ -278,7 +239,7 @@ function CostCentresPage() {
                     'active_status.active_status_name',
                     'description',
                 ]}
-                header={renderHeader} emptyMessage={t('common.noResults')}
+                header={<DataTableSearchHeader value={globalFilterValue} onChange={onGlobalFilterChange} />} emptyMessage={t('common.noResults')}
                 editMode="row" onRowEditComplete={onRowEditComplete}
                 sortMode="multiple" removableSort
                 loading={loading}

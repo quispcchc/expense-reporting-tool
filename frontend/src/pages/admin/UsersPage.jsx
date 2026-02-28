@@ -5,10 +5,6 @@ import { DataTable } from 'primereact/datatable'
 import { Column } from 'primereact/column'
 import { useUser, useUserDispatch } from '../../contexts/UserContext.jsx'
 import { Dropdown } from 'primereact/dropdown'
-import { InputText } from 'primereact/inputtext'
-import { FilterMatchMode } from 'primereact/api'
-import { InputIcon } from 'primereact/inputicon'
-import { IconField } from 'primereact/iconfield'
 import { MultiSelect } from 'primereact/multiselect'
 import { Button } from 'primereact/button'
 import { Dialog } from 'primereact/dialog'
@@ -20,6 +16,9 @@ import Select from '../../components/common/ui/Select.jsx'
 import { Toast } from 'primereact/toast'
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog'
 import { useIsMobile } from '../../hooks/useIsMobile.js'
+import { useDataTableFilter } from '../../hooks/useDataTableFilter.js'
+import { textInputEditor } from '../../utils/dataTableEditors.jsx'
+import DataTableSearchHeader from '../../components/common/ui/DataTableSearchHeader.jsx'
 import { validateForm } from '../../utils/validation/validator.js'
 import { validationSchemas } from '../../utils/validation/schemas.js'
 
@@ -121,20 +120,7 @@ function UsersPage() {
         }
     }, [usersState])
 
-    // States for global search filter
-    const [globalFilterValue, setGlobalFilterValue] = useState('')
-    const [filters, setFilters] = useState({
-        global: { value: null, matchMode: FilterMatchMode.CONTAINS },
-    })
-
-    // Handle global filter input change
-    const onGlobalFilterChange = (e) => {
-        const value = e.target.value
-        let _filters = { ...filters }
-        _filters['global'].value = value
-        setFilters(_filters)
-        setGlobalFilterValue(value)
-    }
+    const { globalFilterValue, filters, onGlobalFilterChange } = useDataTableFilter()
 
     // Get teams and roles from lookups
     const teamOptions = lookups.teams.map(t => ({ label: t.team_name, value: t.team_id }))
@@ -170,16 +156,6 @@ function UsersPage() {
             </span>
         )
     }
-
-    // Editor for text input fields
-    const textInputEditor = (editorOptions) => (
-        <InputText
-            type="text"
-            value={editorOptions.value || ''}
-            onChange={(e) => editorOptions.editorCallback(e.target.value)}
-            className="w-full"
-        />
-    )
 
     // Dropdown editor for teams field (multi-select)
     // Reads from refs to avoid stale closures when PrimeReact memoizes BodyCell
@@ -427,21 +403,6 @@ function UsersPage() {
         setEditData(null)
     }
 
-    // Render the table header
-    const renderHeader = () => {
-        return (
-            <div className="flex justify-end">
-                <IconField iconPosition="left">
-                    <InputIcon className="pi pi-search" />
-                    <InputText
-                        value={globalFilterValue}
-                        onChange={onGlobalFilterChange}
-                        placeholder={t('common.keywordSearch')}
-                    />
-                </IconField>
-            </div>
-        )
-    }
 
     // Filter users for mobile search
     const filteredUsers = users?.filter(user => {
@@ -467,14 +428,7 @@ function UsersPage() {
     const mobileCardView = (
         <div className="admin-mobile-container">
             <div className="admin-mobile-search">
-                <IconField iconPosition="left">
-                    <InputIcon className="pi pi-search" />
-                    <InputText
-                        value={globalFilterValue}
-                        onChange={onGlobalFilterChange}
-                        placeholder={t('common.keywordSearch')}
-                    />
-                </IconField>
+                <DataTableSearchHeader value={globalFilterValue} onChange={onGlobalFilterChange} />
             </div>
 
             <div className="admin-mobile-list">
@@ -557,7 +511,7 @@ function UsersPage() {
                     'user_id', 'first_name', 'last_name',
                     'department', 'position', 'role', 'status',
                 ]}
-                header={renderHeader}
+                header={<DataTableSearchHeader value={globalFilterValue} onChange={onGlobalFilterChange} />}
                 emptyMessage={t('common.noResults')}
                 editMode="row"
                 editingRows={editingRows}

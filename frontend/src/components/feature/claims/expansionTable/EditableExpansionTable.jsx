@@ -21,6 +21,7 @@ import { validateForm } from '../../../../utils/validation/validator.js'
 import { validationSchemas } from '../../../../utils/validation/schemas.js'
 import Input from '../../../common/ui/Input.jsx'
 import Select from '../../../common/ui/Select.jsx'
+import { formatCurrency } from '../../../../utils/formatters.js'
 
 // Helper function to map data based on mode
 const mapExpenseData = (data, mode) => {
@@ -733,12 +734,6 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
             className="w-full"
         />
     )
-
-    // Format currency helper
-    const formatCurrency = (amount) => new Intl.NumberFormat(APP_SETTINGS.currency.locale, {
-        style: 'currency',
-        currency: APP_SETTINGS.currency.code,
-    }).format(amount || 0)
 
     // --- Mobile edit helpers ---
     const startMobileEdit = (item) => {

@@ -5,19 +5,18 @@ import AddNewDepartment from '../../components/feature/department/AddNewDepartme
 import { DataTable } from 'primereact/datatable'
 import { useDepartment } from '../../contexts/DepartmentContext.jsx'
 import StatusTab from '../../components/common/ui/StatusTab.jsx'
-import { InputText } from 'primereact/inputtext'
 import { Column } from 'primereact/column'
 import { Dropdown } from 'primereact/dropdown'
 import { Button } from 'primereact/button'
 import { Dialog } from 'primereact/dialog'
-import { FilterMatchMode } from 'primereact/api'
 import { useLookups } from '../../contexts/LookupContext.jsx'
-import { IconField } from 'primereact/iconfield'
-import { InputIcon } from 'primereact/inputicon'
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog'
 import { Toast } from 'primereact/toast'
 import { useTranslation } from 'react-i18next'
 import { useIsMobile } from '../../hooks/useIsMobile.js'
+import { useDataTableFilter } from '../../hooks/useDataTableFilter.js'
+import { textInputEditor } from '../../utils/dataTableEditors.jsx'
+import DataTableSearchHeader from '../../components/common/ui/DataTableSearchHeader.jsx'
 import { validateForm } from '../../utils/validation/validator.js'
 import { validationSchemas } from '../../utils/validation/schemas.js'
 import Input from '../../components/common/ui/Input.jsx'
@@ -39,41 +38,18 @@ function DepartmentsPage() {
         value: s.active_status_id
     }))
 
-    // State for global filter input and DataTable filters
-    const [globalFilterValue, setGlobalFilterValue] = useState('')
-    const [filters, setFilters] = useState({
-        global: { value: null, matchMode: FilterMatchMode.CONTAINS },
-    })
+    const { globalFilterValue, filters, onGlobalFilterChange } = useDataTableFilter()
 
     // Mobile edit dialog state
     const [editDialog, setEditDialog] = useState(false)
     const [editData, setEditData] = useState(null)
     const [editErrors, setEditErrors] = useState({})
 
-    // Handle global search input changes
-    const onGlobalFilterChange = (e) => {
-        const value = e.target.value
-        let _filters = { ...filters }
-        _filters['global'].value = value
-        setFilters(_filters)
-        setGlobalFilterValue(value)
-    }
-
     // Custom renderer to display the status badge/tab
     const renderStatus = (rowData) => {
         const statusName = rowData.active_status?.active_status_name || 'Unknown'
         return <StatusTab status={statusName} />
     }
-
-    // Text input editor used when editing 'code' and 'name' fields
-    const textInputEditor = (editorOptions) => (
-        <InputText
-            type="text"
-            value={editorOptions.value || ''}
-            onChange={(e) => editorOptions.editorCallback(e.target.value)}
-            className="w-full"
-        />
-    )
 
     // Dropdown editor used when editing the 'status' field
     const statusEditor = (editorOptions) => (
@@ -175,21 +151,6 @@ function DepartmentsPage() {
         )
     }
 
-    // Render the search bar above the DataTable
-    const renderHeader = () => {
-        return (
-            <div className="flex justify-end">
-                <IconField iconPosition="left">
-                    <InputIcon className="pi pi-search" />
-                    <InputText
-                        value={globalFilterValue}
-                        onChange={onGlobalFilterChange}
-                        placeholder={t('common.keywordSearch')}
-                    />
-                </IconField>
-            </div>
-        )
-    }
 
     // Filter departments for mobile search
     const filteredDepartments = departments?.filter(dept => {
@@ -205,14 +166,7 @@ function DepartmentsPage() {
     const mobileCardView = (
         <div className="admin-mobile-container">
             <div className="admin-mobile-search">
-                <IconField iconPosition="left">
-                    <InputIcon className="pi pi-search" />
-                    <InputText
-                        value={globalFilterValue}
-                        onChange={onGlobalFilterChange}
-                        placeholder={t('common.keywordSearch')}
-                    />
-                </IconField>
+                <DataTableSearchHeader value={globalFilterValue} onChange={onGlobalFilterChange} />
             </div>
 
             <div className="admin-mobile-list">
@@ -279,7 +233,7 @@ function DepartmentsPage() {
                 onRowEditComplete={onRowEditComplete}
                 filters={filters}
                 globalFilterFields={['department_abbreviation', 'department_name', 'active_status_id']}
-                header={renderHeader()}
+                header={<DataTableSearchHeader value={globalFilterValue} onChange={onGlobalFilterChange} />}
                 emptyMessage={t('common.noResults')}
                 sortMode="multiple"
                 removableSort

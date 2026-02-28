@@ -4,19 +4,18 @@ import ContentHeader from '../../components/common/layout/ContentHeader.jsx'
 import AddNewTeam from '../../components/feature/team/AddNewTeam.jsx'
 import { DataTable } from 'primereact/datatable'
 import StatusTab from '../../components/common/ui/StatusTab.jsx'
-import { InputText } from 'primereact/inputtext'
 import { Column } from 'primereact/column'
 import { Dropdown } from 'primereact/dropdown'
 import { Button } from 'primereact/button'
 import { Dialog } from 'primereact/dialog'
-import { FilterMatchMode } from 'primereact/api'
 import { useLookups } from '../../contexts/LookupContext.jsx'
-import { IconField } from 'primereact/iconfield'
-import { InputIcon } from 'primereact/inputicon'
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog'
+import DataTableSearchHeader from '../../components/common/ui/DataTableSearchHeader.jsx'
 import { Toast } from 'primereact/toast'
 import { useTranslation } from 'react-i18next'
 import { useIsMobile } from '../../hooks/useIsMobile.js'
+import { useDataTableFilter } from '../../hooks/useDataTableFilter.js'
+import { textInputEditor } from '../../utils/dataTableEditors.jsx'
 import api from '../../api/api.js'
 import { validateForm } from '../../utils/validation/validator.js'
 import { validationSchemas } from '../../utils/validation/schemas.js'
@@ -87,33 +86,12 @@ function DepartmentTeamsPage() {
         fetchData()
     }, [fetchData])
 
-    // State for global filter input and DataTable filters
-    const [globalFilterValue, setGlobalFilterValue] = useState('')
-    const [filters, setFilters] = useState({
-        global: { value: null, matchMode: FilterMatchMode.CONTAINS },
-    })
-
-    const onGlobalFilterChange = (e) => {
-        const value = e.target.value
-        let _filters = { ...filters }
-        _filters['global'].value = value
-        setFilters(_filters)
-        setGlobalFilterValue(value)
-    }
+    const { globalFilterValue, filters, onGlobalFilterChange } = useDataTableFilter()
 
     const renderStatus = (rowData) => {
         const status = lookups.activeStatuses.find(s => s.active_status_id === rowData.active_status_id)
         return <StatusTab status={status?.active_status_name || 'Unknown'} />
     }
-
-    const textInputEditor = (editorOptions) => (
-        <InputText
-            type="text"
-            value={editorOptions.value || ''}
-            onChange={(e) => editorOptions.editorCallback(e.target.value)}
-            className="w-full"
-        />
-    )
 
     const statusEditor = (editorOptions) => (
         <Dropdown
@@ -190,7 +168,7 @@ function DepartmentTeamsPage() {
         setEditData(null)
     }
 
-    // Render the search bar
+    // Render the search bar with back button
     const renderHeader = () => {
         return (
             <div className="flex justify-between items-center flex-wrap gap-2">
@@ -203,14 +181,7 @@ function DepartmentTeamsPage() {
                     tooltipOptions={{ position: 'top' }}
                     onClick={() => navigate('/admin/departments')}
                 />
-                <IconField iconPosition="left">
-                    <InputIcon className="pi pi-search" />
-                    <InputText
-                        value={globalFilterValue}
-                        onChange={onGlobalFilterChange}
-                        placeholder={t('common.keywordSearch')}
-                    />
-                </IconField>
+                <DataTableSearchHeader value={globalFilterValue} onChange={onGlobalFilterChange} />
             </div>
         )
     }
@@ -243,15 +214,9 @@ function DepartmentTeamsPage() {
                         severity="secondary"
                         onClick={() => navigate('/admin/departments')}
                     />
-                    <IconField iconPosition="left" className="flex-1">
-                        <InputIcon className="pi pi-search" />
-                        <InputText
-                            value={globalFilterValue}
-                            onChange={onGlobalFilterChange}
-                            placeholder={t('common.keywordSearch')}
-                            className="w-full"
-                        />
-                    </IconField>
+                    <div className="flex-1">
+                        <DataTableSearchHeader value={globalFilterValue} onChange={onGlobalFilterChange} />
+                    </div>
                 </div>
             </div>
 
