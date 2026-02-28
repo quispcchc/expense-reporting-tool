@@ -106,9 +106,9 @@ class CostCentreController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $this->authorize('update', new CostCentre($request->all()));
-
         $costCentre = CostCentre::findOrFail($id);
+
+        $this->authorize('update', $costCentre);
 
         $validated = $request->validate([
             'department_id' => 'sometimes|required|integer|exists:departments,department_id',

@@ -11,7 +11,7 @@ function Select(props) {
                 <label htmlFor={id} className="block text-sm font-medium">
                     {label}
                 </label>
-                {errors[name] && <span className="text-status-danger text-xs">({errors[name]})</span>}
+                {errors[name] && <span className="text-status-danger text-xs">({t(errors[name])})</span>}
             </div>
             <Dropdown {...props} className='w-full' optionLabel="label" />
         </div>

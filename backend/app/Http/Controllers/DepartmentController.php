@@ -49,6 +49,8 @@ class DepartmentController extends Controller
      */
     public function store(Request $request)
     {
+        $this->authorize('create', Department::class);
+
         $validated = $request->validate([
             'department_name' => 'required|string|max:50',
             'department_abbreviation' => 'required|string|max:50|unique:departments,department_abbreviation',
@@ -83,6 +85,8 @@ class DepartmentController extends Controller
     {
         $department = Department::findOrFail($id);
 
+        $this->authorize('update', $department);
+
         $validated = $request->validate([
             'department_name' => 'sometimes|required|string|max:50',
             'department_abbreviation' => [
@@ -112,6 +116,8 @@ class DepartmentController extends Controller
     public function destroy($id)
     {
         $department = Department::findOrFail($id);
+
+        $this->authorize('delete', $department);
 
         // Check if department has teams
         if ($department->teams()->count() > 0) {

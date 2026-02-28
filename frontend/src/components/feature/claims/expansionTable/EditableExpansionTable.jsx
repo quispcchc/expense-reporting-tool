@@ -16,6 +16,8 @@ import { BUTTON_STYLE } from '../../../../utils/customizeStyle.js'
 import { confirmDialog } from 'primereact/confirmdialog'
 import { useTranslation } from 'react-i18next'
 import { useIsMobile } from '../../../../hooks/useIsMobile.js'
+import { validateForm } from '../../../../utils/validation/validator.js'
+import { validationSchemas } from '../../../../utils/validation/schemas.js'
 
 // Helper function to map data based on mode
 const mapExpenseData = (data, mode) => {
@@ -63,6 +65,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
     const [expenseItems, setExpenseItems] = useState(() => mapExpenseData(data, mode))
     const [mobileExpandedId, setMobileExpandedId] = useState(null)
     const [mobileEditData, setMobileEditData] = useState(null) // tracks inline field edits on mobile
+    const [mobileEditErrors, setMobileEditErrors] = useState({})
 
     const { updateClaim } = useClaims()
 
@@ -240,7 +243,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
             return cleanedChanges
         })
 
-        showToast(toastRef, { severity: 'info', summary: 'Info', detail: 'Edit cancelled!' })
+        showToast(toastRef, { severity: 'info', summary: t('toast.info'), detail: t('claims.editCancelled') })
     }
 
     // Handle saving row edit
@@ -275,7 +278,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
 
             // Save all changes to parent
             saveExpenseItemsToParent(updatedExpenseItems)
-            showToast(toastRef, { severity: 'success', summary: 'Updated', detail: 'Expense updated locally!' })
+            showToast(toastRef, { severity: 'success', summary: t('common.success'), detail: t('claims.expenseUpdatedLocally') })
             return
         }
 
@@ -448,7 +451,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
 
         // Save all changes to parent
         saveExpenseItemsToParent(updatedExpenseItems)
-        showToast(toastRef, { severity: 'success', summary: 'Updated', detail: 'Updated successfully!' })
+        showToast(toastRef, { severity: 'success', summary: t('common.success'), detail: t('claims.updatedSuccessfully') })
     }
 
     // Delete an expense item (Soft Delete)
@@ -576,12 +579,12 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
             )
             if (onClaimUpdated) onClaimUpdated()
 
-            showToast(toastRef, { severity: 'success', summary: 'Success', detail: 'Approved successfully!' })
+            showToast(toastRef, { severity: 'success', summary: t('common.success'), detail: t('claims.approvedSuccess') })
 
         }
         catch (error) {
             showToast(
-                toastRef, { severity: 'error', summary: 'Error', detail: 'Ops, something went wrong!' })
+                toastRef, { severity: 'error', summary: t('common.error'), detail: t('claims.approveRejectError') })
         }
     }
 
@@ -599,7 +602,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
 
             if (onClaimUpdated) onClaimUpdated()
 
-            showToast(toastRef, { severity: 'success', summary: 'Success', detail: 'Rejected successfully!' })
+            showToast(toastRef, { severity: 'success', summary: t('common.success'), detail: t('claims.rejectedSuccess') })
         }
         catch (error) {
         }
@@ -610,9 +613,9 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
 
         return (
             <div className="flex gap-2">
-                <Button label="Approve" outlined className={BUTTON_STYLE.success} icon="pi pi-check" iconPos="right"
+                <Button label={t('claims.approve')} outlined className={BUTTON_STYLE.success} icon="pi pi-check" iconPos="right"
                     onClick={() => approveExpense(rowData.transactionId)} disabled={isProcessed} />
-                <Button label="Reject" outlined className={BUTTON_STYLE.danger} icon="pi pi-times" iconPos="right"
+                <Button label={t('claims.reject')} outlined className={BUTTON_STYLE.danger} icon="pi pi-times" iconPos="right"
                     onClick={() => rejectExpense(rowData.transactionId)} disabled={isProcessed} />
             </div>
         )
@@ -695,6 +698,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
     const startMobileEdit = (item) => {
         const editData = {
             transactionId: item.transactionId,
+            program: item.program,
             amount: item.amount,
             transactionDate: item.transactionDate,
             vendor: item.vendor,
@@ -742,11 +746,19 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
         })
         setCurrentlyEditingRowId(null)
         setMobileEditData(null)
+        setMobileEditErrors({})
         showToast(toastRef, { severity: 'info', summary: 'Info', detail: t('expenses.editCancelled', 'Edit cancelled!') })
     }
 
     const saveMobileEdit = async () => {
         if (!mobileEditData) return
+
+        const { isValid, errors: validationErrors } = validateForm(mobileEditData, validationSchemas.expense)
+        if (!isValid) {
+            setMobileEditErrors(validationErrors)
+            return
+        }
+
         const expenseId = mobileEditData.transactionId
         const idx = expenseItems.findIndex(e => e.transactionId === expenseId)
         if (idx < 0) return
@@ -761,10 +773,14 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
         }
         await handleRowSaveComplete(editEvent)
         setMobileEditData(null)
+        setMobileEditErrors({})
     }
 
     const updateMobileField = (field, value) => {
         setMobileEditData(prev => ({ ...prev, [field]: value }))
+        if (mobileEditErrors[field]) {
+            setMobileEditErrors(prev => ({ ...prev, [field]: undefined }))
+        }
         // Also update expenseItems for live preview
         setExpenseItems(prev =>
             prev.map(e => e.transactionId === mobileEditData.transactionId ? { ...e, [field]: value } : e)
@@ -856,88 +872,106 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                 {/* Detail fields */}
                 <div className="mobile-expense-detail-body">
                     <div className="mobile-detail-row">
-                        <span className="mobile-detail-label">{t('expenses.amount')}</span>
+                        <span className="mobile-detail-label">{t('expenses.amount')}*</span>
                         {isMobileEditing ? (
-                            <InputNumber
-                                value={mobileEditData.amount}
-                                onValueChange={(e) => updateMobileField('amount', e.value)}
-                                mode="currency"
-                                currency={APP_SETTINGS.currency.code}
-                                locale={APP_SETTINGS.currency.locale}
-                                className="w-full"
-                                inputClassName="text-right"
-                            />
+                            <div className="w-full">
+                                <InputNumber
+                                    value={mobileEditData.amount}
+                                    onValueChange={(e) => updateMobileField('amount', e.value)}
+                                    mode="currency"
+                                    currency={APP_SETTINGS.currency.code}
+                                    locale={APP_SETTINGS.currency.locale}
+                                    className="w-full"
+                                    inputClassName="text-right"
+                                />
+                                {mobileEditErrors.amount && <span className="text-status-danger text-xs">({mobileEditErrors.amount})</span>}
+                            </div>
                         ) : (
                             <span className="mobile-detail-value font-semibold">{formatCurrency(item.amount)}</span>
                         )}
                     </div>
                     <div className="mobile-detail-row">
-                        <span className="mobile-detail-label">{t('expenses.transactionDate')}</span>
+                        <span className="mobile-detail-label">{t('expenses.transactionDate')}*</span>
                         {isMobileEditing ? (
-                            <InputText
-                                type="date"
-                                value={mobileEditData.transactionDate || ''}
-                                onChange={(e) => updateMobileField('transactionDate', e.target.value)}
-                                className="w-full"
-                            />
+                            <div className="w-full">
+                                <InputText
+                                    type="date"
+                                    value={mobileEditData.transactionDate || ''}
+                                    onChange={(e) => updateMobileField('transactionDate', e.target.value)}
+                                    className="w-full"
+                                />
+                                {mobileEditErrors.transactionDate && <span className="text-status-danger text-xs">({mobileEditErrors.transactionDate})</span>}
+                            </div>
                         ) : (
                             <span className="mobile-detail-value">{item.transactionDate || '—'}</span>
                         )}
                     </div>
                     <div className="mobile-detail-row">
-                        <span className="mobile-detail-label">{t('expenses.vendor')}</span>
+                        <span className="mobile-detail-label">{t('expenses.vendor')}*</span>
                         {isMobileEditing ? (
-                            <InputText
-                                value={mobileEditData.vendor || ''}
-                                onChange={(e) => updateMobileField('vendor', e.target.value)}
-                                className="w-full"
-                            />
+                            <div className="w-full">
+                                <InputText
+                                    value={mobileEditData.vendor || ''}
+                                    onChange={(e) => updateMobileField('vendor', e.target.value)}
+                                    className="w-full"
+                                />
+                                {mobileEditErrors.vendor && <span className="text-status-danger text-xs">({mobileEditErrors.vendor})</span>}
+                            </div>
                         ) : (
                             <span className="mobile-detail-value">{item.vendor || '—'}</span>
                         )}
                     </div>
                     <div className="mobile-detail-row">
-                        <span className="mobile-detail-label">{t('expenses.buyer')}</span>
+                        <span className="mobile-detail-label">{t('expenses.buyer')}*</span>
                         {isMobileEditing ? (
-                            <InputText
-                                value={mobileEditData.buyer || ''}
-                                onChange={(e) => updateMobileField('buyer', e.target.value)}
-                                className="w-full"
-                            />
+                            <div className="w-full">
+                                <InputText
+                                    value={mobileEditData.buyer || ''}
+                                    onChange={(e) => updateMobileField('buyer', e.target.value)}
+                                    className="w-full"
+                                />
+                                {mobileEditErrors.buyer && <span className="text-status-danger text-xs">({mobileEditErrors.buyer})</span>}
+                            </div>
                         ) : (
                             <span className="mobile-detail-value">{item.buyer || '—'}</span>
                         )}
                     </div>
                     <div className="mobile-detail-row">
-                        <span className="mobile-detail-label">{t('expenses.accountNumber')}</span>
+                        <span className="mobile-detail-label">{t('expenses.accountNumber')}*</span>
                         {isMobileEditing ? (
-                            <Dropdown
-                                value={mobileEditData.accountNum}
-                                onChange={(e) => updateMobileField('accountNum', e.target.value)}
-                                options={accountNums.map(opt => ({
-                                    label: `${opt.account_number} - ${opt.description}`,
-                                    value: opt.account_number_id,
-                                }))}
-                                className="w-full"
-                                placeholder={t('expenses.selectAccountNumber', 'Select account')}
-                            />
+                            <div className="w-full">
+                                <Dropdown
+                                    value={mobileEditData.accountNum}
+                                    onChange={(e) => updateMobileField('accountNum', e.target.value)}
+                                    options={accountNums.map(opt => ({
+                                        label: `${opt.account_number} - ${opt.description}`,
+                                        value: opt.account_number_id,
+                                    }))}
+                                    className="w-full"
+                                    placeholder={t('expenses.selectAccountNumber', 'Select account')}
+                                />
+                                {mobileEditErrors.accountNum && <span className="text-status-danger text-xs">({mobileEditErrors.accountNum})</span>}
+                            </div>
                         ) : (
                             <span className="mobile-detail-value text-sm">{accountNumMap[item.accountNum] || '—'}</span>
                         )}
                     </div>
                     <div className="mobile-detail-row">
-                        <span className="mobile-detail-label">{t('expenses.costCentre')}</span>
+                        <span className="mobile-detail-label">{t('expenses.costCentre')}*</span>
                         {isMobileEditing ? (
-                            <Dropdown
-                                value={mobileEditData.costCentre}
-                                onChange={(e) => updateMobileField('costCentre', e.target.value)}
-                                options={costCentres.map(opt => ({
-                                    label: `${opt.cost_centre_code} - ${opt.description}`,
-                                    value: opt.cost_centre_id,
-                                }))}
-                                className="w-full"
-                                placeholder={t('expenses.selectCostCentre', 'Select cost centre')}
-                            />
+                            <div className="w-full">
+                                <Dropdown
+                                    value={mobileEditData.costCentre}
+                                    onChange={(e) => updateMobileField('costCentre', e.target.value)}
+                                    options={costCentres.map(opt => ({
+                                        label: `${opt.cost_centre_code} - ${opt.description}`,
+                                        value: opt.cost_centre_id,
+                                    }))}
+                                    className="w-full"
+                                    placeholder={t('expenses.selectCostCentre', 'Select cost centre')}
+                                />
+                                {mobileEditErrors.costCentre && <span className="text-status-danger text-xs">({mobileEditErrors.costCentre})</span>}
+                            </div>
                         ) : (
                             <span className="mobile-detail-value text-sm">{costCentreMap[item.costCentre] || '—'}</span>
                         )}

@@ -111,7 +111,7 @@ function ForgotPassword() {
                                 id="email"
                                 type="email"
                                 label={t('passwordReset.pleaseEnterEmail', 'Email Address')}
-                                placeholder="you@example.com"
+                                placeholder={t('auth.emailPlaceholder')}
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 // errors={emailError}

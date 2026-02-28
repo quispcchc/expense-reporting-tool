@@ -5,10 +5,12 @@ import { Button } from 'primereact/button'
 import { useDepartment } from '../../../contexts/DepartmentContext.jsx'
 import { useLookups } from '../../../contexts/LookupContext.jsx'
 import { useTranslation } from 'react-i18next'
+import { validationSchemas } from '../../../utils/validation/schemas.js'
+import { validateForm } from '../../../utils/validation/validator.js'
 
 function AddNewDepartment({ toastRef }) {
     const { t } = useTranslation()
-    const [errors, setErrors] = useState([])
+    const [errors, setErrors] = useState({})
     const [isOpen, setIsOpen] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const { actions } = useDepartment()
@@ -36,48 +38,34 @@ function AddNewDepartment({ toastRef }) {
     const handleFormSubmit = async (e) => {
         e.preventDefault()
 
-        // Simple validation
-        const newErrors = []
-        if (!formData.department_abbreviation) {
-            newErrors.push({ field: 'department_abbreviation', message: t('validation.codeRequired') })
-        }
-        if (!formData.department_name) {
-            newErrors.push({ field: 'department_name', message: t('validation.nameRequired') })
-        }
-        if (!formData.active_status_id) {
-            newErrors.push({ field: 'active_status_id', message: t('validation.statusRequired') })
-        }
-
-        if (newErrors.length > 0) {
-            setErrors(newErrors)
+        const validation = validateForm(formData, validationSchemas.addDepartment)
+        if (!validation.isValid) {
+            setErrors(validation.errors)
             return
         }
 
+        setErrors({})
         setIsSubmitting(true)
         try {
             const result = await actions.createDepartment(formData)
             if (result?.success) {
-                // Reset form
                 setFormData({
                     department_abbreviation: '',
                     department_name: '',
                     active_status_id: '',
                 })
-                setErrors([])
+                setErrors({})
                 setIsOpen(false)
-                // Show success toast
                 toastRef?.current?.show({
                     severity: 'success',
                     summary: t('common.success'),
                     detail: t('departments.createSuccess', 'Department created successfully'),
                     life: 3000
                 })
-                // Refresh lookups so other pages (like Create Claim) get updated data
                 await refreshLookups()
             } else {
                 const errorMsg = result?.error || t('common.unknownError', 'An unknown error occurred')
-                setErrors([{ field: '', message: errorMsg }])
-                // Show error toast
+                setErrors({ _general: errorMsg })
                 toastRef?.current?.show({
                     severity: 'error',
                     summary: t('common.error'),
@@ -87,8 +75,7 @@ function AddNewDepartment({ toastRef }) {
             }
         } catch (err) {
             const errorMsg = err?.message || t('common.networkError', 'Network error occurred')
-            setErrors([{ field: '', message: errorMsg }])
-            // Show error toast for network errors
+            setErrors({ _general: errorMsg })
             toastRef?.current?.show({
                 severity: 'error',
                 summary: t('common.error'),
@@ -113,7 +100,7 @@ function AddNewDepartment({ toastRef }) {
             </div>
 
             {isOpen && (
-                <form className={`my-5 grid grid-cols-1 sm:grid-cols-7 ${errors.length === 0 ? "items-end" : "items-center"} gap-5`}
+                <form className={`my-5 grid grid-cols-1 sm:grid-cols-7 items-end gap-5`}
                     onSubmit={handleFormSubmit}>
                     <div className="col-span-2">
                         <Input
@@ -162,4 +149,3 @@ function AddNewDepartment({ toastRef }) {
 }
 
 export default AddNewDepartment
-

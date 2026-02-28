@@ -91,7 +91,7 @@ function ResetPassword() {
             showToast(toastRef, {
                 severity: 'error',
                 summary: t('passwordReset.error', 'Error'),
-                detail: result?.message || apiError || 'Failed to reset password'
+                detail: result?.message || apiError || t('passwordReset.resetFailed')
             })
         }
     }

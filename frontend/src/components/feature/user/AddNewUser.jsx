@@ -105,7 +105,7 @@ function AddNewUser() {
                 showToast(toastRef, {
                     severity: 'success',
                     summary: t('common.success', 'Success'),
-                    detail: t('users.userCreatedSuccess', 'User created successfully. An email verification has been sent.'),
+                    detail: t('users.userCreatedSuccess'),
                     life: 3000
                 })
 
@@ -118,7 +118,7 @@ function AddNewUser() {
                 showToast(toastRef, {
                     severity: 'error',
                     summary: t('common.error', 'Error'),
-                    detail: err.message || t('users.userCreatedError', 'Failed to create user'),
+                    detail: err.message || t('users.userCreatedError'),
                     life: 4000
                 })
             }
@@ -157,9 +157,10 @@ function AddNewUser() {
                             label={t('users.firstName')}
                             value={userFormData.first_name}
                             onChange={handleUserFormChange}
-                            placeholder={t('users.enterFirstName', 'Enter first name')}
+                            placeholder={t('users.enterFirstName')}
                             errors={errors}
                             disabled={isLoading}
+                            error={errors}
                         />
                         <Input
                             name="last_name"
@@ -167,9 +168,10 @@ function AddNewUser() {
                             label={t('users.lastName')}
                             value={userFormData.last_name}
                             onChange={handleUserFormChange}
-                            placeholder={t('users.enterLastName', 'Enter last name')}
+                            placeholder={t('users.enterLastName')}
                             errors={errors}
                             disabled={isLoading}
+                            error={errors}
                         />
                         <Input
                             name="email"
@@ -177,9 +179,10 @@ function AddNewUser() {
                             label={t('users.email')}
                             value={userFormData.email}
                             onChange={handleUserFormChange}
-                            placeholder={t('users.enterEmail', 'Enter email address')}
+                            placeholder={t('users.enterEmail')}
                             errors={errors}
                             disabled={isLoading}
+                            error={errors}
                         />
                     </div>
 
@@ -192,7 +195,7 @@ function AddNewUser() {
                                 label={t('users.department')}
                                 value={userFormData.department}
                                 onChange={handleUserFormChange}
-                                placeholder={t('users.selectDepartment', 'Select department')}
+                                placeholder={t('users.selectDepartment')}
                                 className="w-full"
                                 options={lookups.departments.map(option => ({
                                     value: option.department_id,
@@ -206,9 +209,9 @@ function AddNewUser() {
                         <div>
                             <div className="flex items-center gap-2 mb-2">
                                 <label htmlFor="teams" className="block text-sm font-medium">
-                                    {t('users.teams', 'Teams')}
+                                    {t('users.teams')}
                                 </label>
-                                 {errors['teams'] && <span className="text-status-danger text-xs">({errors['teams']})</span>}
+                                 {errors['teams'] && <span className="text-status-danger text-xs">({t(errors['teams'])})</span>}
                             </div>
 
                             <MultiSelect
@@ -223,7 +226,7 @@ function AddNewUser() {
                                 optionLabel="label"
                                 optionValue="value"
                                 display="chip"
-                                placeholder={userFormData.department ? t('users.selectTeam', 'Select team') : t('users.selectDepartmentFirst', 'Select department first')}
+                                placeholder={userFormData.department ? t('users.selectTeam') : t('users.selectDepartmentFirst')}
                                 className="w-full"
                                 disabled={isLoading || !userFormData.department}
                             />
@@ -236,7 +239,7 @@ function AddNewUser() {
                                 label={t('users.position')}
                                 value={userFormData.position}
                                 onChange={handleUserFormChange}
-                                placeholder={t('users.enterPosition', 'Enter position')}
+                                placeholder={t('users.enterPosition')}
                                 errors={errors}
                                 disabled={isLoading}
                             />
@@ -256,7 +259,7 @@ function AddNewUser() {
                                 className="w-full"
                                 options={lookups.roles.map(r => ({ label: r.role_name.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase()), value: r.role_id }))}
                                 onChange={handleUserFormChange}
-                                placeholder={t('users.selectRole', 'Select role')}
+                                placeholder={t('users.selectRole')}
                                 errors={errors}
                                 disabled={isLoading}
                             />

@@ -36,10 +36,10 @@ function ClaimDetail({ curClaim, toastRef, onClaimRefetch }) {
                 await onClaimRefetch()
             }
 
-            showToast(toastRef, { severity: 'success', summary: 'Updated', detail: 'Claim Updated Successfully' })
+            showToast(toastRef, { severity: 'success', summary: t('common.success'), detail: t('claims.updateSuccess') })
             setIsEditing(false)
         } catch (error) {
-            showToast(toastRef, { severity: 'error', summary: 'Error', detail: 'Failed to update claim' })
+            showToast(toastRef, { severity: 'error', summary: t('common.error'), detail: t('claims.updateError') })
         }
     }
 

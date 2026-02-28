@@ -71,9 +71,7 @@ function AddNewAccountNumber({ createdToast }) {
             </div>
 
             {isOpen && (
-                <form className={`my-5 grid grid-cols-1 sm:grid-cols-12 gap-5 ${validationErrors.length > 0
-                    ? 'items-center'
-                    : 'items-end'}`}
+                <form className="my-5 grid grid-cols-1 sm:grid-cols-12 gap-5 items-end"
                     onSubmit={handleAccountNumberFormSubmit}>
                     <div className="col-span-4">
                         <Input name="accountNumber" id="accountNumber" label={t('accountNumbers.accountNumber', 'Account Number')}

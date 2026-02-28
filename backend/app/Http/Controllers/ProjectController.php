@@ -14,6 +14,8 @@ class ProjectController extends Controller
 
     public function store(Request $request)
     {
+        $this->authorize('create', Project::class);
+
         $validated = $request->validate([
             'active_status_id' => 'nullable|integer',
             'project_name' => 'required|string|max:50',
@@ -31,6 +33,9 @@ class ProjectController extends Controller
     public function update(Request $request, $id)
     {
         $project = Project::findOrFail($id);
+
+        $this->authorize('update', $project);
+
         $validated = $request->validate([
             'active_status_id' => 'nullable|integer',
             'project_name' => 'required|string|max:50',
@@ -45,13 +50,16 @@ class ProjectController extends Controller
     public function destroy($id)
     {
         $project = Project::findOrFail($id);
+
+        $this->authorize('delete', $project);
+
         try {
             $project->delete();
 
             return response()->json(null, 204);
         } catch (\Illuminate\Database\QueryException $e) {
             // Check for foreign key constraint violation (SQLSTATE 23000 or 1451 for MySQL)
-            if ($e->getCode() == '23000' || $e->getCode() == '1451') {
+            if (in_array($e->getCode(), ['23000', '23503', '1451'])) {
                 return response()->json([
                     'message' => 'Cannot delete project: it is referenced by other records (e.g., expenses). Please remove related records first.',
                 ], 409);

@@ -2,7 +2,10 @@ import React, { useState } from 'react'
 import { InputText } from 'primereact/inputtext'
 import { IconField } from 'primereact/iconfield'
 import { InputIcon } from 'primereact/inputicon'
+import { useTranslation } from 'react-i18next'
+
 function InputPassword ({...props}) {
+    const { t } = useTranslation()
     const [showPassword, setShowPassword] = useState(false)
     const {label,name,id,errors=[]} = {...props}
     return (
@@ -16,7 +19,7 @@ function InputPassword ({...props}) {
                            {...props}
                 />
             </IconField>
-            { errors[name] && <p className="text-red-500 text-sm mt-2">{ errors[name] }</p> }
+            { errors[name] && <p className="text-red-500 text-sm mt-2">{ t(errors[name]) }</p> }
         </div>
     )
 }

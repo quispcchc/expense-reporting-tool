@@ -73,9 +73,7 @@ function AddNewCostCentre({ createdToast }) {
             </div>
 
             {isOpen && (
-                <form className={`my-5 grid grid-cols-1 sm:grid-cols-12 gap-5 ${validationErrors.length > 0
-                    ? 'items-center'
-                    : 'items-end'}`}
+                <form className="my-5 grid grid-cols-1 sm:grid-cols-12 gap-5 items-end"
                     onSubmit={handleCostCentreFormSubmit}>
                     <div className="col-span-4">
                         <Select name="department" id="department" label={t('users.department')}

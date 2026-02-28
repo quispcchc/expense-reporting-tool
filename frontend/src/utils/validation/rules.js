@@ -61,4 +61,40 @@ export const validationRules = {
         return regex.test(value) ? null : message
     },
 
+    // Numeric validation rules
+    isNumeric: (value, message = 'Must be a valid number') => {
+        if (value === undefined || value === null || value === '') return null
+        if (typeof value === 'string' && value.trim() === '') return message
+        return isNaN(Number(value)) ? message : null
+    },
+
+    minValue: (value, min, message = `Must be at least ${min}`) => {
+        if (value === undefined || value === null || value === '') return null
+        const num = Number(value)
+        if (isNaN(num)) return null // let isNumeric handle type check
+        return num >= min ? null : message
+    },
+
+    maxValue: (value, max, message = `Must be no more than ${max}`) => {
+        if (value === undefined || value === null || value === '') return null
+        const num = Number(value)
+        if (isNaN(num)) return null
+        return num <= max ? null : message
+    },
+
+    // Cross-field rule: requires this field when ALL specified fields are empty
+    // Uses same formData pattern as 'matches' rule
+    requiredWithoutAll: (value, formData, fields, message = 'This field is required') => {
+        const allOthersEmpty = fields.every(field => {
+            const v = formData[field]
+            return v === undefined || v === null || (typeof v === 'string' && v.trim() === '')
+        })
+        if (!allOthersEmpty) return null // at least one other field has a value, so this is optional
+        // All other fields are empty — this field is required
+        if (value === undefined || value === null || (typeof value === 'string' && value.trim() === '')) {
+            return message
+        }
+        return null
+    },
+
 }
