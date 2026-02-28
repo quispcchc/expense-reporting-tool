@@ -15,9 +15,13 @@ import { Dialog } from 'primereact/dialog'
 import { useLookups } from '../../contexts/LookupContext.jsx'
 import { useTranslation } from 'react-i18next'
 import ActiveStatusTab from '../../components/common/ui/ActiveStatusTab.jsx'
+import Input from '../../components/common/ui/Input.jsx'
+import Select from '../../components/common/ui/Select.jsx'
 import { Toast } from 'primereact/toast'
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog'
 import { useIsMobile } from '../../hooks/useIsMobile.js'
+import { validateForm } from '../../utils/validation/validator.js'
+import { validationSchemas } from '../../utils/validation/schemas.js'
 
 function UsersPage() {
     const { t } = useTranslation()
@@ -30,11 +34,34 @@ function UsersPage() {
     // Mobile edit dialog state
     const [editDialog, setEditDialog] = useState(false)
     const [editData, setEditData] = useState(null)
+    const [editErrors, setEditErrors] = useState({})
 
     // Controlled row editing state (preserves edit mode across re-renders)
     const [editingRows, setEditingRows] = useState({})
     // Tracks department changes per editing row: { [userId]: departmentId }
+    // Both state (to trigger re-renders) and refs (to avoid stale closures in PrimeReact's memoized callbacks)
     const [editingDepartmentMap, setEditingDepartmentMap] = useState({})
+    const editingDepartmentMapRef = useRef({})
+    // Tracks teams per editing row so we can clear them when department changes: { [userId]: [teamId, ...] }
+    const [editingTeamsMap, setEditingTeamsMap] = useState({})
+    const editingTeamsMapRef = useRef({})
+
+    // Keep refs in sync with state
+    const updateDepartmentMap = useCallback((updater) => {
+        setEditingDepartmentMap(prev => {
+            const next = typeof updater === 'function' ? updater(prev) : updater
+            editingDepartmentMapRef.current = next
+            return next
+        })
+    }, [])
+
+    const updateTeamsMap = useCallback((updater) => {
+        setEditingTeamsMap(prev => {
+            const next = typeof updater === 'function' ? updater(prev) : updater
+            editingTeamsMapRef.current = next
+            return next
+        })
+    }, [])
 
     // Delete user with confirmation dialog
     const handleDeleteUser = (rowData) => {
@@ -155,35 +182,48 @@ function UsersPage() {
     )
 
     // Dropdown editor for teams field (multi-select)
+    // Reads from refs to avoid stale closures when PrimeReact memoizes BodyCell
     const teamsEditor = useCallback((editorOptions) => {
         const rowKey = editorOptions.rowData?.user_id;
+        const deptMap = editingDepartmentMapRef.current;
+        console.log(deptMap);
+        
+        const teamsMap = editingTeamsMapRef.current;
+
         // Use editingDepartmentMap if available (user changed department during this edit session)
-        const departmentId = rowKey != null && editingDepartmentMap[rowKey] !== undefined
-            ? editingDepartmentMap[rowKey]
+        const departmentId = rowKey != null && deptMap[rowKey] !== undefined
+            ? deptMap[rowKey]
             : editorOptions.rowData?.department_id || null;
         const filteredTeams = departmentId
             ? lookups.teams.filter(team => team.department_id === departmentId)
             : [];
 
-        let value = editorOptions.value;
-        if (!value && Array.isArray(editorOptions.rowData?.teams)) {
-            value = editorOptions.rowData.teams.map(t => t.team_id || t.value || t);
-        } else if (Array.isArray(value)) {
-            value = value.map(t => (typeof t === 'object' && t !== null ? t.team_id || t.value : t));
-        } else if (!value) {
-            value = [];
-        }
-
-        // If department was changed during this edit, filter out teams that no longer belong
-        if (rowKey != null && editingDepartmentMap[rowKey] !== undefined) {
-            const validTeamIds = new Set(filteredTeams.map(ft => ft.team_id));
-            value = value.filter(tid => validTeamIds.has(tid));
+        // Use editingTeamsMap as the source of truth; initialize from row data on first render
+        let value;
+        if (rowKey != null && teamsMap[rowKey] !== undefined) {
+            value = teamsMap[rowKey];
+        } else {
+            // First time entering edit — initialize from row data
+            value = editorOptions.value;
+            if (!value && Array.isArray(editorOptions.rowData?.teams)) {
+                value = editorOptions.rowData.teams.map(t => t.team_id || t.value || t);
+            } else if (Array.isArray(value)) {
+                value = value.map(t => (typeof t === 'object' && t !== null ? t.team_id || t.value : t));
+            } else {
+                value = [];
+            }
         }
 
         return (
             <MultiSelect
                 value={value}
-                onChange={(e) => editorOptions.editorCallback(e.target.value)}
+                onChange={(e) => {
+                    const newTeams = e.target.value;
+                    editorOptions.editorCallback(newTeams);
+                    if (rowKey != null) {
+                        updateTeamsMap(prev => ({ ...prev, [rowKey]: newTeams }));
+                    }
+                }}
                 options={filteredTeams.map(option => ({ label: option.team_name, value: option.team_id }))}
                 optionLabel="label"
                 optionValue="value"
@@ -193,7 +233,7 @@ function UsersPage() {
                 className="w-full"
             />
         );
-    }, [editingDepartmentMap, lookups.teams, t])
+    }, [lookups.teams, t, updateTeamsMap])
 
     // Dropdown editor for roles field
     const roleEditor = useCallback((editorOptions) => (
@@ -213,17 +253,22 @@ function UsersPage() {
             onChange={(e) => {
                 const newDeptId = e.target.value;
                 editorOptions.editorCallback(newDeptId);
-                // Track department change so teamsEditor can react
+                // Track department change and clear teams so teamsEditor reacts in realtime
                 const rowKey = editorOptions.rowData?.user_id;
                 if (rowKey != null) {
-                    setEditingDepartmentMap(prev => ({ ...prev, [rowKey]: newDeptId }));
+                    updateDepartmentMap(prev => ({ ...prev, [rowKey]: newDeptId }));
+                    updateTeamsMap(prev => ({ ...prev, [rowKey]: [] }));
+                    // Force PrimeReact BodyCell re-render by changing rowData (which is in its memo comparison list)
+                    setUsers(prev => prev.map(u =>
+                        u.user_id === rowKey ? { ...u, department_id: newDeptId, teams: [] } : u
+                    ));
                 }
             }}
             options={departmentOptions}
             optionLabel="label"
             optionValue="value"
         />
-    ), [departmentOptions])
+    ), [departmentOptions, updateDepartmentMap, updateTeamsMap])
 
     // Dropdown editor for status field
     const statusEditor = (editorOptions) => (
@@ -244,9 +289,29 @@ function UsersPage() {
         let _users = [...users]
         let { newData, index } = e
 
-        // Clean up editing department tracking for this row
+        const { isValid, errors: validationErrors } = validateForm(newData, validationSchemas.editUser)
+        if (!isValid) {
+            const messages = Object.values(validationErrors).map(key => t(key)).join(', ')
+            toastRef.current?.show({ severity: 'error', summary: t('common.error', 'Error'), detail: messages, life: 5000 })
+            return
+        }
+
+        // Read from refs to avoid stale closures (PrimeReact memoizes BodyCell)
         const rowKey = newData.user_id;
-        setEditingDepartmentMap(prev => {
+        const teamsMap = editingTeamsMapRef.current;
+        const teamIds = teamsMap[rowKey] !== undefined
+            ? teamsMap[rowKey]
+            : (Array.isArray(newData.teams)
+                ? newData.teams.map(t => t.team_id || t.value || t)
+                : []);
+
+        // Clean up editing tracking for this row (update both state and refs)
+        updateDepartmentMap(prev => {
+            const next = { ...prev };
+            delete next[rowKey];
+            return next;
+        });
+        updateTeamsMap(prev => {
             const next = { ...prev };
             delete next[rowKey];
             return next;
@@ -264,9 +329,7 @@ function UsersPage() {
                         department_id: newData.department_id,
                         role_id: newData.role_id,
                         active_status_id: newData.active_status_id,
-                        team_ids: Array.isArray(newData.teams)
-                            ? newData.teams.map(t => t.team_id || t.value || t)
-                            : [],
+                        team_ids: teamIds,
                     }
                     Object.keys(updatePayload).forEach(key =>
                         updatePayload[key] === undefined && delete updatePayload[key]
@@ -296,23 +359,34 @@ function UsersPage() {
                     setUsers(users)
                 }
             })()
-    }, [users, updateUser, refresh, t])
+    }, [users, updateUser, refresh, t, updateDepartmentMap, updateTeamsMap])
 
     // Called when row edit is cancelled
     const onRowEditCancel = useCallback((e) => {
         const rowKey = e.data?.user_id;
         if (rowKey != null) {
-            setEditingDepartmentMap(prev => {
+            updateDepartmentMap(prev => {
+                const next = { ...prev };
+                delete next[rowKey];
+                return next;
+            });
+            updateTeamsMap(prev => {
                 const next = { ...prev };
                 delete next[rowKey];
                 return next;
             });
         }
-    }, [])
+    }, [updateDepartmentMap, updateTeamsMap])
 
     // Mobile edit dialog save
     const handleMobileEditSave = async () => {
         if (!editData) return
+        const { isValid, errors: validationErrors } = validateForm(editData, validationSchemas.editUser)
+        if (!isValid) {
+            setEditErrors(validationErrors)
+            return
+        }
+        setEditErrors({})
         try {
             const updatePayload = {
                 user_id: editData.user_id,
@@ -525,50 +599,29 @@ function UsersPage() {
                 header={t('users.editUser', 'Edit User')}
                 visible={editDialog}
                 style={{ width: '90vw', maxWidth: '450px' }}
-                onHide={() => { setEditDialog(false); setEditData(null) }}
+                onHide={() => { setEditDialog(false); setEditData(null); setEditErrors({}) }}
                 className="mobile-edit-dialog"
                 footer={
                     <div className="flex justify-end gap-2">
-                        <Button label={t('common.cancel', 'Cancel')} icon="pi pi-times" outlined onClick={() => { setEditDialog(false); setEditData(null) }} />
+                        <Button label={t('common.cancel', 'Cancel')} icon="pi pi-times" outlined onClick={() => { setEditDialog(false); setEditData(null); setEditErrors({}) }} />
                         <Button label={t('common.save', 'Save')} icon="pi pi-check" onClick={handleMobileEditSave} />
                     </div>
                 }
             >
                 {editData && (
-                    <>
-                        <div className="edit-field">
-                            <label>{t('users.firstName')}</label>
-                            <InputText
-                                value={editData.first_name || ''}
-                                onChange={(e) => setEditData({ ...editData, first_name: e.target.value })}
-                            />
-                        </div>
-                        <div className="edit-field">
-                            <label>{t('users.lastName')}</label>
-                            <InputText
-                                value={editData.last_name || ''}
-                                onChange={(e) => setEditData({ ...editData, last_name: e.target.value })}
-                            />
-                        </div>
-                        <div className="edit-field">
-                            <label>{t('users.email', 'Email')}</label>
-                            <InputText
-                                value={editData.email || ''}
-                                onChange={(e) => setEditData({ ...editData, email: e.target.value })}
-                            />
-                        </div>
-                        <div className="edit-field">
-                            <label>{t('users.department')}</label>
-                            <Dropdown
-                                value={editData.department_id}
-                                onChange={(e) => setEditData({ ...editData, department_id: e.target.value, teams: [] })}
-                                options={departmentOptions}
-                                optionLabel="label"
-                                optionValue="value"
-                            />
-                        </div>
-                        <div className="edit-field">
-                            <label>{t('users.teams', 'Teams')}</label>
+                    <div className="flex flex-col gap-4">
+                        <Input name="first_name" label={t('users.firstName')} value={editData.first_name || ''} errors={editErrors}
+                            onChange={(e) => { setEditData({ ...editData, first_name: e.target.value }); setEditErrors(prev => ({ ...prev, first_name: undefined })) }} />
+                        <Input name="last_name" label={t('users.lastName')} value={editData.last_name || ''} errors={editErrors}
+                            onChange={(e) => { setEditData({ ...editData, last_name: e.target.value }); setEditErrors(prev => ({ ...prev, last_name: undefined })) }} />
+                        <Input name="email" label={t('users.email', 'Email')} value={editData.email || ''} errors={editErrors}
+                            onChange={(e) => { setEditData({ ...editData, email: e.target.value }); setEditErrors(prev => ({ ...prev, email: undefined })) }} />
+                        <Select name="department_id" label={t('users.department')} value={editData.department_id} options={departmentOptions} optionValue="value" errors={editErrors}
+                            onChange={(e) => { setEditData({ ...editData, department_id: e.value, teams: [] }); setEditErrors(prev => ({ ...prev, department_id: undefined })) }} />
+                        <div className="relative">
+                            <div className="flex items-center gap-2 mb-2">
+                                <label className="block text-sm font-medium">{t('users.teams', 'Teams')}</label>
+                            </div>
                             <MultiSelect
                                 value={editData.teams || []}
                                 onChange={(e) => setEditData({ ...editData, teams: e.value })}
@@ -576,29 +629,16 @@ function UsersPage() {
                                 optionLabel="label"
                                 optionValue="value"
                                 display="chip"
+                                className="w-full"
                                 placeholder={editData.department_id ? t('users.selectTeam', 'Select team') : t('users.selectDepartmentFirst', 'Select department first')}
                                 disabled={!editData.department_id}
                             />
                         </div>
-                        <div className="edit-field">
-                            <label>{t('users.role')}</label>
-                            <Dropdown
-                                value={editData.role_id}
-                                onChange={(e) => setEditData({ ...editData, role_id: e.target.value })}
-                                options={roleOptions}
-                                optionLabel="label"
-                                optionValue="value"
-                            />
-                        </div>
-                        <div className="edit-field">
-                            <label>{t('common.status')}</label>
-                            <Dropdown
-                                value={editData.active_status_id}
-                                onChange={(e) => setEditData({ ...editData, active_status_id: e.target.value })}
-                                options={statusOptions}
-                            />
-                        </div>
-                    </>
+                        <Select name="role_id" label={t('users.role')} value={editData.role_id} options={roleOptions} optionValue="value" errors={editErrors}
+                            onChange={(e) => { setEditData({ ...editData, role_id: e.value }); setEditErrors(prev => ({ ...prev, role_id: undefined })) }} />
+                        <Select name="active_status_id" label={t('common.status')} value={editData.active_status_id} options={statusOptions} optionValue="value" errors={editErrors}
+                            onChange={(e) => { setEditData({ ...editData, active_status_id: e.value }); setEditErrors(prev => ({ ...prev, active_status_id: undefined })) }} />
+                    </div>
                 )}
             </Dialog>
         </>
