@@ -7,7 +7,6 @@ import { useUser, useUserDispatch } from '../../contexts/UserContext.jsx'
 import { Dropdown } from 'primereact/dropdown'
 import { MultiSelect } from 'primereact/multiselect'
 import { Button } from 'primereact/button'
-import { Dialog } from 'primereact/dialog'
 import { useLookups } from '../../contexts/LookupContext.jsx'
 import { useTranslation } from 'react-i18next'
 import ActiveStatusTab from '../../components/common/ui/ActiveStatusTab.jsx'
@@ -17,8 +16,10 @@ import { Toast } from 'primereact/toast'
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog'
 import { useIsMobile } from '../../hooks/useIsMobile.js'
 import { useDataTableFilter } from '../../hooks/useDataTableFilter.js'
+import { useMobileEditDialog } from '../../hooks/useMobileEditDialog.js'
 import { textInputEditor } from '../../utils/dataTableEditors.jsx'
 import DataTableSearchHeader from '../../components/common/ui/DataTableSearchHeader.jsx'
+import MobileEditDialog from '../../components/common/ui/MobileEditDialog.jsx'
 import { showToast, TOAST_LIFE } from '../../utils/helpers.js'
 import { validateForm } from '../../utils/validation/validator.js'
 import { validationSchemas } from '../../utils/validation/schemas.js'
@@ -31,10 +32,7 @@ function UsersPage() {
     const usersState = useUser()
     const { deleteUser, updateUser, refresh } = useUserDispatch()
 
-    // Mobile edit dialog state
-    const [editDialog, setEditDialog] = useState(false)
-    const [editData, setEditData] = useState(null)
-    const [editErrors, setEditErrors] = useState({})
+    const { editDialog, editData, editErrors, openDialog, closeDialog, updateField, validate, setEditData } = useMobileEditDialog({ validationSchema: validationSchemas.editUser })
 
     // Controlled row editing state (preserves edit mode across re-renders)
     const [editingRows, setEditingRows] = useState({})
@@ -329,12 +327,8 @@ function UsersPage() {
     // Mobile edit dialog save
     const handleMobileEditSave = async () => {
         if (!editData) return
-        const { isValid, errors: validationErrors } = validateForm(editData, validationSchemas.editUser)
-        if (!isValid) {
-            setEditErrors(validationErrors)
-            return
-        }
-        setEditErrors({})
+        const { isValid } = validate()
+        if (!isValid) return
         try {
             const updatePayload = {
                 user_id: editData.user_id,
@@ -357,8 +351,7 @@ function UsersPage() {
         } catch (err) {
             showToast(toastRef, { severity: 'error', summary: t('common.error'), detail: err.message || t('users.updateError', 'Failed to update user'), life: TOAST_LIFE.ERROR })
         }
-        setEditDialog(false)
-        setEditData(null)
+        closeDialog()
     }
 
 
@@ -431,11 +424,10 @@ function UsersPage() {
                                         size="small"
                                         text
                                         onClick={() => {
-                                            setEditData({
+                                            openDialog({
                                                 ...user,
                                                 teams: user.teams?.map(t => t.team_id || t.value || t) || []
                                             })
-                                            setEditDialog(true)
                                         }}
                                     />
                                     <Button
@@ -507,36 +499,24 @@ function UsersPage() {
             {isMobile ? mobileCardView : desktopTableView}
 
             {/* Mobile Edit Dialog */}
-            <Dialog
-                header={t('users.editUser', 'Edit User')}
-                visible={editDialog}
-                style={{ width: '90vw', maxWidth: '450px' }}
-                onHide={() => { setEditDialog(false); setEditData(null); setEditErrors({}) }}
-                className="mobile-edit-dialog"
-                footer={
-                    <div className="flex justify-end gap-2">
-                        <Button label={t('common.cancel', 'Cancel')} icon="pi pi-times" outlined onClick={() => { setEditDialog(false); setEditData(null); setEditErrors({}) }} />
-                        <Button label={t('common.save', 'Save')} icon="pi pi-check" onClick={handleMobileEditSave} />
-                    </div>
-                }
-            >
+            <MobileEditDialog visible={editDialog} header={t('users.editUser', 'Edit User')} onHide={closeDialog} onSave={handleMobileEditSave}>
                 {editData && (
                     <div className="flex flex-col gap-4">
                         <Input name="first_name" label={t('users.firstName')} value={editData.first_name || ''} errors={editErrors}
-                            onChange={(e) => { setEditData({ ...editData, first_name: e.target.value }); setEditErrors(prev => ({ ...prev, first_name: undefined })) }} />
+                            onChange={(e) => updateField('first_name', e.target.value)} />
                         <Input name="last_name" label={t('users.lastName')} value={editData.last_name || ''} errors={editErrors}
-                            onChange={(e) => { setEditData({ ...editData, last_name: e.target.value }); setEditErrors(prev => ({ ...prev, last_name: undefined })) }} />
+                            onChange={(e) => updateField('last_name', e.target.value)} />
                         <Input name="email" label={t('users.email', 'Email')} value={editData.email || ''} errors={editErrors}
-                            onChange={(e) => { setEditData({ ...editData, email: e.target.value }); setEditErrors(prev => ({ ...prev, email: undefined })) }} />
+                            onChange={(e) => updateField('email', e.target.value)} />
                         <Select name="department_id" label={t('users.department')} value={editData.department_id} options={departmentOptions} optionValue="value" errors={editErrors}
-                            onChange={(e) => { setEditData({ ...editData, department_id: e.value, teams: [] }); setEditErrors(prev => ({ ...prev, department_id: undefined })) }} />
+                            onChange={(e) => { setEditData(prev => ({ ...prev, department_id: e.value, teams: [] })); }} />
                         <div className="relative">
                             <div className="flex items-center gap-2 mb-2">
                                 <label className="block text-sm font-medium">{t('users.teams', 'Teams')}</label>
                             </div>
                             <MultiSelect
                                 value={editData.teams || []}
-                                onChange={(e) => setEditData({ ...editData, teams: e.value })}
+                                onChange={(e) => updateField('teams', e.value)}
                                 options={getMobileTeamOptions(editData.department_id)}
                                 optionLabel="label"
                                 optionValue="value"
@@ -547,12 +527,12 @@ function UsersPage() {
                             />
                         </div>
                         <Select name="role_id" label={t('users.role')} value={editData.role_id} options={roleOptions} optionValue="value" errors={editErrors}
-                            onChange={(e) => { setEditData({ ...editData, role_id: e.value }); setEditErrors(prev => ({ ...prev, role_id: undefined })) }} />
+                            onChange={(e) => updateField('role_id', e.value)} />
                         <Select name="active_status_id" label={t('common.status')} value={editData.active_status_id} options={statusOptions} optionValue="value" errors={editErrors}
-                            onChange={(e) => { setEditData({ ...editData, active_status_id: e.value }); setEditErrors(prev => ({ ...prev, active_status_id: undefined })) }} />
+                            onChange={(e) => updateField('active_status_id', e.value)} />
                     </div>
                 )}
-            </Dialog>
+            </MobileEditDialog>
         </>
     )
 }

@@ -1,19 +1,20 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef } from 'react'
 import ContentHeader from '../../components/common/layout/ContentHeader.jsx'
 import AddNewAccountNumber from '../../components/feature/accountNumber/AddNewAccountNumber.jsx'
 import { DataTable } from 'primereact/datatable'
 import { Column } from 'primereact/column'
 import { useAccountNumber } from '../../contexts/AccountNumberContext.jsx'
 import { Button } from 'primereact/button'
-import { Dialog } from 'primereact/dialog'
 import { useLookups } from '../../contexts/LookupContext.jsx'
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog'
 import { Toast } from 'primereact/toast'
 import { useTranslation } from 'react-i18next'
 import { useIsMobile } from '../../hooks/useIsMobile.js'
 import { useDataTableFilter } from '../../hooks/useDataTableFilter.js'
+import { useMobileEditDialog } from '../../hooks/useMobileEditDialog.js'
 import { textInputEditor } from '../../utils/dataTableEditors.jsx'
 import DataTableSearchHeader from '../../components/common/ui/DataTableSearchHeader.jsx'
+import MobileEditDialog from '../../components/common/ui/MobileEditDialog.jsx'
 import { showToast, TOAST_LIFE } from '../../utils/helpers.js'
 import { validateForm } from '../../utils/validation/validator.js'
 import { validationSchemas } from '../../utils/validation/schemas.js'
@@ -30,11 +31,7 @@ function AccountNumbersPage() {
     } = useAccountNumber()
 
     const { globalFilterValue, filters, onGlobalFilterChange } = useDataTableFilter()
-
-    // Mobile edit dialog state
-    const [editDialog, setEditDialog] = useState(false)
-    const [editData, setEditData] = useState(null)
-    const [editErrors, setEditErrors] = useState({})
+    const { editDialog, editData, editErrors, openDialog, closeDialog, updateField, validate } = useMobileEditDialog({ validationSchema: validationSchemas.editAccountNumber })
 
 
     const toast = useRef(null)
@@ -111,18 +108,13 @@ function AccountNumbersPage() {
     // Mobile edit dialog save
     const handleMobileEditSave = async () => {
         if (!editData) return
-        const { isValid, errors: validationErrors } = validateForm(editData, validationSchemas.editAccountNumber)
-        if (!isValid) {
-            setEditErrors(validationErrors)
-            return
-        }
-        setEditErrors({})
+        const { isValid } = validate()
+        if (!isValid) return
         const response = await updateAccountNumber(editData)
         if (response?.status === 200) {
             toasts.updated()
         }
-        setEditDialog(false)
-        setEditData(null)
+        closeDialog()
     }
 
     // Filter account numbers for mobile search
@@ -166,10 +158,7 @@ function AccountNumbersPage() {
                                     icon="pi pi-pencil"
                                     size="small"
                                     text
-                                    onClick={() => {
-                                        setEditData({ ...an })
-                                        setEditDialog(true)
-                                    }}
+                                    onClick={() => openDialog(an)}
                                 />
                                 <Button
                                     icon="pi pi-trash"
@@ -226,28 +215,16 @@ function AccountNumbersPage() {
             {isMobile ? mobileCardView : desktopTableView}
 
             {/* Mobile Edit Dialog */}
-            <Dialog
-                header={t('accountNumbers.editAccountNumber', 'Edit Account Number')}
-                visible={editDialog}
-                style={{ width: '90vw', maxWidth: '450px' }}
-                onHide={() => { setEditDialog(false); setEditData(null); setEditErrors({}) }}
-                className="mobile-edit-dialog"
-                footer={
-                    <div className="flex justify-end gap-2">
-                        <Button label={t('common.cancel', 'Cancel')} icon="pi pi-times" outlined onClick={() => { setEditDialog(false); setEditData(null); setEditErrors({}) }} />
-                        <Button label={t('common.save', 'Save')} icon="pi pi-check" onClick={handleMobileEditSave} />
-                    </div>
-                }
-            >
+            <MobileEditDialog visible={editDialog} header={t('accountNumbers.editAccountNumber', 'Edit Account Number')} onHide={closeDialog} onSave={handleMobileEditSave}>
                 {editData && (
                     <div className="flex flex-col gap-4">
                         <Input name="account_number" label={t('accountNumbers.accountNumber', 'Account Number')} type="number" value={editData.account_number || ''} errors={editErrors}
-                            onChange={(e) => { setEditData({ ...editData, account_number: e.target.value }); setEditErrors(prev => ({ ...prev, account_number: undefined })) }} />
+                            onChange={(e) => updateField('account_number', e.target.value)} />
                         <Input name="description" label={t('accountNumbers.description', 'Description')} value={editData.description || ''} errors={editErrors}
-                            onChange={(e) => { setEditData({ ...editData, description: e.target.value }); setEditErrors(prev => ({ ...prev, description: undefined })) }} />
+                            onChange={(e) => updateField('description', e.target.value)} />
                     </div>
                 )}
-            </Dialog>
+            </MobileEditDialog>
         </>
     )
 }

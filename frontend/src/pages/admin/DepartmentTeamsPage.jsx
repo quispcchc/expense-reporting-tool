@@ -7,7 +7,6 @@ import StatusTab from '../../components/common/ui/StatusTab.jsx'
 import { Column } from 'primereact/column'
 import { Dropdown } from 'primereact/dropdown'
 import { Button } from 'primereact/button'
-import { Dialog } from 'primereact/dialog'
 import { useLookups } from '../../contexts/LookupContext.jsx'
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog'
 import DataTableSearchHeader from '../../components/common/ui/DataTableSearchHeader.jsx'
@@ -15,10 +14,11 @@ import { Toast } from 'primereact/toast'
 import { useTranslation } from 'react-i18next'
 import { useIsMobile } from '../../hooks/useIsMobile.js'
 import { useDataTableFilter } from '../../hooks/useDataTableFilter.js'
+import { useMobileEditDialog } from '../../hooks/useMobileEditDialog.js'
 import { textInputEditor } from '../../utils/dataTableEditors.jsx'
+import MobileEditDialog from '../../components/common/ui/MobileEditDialog.jsx'
 import api from '../../api/api.js'
 import { showToast, TOAST_LIFE } from '../../utils/helpers.js'
-import { validateForm } from '../../utils/validation/validator.js'
 import { validationSchemas } from '../../utils/validation/schemas.js'
 import Input from '../../components/common/ui/Input.jsx'
 import Select from '../../components/common/ui/Select.jsx'
@@ -43,10 +43,7 @@ function DepartmentTeamsPage() {
     const { lookups, refreshLookups } = useLookups()
     const toast = useRef(null)
 
-    // Mobile edit dialog state
-    const [editDialog, setEditDialog] = useState(false)
-    const [editData, setEditData] = useState(null)
-    const [editErrors, setEditErrors] = useState({})
+    const { editDialog, editData, editErrors, openDialog, closeDialog, updateField, validate } = useMobileEditDialog({ validationSchema: validationSchemas.addTeam })
 
     // Get active statuses from lookups
     const statusOptions = lookups.activeStatuses.map(s => ({
@@ -151,12 +148,8 @@ function DepartmentTeamsPage() {
     // Mobile edit dialog save
     const handleMobileEditSave = async () => {
         if (!editData) return
-        const { isValid, errors: validationErrors } = validateForm(editData, validationSchemas.addTeam)
-        if (!isValid) {
-            setEditErrors(validationErrors)
-            return
-        }
-        setEditErrors({})
+        const { isValid } = validate()
+        if (!isValid) return
         try {
             await api.put(`/teams/${editData.team_id}`, editData)
             await fetchData(true)
@@ -165,8 +158,7 @@ function DepartmentTeamsPage() {
         } catch (err) {
             showToast(toast, { severity: 'error', summary: t('common.error'), detail: err.message || t('teams.updateError', 'Failed to update team'), life: TOAST_LIFE.ERROR })
         }
-        setEditDialog(false)
-        setEditData(null)
+        closeDialog()
     }
 
     // Render the search bar with back button
@@ -250,10 +242,7 @@ function DepartmentTeamsPage() {
                                         icon="pi pi-pencil"
                                         size="small"
                                         text
-                                        onClick={() => {
-                                            setEditData({ ...team })
-                                            setEditDialog(true)
-                                        }}
+                                        onClick={() => openDialog(team)}
                                     />
                                     <Button
                                         icon="pi pi-trash"
@@ -328,30 +317,18 @@ function DepartmentTeamsPage() {
             {isMobile ? mobileCardView : desktopTableView}
 
             {/* Mobile Edit Dialog */}
-            <Dialog
-                header={t('teams.editTeam', 'Edit Team')}
-                visible={editDialog}
-                style={{ width: '90vw', maxWidth: '450px' }}
-                onHide={() => { setEditDialog(false); setEditData(null); setEditErrors({}) }}
-                className="mobile-edit-dialog"
-                footer={
-                    <div className="flex justify-end gap-2">
-                        <Button label={t('common.cancel', 'Cancel')} icon="pi pi-times" outlined onClick={() => { setEditDialog(false); setEditData(null); setEditErrors({}) }} />
-                        <Button label={t('common.save', 'Save')} icon="pi pi-check" onClick={handleMobileEditSave} />
-                    </div>
-                }
-            >
+            <MobileEditDialog visible={editDialog} header={t('teams.editTeam', 'Edit Team')} onHide={closeDialog} onSave={handleMobileEditSave}>
                 {editData && (
                     <div className="flex flex-col gap-4">
                         <Input name="team_abbreviation" label={t('teams.code')} value={editData.team_abbreviation || ''} errors={editErrors}
-                            onChange={(e) => { setEditData({ ...editData, team_abbreviation: e.target.value }); setEditErrors(prev => ({ ...prev, team_abbreviation: undefined })) }} />
+                            onChange={(e) => updateField('team_abbreviation', e.target.value)} />
                         <Input name="team_name" label={t('teams.name')} value={editData.team_name || ''} errors={editErrors}
-                            onChange={(e) => { setEditData({ ...editData, team_name: e.target.value }); setEditErrors(prev => ({ ...prev, team_name: undefined })) }} />
+                            onChange={(e) => updateField('team_name', e.target.value)} />
                         <Select name="active_status_id" label={t('common.status')} value={editData.active_status_id} options={statusOptions} optionValue="value" errors={editErrors}
-                            onChange={(e) => { setEditData({ ...editData, active_status_id: e.value }); setEditErrors(prev => ({ ...prev, active_status_id: undefined })) }} />
+                            onChange={(e) => updateField('active_status_id', e.value)} />
                     </div>
                 )}
-            </Dialog>
+            </MobileEditDialog>
         </>
     )
 }

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import ContentHeader from '../../components/common/layout/ContentHeader.jsx'
 import AddNewDepartment from '../../components/feature/department/AddNewDepartment.jsx'
@@ -8,15 +8,16 @@ import StatusTab from '../../components/common/ui/StatusTab.jsx'
 import { Column } from 'primereact/column'
 import { Dropdown } from 'primereact/dropdown'
 import { Button } from 'primereact/button'
-import { Dialog } from 'primereact/dialog'
 import { useLookups } from '../../contexts/LookupContext.jsx'
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog'
 import { Toast } from 'primereact/toast'
 import { useTranslation } from 'react-i18next'
 import { useIsMobile } from '../../hooks/useIsMobile.js'
 import { useDataTableFilter } from '../../hooks/useDataTableFilter.js'
+import { useMobileEditDialog } from '../../hooks/useMobileEditDialog.js'
 import { textInputEditor } from '../../utils/dataTableEditors.jsx'
 import DataTableSearchHeader from '../../components/common/ui/DataTableSearchHeader.jsx'
+import MobileEditDialog from '../../components/common/ui/MobileEditDialog.jsx'
 import { showToast, TOAST_LIFE } from '../../utils/helpers.js'
 import { validateForm } from '../../utils/validation/validator.js'
 import { validationSchemas } from '../../utils/validation/schemas.js'
@@ -40,11 +41,7 @@ function DepartmentsPage() {
     }))
 
     const { globalFilterValue, filters, onGlobalFilterChange } = useDataTableFilter()
-
-    // Mobile edit dialog state
-    const [editDialog, setEditDialog] = useState(false)
-    const [editData, setEditData] = useState(null)
-    const [editErrors, setEditErrors] = useState({})
+    const { editDialog, editData, editErrors, openDialog, closeDialog, updateField, validate } = useMobileEditDialog({ validationSchema: validationSchemas.addDepartment })
 
     // Custom renderer to display the status badge/tab
     const renderStatus = (rowData) => {
@@ -109,18 +106,13 @@ function DepartmentsPage() {
     // Mobile edit dialog save
     const handleMobileEditSave = async () => {
         if (!editData) return
-        const { isValid, errors: validationErrors } = validateForm(editData, validationSchemas.addDepartment)
-        if (!isValid) {
-            setEditErrors(validationErrors)
-            return
-        }
-        setEditErrors({})
+        const { isValid } = validate()
+        if (!isValid) return
         const result = await updateDepartment(editData)
         if (result?.success) {
             await refreshLookups()
             showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('departments.updateSuccess', 'Department updated'), life: TOAST_LIFE.SUCCESS })
-            setEditDialog(false)
-            setEditData(null)
+            closeDialog()
         } else {
             showToast(toast, { severity: 'error', summary: t('common.error'), detail: result?.error || t('errors.permissionDenied'), life: TOAST_LIFE.ERROR })
         }
@@ -199,10 +191,7 @@ function DepartmentsPage() {
                                         icon="pi pi-pencil"
                                         size="small"
                                         text
-                                        onClick={() => {
-                                            setEditData({ ...dept })
-                                            setEditDialog(true)
-                                        }}
+                                        onClick={() => openDialog(dept)}
                                     />
                                     <Button
                                         icon="pi pi-trash"
@@ -270,30 +259,18 @@ function DepartmentsPage() {
             {isMobile ? mobileCardView : desktopTableView}
 
             {/* Mobile Edit Dialog */}
-            <Dialog
-                header={t('departments.editDepartment', 'Edit Department')}
-                visible={editDialog}
-                style={{ width: '90vw', maxWidth: '450px' }}
-                onHide={() => { setEditDialog(false); setEditData(null); setEditErrors({}) }}
-                className="mobile-edit-dialog"
-                footer={
-                    <div className="flex justify-end gap-2">
-                        <Button label={t('common.cancel', 'Cancel')} icon="pi pi-times" outlined onClick={() => { setEditDialog(false); setEditData(null); setEditErrors({}) }} />
-                        <Button label={t('common.save', 'Save')} icon="pi pi-check" onClick={handleMobileEditSave} />
-                    </div>
-                }
-            >
+            <MobileEditDialog visible={editDialog} header={t('departments.editDepartment', 'Edit Department')} onHide={closeDialog} onSave={handleMobileEditSave}>
                 {editData && (
                     <div className="flex flex-col gap-4">
                         <Input name="department_abbreviation" label={t('departments.code')} value={editData.department_abbreviation || ''} errors={editErrors}
-                            onChange={(e) => { setEditData({ ...editData, department_abbreviation: e.target.value }); setEditErrors(prev => ({ ...prev, department_abbreviation: undefined })) }} />
+                            onChange={(e) => updateField('department_abbreviation', e.target.value)} />
                         <Input name="department_name" label={t('departments.name')} value={editData.department_name || ''} errors={editErrors}
-                            onChange={(e) => { setEditData({ ...editData, department_name: e.target.value }); setEditErrors(prev => ({ ...prev, department_name: undefined })) }} />
+                            onChange={(e) => updateField('department_name', e.target.value)} />
                         <Select name="active_status_id" label={t('common.status')} value={editData.active_status_id} options={statusOptions} optionValue="value" errors={editErrors}
-                            onChange={(e) => { setEditData({ ...editData, active_status_id: e.value }); setEditErrors(prev => ({ ...prev, active_status_id: undefined })) }} />
+                            onChange={(e) => updateField('active_status_id', e.value)} />
                     </div>
                 )}
-            </Dialog>
+            </MobileEditDialog>
         </>
     )
 }
