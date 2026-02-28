@@ -19,6 +19,7 @@ import { useIsMobile } from '../../hooks/useIsMobile.js'
 import { useDataTableFilter } from '../../hooks/useDataTableFilter.js'
 import { textInputEditor } from '../../utils/dataTableEditors.jsx'
 import DataTableSearchHeader from '../../components/common/ui/DataTableSearchHeader.jsx'
+import { showToast, TOAST_LIFE } from '../../utils/helpers.js'
 import { validateForm } from '../../utils/validation/validator.js'
 import { validationSchemas } from '../../utils/validation/schemas.js'
 
@@ -73,23 +74,9 @@ function UsersPage() {
                 try {
                     await deleteUser(rowData.user_id)
                     await refresh()
-                    if (toastRef.current) {
-                        toastRef.current.show({
-                            severity: 'success',
-                            summary: t('common.success', 'Success'),
-                            detail: t('users.deleteSuccess', 'User deleted successfully'),
-                            life: 3000
-                        })
-                    }
+                    showToast(toastRef, { severity: 'success', summary: t('common.success'), detail: t('users.deleteSuccess', 'User deleted successfully'), life: TOAST_LIFE.SUCCESS })
                 } catch (err) {
-                    if (toastRef.current) {
-                        toastRef.current.show({
-                            severity: 'error',
-                            summary: t('common.error', 'Error'),
-                            detail: err.message || t('users.deleteError', 'Failed to delete user'),
-                            life: 4000
-                        })
-                    }
+                    showToast(toastRef, { severity: 'error', summary: t('common.error'), detail: err.message || t('users.deleteError', 'Failed to delete user'), life: TOAST_LIFE.ERROR })
                 }
             },
             reject: () => { },
@@ -268,7 +255,7 @@ function UsersPage() {
         const { isValid, errors: validationErrors } = validateForm(newData, validationSchemas.editUser)
         if (!isValid) {
             const messages = Object.values(validationErrors).map(key => t(key)).join(', ')
-            toastRef.current?.show({ severity: 'error', summary: t('common.error', 'Error'), detail: messages, life: 5000 })
+            showToast(toastRef, { severity: 'error', summary: t('common.error'), detail: messages, life: TOAST_LIFE.ERROR })
             return
         }
 
@@ -313,25 +300,10 @@ function UsersPage() {
 
                     await updateUser(updatePayload)
                     await refresh()
-
-                    if (toastRef.current) {
-                        toastRef.current.show({
-                            severity: 'success',
-                            summary: t('common.success', 'Success'),
-                            detail: t('users.updateSuccess', 'User updated successfully'),
-                            life: 3000
-                        })
-                    }
+                    showToast(toastRef, { severity: 'success', summary: t('common.success'), detail: t('users.updateSuccess', 'User updated successfully'), life: TOAST_LIFE.SUCCESS })
                 } catch (err) {
                     console.error('Failed to update user', err)
-                    if (toastRef.current) {
-                        toastRef.current.show({
-                            severity: 'error',
-                            summary: t('common.error', 'Error'),
-                            detail: err.message || t('users.updateError', 'Failed to update user'),
-                            life: 4000
-                        })
-                    }
+                    showToast(toastRef, { severity: 'error', summary: t('common.error'), detail: err.message || t('users.updateError', 'Failed to update user'), life: TOAST_LIFE.ERROR })
                     setUsers(users)
                 }
             })()
@@ -381,23 +353,9 @@ function UsersPage() {
             )
             await updateUser(updatePayload)
             await refresh()
-            if (toastRef.current) {
-                toastRef.current.show({
-                    severity: 'success',
-                    summary: t('common.success', 'Success'),
-                    detail: t('users.updateSuccess', 'User updated successfully'),
-                    life: 3000
-                })
-            }
+            showToast(toastRef, { severity: 'success', summary: t('common.success'), detail: t('users.updateSuccess', 'User updated successfully'), life: TOAST_LIFE.SUCCESS })
         } catch (err) {
-            if (toastRef.current) {
-                toastRef.current.show({
-                    severity: 'error',
-                    summary: t('common.error', 'Error'),
-                    detail: err.message || t('users.updateError', 'Failed to update user'),
-                    life: 4000
-                })
-            }
+            showToast(toastRef, { severity: 'error', summary: t('common.error'), detail: err.message || t('users.updateError', 'Failed to update user'), life: TOAST_LIFE.ERROR })
         }
         setEditDialog(false)
         setEditData(null)

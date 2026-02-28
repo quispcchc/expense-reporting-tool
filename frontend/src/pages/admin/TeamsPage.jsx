@@ -15,6 +15,7 @@ import { useIsMobile } from '../../hooks/useIsMobile.js'
 import { useDataTableFilter } from '../../hooks/useDataTableFilter.js'
 import { textInputEditor } from '../../utils/dataTableEditors.jsx'
 import DataTableSearchHeader from '../../components/common/ui/DataTableSearchHeader.jsx'
+import { showToast, TOAST_LIFE } from '../../utils/helpers.js'
 import { validateForm } from '../../utils/validation/validator.js'
 import { validationSchemas } from '../../utils/validation/schemas.js'
 import Input from '../../components/common/ui/Input.jsx'
@@ -62,17 +63,17 @@ function TeamsPage() {
         const { isValid, errors: validationErrors } = validateForm(newData, validationSchemas.addTeam)
         if (!isValid) {
             const messages = Object.values(validationErrors).map(key => t(key)).join(', ')
-            toast.current.show({ severity: 'error', summary: t('common.error'), detail: messages, life: 5000 })
+            showToast(toast, { severity: 'error', summary: t('common.error'), detail: messages, life: TOAST_LIFE.ERROR })
             return
         }
         const result = await updateTeam(newData)
 
         if (result.success) {
-            refreshTeams() // Force refresh data from server
-            toast.current.show({ severity: 'success', summary: t('common.success'), detail: t('teams.updateSuccess', 'Team updated successfully'), life: 3000 })
+            refreshTeams()
+            showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('teams.updateSuccess', 'Team updated successfully'), life: TOAST_LIFE.SUCCESS })
             await refreshLookups()
         } else {
-            toast.current.show({ severity: 'error', summary: t('common.error'), detail: result.error || t('teams.updateError', 'Failed to update team'), life: 5000 })
+            showToast(toast, { severity: 'error', summary: t('common.error'), detail: result.error || t('teams.updateError', 'Failed to update team'), life: TOAST_LIFE.ERROR })
         }
     }
 
@@ -89,10 +90,10 @@ function TeamsPage() {
 
         if (result.success) {
             refreshTeams()
-            toast.current.show({ severity: 'success', summary: t('common.success'), detail: t('teams.updateSuccess', 'Team updated successfully'), life: 3000 })
+            showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('teams.updateSuccess', 'Team updated successfully'), life: TOAST_LIFE.SUCCESS })
             await refreshLookups()
         } else {
-            toast.current.show({ severity: 'error', summary: t('common.error'), detail: result.error || t('teams.updateError', 'Failed to update team'), life: 5000 })
+            showToast(toast, { severity: 'error', summary: t('common.error'), detail: result.error || t('teams.updateError', 'Failed to update team'), life: TOAST_LIFE.ERROR })
         }
         setEditDialog(false)
         setEditData(null)

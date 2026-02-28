@@ -17,6 +17,7 @@ import { useIsMobile } from '../../hooks/useIsMobile.js'
 import { useDataTableFilter } from '../../hooks/useDataTableFilter.js'
 import { textInputEditor } from '../../utils/dataTableEditors.jsx'
 import api from '../../api/api.js'
+import { showToast, TOAST_LIFE } from '../../utils/helpers.js'
 import { validateForm } from '../../utils/validation/validator.js'
 import { validationSchemas } from '../../utils/validation/schemas.js'
 import Input from '../../components/common/ui/Input.jsx'
@@ -109,17 +110,17 @@ function DepartmentTeamsPage() {
         const { isValid, errors: validationErrors } = validateForm(newData, validationSchemas.addTeam)
         if (!isValid) {
             const messages = Object.values(validationErrors).map(key => t(key)).join(', ')
-            toast.current?.show({ severity: 'error', summary: t('common.error'), detail: messages, life: 5000 })
+            showToast(toast, { severity: 'error', summary: t('common.error'), detail: messages, life: TOAST_LIFE.ERROR })
             return
         }
         try {
             await api.put(`/teams/${newData.team_id}`, newData)
             await fetchData(true)
-            toast.current.show({ severity: 'success', summary: t('common.success'), detail: t('teams.updateSuccess', 'Team updated successfully'), life: 3000 })
+            showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('teams.updateSuccess', 'Team updated successfully'), life: TOAST_LIFE.SUCCESS })
             await refreshLookups()
         } catch (err) {
             console.error('Failed to update team:', err)
-            toast.current.show({ severity: 'error', summary: t('common.error'), detail: err.message || t('teams.updateError', 'Failed to update team'), life: 5000 })
+            showToast(toast, { severity: 'error', summary: t('common.error'), detail: err.message || t('teams.updateError', 'Failed to update team'), life: TOAST_LIFE.ERROR })
             try {
                 await fetchData(true)
             } catch (fetchErr) {
@@ -138,10 +139,10 @@ function DepartmentTeamsPage() {
                 try {
                     await api.delete(`/teams/${rowData.team_id}`)
                     await fetchData(true)
-                    toast.current?.show({ severity: 'success', summary: t('common.success'), detail: t('teams.deleteSuccess'), life: 3000 })
+                    showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('teams.deleteSuccess'), life: TOAST_LIFE.SUCCESS })
                     await refreshLookups()
                 } catch (err) {
-                    toast.current?.show({ severity: 'error', summary: t('common.error'), detail: err.message, life: 5000 })
+                    showToast(toast, { severity: 'error', summary: t('common.error'), detail: err.message, life: TOAST_LIFE.ERROR })
                 }
             },
         })
@@ -159,10 +160,10 @@ function DepartmentTeamsPage() {
         try {
             await api.put(`/teams/${editData.team_id}`, editData)
             await fetchData(true)
-            toast.current?.show({ severity: 'success', summary: t('common.success'), detail: t('teams.updateSuccess', 'Team updated successfully'), life: 3000 })
+            showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('teams.updateSuccess', 'Team updated successfully'), life: TOAST_LIFE.SUCCESS })
             await refreshLookups()
         } catch (err) {
-            toast.current?.show({ severity: 'error', summary: t('common.error'), detail: err.message || t('teams.updateError', 'Failed to update team'), life: 5000 })
+            showToast(toast, { severity: 'error', summary: t('common.error'), detail: err.message || t('teams.updateError', 'Failed to update team'), life: TOAST_LIFE.ERROR })
         }
         setEditDialog(false)
         setEditData(null)

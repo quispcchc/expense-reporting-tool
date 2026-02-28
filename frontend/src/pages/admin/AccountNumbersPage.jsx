@@ -14,6 +14,7 @@ import { useIsMobile } from '../../hooks/useIsMobile.js'
 import { useDataTableFilter } from '../../hooks/useDataTableFilter.js'
 import { textInputEditor } from '../../utils/dataTableEditors.jsx'
 import DataTableSearchHeader from '../../components/common/ui/DataTableSearchHeader.jsx'
+import { showToast, TOAST_LIFE } from '../../utils/helpers.js'
 import { validateForm } from '../../utils/validation/validator.js'
 import { validationSchemas } from '../../utils/validation/schemas.js'
 import Input from '../../components/common/ui/Input.jsx'
@@ -39,32 +40,27 @@ function AccountNumbersPage() {
     const toast = useRef(null)
     const toasts = {
         created: () => {
-            toast.current.show(
-                { severity: 'success', summary: t('common.success', 'Success'), detail: t('accountNumbers.createSuccess', 'Account Number created successfully!'), life: 3000 })
+            showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('accountNumbers.createSuccess', 'Account Number created successfully!'), life: TOAST_LIFE.SUCCESS })
             refreshLookups()
         },
         updated: () => {
-            toast.current.show(
-                { severity: 'success', summary: t('common.success', 'Success'), detail: t('accountNumbers.updateSuccess', 'Account Number updated successfully!'), life: 3000 })
+            showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('accountNumbers.updateSuccess', 'Account Number updated successfully!'), life: TOAST_LIFE.SUCCESS })
             refreshLookups()
         },
         error: () => {
-            toast.current.show(
-                { severity: 'error', summary: t('common.error', 'Error'), detail: error || 'Something went wrong.', life: 3000 })
+            showToast(toast, { severity: 'error', summary: t('common.error'), detail: error || 'Something went wrong.', life: TOAST_LIFE.ERROR })
         },
         accept: async (accountNumberId) => {
             const response = await deleteAccountNumber(accountNumberId)
             if (response && !response.error) {
-                toast.current.show(
-                    { severity: 'success', summary: t('common.success', 'Success'), detail: t('accountNumbers.deleteSuccess', 'Account Number deleted successfully!'), life: 3000 })
+                showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('accountNumbers.deleteSuccess', 'Account Number deleted successfully!'), life: TOAST_LIFE.SUCCESS })
                 refreshLookups()
             } else {
-                toast.current.show(
-                    { severity: 'error', summary: t('common.error', 'Error'), detail: response?.error || 'Delete failed', life: 3000 })
+                showToast(toast, { severity: 'error', summary: t('common.error'), detail: response?.error || 'Delete failed', life: TOAST_LIFE.ERROR })
             }
         },
         reject: () => {
-            toast.current.show({ severity: 'info', summary: t('common.cancelled', 'Cancelled'), detail: t('common.operationCancelled', 'Operation cancelled'), life: 3000 })
+            showToast(toast, { severity: 'info', summary: t('common.cancelled', 'Cancelled'), detail: t('common.operationCancelled', 'Operation cancelled'), life: TOAST_LIFE.INFO })
         },
     }
 
@@ -78,7 +74,7 @@ function AccountNumbersPage() {
         const { isValid, errors: validationErrors } = validateForm(e.newData, validationSchemas.editAccountNumber)
         if (!isValid) {
             const messages = Object.values(validationErrors).map(key => t(key)).join(', ')
-            toast.current?.show({ severity: 'error', summary: t('common.error'), detail: messages, life: 5000 })
+            showToast(toast, { severity: 'error', summary: t('common.error'), detail: messages, life: TOAST_LIFE.ERROR })
             return
         }
         const response = await updateAccountNumber(e.newData)

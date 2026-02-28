@@ -17,6 +17,7 @@ import { useIsMobile } from '../../hooks/useIsMobile.js'
 import { useDataTableFilter } from '../../hooks/useDataTableFilter.js'
 import { textInputEditor } from '../../utils/dataTableEditors.jsx'
 import DataTableSearchHeader from '../../components/common/ui/DataTableSearchHeader.jsx'
+import { showToast, TOAST_LIFE } from '../../utils/helpers.js'
 import { validateForm } from '../../utils/validation/validator.js'
 import { validationSchemas } from '../../utils/validation/schemas.js'
 import Input from '../../components/common/ui/Input.jsx'
@@ -69,15 +70,15 @@ function DepartmentsPage() {
         const { isValid, errors: validationErrors } = validateForm(newData, validationSchemas.addDepartment)
         if (!isValid) {
             const messages = Object.values(validationErrors).map(key => t(key)).join(', ')
-            toast.current?.show({ severity: 'error', summary: t('common.error'), detail: messages, life: 5000 })
+            showToast(toast, { severity: 'error', summary: t('common.error'), detail: messages, life: TOAST_LIFE.ERROR })
             return
         }
         const result = await updateDepartment(newData)
         if (result?.success) {
-            toast.current?.show({ severity: 'success', summary: t('common.success'), detail: t('departments.updateSuccess', 'Department updated'), life: 3000 })
+            showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('departments.updateSuccess', 'Department updated'), life: TOAST_LIFE.SUCCESS })
             await refreshLookups()
         } else {
-            toast.current?.show({ severity: 'error', summary: t('common.error'), detail: result?.error || t('errors.permissionDenied'), life: 5000 })
+            showToast(toast, { severity: 'error', summary: t('common.error'), detail: result?.error || t('errors.permissionDenied'), life: TOAST_LIFE.ERROR })
         }
     }
 
@@ -96,10 +97,10 @@ function DepartmentsPage() {
             accept: async () => {
                 const result = await deleteDepartment(rowData.department_id)
                 if (result.success) {
-                    toast.current?.show({ severity: 'success', summary: t('common.success'), detail: t('departments.deleteSuccess'), life: 3000 })
+                    showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('departments.deleteSuccess'), life: TOAST_LIFE.SUCCESS })
                     await refreshLookups()
                 } else {
-                    toast.current?.show({ severity: 'error', summary: t('common.error'), detail: result.error, life: 5000 })
+                    showToast(toast, { severity: 'error', summary: t('common.error'), detail: result.error, life: TOAST_LIFE.ERROR })
                 }
             },
         })
@@ -117,11 +118,11 @@ function DepartmentsPage() {
         const result = await updateDepartment(editData)
         if (result?.success) {
             await refreshLookups()
-            toast.current?.show({ severity: 'success', summary: t('common.success'), detail: t('departments.updateSuccess', 'Department updated'), life: 3000 })
+            showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('departments.updateSuccess', 'Department updated'), life: TOAST_LIFE.SUCCESS })
             setEditDialog(false)
             setEditData(null)
         } else {
-            toast.current?.show({ severity: 'error', summary: t('common.error'), detail: result?.error || t('errors.permissionDenied'), life: 5000 })
+            showToast(toast, { severity: 'error', summary: t('common.error'), detail: result?.error || t('errors.permissionDenied'), life: TOAST_LIFE.ERROR })
         }
     }
 

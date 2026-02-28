@@ -16,6 +16,7 @@ import { useIsMobile } from '../../hooks/useIsMobile.js'
 import { useDataTableFilter } from '../../hooks/useDataTableFilter.js'
 import { textInputEditor } from '../../utils/dataTableEditors.jsx'
 import DataTableSearchHeader from '../../components/common/ui/DataTableSearchHeader.jsx'
+import { showToast, TOAST_LIFE } from '../../utils/helpers.js'
 import { validateForm } from '../../utils/validation/validator.js'
 import { validationSchemas } from '../../utils/validation/schemas.js'
 import Input from '../../components/common/ui/Input.jsx'
@@ -72,29 +73,24 @@ function CostCentresPage() {
     const toast = useRef(null)
     const toasts = {
         created: () => {
-            toast.current.show(
-                { severity: 'success', summary: t('common.success'), detail: t('costCentre.createSuccess'), life: 3000 })
+            showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('costCentre.createSuccess'), life: TOAST_LIFE.SUCCESS })
         },
         updated: () => {
-            toast.current.show(
-                { severity: 'success', summary: t('common.success'), detail: t('costCentre.updateSuccess'), life: 3000 })
+            showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('costCentre.updateSuccess'), life: TOAST_LIFE.SUCCESS })
         },
         error: () => {
-            toast.current.show(
-                { severity: 'error', summary: t('common.error'), detail: error || t('common.unknownError'), life: 3000 })
+            showToast(toast, { severity: 'error', summary: t('common.error'), detail: error || t('common.unknownError'), life: TOAST_LIFE.ERROR })
         },
         accept: async (costCentreId) => {
             const response = await deleteCostCentre(costCentreId)
             if (response?.error) {
-                toast.current.show(
-                    { severity: 'error', summary: t('common.error'), detail: response.error, life: 5000 })
+                showToast(toast, { severity: 'error', summary: t('common.error'), detail: response.error, life: TOAST_LIFE.ERROR })
             } else if (response) {
-                toast.current.show(
-                    { severity: 'success', summary: t('common.success'), detail: t('costCentre.deleteSuccess'), life: 3000 })
+                showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('costCentre.deleteSuccess'), life: TOAST_LIFE.SUCCESS })
             }
         },
         reject: () => {
-            toast.current.show({ severity: 'info', summary: t('toast.info', 'Info'), detail: t('costCentre.cancelled'), life: 3000 })
+            showToast(toast, { severity: 'info', summary: t('toast.info', 'Info'), detail: t('costCentre.cancelled'), life: TOAST_LIFE.INFO })
         },
     }
 
@@ -108,12 +104,12 @@ function CostCentresPage() {
         const { isValid, errors: validationErrors } = validateForm(e.newData, validationSchemas.editCostCentre)
         if (!isValid) {
             const messages = Object.values(validationErrors).map(key => t(key)).join(', ')
-            toast.current?.show({ severity: 'error', summary: t('common.error'), detail: messages, life: 5000 })
+            showToast(toast, { severity: 'error', summary: t('common.error'), detail: messages, life: TOAST_LIFE.ERROR })
             return
         }
         const response = await updateCostCentre(e.newData)
         if (response?.error) {
-            toast.current?.show({ severity: 'error', summary: t('common.error', 'Error'), detail: response.error, life: 5000 })
+            showToast(toast, { severity: 'error', summary: t('common.error'), detail: response.error, life: TOAST_LIFE.ERROR })
         } else if (response?.status === 200) {
             toasts.updated()
         }
@@ -155,7 +151,7 @@ function CostCentresPage() {
         setEditErrors({})
         const response = await updateCostCentre(editData)
         if (response?.error) {
-            toast.current?.show({ severity: 'error', summary: t('common.error', 'Error'), detail: response.error, life: 5000 })
+            showToast(toast, { severity: 'error', summary: t('common.error'), detail: response.error, life: TOAST_LIFE.ERROR })
         } else if (response?.status === 200) {
             toasts.updated()
             setEditDialog(false)
