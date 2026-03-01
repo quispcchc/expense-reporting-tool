@@ -523,4 +523,107 @@ class ClaimControllerTest extends TestCase
 
         $response->assertStatus(401);
     }
+
+    // ==================== SELF-APPROVAL (can_self_approve) ====================
+
+    public function test_admin_with_can_self_approve_can_approve_own_corporate_card_claim()
+    {
+        $this->seedLookups();
+        Notification::fake();
+        $admin = $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, [
+            'department_id' => 1,
+            'can_self_approve' => true,
+        ]);
+        $claim = $this->createClaimWithExpenses($admin, 1, [
+            'department_id' => 1,
+            'claim_type_id' => ClaimType::CORPORATE_CARD,
+        ]);
+
+        $response = $this->postJson('/api/claims/bulk-approve', [
+            'claimIds' => [$claim->claim_id],
+        ]);
+
+        $response->assertStatus(200);
+        $claim->refresh();
+        $this->assertEquals(ClaimStatus::APPROVED, $claim->claim_status_id);
+    }
+
+    public function test_admin_with_can_self_approve_cannot_approve_own_reimbursement_claim()
+    {
+        $this->seedLookups();
+        $admin = $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, [
+            'department_id' => 1,
+            'can_self_approve' => true,
+        ]);
+        $claim = $this->createClaimWithExpenses($admin, 1, [
+            'department_id' => 1,
+            'claim_type_id' => ClaimType::REIMBURSEMENT,
+        ]);
+
+        $response = $this->postJson('/api/claims/bulk-approve', [
+            'claimIds' => [$claim->claim_id],
+        ]);
+
+        $response->assertStatus(403);
+    }
+
+    public function test_admin_without_can_self_approve_cannot_approve_own_corporate_card_claim()
+    {
+        $this->seedLookups();
+        $admin = $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, [
+            'department_id' => 1,
+            'can_self_approve' => false,
+        ]);
+        $claim = $this->createClaimWithExpenses($admin, 1, [
+            'department_id' => 1,
+            'claim_type_id' => ClaimType::CORPORATE_CARD,
+        ]);
+
+        $response = $this->postJson('/api/claims/bulk-approve', [
+            'claimIds' => [$claim->claim_id],
+        ]);
+
+        $response->assertStatus(403);
+    }
+
+    public function test_admin_with_can_self_approve_can_reject_own_corporate_card_claim()
+    {
+        $this->seedLookups();
+        Notification::fake();
+        $admin = $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, [
+            'department_id' => 1,
+            'can_self_approve' => true,
+        ]);
+        $claim = $this->createClaimWithExpenses($admin, 1, [
+            'department_id' => 1,
+            'claim_type_id' => ClaimType::CORPORATE_CARD,
+        ]);
+
+        $response = $this->postJson('/api/claims/bulk-reject', [
+            'claimIds' => [$claim->claim_id],
+        ]);
+
+        $response->assertStatus(200);
+        $claim->refresh();
+        $this->assertEquals(ClaimStatus::REJECTED, $claim->claim_status_id);
+    }
+
+    public function test_admin_with_can_self_approve_cannot_reject_own_reimbursement_claim()
+    {
+        $this->seedLookups();
+        $admin = $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, [
+            'department_id' => 1,
+            'can_self_approve' => true,
+        ]);
+        $claim = $this->createClaimWithExpenses($admin, 1, [
+            'department_id' => 1,
+            'claim_type_id' => ClaimType::REIMBURSEMENT,
+        ]);
+
+        $response = $this->postJson('/api/claims/bulk-reject', [
+            'claimIds' => [$claim->claim_id],
+        ]);
+
+        $response->assertStatus(403);
+    }
 }
