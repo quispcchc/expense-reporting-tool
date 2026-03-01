@@ -64,41 +64,37 @@ function ClaimDetail({ curClaim, toastRef, onClaimRefetch }) {
     return (
 
         <ComponentContainer>
-            <div className="flex justify-between items-start mb-4">
-                <div>
-                    <h5 className="text-xl font-semibold text-gray-800 mb-1">{t('claims.claimDetails')}</h5>
-                    <p className="text-sm text-gray-500">{t('claims.claimDetailDescription', 'View and manage the details of this expense claim submission.')}</p>
+            <div className="flex justify-between items-start gap-3 mb-4">
+                <div className="min-w-0">
+                    <h5 className="text-lg sm:text-xl font-semibold text-gray-800 mb-1">{t('claims.claimDetails')}</h5>
+                    <p className="text-xs sm:text-sm text-gray-500">{t('claims.claimDetailDescription', 'View and manage the details of this expense claim submission.')}</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-shrink-0">
                     {!isEditing && <Button
                         rounded
                         icon="pi pi-pencil"
                         onClick={() => setIsEditing(prev => !prev)}
                     />}
-                    <div>
-                        {isEditing && (
-                            <div className="flex gap-2">
-                                <Button
-                                    rounded
-                                    icon="pi pi-check"
-                                    onClick={handleSelectSave}
-                                />
-
-                                <Button
-                                    icon="pi pi-times"
-                                    rounded
-                                    text
-                                    aria-label={t('common.cancel')}
-                                    onClick={() => {
-                                        setIsEditing(false)
-                                        setClaimDetail({ team_id: curClaim.team_id, claim_type_id: curClaim.claim_type_id })
-                                    }}
-                                />
-                            </div>
-                        )}
-                    </div>
+                    {isEditing && (
+                        <div className="flex gap-2">
+                            <Button
+                                rounded
+                                icon="pi pi-check"
+                                onClick={handleSelectSave}
+                            />
+                            <Button
+                                icon="pi pi-times"
+                                rounded
+                                text
+                                aria-label={t('common.cancel')}
+                                onClick={() => {
+                                    setIsEditing(false)
+                                    setClaimDetail({ team_id: curClaim.team_id, claim_type_id: curClaim.claim_type_id })
+                                }}
+                            />
+                        </div>
+                    )}
                 </div>
-
             </div>
 
             <table className="table-fixed w-full text-left">
