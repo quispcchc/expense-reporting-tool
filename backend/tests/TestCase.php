@@ -30,7 +30,7 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
 
-        // Safety check: refuse to run migrate:fresh on the production database
+        // Safety check: refuse to run tests on the production database
         $dbName = config('database.connections.pgsql.database');
         if ($dbName !== 'expense_db_test') {
             $this->fail(
@@ -40,6 +40,6 @@ abstract class TestCase extends BaseTestCase
             );
         }
 
-        $this->artisan('migrate:fresh', ['--seed' => false]);
+        // migrate:fresh is handled by the RefreshDatabase trait in each test class
     }
 }
