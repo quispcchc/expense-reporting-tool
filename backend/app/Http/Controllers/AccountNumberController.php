@@ -26,7 +26,7 @@ class AccountNumberController extends Controller
 
         $cacheKey = 'account_numbers_all';
         $accountNumbers = Cache::remember($cacheKey, self::CACHE_TTL, function () {
-            return AccountNumber::all();
+            return AccountNumber::orderBy('account_number_id')->get();
         });
 
         return response()->json([

@@ -27,7 +27,7 @@ class TeamController extends Controller
         if ($roleLevel === RoleLevel::SUPER_ADMIN) {
             $cacheKey = 'teams_all';
             $teams = Cache::remember($cacheKey, self::CACHE_TTL, function () {
-                return Team::with(['activeStatus', 'department'])->get();
+                return Team::with(['activeStatus', 'department'])->orderBy('team_id')->get();
             });
 
             return $this->successResponse($teams);
@@ -38,6 +38,7 @@ class TeamController extends Controller
         $teams = Cache::remember($cacheKey, self::CACHE_TTL, function () use ($user) {
             return Team::where('department_id', $user->department_id)
                 ->with(['activeStatus', 'department'])
+                ->orderBy('team_id')
                 ->get();
         });
 

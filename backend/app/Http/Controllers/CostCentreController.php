@@ -32,7 +32,7 @@ class CostCentreController extends Controller
         if ($roleLevel === RoleLevel::SUPER_ADMIN) {
             $cacheKey = 'cost_centres_all';
             $costCentres = Cache::remember($cacheKey, self::CACHE_TTL, function () {
-                return CostCentre::with(['activeStatus', 'department'])->get();
+                return CostCentre::with(['activeStatus', 'department'])->orderBy('cost_centre_id')->get();
             });
 
             return response()->json([
@@ -46,6 +46,7 @@ class CostCentreController extends Controller
         $costCentres = Cache::remember($cacheKey, self::CACHE_TTL, function () use ($user) {
             return CostCentre::where('department_id', $user->department_id)
                 ->with(['activeStatus', 'department'])
+                ->orderBy('cost_centre_id')
                 ->get();
         });
 

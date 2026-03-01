@@ -27,7 +27,7 @@ class DepartmentController extends Controller
         if ($roleLevel <= 2) {
             $cacheKey = 'departments_all';
             $departments = Cache::remember($cacheKey, self::CACHE_TTL, function () {
-                return Department::with(['activeStatus'])->get();
+                return Department::with(['activeStatus'])->orderBy('department_id')->get();
             });
 
             return $this->successResponse($departments);
@@ -38,6 +38,7 @@ class DepartmentController extends Controller
         $departments = Cache::remember($cacheKey, self::CACHE_TTL, function () use ($user) {
             return Department::where('department_id', $user->department_id)
                 ->with(['activeStatus'])
+                ->orderBy('department_id')
                 ->get();
         });
 
@@ -143,6 +144,7 @@ class DepartmentController extends Controller
             $department = Department::findOrFail($departmentId);
             $teams = Team::where('department_id', $departmentId)
                 ->with(['activeStatus'])
+                ->orderBy('team_id')
                 ->get();
 
             return $this->successResponse([

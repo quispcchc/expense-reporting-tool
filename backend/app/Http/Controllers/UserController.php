@@ -27,7 +27,7 @@ class UserController extends Controller
         $query = User::with(['role', 'department', 'teams', 'activeStatus']);
         $query = $this->applyRoleBasedFiltering($query, $authUser);
 
-        return response()->json($this->formatUsers($query->get()));
+        return response()->json($this->formatUsers($query->orderBy('user_id')->get()));
     }
 
     /**

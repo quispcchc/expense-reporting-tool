@@ -9,7 +9,7 @@ class TagController extends Controller
 {
     public function index()
     {
-        return response()->json(Tag::all());
+        return response()->json(Tag::orderBy('tag_id')->get());
     }
 
     public function store(Request $request)

@@ -56,7 +56,7 @@ class ClaimService
 
         // else role_level 1 or super admin sees all claims
 
-        $claims = $query->get();
+        $claims = $query->orderBy('claim_id')->get();
 
         return $claims;
     }
@@ -114,7 +114,9 @@ class ClaimService
     public function getClaimsByUserId(User $user)
     {
         return Claim::with(['expenses.receipts', 'expenses.mileage.transactions.receipts', 'claimType', 'department', 'team', 'status'])
-            ->where('user_id', $user->user_id)->get();
+            ->where('user_id', $user->user_id)
+            ->orderBy('claim_id')
+            ->get();
     }
 
     public function getClaimById(int $claimId)
