@@ -59,6 +59,15 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
     const [isExporting, setIsExporting] = useState(false)
     const abortControllerRef = useRef(null)
 
+    // Abort in-flight export on unmount
+    useEffect(() => {
+        return () => {
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort()
+            }
+        }
+    }, [])
+
     // Filter modal state (shared for mobile and desktop)
     const [showFilterModal, setShowFilterModal] = useState(false)
     const [filterValues, setFilterValues] = useState({

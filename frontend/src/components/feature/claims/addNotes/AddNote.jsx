@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next'
 function AddNote({ curClaim, onAddNote, toastRef }) {
     const { t } = useTranslation()
     const [noteText, setNoteText] = useState('')
+    const [isSubmitting, setIsSubmitting] = useState(false)
 
     // Handle form submission to add the note
     const handleSubmit = async (e) => {
@@ -18,6 +19,7 @@ function AddNote({ curClaim, onAddNote, toastRef }) {
             return
         }
 
+        setIsSubmitting(true)
         try {
             const response = await api.post('notes', {
                 noteText,
@@ -32,6 +34,8 @@ function AddNote({ curClaim, onAddNote, toastRef }) {
         }
         catch (error) {
             showToast(toastRef, { severity: 'error', summary: t('toast.error', 'Error'), detail: t('toast.errorOccurred', 'Error occurred!') })
+        } finally {
+            setIsSubmitting(false)
         }
 
     }
@@ -48,7 +52,8 @@ function AddNote({ curClaim, onAddNote, toastRef }) {
                     placeholder={t('claims.enterText', 'Enter a text...')}
                     className="w-full border border-gray-300 rounded-md p-3 text-sm"
                 />
-                <Button label={t('claims.submitNote', 'Submit Note')} className="w-1/3" onClick={handleSubmit} />
+                <Button label={t('claims.submitNote', 'Submit Note')} className="w-1/3" onClick={handleSubmit}
+                    loading={isSubmitting} disabled={isSubmitting} />
             </div>
         </div>
     )

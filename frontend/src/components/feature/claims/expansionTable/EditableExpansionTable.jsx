@@ -587,8 +587,12 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
         )
     }
 
+    // Track which expenses are currently being processed (approve/reject in flight)
+    const [processingExpenses, setProcessingExpenses] = useState(new Set())
+
     // Approve and Reject a single expense item
     async function approveExpense(expenseId) {
+        setProcessingExpenses(prev => new Set(prev).add(expenseId))
         try {
             await api.post(`expenses/${expenseId}/approve`)
 
@@ -606,10 +610,17 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
         catch (error) {
             showToast(
                 toastRef, { severity: 'error', summary: t('common.error'), detail: t('claims.approveRejectError') })
+        } finally {
+            setProcessingExpenses(prev => {
+                const next = new Set(prev)
+                next.delete(expenseId)
+                return next
+            })
         }
     }
 
     async function rejectExpense(expenseId) {
+        setProcessingExpenses(prev => new Set(prev).add(expenseId))
         try {
 
             await api.post(`expenses/${expenseId}/reject`)
@@ -626,6 +637,12 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
             showToast(toastRef, { severity: 'success', summary: t('common.success'), detail: t('claims.rejectedSuccess') })
         }
         catch (error) {
+        } finally {
+            setProcessingExpenses(prev => {
+                const next = new Set(prev)
+                next.delete(expenseId)
+                return next
+            })
         }
     }
 
@@ -684,13 +701,15 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
 
     const renderActionsButton = (rowData) => {
         const isProcessed = rowData.status === APPROVAL_STATUS.APPROVED || rowData.status === APPROVAL_STATUS.REJECTED
+        const isProcessing = processingExpenses.has(rowData.transactionId)
 
         return (
             <div className="flex gap-2">
                 <Button label={t('claims.approve')} outlined className={BUTTON_STYLE.success} icon="pi pi-check" iconPos="right"
-                    onClick={() => approveExpense(rowData.transactionId)} disabled={isProcessed} />
+                    onClick={() => approveExpense(rowData.transactionId)} disabled={isProcessed || isProcessing}
+                    loading={isProcessing} />
                 <Button label={t('claims.reject')} outlined className={BUTTON_STYLE.danger} icon="pi pi-times" iconPos="right"
-                    onClick={() => rejectExpense(rowData.transactionId)} disabled={isProcessed} />
+                    onClick={() => rejectExpense(rowData.transactionId)} disabled={isProcessed || isProcessing} />
             </div>
         )
     }
@@ -842,7 +861,8 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                             severity="success"
                             label={t('claims.approve', 'Approve')}
                             onClick={() => approveExpense(item.transactionId)}
-                            disabled={isProcessed}
+                            disabled={isProcessed || processingExpenses.has(item.transactionId)}
+                            loading={processingExpenses.has(item.transactionId)}
                         />
                         <Button
                             icon="pi pi-times"
@@ -851,7 +871,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                             severity="danger"
                             label={t('claims.reject', 'Reject')}
                             onClick={() => rejectExpense(item.transactionId)}
-                            disabled={isProcessed}
+                            disabled={isProcessed || processingExpenses.has(item.transactionId)}
                         />
                     </div>
                 )}

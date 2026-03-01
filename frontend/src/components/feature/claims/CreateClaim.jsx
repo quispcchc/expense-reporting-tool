@@ -1,5 +1,5 @@
 import AddExpenseForm from './AddExpenseForm.jsx'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import ContentHeader from '../../common/layout/ContentHeader.jsx'
 import { Button } from 'primereact/button'
 import { Dialog } from 'primereact/dialog'
@@ -56,26 +56,21 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
     }
     const [mileageData, setMileageData] = useState(initialMileageData)
 
-    const isFetchingRate = useRef(false)
-
     // Fetch mileage rate from settings on mount
     useEffect(() => {
-        if (!isFetchingRate.current) {
-            isFetchingRate.current = true
-            const fetchMileageRate = async () => {
-                try {
-                    const response = await api.get('settings')
-                    if (response.data?.mileage_rate !== undefined) {
-                        setMileageRate(parseFloat(response.data.mileage_rate))
-                    }
-                } catch (error) {
-                    // Error handled by caller
-                } finally {
-                    isFetchingRate.current = false
+        let cancelled = false
+        const fetchRate = async () => {
+            try {
+                const response = await api.get('settings')
+                if (!cancelled && response.data?.mileage_rate !== undefined) {
+                    setMileageRate(parseFloat(response.data.mileage_rate))
                 }
+            } catch (error) {
+                // Error handled by caller
             }
-            fetchMileageRate()
         }
+        fetchRate()
+        return () => { cancelled = true }
     }, [])
 
     const handleMileageToggle = (checked) => {
@@ -109,9 +104,6 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
     }
 
     const [expenseFormData, setExpenseFormData] = useState(initialExpenseFormData)
-
-    useEffect(() => {
-    }, [claimFormData, expenseFormData, tags])
 
     // Auto-fill expense form amount from mileage total when mileage transactions change
     const currentMileageTotal = includeMileage
