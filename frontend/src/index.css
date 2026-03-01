@@ -514,15 +514,14 @@ nav {
    Claims List Responsive Styles
    ============================================ */
 
-/* Wrapper for responsive switching */
-.claims-list-wrapper {
+/* Page content container — constrains width on large screens */
+.page-container {
     width: 100%;
 }
 
-/* Desktop: max-width constraint */
 @media (min-width: 768px) {
-    .claims-list-wrapper {
-        max-width: 1400px;
+    .page-container {
+        max-width: 1440px;
         margin: 0 auto;
     }
 }
@@ -958,9 +957,7 @@ nav {
 /* ============================================
    Admin Mobile Card View Styles
    ============================================ */
-.admin-mobile-container {
-    width: 100%;
-}
+/* admin-mobile-container merged into .page-container */
 
 .admin-mobile-search {
     margin-bottom: 16px;

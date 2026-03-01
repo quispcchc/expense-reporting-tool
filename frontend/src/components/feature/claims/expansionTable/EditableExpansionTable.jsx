@@ -1078,7 +1078,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                     {mode === VIEW_MODE.EDIT && (
                         <Column
                             body={renderActionsButton}
-                            header={t('common.action')}
+                            header={t('common.actions')}
                         />
                     )}
                 </DataTable>
