@@ -10,6 +10,7 @@ import { useLookups } from '../../../contexts/LookupContext.jsx'
 import { useTranslation } from 'react-i18next'
 import { showToast } from '../../../utils/helpers.js'
 import { MultiSelect } from 'primereact/multiselect'
+import { InputSwitch } from 'primereact/inputswitch'
 
 function AddNewUser() {
     const { t } = useTranslation()
@@ -29,6 +30,7 @@ function AddNewUser() {
         teams: [],
         position: '',
         role: '',
+        can_self_approve: false,
     })
 
     const handleUserFormChange = (e) => {
@@ -61,6 +63,10 @@ function AddNewUser() {
         ? lookups.teams.filter(team => team.department_id === userFormData.department)
         : [];
 
+    // Check if selected role is admin-level (role_level <= 2)
+    const selectedRole = lookups.roles.find(r => r.role_id === userFormData.role)
+    const isAdminRole = selectedRole && selectedRole.role_level <= 2
+
     const resetForm = () => {
         setUserFormData({
             first_name: '',
@@ -70,6 +76,7 @@ function AddNewUser() {
             teams: [],
             position: '',
             role: '',
+            can_self_approve: false,
         })
         setErrors({})
     }
@@ -97,6 +104,7 @@ function AddNewUser() {
                 department_id: userFormData.department || null,
                 team_ids: userFormData.teams,
                 position_name: userFormData.position || null,
+                can_self_approve: isAdminRole ? userFormData.can_self_approve : false,
             })
 
             if (result?.success) {
@@ -203,7 +211,7 @@ function AddNewUser() {
                                 <label htmlFor="teams" className="block text-sm font-medium">
                                     {t('users.teams')}
                                 </label>
-                                 {errors['teams'] && <span className="text-status-danger text-xs">({t(errors['teams'])})</span>}
+                                {errors['teams'] && <span className="text-status-danger text-xs">({t(errors['teams'])})</span>}
                             </div>
 
                             <MultiSelect
@@ -257,8 +265,23 @@ function AddNewUser() {
                             />
                         </div>
 
-                        {/* Empty spacer column */}
-                        <div className="hidden sm:block"></div>
+                        {/* Self-approve toggle — only for admin-level roles */}
+                        <div>
+                            {isAdminRole && (
+                                <div className="flex items-center gap-2 h-[48px]">
+                                    <InputSwitch
+                                        inputId="can_self_approve"
+                                        checked={userFormData.can_self_approve}
+                                        onChange={(e) => setUserFormData(prev => ({ ...prev, can_self_approve: e.value }))}
+                                        disabled={isLoading}
+                                    />
+                                    <label htmlFor="can_self_approve" className="text-sm cursor-pointer">
+                                        {t('users.canSelfApprove', 'Can self-approve corporate card claims')}
+                                    </label>
+                                </div>
+
+                            )}
+                        </div>
 
                         {/* Action buttons */}
                         <div className="flex justify-end gap-2">

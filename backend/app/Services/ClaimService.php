@@ -27,9 +27,17 @@ class ClaimService
         $query = Claim::with(['expenses.receipts', 'expenses.mileage.transactions.receipts', 'claimType', 'department', 'team', 'status']);
 
         if ($role_level === RoleLevel::DEPARTMENT_MANAGER) {
-            // Department-level access
+            // Department-level access — include own corporate card claims if can_self_approve
             $query->where('department_id', $user->department_id)
-                ->where('user_id', '!=', $user->user_id);
+                ->where(function ($q) use ($user) {
+                    $q->where('user_id', '!=', $user->user_id);
+                    if ($user->can_self_approve) {
+                        $q->orWhere(function ($q2) use ($user) {
+                            $q2->where('user_id', $user->user_id)
+                                ->where('claim_type_id', 3);
+                        });
+                    }
+                });
 
         } elseif ($role_level === RoleLevel::TEAM_LEAD) {
             // Team-level access, exclude own claims and claims from other approvers

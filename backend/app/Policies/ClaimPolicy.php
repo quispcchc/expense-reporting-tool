@@ -34,12 +34,14 @@ class ClaimPolicy
     {
         $role_level = $user->role->role_level;
 
-        // Block self-approval for EVERYONE EXCEPT Super Admin
+        // Block self-approval unless Super Admin or SLT members (Admins) with can_self_approve on Corporate Card claims
         if ($claim->user_id === $user->user_id && $role_level !== RoleLevel::SUPER_ADMIN) {
-            return false;
+            if (!($user->can_self_approve && $claim->claim_type_id === 3)) {
+                return false;
+            }
         }
 
-        // Super admin can approve all claims$role_level
+        // Super admin can approve all claims
         if ($user->role->role_level === RoleLevel::SUPER_ADMIN) {
             return true;
         }
@@ -71,12 +73,14 @@ class ClaimPolicy
     {
         $role_level = $user->role->role_level;
 
-        // Block self-reject for EVERYONE EXCEPT Super Admin
+        // Block self-reject unless Super Admin or user with can_self_approve on Corporate Card claims
         if ($claim->user_id === $user->user_id && $role_level !== RoleLevel::SUPER_ADMIN) {
-            return false;
+            if (!($user->can_self_approve && $claim->claim_type_id === 3)) {
+                return false;
+            }
         }
 
-        // Super admin can reject all claims$role_level
+        // Super admin can reject all claims
         if ($user->role->role_level === RoleLevel::SUPER_ADMIN) {
             return true;
         }

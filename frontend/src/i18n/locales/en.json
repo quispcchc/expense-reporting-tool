@@ -218,7 +218,9 @@
         "enterPosition": "Enter position",
         "selectRole": "Select role",
         "userCreatedSuccess": "User created successfully. An email verification has been sent.",
-        "userCreatedError": "Failed to create user"
+        "userCreatedError": "Failed to create user",
+        "canSelfApprove": "Can self-approve corporate card claims",
+        "selfApprove": "Self-Approve"
     },
     "teams": {
         "title": "Teams",

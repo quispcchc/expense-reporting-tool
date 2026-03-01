@@ -33,6 +33,7 @@ class CreateUserController extends Controller
             'team_ids' => 'nullable|array',
             'team_ids.*' => 'exists:teams,team_id',
             'position_name' => 'nullable|string|max:255',
+            'can_self_approve' => 'nullable|boolean',
         ]);
 
         // Authorization checks
@@ -91,6 +92,7 @@ class CreateUserController extends Controller
 
             'user_pass' => null,
             'role_id' => $request->role_id,
+            'can_self_approve' => $request->boolean('can_self_approve', false),
             'department_id' => $request->department_id,
             'position_id' => $positionId,
             'active_status_id' => 1,
@@ -135,6 +137,7 @@ class CreateUserController extends Controller
                     ];
                 }),
                 'active_status_id' => $user->active_status_id,
+                'can_self_approve' => $user->can_self_approve,
             ]
         ], 201);
     }

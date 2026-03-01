@@ -140,6 +140,7 @@ class UserController extends Controller
                     ];
                 }),
                 'active_status_id' => $user->active_status_id,
+                'can_self_approve' => $user->can_self_approve,
             ];
         });
     }
@@ -266,6 +267,7 @@ class UserController extends Controller
             'team_ids.*' => 'exists:teams,team_id',
             'position_id' => 'sometimes|integer|exists:positions,position_id',
             'active_status_id' => 'sometimes|integer|exists:active_status,active_status_id',
+            'can_self_approve' => 'sometimes|boolean',
         ];
     }
 
@@ -282,6 +284,7 @@ class UserController extends Controller
             'department_id',
             'position_id',
             'active_status_id',
+            'can_self_approve',
         ];
     }
 }

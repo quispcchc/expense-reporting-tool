@@ -218,7 +218,9 @@
         "enterPosition": "Entrez le poste",
         "selectRole": "Sélectionner un rôle",
         "userCreatedSuccess": "Utilisateur créé avec succès. Un e-mail de vérification a été envoyé.",
-        "userCreatedError": "Échec de la création de l'utilisateur"
+        "userCreatedError": "Échec de la création de l'utilisateur",
+        "canSelfApprove": "Peut auto-approuver les réclamations de carte corporative",
+        "selfApprove": "Auto-approbation"
     },
     "teams": {
         "title": "Départements",
