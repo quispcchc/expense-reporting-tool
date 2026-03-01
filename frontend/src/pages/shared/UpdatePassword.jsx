@@ -27,7 +27,7 @@ function UpdatePassword() {
     const [isUpdateSuccess, setIsUpdateSuccess] = useState(false)
     
     // API state
-    const { updatePassword, error: apiError, setError, isLoading } = useAuth()
+    const { updatePassword, logout, error: apiError, setError, isLoading } = useAuth()
 
     /**
      * Navigate back to previous page
@@ -80,12 +80,13 @@ function UpdatePassword() {
             showToast(toastRef, {
                 severity: 'success',
                 summary: t('passwordReset.success', 'Success'),
-                detail: t('passwordReset.updateSuccess', 'Password updated successfully!')
+                detail: t('passwordReset.reloginRequired', 'Password updated. Please log in again.')
             })
-            
-            // Redirect to dashboard after 2 seconds
-            setTimeout(() => {
-                navigate('/dashboard')
+
+            // Clear local auth state and redirect to login
+            setTimeout(async () => {
+                await logout()
+                navigate('/login')
             }, 2000)
         } else {
             setIsUpdateSuccess(false)
