@@ -7,6 +7,9 @@ use App\Models\Expense;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
+use App\Enums\ClaimStatus;
+use App\Enums\ClaimType;
+use App\Enums\RoleLevel;
 use Tests\Traits\SeedsLookups;
 
 class ClaimControllerTest extends TestCase
@@ -18,12 +21,12 @@ class ClaimControllerTest extends TestCase
     public function test_authenticated_user_can_create_claim()
     {
         $this->seedLookups();
-        $user = $this->createAuthenticatedUser(4);
+        $user = $this->createAuthenticatedUser(RoleLevel::USER);
         $this->attachUserToTeam($user, 1);
 
         $response = $this->postJson('/api/claims', [
             'position_id' => 1,
-            'claim_type_id' => 1,
+            'claim_type_id' => ClaimType::REIMBURSEMENT,
             'department_id' => 1,
             'team_id' => 1,
             'total_amount' => 100.00,
@@ -39,18 +42,18 @@ class ClaimControllerTest extends TestCase
         ]);
 
         $response->assertStatus(201);
-        $this->assertDatabaseHas('claims', ['user_id' => $user->user_id, 'claim_status_id' => 1]);
+        $this->assertDatabaseHas('claims', ['user_id' => $user->user_id, 'claim_status_id' => ClaimStatus::PENDING]);
     }
 
     public function test_create_claim_with_multiple_expenses()
     {
         $this->seedLookups();
-        $user = $this->createAuthenticatedUser(4);
+        $user = $this->createAuthenticatedUser(RoleLevel::USER);
         $this->attachUserToTeam($user, 1);
 
         $response = $this->postJson('/api/claims', [
             'position_id' => 1,
-            'claim_type_id' => 1,
+            'claim_type_id' => ClaimType::REIMBURSEMENT,
             'department_id' => 1,
             'team_id' => 1,
             'total_amount' => 200.00,
@@ -84,12 +87,12 @@ class ClaimControllerTest extends TestCase
     public function test_create_claim_with_mileage()
     {
         $this->seedLookups();
-        $user = $this->createAuthenticatedUser(4);
+        $user = $this->createAuthenticatedUser(RoleLevel::USER);
         $this->attachUserToTeam($user, 1);
 
         $response = $this->postJson('/api/claims', [
             'position_id' => 1,
-            'claim_type_id' => 1,
+            'claim_type_id' => ClaimType::REIMBURSEMENT,
             'department_id' => 1,
             'team_id' => 1,
             'total_amount' => 25.50,
@@ -125,12 +128,12 @@ class ClaimControllerTest extends TestCase
     public function test_create_claim_with_notes()
     {
         $this->seedLookups();
-        $user = $this->createAuthenticatedUser(4);
+        $user = $this->createAuthenticatedUser(RoleLevel::USER);
         $this->attachUserToTeam($user, 1);
 
         $response = $this->postJson('/api/claims', [
             'position_id' => 1,
-            'claim_type_id' => 1,
+            'claim_type_id' => ClaimType::REIMBURSEMENT,
             'department_id' => 1,
             'team_id' => 1,
             'total_amount' => 100.00,
@@ -154,10 +157,10 @@ class ClaimControllerTest extends TestCase
     public function test_create_claim_validation_requires_position_id()
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(4);
+        $this->createAuthenticatedUser(RoleLevel::USER);
 
         $response = $this->postJson('/api/claims', [
-            'claim_type_id' => 1,
+            'claim_type_id' => ClaimType::REIMBURSEMENT,
             'department_id' => 1,
             'team_id' => 1,
             'total_amount' => 100.00,
@@ -169,11 +172,11 @@ class ClaimControllerTest extends TestCase
     public function test_create_claim_validation_requires_total_amount_min_2()
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(4);
+        $this->createAuthenticatedUser(RoleLevel::USER);
 
         $response = $this->postJson('/api/claims', [
             'position_id' => 1,
-            'claim_type_id' => 1,
+            'claim_type_id' => ClaimType::REIMBURSEMENT,
             'department_id' => 1,
             'team_id' => 1,
             'total_amount' => 1,
@@ -186,7 +189,7 @@ class ClaimControllerTest extends TestCase
     {
         $response = $this->postJson('/api/claims', [
             'position_id' => 1,
-            'claim_type_id' => 1,
+            'claim_type_id' => ClaimType::REIMBURSEMENT,
             'department_id' => 1,
             'team_id' => 1,
             'total_amount' => 100.00,
@@ -213,8 +216,8 @@ class ClaimControllerTest extends TestCase
     public function test_super_admin_sees_all_claims()
     {
         $this->seedLookups();
-        $superAdmin = $this->createAuthenticatedUser(1);
-        $otherUser = $this->createUser(['role_id' => 4]);
+        $superAdmin = $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
+        $otherUser = $this->createUser(['role_id' => RoleLevel::USER]);
 
         $this->createClaimForUser($superAdmin);
         $this->createClaimForUser($otherUser);
@@ -229,9 +232,9 @@ class ClaimControllerTest extends TestCase
     public function test_department_manager_sees_only_department_claims_excluding_own()
     {
         $this->seedLookups();
-        $manager = $this->createAuthenticatedUser(2, ['department_id' => 1]);
-        $sameDepUser = $this->createUser(['role_id' => 4, 'department_id' => 1]);
-        $otherDepUser = $this->createUser(['role_id' => 4, 'department_id' => 2]);
+        $manager = $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]);
+        $sameDepUser = $this->createUser(['role_id' => RoleLevel::USER, 'department_id' => 1]);
+        $otherDepUser = $this->createUser(['role_id' => RoleLevel::USER, 'department_id' => 2]);
 
         $this->createClaimForUser($manager, ['department_id' => 1]);
         $this->createClaimForUser($sameDepUser, ['department_id' => 1]);
@@ -248,8 +251,8 @@ class ClaimControllerTest extends TestCase
     public function test_regular_user_sees_only_own_claims()
     {
         $this->seedLookups();
-        $user = $this->createAuthenticatedUser(4);
-        $otherUser = $this->createUser(['role_id' => 4]);
+        $user = $this->createAuthenticatedUser(RoleLevel::USER);
+        $otherUser = $this->createUser(['role_id' => RoleLevel::USER]);
 
         $this->createClaimForUser($user);
         $this->createClaimForUser($otherUser);
@@ -266,8 +269,8 @@ class ClaimControllerTest extends TestCase
     public function test_get_claims_by_user_returns_only_own_claims()
     {
         $this->seedLookups();
-        $user = $this->createAuthenticatedUser(4);
-        $otherUser = $this->createUser(['role_id' => 4]);
+        $user = $this->createAuthenticatedUser(RoleLevel::USER);
+        $otherUser = $this->createUser(['role_id' => RoleLevel::USER]);
 
         $this->createClaimForUser($user);
         $this->createClaimForUser($user);
@@ -296,7 +299,7 @@ class ClaimControllerTest extends TestCase
         $claim = $this->createClaimForUser($user);
 
         $response = $this->putJson("/api/claims/{$claim->claim_id}", [
-            'claim_type_id' => 1,
+            'claim_type_id' => ClaimType::REIMBURSEMENT,
             'team_id' => 1,
         ]);
 
@@ -309,8 +312,8 @@ class ClaimControllerTest extends TestCase
     {
         $this->seedLookups();
         Notification::fake();
-        $superAdmin = $this->createAuthenticatedUser(1);
-        $regularUser = $this->createUser(['role_id' => 4]);
+        $superAdmin = $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
+        $regularUser = $this->createUser(['role_id' => RoleLevel::USER]);
         $claim = $this->createClaimWithExpenses($regularUser);
 
         $response = $this->postJson('/api/claims/bulk-approve', [
@@ -319,15 +322,15 @@ class ClaimControllerTest extends TestCase
 
         $response->assertStatus(200);
         $claim->refresh();
-        $this->assertEquals(2, $claim->claim_status_id);
+        $this->assertEquals(ClaimStatus::APPROVED, $claim->claim_status_id);
     }
 
     public function test_department_manager_can_approve_claims_in_own_department()
     {
         $this->seedLookups();
         Notification::fake();
-        $manager = $this->createAuthenticatedUser(2, ['department_id' => 1]);
-        $regularUser = $this->createUser(['role_id' => 4, 'department_id' => 1]);
+        $manager = $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]);
+        $regularUser = $this->createUser(['role_id' => RoleLevel::USER, 'department_id' => 1]);
         $claim = $this->createClaimWithExpenses($regularUser, 1, ['department_id' => 1]);
 
         $response = $this->postJson('/api/claims/bulk-approve', [
@@ -336,14 +339,14 @@ class ClaimControllerTest extends TestCase
 
         $response->assertStatus(200);
         $claim->refresh();
-        $this->assertEquals(2, $claim->claim_status_id);
+        $this->assertEquals(ClaimStatus::APPROVED, $claim->claim_status_id);
     }
 
     public function test_department_manager_cannot_approve_claims_in_other_department()
     {
         $this->seedLookups();
-        $manager = $this->createAuthenticatedUser(2, ['department_id' => 1]);
-        $otherDepUser = $this->createUser(['role_id' => 4, 'department_id' => 2]);
+        $manager = $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]);
+        $otherDepUser = $this->createUser(['role_id' => RoleLevel::USER, 'department_id' => 2]);
         $claim = $this->createClaimWithExpenses($otherDepUser, 1, ['department_id' => 2, 'team_id' => 2]);
 
         $response = $this->postJson('/api/claims/bulk-approve', [
@@ -357,9 +360,9 @@ class ClaimControllerTest extends TestCase
     {
         $this->seedLookups();
         Notification::fake();
-        $teamLead = $this->createAuthenticatedUser(3, ['department_id' => 1]);
+        $teamLead = $this->createAuthenticatedUser(RoleLevel::TEAM_LEAD, ['department_id' => 1]);
         $this->attachUserToTeam($teamLead, 1);
-        $regularUser = $this->createUser(['role_id' => 4, 'department_id' => 1]);
+        $regularUser = $this->createUser(['role_id' => RoleLevel::USER, 'department_id' => 1]);
         $this->attachUserToTeam($regularUser, 1);
         $claim = $this->createClaimWithExpenses($regularUser);
 
@@ -373,9 +376,9 @@ class ClaimControllerTest extends TestCase
     public function test_team_lead_cannot_approve_another_team_lead_claim()
     {
         $this->seedLookups();
-        $teamLead = $this->createAuthenticatedUser(3, ['department_id' => 1]);
+        $teamLead = $this->createAuthenticatedUser(RoleLevel::TEAM_LEAD, ['department_id' => 1]);
         $this->attachUserToTeam($teamLead, 1);
-        $otherTeamLead = $this->createUser(['role_id' => 3, 'department_id' => 1]);
+        $otherTeamLead = $this->createUser(['role_id' => RoleLevel::TEAM_LEAD, 'department_id' => 1]);
         $this->attachUserToTeam($otherTeamLead, 1);
         $claim = $this->createClaimWithExpenses($otherTeamLead);
 
@@ -389,9 +392,9 @@ class ClaimControllerTest extends TestCase
     public function test_team_lead_cannot_approve_claims_in_other_team()
     {
         $this->seedLookups();
-        $teamLead = $this->createAuthenticatedUser(3, ['department_id' => 1]);
+        $teamLead = $this->createAuthenticatedUser(RoleLevel::TEAM_LEAD, ['department_id' => 1]);
         $this->attachUserToTeam($teamLead, 1);
-        $regularUser = $this->createUser(['role_id' => 4, 'department_id' => 2]);
+        $regularUser = $this->createUser(['role_id' => RoleLevel::USER, 'department_id' => 2]);
         $this->attachUserToTeam($regularUser, 2);
         $claim = $this->createClaimWithExpenses($regularUser, 1, ['department_id' => 2, 'team_id' => 2]);
 
@@ -405,8 +408,8 @@ class ClaimControllerTest extends TestCase
     public function test_regular_user_cannot_bulk_approve()
     {
         $this->seedLookups();
-        $regularUser = $this->createAuthenticatedUser(4);
-        $otherUser = $this->createUser(['role_id' => 4]);
+        $regularUser = $this->createAuthenticatedUser(RoleLevel::USER);
+        $otherUser = $this->createUser(['role_id' => RoleLevel::USER]);
         $claim = $this->createClaimWithExpenses($otherUser);
 
         $response = $this->postJson('/api/claims/bulk-approve', [
@@ -419,7 +422,7 @@ class ClaimControllerTest extends TestCase
     public function test_non_super_admin_cannot_self_approve()
     {
         $this->seedLookups();
-        $manager = $this->createAuthenticatedUser(2, ['department_id' => 1]);
+        $manager = $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]);
         $claim = $this->createClaimWithExpenses($manager, 1, ['department_id' => 1]);
 
         $response = $this->postJson('/api/claims/bulk-approve', [
@@ -433,7 +436,7 @@ class ClaimControllerTest extends TestCase
     {
         $this->seedLookups();
         Notification::fake();
-        $superAdmin = $this->createAuthenticatedUser(1);
+        $superAdmin = $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
         $claim = $this->createClaimWithExpenses($superAdmin);
 
         $response = $this->postJson('/api/claims/bulk-approve', [
@@ -442,7 +445,7 @@ class ClaimControllerTest extends TestCase
 
         $response->assertStatus(200);
         $claim->refresh();
-        $this->assertEquals(2, $claim->claim_status_id);
+        $this->assertEquals(ClaimStatus::APPROVED, $claim->claim_status_id);
     }
 
     // ==================== BULK REJECT ====================
@@ -451,8 +454,8 @@ class ClaimControllerTest extends TestCase
     {
         $this->seedLookups();
         Notification::fake();
-        $superAdmin = $this->createAuthenticatedUser(1);
-        $regularUser = $this->createUser(['role_id' => 4]);
+        $superAdmin = $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
+        $regularUser = $this->createUser(['role_id' => RoleLevel::USER]);
         $claim = $this->createClaimWithExpenses($regularUser);
 
         $response = $this->postJson('/api/claims/bulk-reject', [
@@ -461,14 +464,14 @@ class ClaimControllerTest extends TestCase
 
         $response->assertStatus(200);
         $claim->refresh();
-        $this->assertEquals(3, $claim->claim_status_id);
+        $this->assertEquals(ClaimStatus::REJECTED, $claim->claim_status_id);
     }
 
     public function test_department_manager_cannot_reject_claims_in_other_department()
     {
         $this->seedLookups();
-        $manager = $this->createAuthenticatedUser(2, ['department_id' => 1]);
-        $otherDepUser = $this->createUser(['role_id' => 4, 'department_id' => 2]);
+        $manager = $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]);
+        $otherDepUser = $this->createUser(['role_id' => RoleLevel::USER, 'department_id' => 2]);
         $claim = $this->createClaimWithExpenses($otherDepUser, 1, ['department_id' => 2, 'team_id' => 2]);
 
         $response = $this->postJson('/api/claims/bulk-reject', [
@@ -481,8 +484,8 @@ class ClaimControllerTest extends TestCase
     public function test_regular_user_cannot_bulk_reject()
     {
         $this->seedLookups();
-        $regularUser = $this->createAuthenticatedUser(4);
-        $otherUser = $this->createUser(['role_id' => 4]);
+        $regularUser = $this->createAuthenticatedUser(RoleLevel::USER);
+        $otherUser = $this->createUser(['role_id' => RoleLevel::USER]);
         $claim = $this->createClaimWithExpenses($otherUser);
 
         $response = $this->postJson('/api/claims/bulk-reject', [
@@ -495,7 +498,7 @@ class ClaimControllerTest extends TestCase
     public function test_non_super_admin_cannot_self_reject()
     {
         $this->seedLookups();
-        $manager = $this->createAuthenticatedUser(2, ['department_id' => 1]);
+        $manager = $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]);
         $claim = $this->createClaimWithExpenses($manager, 1, ['department_id' => 1]);
 
         $response = $this->postJson('/api/claims/bulk-reject', [

@@ -2,6 +2,10 @@
 
 namespace Tests\Traits;
 
+use App\Enums\ActiveStatus;
+use App\Enums\ClaimStatus;
+use App\Enums\ClaimType;
+use App\Enums\RoleLevel;
 use App\Models\Claim;
 use App\Models\Expense;
 use App\Models\Mileage;
@@ -15,59 +19,61 @@ trait SeedsLookups
     protected function seedLookups(): void
     {
         DB::table('active_status')->insert([
-            ['active_status_id' => 1, 'active_status_name' => 'active'],
-            ['active_status_id' => 2, 'active_status_name' => 'inactive'],
+            ['active_status_id' => ActiveStatus::ACTIVE, 'active_status_name' => 'active'],
+            ['active_status_id' => ActiveStatus::INACTIVE, 'active_status_name' => 'inactive'],
         ]);
 
         DB::table('roles')->insert([
-            ['role_id' => 1, 'role_name' => 'super_admin', 'active_status_id' => 1, 'role_level' => 1],
-            ['role_id' => 2, 'role_name' => 'department_manager', 'active_status_id' => 1, 'role_level' => 2],
-            ['role_id' => 3, 'role_name' => 'team_lead', 'active_status_id' => 1, 'role_level' => 3],
-            ['role_id' => 4, 'role_name' => 'user', 'active_status_id' => 1, 'role_level' => 4],
+            ['role_id' => RoleLevel::SUPER_ADMIN, 'role_name' => 'super_admin', 'active_status_id' => ActiveStatus::ACTIVE, 'role_level' => RoleLevel::SUPER_ADMIN],
+            ['role_id' => RoleLevel::DEPARTMENT_MANAGER, 'role_name' => 'department_manager', 'active_status_id' => ActiveStatus::ACTIVE, 'role_level' => RoleLevel::DEPARTMENT_MANAGER],
+            ['role_id' => RoleLevel::TEAM_LEAD, 'role_name' => 'team_lead', 'active_status_id' => ActiveStatus::ACTIVE, 'role_level' => RoleLevel::TEAM_LEAD],
+            ['role_id' => RoleLevel::USER, 'role_name' => 'user', 'active_status_id' => ActiveStatus::ACTIVE, 'role_level' => RoleLevel::USER],
         ]);
 
         DB::table('positions')->insert([
-            ['position_id' => 1, 'position_name' => 'Member', 'active_status_id' => 1],
+            ['position_id' => 1, 'position_name' => 'Member', 'active_status_id' => ActiveStatus::ACTIVE],
         ]);
 
         DB::table('departments')->insert([
             ['department_id' => 1, 'department_name' => 'Engineering',
-             'department_abbreviation' => 'ENG', 'active_status_id' => 1],
+             'department_abbreviation' => 'ENG', 'active_status_id' => ActiveStatus::ACTIVE],
             ['department_id' => 2, 'department_name' => 'Marketing',
-             'department_abbreviation' => 'MKT', 'active_status_id' => 1],
+             'department_abbreviation' => 'MKT', 'active_status_id' => ActiveStatus::ACTIVE],
         ]);
 
         DB::table('teams')->insert([
             ['team_id' => 1, 'team_name' => 'Alpha', 'team_abbreviation' => 'ALP',
-             'active_status_id' => 1, 'department_id' => 1],
+             'active_status_id' => ActiveStatus::ACTIVE, 'department_id' => 1],
             ['team_id' => 2, 'team_name' => 'Beta', 'team_abbreviation' => 'BET',
-             'active_status_id' => 1, 'department_id' => 2],
+             'active_status_id' => ActiveStatus::ACTIVE, 'department_id' => 2],
         ]);
 
         DB::table('claim_status')->insert([
-            ['claim_status_id' => 1, 'claim_status_name' => 'Pending'],
-            ['claim_status_id' => 2, 'claim_status_name' => 'Approved'],
-            ['claim_status_id' => 3, 'claim_status_name' => 'Rejected'],
+            ['claim_status_id' => ClaimStatus::PENDING, 'claim_status_name' => 'Pending'],
+            ['claim_status_id' => ClaimStatus::APPROVED, 'claim_status_name' => 'Approved'],
+            ['claim_status_id' => ClaimStatus::REJECTED, 'claim_status_name' => 'Rejected'],
         ]);
 
         DB::table('claim_types')->insert([
-            ['claim_type_id' => 1, 'claim_type_name' => 'Expense', 'active_status_id' => 1],
+            ['claim_type_id' => ClaimType::REIMBURSEMENT, 'claim_type_name' => 'Expense', 'active_status_id' => ActiveStatus::ACTIVE],
+            ['claim_type_id' => ClaimType::PETTY_CASH, 'claim_type_name' => 'Petty Cash', 'active_status_id' => ActiveStatus::ACTIVE],
+            ['claim_type_id' => ClaimType::CORPORATE_CARD, 'claim_type_name' => 'Corporate Card', 'active_status_id' => ActiveStatus::ACTIVE],
         ]);
 
         DB::table('approval_status')->insert([
-            ['approval_status_id' => 1, 'approval_status_name' => 'Pending'],
-            ['approval_status_id' => 2, 'approval_status_name' => 'Approved'],
-            ['approval_status_id' => 3, 'approval_status_name' => 'Rejected'],
+            ['approval_status_id' => ClaimStatus::PENDING, 'approval_status_name' => 'Pending'],
+            ['approval_status_id' => ClaimStatus::APPROVED, 'approval_status_name' => 'Approved'],
+            ['approval_status_id' => ClaimStatus::REJECTED, 'approval_status_name' => 'Rejected'],
         ]);
 
         DB::table('projects')->insert([
             ['project_id' => 1, 'project_name' => 'Project A',
-             'active_status_id' => 1, 'department_id' => 1],
+             'active_status_id' => ActiveStatus::ACTIVE, 'department_id' => 1],
         ]);
 
         DB::table('cost_centres')->insert([
             ['cost_centre_id' => 1, 'cost_centre_code' => 1001, 'description' => 'Centre 1',
-             'department_id' => 1, 'active_status_id' => 1],
+             'department_id' => 1, 'active_status_id' => ActiveStatus::ACTIVE],
         ]);
 
         DB::table('account_numbers')->insert([
@@ -100,14 +106,14 @@ trait SeedsLookups
     protected function createUser(array $overrides = []): User
     {
         return User::factory()->create(array_merge([
-            'role_id' => 4,
-            'active_status_id' => 1,
+            'role_id' => RoleLevel::USER,
+            'active_status_id' => ActiveStatus::ACTIVE,
             'position_id' => 1,
             'department_id' => 1,
         ], $overrides));
     }
 
-    protected function createAuthenticatedUser(int $roleId = 1, array $overrides = []): User
+    protected function createAuthenticatedUser(int $roleId = RoleLevel::SUPER_ADMIN, array $overrides = []): User
     {
         $user = $this->createUser(array_merge(['role_id' => $roleId], $overrides));
         Sanctum::actingAs($user, ['*']);
@@ -128,10 +134,10 @@ trait SeedsLookups
         return Claim::create(array_merge([
             'user_id' => $user->user_id,
             'position_id' => 1,
-            'claim_type_id' => 1,
+            'claim_type_id' => ClaimType::REIMBURSEMENT,
             'department_id' => $user->department_id ?? 1,
             'team_id' => 1,
-            'claim_status_id' => 1,
+            'claim_status_id' => ClaimStatus::PENDING,
             'claim_submitted' => now()->toDateString(),
             'total_amount' => 100.00,
         ], $overrides));
@@ -149,7 +155,7 @@ trait SeedsLookups
                 'expense_amount' => 100.00,
                 'transaction_date' => now()->toDateString(),
                 'transaction_desc' => 'Test expense',
-                'approval_status_id' => 1,
+                'approval_status_id' => ClaimStatus::PENDING,
                 'claim_id' => $claim->claim_id,
                 'project_id' => 1,
                 'cost_centre_id' => 1,
@@ -170,7 +176,7 @@ trait SeedsLookups
             'expense_amount' => 25.50,
             'transaction_date' => now()->toDateString(),
             'transaction_desc' => 'Mileage claim',
-            'approval_status_id' => 1,
+            'approval_status_id' => ClaimStatus::PENDING,
             'claim_id' => $claim->claim_id,
             'project_id' => 1,
             'cost_centre_id' => 1,

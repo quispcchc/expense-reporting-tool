@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\RoleLevel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 use Tests\Traits\SeedsLookups;
@@ -31,7 +32,7 @@ class CurrentUserRouteTest extends TestCase
     public function test_returned_user_matches_authenticated_user()
     {
         $this->seedLookups();
-        $user = $this->createAuthenticatedUser(1, [
+        $user = $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN, [
             'email' => 'specific@example.com',
         ]);
 

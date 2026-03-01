@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\RoleLevel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 use Tests\Traits\SeedsLookups;
@@ -15,7 +16,7 @@ class SettingsControllerTest extends TestCase
     public function test_any_authenticated_user_can_view_settings(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(4); // regular user
+        $this->createAuthenticatedUser(RoleLevel::USER); // regular user
 
         $response = $this->getJson('/api/settings');
 
@@ -27,7 +28,7 @@ class SettingsControllerTest extends TestCase
     public function test_get_settings_returns_correct_format(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(1);
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
 
         $response = $this->getJson('/api/settings');
 
@@ -45,7 +46,7 @@ class SettingsControllerTest extends TestCase
     public function test_super_admin_can_update_settings(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(1);
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
 
         $response = $this->putJson('/api/settings', [
             'mileage_rate' => 0.65,
@@ -58,7 +59,7 @@ class SettingsControllerTest extends TestCase
     public function test_admin_can_update_settings(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(2, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]);
 
         $response = $this->putJson('/api/settings', [
             'mileage_rate' => 0.70,
@@ -71,7 +72,7 @@ class SettingsControllerTest extends TestCase
     public function test_approver_cannot_update_settings(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(3, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::TEAM_LEAD, ['department_id' => 1]);
 
         $response = $this->putJson('/api/settings', [
             'mileage_rate' => 0.99,
@@ -83,7 +84,7 @@ class SettingsControllerTest extends TestCase
     public function test_regular_user_cannot_update_settings(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(4, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::USER, ['department_id' => 1]);
 
         $response = $this->putJson('/api/settings', [
             'mileage_rate' => 0.99,
@@ -95,7 +96,7 @@ class SettingsControllerTest extends TestCase
     public function test_update_mileage_rate_validation_min_zero(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(1);
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
 
         $response = $this->putJson('/api/settings', [
             'mileage_rate' => -1,

@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Enums\ActiveStatus;
+use App\Enums\RoleLevel;
 use App\Models\Project;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -16,7 +18,7 @@ class ProjectControllerTest extends TestCase
     public function test_any_authenticated_user_can_list_projects(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(4); // regular user
+        $this->createAuthenticatedUser(RoleLevel::USER); // regular user
 
         $response = $this->getJson('/api/projects');
 
@@ -30,13 +32,13 @@ class ProjectControllerTest extends TestCase
     public function test_super_admin_can_create_project(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(1);
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
 
         $response = $this->postJson('/api/projects', [
             'project_name' => 'Project B',
             'project_desc' => 'Second project',
             'department_id' => 1,
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
         $response->assertStatus(201)
@@ -47,12 +49,12 @@ class ProjectControllerTest extends TestCase
     public function test_admin_can_create_project(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(2, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]);
 
         $response = $this->postJson('/api/projects', [
             'project_name' => 'Admin Project',
             'department_id' => 1,
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
         $response->assertStatus(201);
@@ -61,12 +63,12 @@ class ProjectControllerTest extends TestCase
     public function test_approver_cannot_create_project(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(3, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::TEAM_LEAD, ['department_id' => 1]);
 
         $response = $this->postJson('/api/projects', [
             'project_name' => 'Unauthorized',
             'department_id' => 1,
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
         $response->assertStatus(403);
@@ -75,12 +77,12 @@ class ProjectControllerTest extends TestCase
     public function test_regular_user_cannot_create_project(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(4, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::USER, ['department_id' => 1]);
 
         $response = $this->postJson('/api/projects', [
             'project_name' => 'Unauthorized',
             'department_id' => 1,
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
         $response->assertStatus(403);
@@ -89,7 +91,7 @@ class ProjectControllerTest extends TestCase
     public function test_create_project_defaults_active_status(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(1);
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
 
         $response = $this->postJson('/api/projects', [
             'project_name' => 'Project C',
@@ -105,7 +107,7 @@ class ProjectControllerTest extends TestCase
     public function test_super_admin_can_update_project(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(1);
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
 
         $response = $this->putJson('/api/projects/1', [
             'project_name' => 'Project A Updated',
@@ -123,7 +125,7 @@ class ProjectControllerTest extends TestCase
     public function test_admin_can_update_project(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(2, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]);
 
         $response = $this->putJson('/api/projects/1', [
             'project_name' => 'Admin Updated',
@@ -136,7 +138,7 @@ class ProjectControllerTest extends TestCase
     public function test_approver_cannot_update_project(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(3, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::TEAM_LEAD, ['department_id' => 1]);
 
         $response = $this->putJson('/api/projects/1', [
             'project_name' => 'Hacked',
@@ -149,7 +151,7 @@ class ProjectControllerTest extends TestCase
     public function test_regular_user_cannot_update_project(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(4, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::USER, ['department_id' => 1]);
 
         $response = $this->putJson('/api/projects/1', [
             'project_name' => 'Hacked',
@@ -164,12 +166,12 @@ class ProjectControllerTest extends TestCase
     public function test_super_admin_can_delete_project(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(1);
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
 
         $project = Project::create([
             'project_name' => 'Deletable Project',
             'department_id' => 1,
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
         $response = $this->deleteJson("/api/projects/{$project->project_id}");
@@ -183,12 +185,12 @@ class ProjectControllerTest extends TestCase
     public function test_admin_can_delete_project(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(2, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]);
 
         $project = Project::create([
             'project_name' => 'Deletable',
             'department_id' => 1,
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
         $response = $this->deleteJson("/api/projects/{$project->project_id}");
@@ -199,12 +201,12 @@ class ProjectControllerTest extends TestCase
     public function test_approver_cannot_delete_project(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(3, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::TEAM_LEAD, ['department_id' => 1]);
 
         $project = Project::create([
             'project_name' => 'Protected',
             'department_id' => 1,
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
         $response = $this->deleteJson("/api/projects/{$project->project_id}");
@@ -215,12 +217,12 @@ class ProjectControllerTest extends TestCase
     public function test_regular_user_cannot_delete_project(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(4, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::USER, ['department_id' => 1]);
 
         $project = Project::create([
             'project_name' => 'Protected',
             'department_id' => 1,
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
         $response = $this->deleteJson("/api/projects/{$project->project_id}");
@@ -231,7 +233,7 @@ class ProjectControllerTest extends TestCase
     public function test_delete_project_linked_to_expense_returns_409(): void
     {
         $this->seedLookups();
-        $user = $this->createAuthenticatedUser(1);
+        $user = $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
 
         $this->createClaimWithExpenses($user, 1, [], ['project_id' => 1]);
 

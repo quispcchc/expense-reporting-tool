@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\RoleLevel;
 use App\Models\Tag;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -22,7 +23,7 @@ class TagControllerTest extends TestCase
     public function test_any_authenticated_user_can_list_tags(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(4); // regular user
+        $this->createAuthenticatedUser(RoleLevel::USER); // regular user
 
         $this->seedTag(1, 'Travel');
         $this->seedTag(2, 'Office');
@@ -38,7 +39,7 @@ class TagControllerTest extends TestCase
     public function test_super_admin_can_create_tag(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(1);
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
 
         $response = $this->postJson('/api/tags', ['tag_name' => 'New Tag']);
 
@@ -49,7 +50,7 @@ class TagControllerTest extends TestCase
     public function test_admin_can_create_tag(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(2, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]);
 
         $response = $this->postJson('/api/tags', ['tag_name' => 'Admin Tag']);
 
@@ -59,7 +60,7 @@ class TagControllerTest extends TestCase
     public function test_approver_cannot_create_tag(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(3, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::TEAM_LEAD, ['department_id' => 1]);
 
         $response = $this->postJson('/api/tags', ['tag_name' => 'Unauthorized']);
 
@@ -69,7 +70,7 @@ class TagControllerTest extends TestCase
     public function test_regular_user_cannot_create_tag(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(4, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::USER, ['department_id' => 1]);
 
         $response = $this->postJson('/api/tags', ['tag_name' => 'Unauthorized']);
 
@@ -79,7 +80,7 @@ class TagControllerTest extends TestCase
     public function test_create_tag_capitalizes_name(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(1);
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
 
         $response = $this->postJson('/api/tags', ['tag_name' => 'travel expenses']);
 
@@ -90,7 +91,7 @@ class TagControllerTest extends TestCase
     public function test_create_tag_validation_requires_name(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(1);
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
 
         $response = $this->postJson('/api/tags', []);
 
@@ -102,7 +103,7 @@ class TagControllerTest extends TestCase
     public function test_super_admin_can_update_tag(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(1);
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
         $this->seedTag();
 
         $response = $this->putJson('/api/tags/1', ['tag_name' => 'Updated Name']);
@@ -114,7 +115,7 @@ class TagControllerTest extends TestCase
     public function test_admin_can_update_tag(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(2, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]);
         $this->seedTag();
 
         $response = $this->putJson('/api/tags/1', ['tag_name' => 'Admin Updated']);
@@ -125,7 +126,7 @@ class TagControllerTest extends TestCase
     public function test_approver_cannot_update_tag(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(3, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::TEAM_LEAD, ['department_id' => 1]);
         $this->seedTag();
 
         $response = $this->putJson('/api/tags/1', ['tag_name' => 'Hacked']);
@@ -136,7 +137,7 @@ class TagControllerTest extends TestCase
     public function test_regular_user_cannot_update_tag(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(4, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::USER, ['department_id' => 1]);
         $this->seedTag();
 
         $response = $this->putJson('/api/tags/1', ['tag_name' => 'Hacked']);
@@ -149,7 +150,7 @@ class TagControllerTest extends TestCase
     public function test_super_admin_can_delete_tag(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(1);
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
         $this->seedTag();
 
         $response = $this->deleteJson('/api/tags/1');
@@ -161,7 +162,7 @@ class TagControllerTest extends TestCase
     public function test_admin_can_delete_tag(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(2, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]);
         $this->seedTag();
 
         $response = $this->deleteJson('/api/tags/1');
@@ -172,7 +173,7 @@ class TagControllerTest extends TestCase
     public function test_approver_cannot_delete_tag(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(3, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::TEAM_LEAD, ['department_id' => 1]);
         $this->seedTag();
 
         $response = $this->deleteJson('/api/tags/1');
@@ -183,7 +184,7 @@ class TagControllerTest extends TestCase
     public function test_regular_user_cannot_delete_tag(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(4, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::USER, ['department_id' => 1]);
         $this->seedTag();
 
         $response = $this->deleteJson('/api/tags/1');
@@ -194,7 +195,7 @@ class TagControllerTest extends TestCase
     public function test_delete_tag_linked_to_expense_returns_409(): void
     {
         $this->seedLookups();
-        $user = $this->createAuthenticatedUser(1);
+        $user = $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
 
         $this->seedTag(1, 'Linked Tag');
 

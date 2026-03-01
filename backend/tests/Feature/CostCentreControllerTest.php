@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Enums\ActiveStatus;
+use App\Enums\RoleLevel;
 use App\Models\CostCentre;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -17,14 +19,14 @@ class CostCentreControllerTest extends TestCase
     public function test_super_admin_can_list_all_cost_centres(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(1); // super_admin
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN); // super_admin
 
         // Add a cost centre in dept 2
         CostCentre::create([
             'cost_centre_code' => 2002,
             'description' => 'Centre 2',
             'department_id' => 2,
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
         $response = $this->getJson('/api/cost-centres');
@@ -38,14 +40,14 @@ class CostCentreControllerTest extends TestCase
     public function test_admin_can_list_own_department_cost_centres(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(2, ['department_id' => 1]); // department_manager
+        $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]); // department_manager
 
         // Add a cost centre in dept 2 (should not be visible)
         CostCentre::create([
             'cost_centre_code' => 2002,
             'description' => 'Centre 2',
             'department_id' => 2,
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
         $response = $this->getJson('/api/cost-centres');
@@ -60,7 +62,7 @@ class CostCentreControllerTest extends TestCase
     public function test_approver_can_list_own_department_cost_centres(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(3, ['department_id' => 1]); // team_lead
+        $this->createAuthenticatedUser(RoleLevel::TEAM_LEAD, ['department_id' => 1]); // team_lead
 
         $response = $this->getJson('/api/cost-centres');
 
@@ -72,7 +74,7 @@ class CostCentreControllerTest extends TestCase
     public function test_regular_user_cannot_list_cost_centres(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(4, ['department_id' => 1]); // user
+        $this->createAuthenticatedUser(RoleLevel::USER, ['department_id' => 1]); // user
 
         $response = $this->getJson('/api/cost-centres');
 
@@ -84,13 +86,13 @@ class CostCentreControllerTest extends TestCase
     public function test_super_admin_can_create_cost_centre(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(1);
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
 
         $response = $this->postJson('/api/cost-centres', [
             'department_id' => 1,
             'cost_centre_code' => 2002,
             'description' => 'New Centre',
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
         $response->assertStatus(201);
@@ -101,13 +103,13 @@ class CostCentreControllerTest extends TestCase
     public function test_super_admin_can_create_cost_centre_in_any_department(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(1, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN, ['department_id' => 1]);
 
         $response = $this->postJson('/api/cost-centres', [
             'department_id' => 2,
             'cost_centre_code' => 3003,
             'description' => 'Other Dept Centre',
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
         $response->assertStatus(201);
@@ -116,13 +118,13 @@ class CostCentreControllerTest extends TestCase
     public function test_admin_can_create_cost_centre_in_own_department(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(2, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]);
 
         $response = $this->postJson('/api/cost-centres', [
             'department_id' => 1,
             'cost_centre_code' => 3003,
             'description' => 'Dept Centre',
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
         $response->assertStatus(201);
@@ -131,13 +133,13 @@ class CostCentreControllerTest extends TestCase
     public function test_admin_cannot_create_cost_centre_in_other_department(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(2, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]);
 
         $response = $this->postJson('/api/cost-centres', [
             'department_id' => 2,
             'cost_centre_code' => 4004,
             'description' => 'Other Dept Centre',
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
         $response->assertStatus(403);
@@ -146,13 +148,13 @@ class CostCentreControllerTest extends TestCase
     public function test_approver_cannot_create_cost_centre(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(3, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::TEAM_LEAD, ['department_id' => 1]);
 
         $response = $this->postJson('/api/cost-centres', [
             'department_id' => 1,
             'cost_centre_code' => 5005,
             'description' => 'Approver Centre',
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
         $response->assertStatus(403);
@@ -161,13 +163,13 @@ class CostCentreControllerTest extends TestCase
     public function test_regular_user_cannot_create_cost_centre(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(4, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::USER, ['department_id' => 1]);
 
         $response = $this->postJson('/api/cost-centres', [
             'department_id' => 1,
             'cost_centre_code' => 6006,
             'description' => 'User Centre',
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
         $response->assertStatus(403);
@@ -176,14 +178,14 @@ class CostCentreControllerTest extends TestCase
     public function test_create_cost_centre_unique_code(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(1);
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
 
         // cost_centre_code 1001 already exists from seedLookups
         $response = $this->postJson('/api/cost-centres', [
             'department_id' => 1,
             'cost_centre_code' => 1001,
             'description' => 'Duplicate Code',
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
         $response->assertStatus(422);
@@ -194,7 +196,7 @@ class CostCentreControllerTest extends TestCase
     public function test_super_admin_can_show_any_cost_centre(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(1);
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
 
         $costCentre = CostCentre::first();
 
@@ -209,7 +211,7 @@ class CostCentreControllerTest extends TestCase
     public function test_super_admin_can_update_any_cost_centre(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(1);
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
 
         $costCentre = CostCentre::first();
 
@@ -217,7 +219,7 @@ class CostCentreControllerTest extends TestCase
             'department_id' => 1,
             'cost_centre_code' => $costCentre->cost_centre_code,
             'description' => 'Updated Centre',
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
         $response->assertStatus(200);
@@ -231,7 +233,7 @@ class CostCentreControllerTest extends TestCase
     public function test_admin_can_update_own_department_cost_centre(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(2, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]);
 
         $costCentre = CostCentre::where('department_id', 1)->first();
 
@@ -239,7 +241,7 @@ class CostCentreControllerTest extends TestCase
             'department_id' => 1,
             'cost_centre_code' => $costCentre->cost_centre_code,
             'description' => 'Admin Updated',
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
         $response->assertStatus(200);
@@ -249,21 +251,21 @@ class CostCentreControllerTest extends TestCase
     public function test_admin_cannot_update_other_department_cost_centre(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(2, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]);
 
         // Create a cost centre in dept 2
         $costCentre = CostCentre::create([
             'cost_centre_code' => 2002,
             'description' => 'Dept 2 Centre',
             'department_id' => 2,
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
         $response = $this->putJson("/api/cost-centres/{$costCentre->cost_centre_id}", [
             'department_id' => 2,
             'cost_centre_code' => $costCentre->cost_centre_code,
             'description' => 'Hacked',
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
         $response->assertStatus(403);
@@ -276,7 +278,7 @@ class CostCentreControllerTest extends TestCase
     public function test_approver_cannot_update_cost_centre(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(3, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::TEAM_LEAD, ['department_id' => 1]);
 
         $costCentre = CostCentre::first();
 
@@ -284,7 +286,7 @@ class CostCentreControllerTest extends TestCase
             'department_id' => 1,
             'cost_centre_code' => $costCentre->cost_centre_code,
             'description' => 'Hacked',
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
         $response->assertStatus(403);
@@ -293,7 +295,7 @@ class CostCentreControllerTest extends TestCase
     public function test_regular_user_cannot_update_cost_centre(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(4, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::USER, ['department_id' => 1]);
 
         $costCentre = CostCentre::first();
 
@@ -301,7 +303,7 @@ class CostCentreControllerTest extends TestCase
             'department_id' => 1,
             'cost_centre_code' => $costCentre->cost_centre_code,
             'description' => 'Hacked',
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
         $response->assertStatus(403);
@@ -312,7 +314,7 @@ class CostCentreControllerTest extends TestCase
     public function test_super_admin_can_delete_cost_centre(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(1);
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
 
         $costCentre = CostCentre::first();
 
@@ -326,7 +328,7 @@ class CostCentreControllerTest extends TestCase
     public function test_admin_can_delete_own_department_cost_centre(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(2, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]);
 
         $costCentre = CostCentre::where('department_id', 1)->first();
 
@@ -340,13 +342,13 @@ class CostCentreControllerTest extends TestCase
     public function test_admin_cannot_delete_other_department_cost_centre(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(2, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]);
 
         $costCentre = CostCentre::create([
             'cost_centre_code' => 2002,
             'description' => 'Dept 2 Centre',
             'department_id' => 2,
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
         $response = $this->deleteJson("/api/cost-centres/{$costCentre->cost_centre_id}");
@@ -358,7 +360,7 @@ class CostCentreControllerTest extends TestCase
     public function test_approver_cannot_delete_cost_centre(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(3, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::TEAM_LEAD, ['department_id' => 1]);
 
         $costCentre = CostCentre::first();
 
@@ -370,7 +372,7 @@ class CostCentreControllerTest extends TestCase
     public function test_regular_user_cannot_delete_cost_centre(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(4, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::USER, ['department_id' => 1]);
 
         $costCentre = CostCentre::first();
 
@@ -393,7 +395,7 @@ class CostCentreControllerTest extends TestCase
             'department_id' => 1,
             'cost_centre_code' => 9999,
             'description' => 'Test',
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
         $response->assertStatus(401);
     }

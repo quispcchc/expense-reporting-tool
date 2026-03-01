@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\RoleLevel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
@@ -14,7 +15,7 @@ class UpdatePasswordControllerTest extends TestCase
     public function test_authenticated_user_can_update_password()
     {
         $this->seedLookups();
-        $user = $this->createAuthenticatedUser(4, [
+        $user = $this->createAuthenticatedUser(RoleLevel::USER, [
             'user_pass' => Hash::make('oldpass123'),
         ]);
 
@@ -32,7 +33,7 @@ class UpdatePasswordControllerTest extends TestCase
     public function test_update_password_fails_with_wrong_current_password()
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(4, [
+        $this->createAuthenticatedUser(RoleLevel::USER, [
             'user_pass' => Hash::make('oldpass123'),
         ]);
 
@@ -72,7 +73,7 @@ class UpdatePasswordControllerTest extends TestCase
     public function test_update_password_validation_requires_new_password_min_8()
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(4, [
+        $this->createAuthenticatedUser(RoleLevel::USER, [
             'user_pass' => Hash::make('oldpass123'),
         ]);
 
@@ -88,7 +89,7 @@ class UpdatePasswordControllerTest extends TestCase
     public function test_update_password_validation_requires_confirmation()
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(4, [
+        $this->createAuthenticatedUser(RoleLevel::USER, [
             'user_pass' => Hash::make('oldpass123'),
         ]);
 

@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Enums\RoleLevel;
 use App\Models\User;
 use App\Models\Claim;
 use App\Models\Expense;
@@ -25,10 +26,10 @@ class ModelRelationshipTest extends TestCase
 
     public function test_user_belongs_to_role(): void
     {
-        $user = $this->createUser(['role_id' => 2]);
+        $user = $this->createUser(['role_id' => RoleLevel::DEPARTMENT_MANAGER]);
 
         $this->assertNotNull($user->role);
-        $this->assertEquals(2, $user->role->role_id);
+        $this->assertEquals(RoleLevel::DEPARTMENT_MANAGER, $user->role->role_id);
         $this->assertInstanceOf(\App\Models\Role::class, $user->role);
     }
 

@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Enums\ActiveStatus;
+use App\Enums\RoleLevel;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -16,7 +18,7 @@ class LoginControllerTest extends TestCase
     {
         $this->seedLookups();
         $user = $this->createUser([
-            'role_id' => 1,
+            'role_id' => RoleLevel::SUPER_ADMIN,
             'email' => 'test@example.com',
             'user_pass' => Hash::make('password123'),
             'email_verified_at' => now(),
@@ -37,7 +39,7 @@ class LoginControllerTest extends TestCase
     {
         $this->seedLookups();
         $this->createUser([
-            'role_id' => 1,
+            'role_id' => RoleLevel::SUPER_ADMIN,
             'email' => 'test@example.com',
             'user_pass' => Hash::make('password123'),
             'email_verified_at' => now(),
@@ -56,7 +58,7 @@ class LoginControllerTest extends TestCase
     {
         $this->seedLookups();
         $this->createUser([
-            'role_id' => 1,
+            'role_id' => RoleLevel::SUPER_ADMIN,
             'email' => 'test@example.com',
             'user_pass' => Hash::make('password123'),
             'email_verified_at' => now(),
@@ -81,7 +83,7 @@ class LoginControllerTest extends TestCase
     {
         $this->seedLookups();
         $this->createUser([
-            'role_id' => 1,
+            'role_id' => RoleLevel::SUPER_ADMIN,
             'email' => 'test@example.com',
             'user_pass' => Hash::make('password123'),
             'email_verified_at' => now(),
@@ -106,7 +108,7 @@ class LoginControllerTest extends TestCase
     {
         $this->seedLookups();
         $user = $this->createUser([
-            'role_id' => 1,
+            'role_id' => RoleLevel::SUPER_ADMIN,
             'email' => 'test@example.com',
             'user_pass' => Hash::make('password123'),
             'email_verified_at' => now(),
@@ -161,7 +163,7 @@ class LoginControllerTest extends TestCase
         $this->createUser([
             'email' => 'test@example.com',
             'user_pass' => Hash::make('password123'),
-            'active_status_id' => 2,
+            'active_status_id' => ActiveStatus::INACTIVE,
             'email_verified_at' => now(),
         ]);
 

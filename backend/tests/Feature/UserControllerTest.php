@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Enums\RoleLevel;
 use Tests\TestCase;
 use Tests\Traits\SeedsLookups;
 
@@ -15,7 +16,7 @@ class UserControllerTest extends TestCase
     public function test_super_admin_can_list_all_users(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(1, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN, ['department_id' => 1]);
 
         // Create users in different departments
         $this->createUser(['department_id' => 1]);
@@ -31,7 +32,7 @@ class UserControllerTest extends TestCase
     public function test_admin_can_list_own_department_users(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(2, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]);
 
         $this->createUser(['department_id' => 1]);
         $this->createUser(['department_id' => 2]);
@@ -47,7 +48,7 @@ class UserControllerTest extends TestCase
     public function test_approver_can_list_team_users(): void
     {
         $this->seedLookups();
-        $approver = $this->createAuthenticatedUser(3, ['department_id' => 1]);
+        $approver = $this->createAuthenticatedUser(RoleLevel::TEAM_LEAD, ['department_id' => 1]);
         $this->attachUserToTeam($approver, 1);
 
         $teamUser = $this->createUser(['department_id' => 1]);
@@ -64,7 +65,7 @@ class UserControllerTest extends TestCase
     public function test_regular_user_cannot_list_users(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(4, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::USER, ['department_id' => 1]);
 
         $response = $this->getJson('/api/admin/users');
 
@@ -76,7 +77,7 @@ class UserControllerTest extends TestCase
     public function test_super_admin_can_update_any_user(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(1, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN, ['department_id' => 1]);
 
         // User in a different department
         $user = $this->createUser(['first_name' => 'Original', 'department_id' => 2]);
@@ -92,7 +93,7 @@ class UserControllerTest extends TestCase
     public function test_admin_can_update_own_department_user(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(2, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]);
 
         $user = $this->createUser(['first_name' => 'Old', 'department_id' => 1]);
 
@@ -107,7 +108,7 @@ class UserControllerTest extends TestCase
     public function test_admin_cannot_update_other_department_user(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(2, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]);
 
         $user = $this->createUser(['first_name' => 'Original', 'department_id' => 2]);
 
@@ -122,7 +123,7 @@ class UserControllerTest extends TestCase
     public function test_admin_cannot_self_edit(): void
     {
         $this->seedLookups();
-        $admin = $this->createAuthenticatedUser(2, ['department_id' => 1]);
+        $admin = $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]);
 
         $response = $this->putJson("/api/admin/users/{$admin->user_id}", [
             'first_name' => 'SelfEdit',
@@ -134,9 +135,9 @@ class UserControllerTest extends TestCase
     public function test_admin_cannot_edit_another_admin(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(2, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]);
 
-        $otherAdmin = $this->createUser(['role_id' => 2, 'department_id' => 1]);
+        $otherAdmin = $this->createUser(['role_id' => RoleLevel::DEPARTMENT_MANAGER, 'department_id' => 1]);
 
         $response = $this->putJson("/api/admin/users/{$otherAdmin->user_id}", [
             'first_name' => 'Hacked',
@@ -148,13 +149,13 @@ class UserControllerTest extends TestCase
     public function test_admin_cannot_promote_to_admin_role(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(2, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]);
 
         $user = $this->createUser(['department_id' => 1]);
 
         // Try to promote user to department_manager (role_id=2, level=2)
         $response = $this->putJson("/api/admin/users/{$user->user_id}", [
-            'role_id' => 2,
+            'role_id' => RoleLevel::DEPARTMENT_MANAGER,
         ]);
 
         $response->assertStatus(403);
@@ -163,7 +164,7 @@ class UserControllerTest extends TestCase
     public function test_approver_cannot_update_user(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(3, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::TEAM_LEAD, ['department_id' => 1]);
 
         $user = $this->createUser(['department_id' => 1]);
 
@@ -177,7 +178,7 @@ class UserControllerTest extends TestCase
     public function test_regular_user_cannot_update_user(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(4, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::USER, ['department_id' => 1]);
 
         $user = $this->createUser(['department_id' => 1]);
 
@@ -193,7 +194,7 @@ class UserControllerTest extends TestCase
     public function test_super_admin_can_delete_any_user(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(1, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN, ['department_id' => 1]);
 
         $user = $this->createUser(['department_id' => 2]);
 
@@ -206,7 +207,7 @@ class UserControllerTest extends TestCase
     public function test_super_admin_cannot_delete_self(): void
     {
         $this->seedLookups();
-        $superAdmin = $this->createAuthenticatedUser(1, ['department_id' => 1]);
+        $superAdmin = $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN, ['department_id' => 1]);
 
         $response = $this->deleteJson("/api/admin/users/{$superAdmin->user_id}");
 
@@ -216,7 +217,7 @@ class UserControllerTest extends TestCase
     public function test_admin_can_delete_own_department_user(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(2, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]);
 
         $user = $this->createUser(['department_id' => 1]);
 
@@ -229,7 +230,7 @@ class UserControllerTest extends TestCase
     public function test_admin_cannot_delete_other_department_user(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(2, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]);
 
         $user = $this->createUser(['department_id' => 2]);
 
@@ -242,7 +243,7 @@ class UserControllerTest extends TestCase
     public function test_admin_cannot_delete_self(): void
     {
         $this->seedLookups();
-        $admin = $this->createAuthenticatedUser(2, ['department_id' => 1]);
+        $admin = $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]);
 
         $response = $this->deleteJson("/api/admin/users/{$admin->user_id}");
 
@@ -252,9 +253,9 @@ class UserControllerTest extends TestCase
     public function test_admin_cannot_delete_another_admin(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(2, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]);
 
-        $otherAdmin = $this->createUser(['role_id' => 2, 'department_id' => 1]);
+        $otherAdmin = $this->createUser(['role_id' => RoleLevel::DEPARTMENT_MANAGER, 'department_id' => 1]);
 
         $response = $this->deleteJson("/api/admin/users/{$otherAdmin->user_id}");
 
@@ -264,7 +265,7 @@ class UserControllerTest extends TestCase
     public function test_approver_cannot_delete_user(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(3, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::TEAM_LEAD, ['department_id' => 1]);
 
         $user = $this->createUser(['department_id' => 1]);
 
@@ -276,7 +277,7 @@ class UserControllerTest extends TestCase
     public function test_regular_user_cannot_delete_user(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(4, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::USER, ['department_id' => 1]);
 
         $user = $this->createUser(['department_id' => 1]);
 
@@ -290,7 +291,7 @@ class UserControllerTest extends TestCase
     public function test_update_user_validates_unique_email(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(1);
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
 
         $existingUser = $this->createUser(['email' => 'taken@example.com']);
         $targetUser = $this->createUser(['email' => 'original@example.com']);

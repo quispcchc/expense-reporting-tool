@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Enums\ActiveStatus;
+use App\Enums\RoleLevel;
 use App\Models\Department;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -16,7 +18,7 @@ class DepartmentControllerTest extends TestCase
     public function test_super_admin_sees_all_departments(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(1); // super_admin
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN); // super_admin
 
         $response = $this->getJson('/api/departments');
 
@@ -28,7 +30,7 @@ class DepartmentControllerTest extends TestCase
     public function test_admin_sees_all_departments(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(2, ['department_id' => 1]); // department_manager
+        $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]); // department_manager
 
         $response = $this->getJson('/api/departments');
 
@@ -40,7 +42,7 @@ class DepartmentControllerTest extends TestCase
     public function test_approver_sees_only_own_department(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(3, ['department_id' => 1]); // team_lead
+        $this->createAuthenticatedUser(RoleLevel::TEAM_LEAD, ['department_id' => 1]); // team_lead
 
         $response = $this->getJson('/api/departments');
 
@@ -53,7 +55,7 @@ class DepartmentControllerTest extends TestCase
     public function test_regular_user_sees_only_own_department(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(4, ['department_id' => 1]); // user
+        $this->createAuthenticatedUser(RoleLevel::USER, ['department_id' => 1]); // user
 
         $response = $this->getJson('/api/departments');
 
@@ -68,12 +70,12 @@ class DepartmentControllerTest extends TestCase
     public function test_super_admin_can_create_department(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(1);
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
 
         $response = $this->postJson('/api/departments', [
             'department_name' => 'Finance',
             'department_abbreviation' => 'FIN',
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
         $response->assertStatus(201)
@@ -85,12 +87,12 @@ class DepartmentControllerTest extends TestCase
     public function test_admin_cannot_create_department(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(2, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]);
 
         $response = $this->postJson('/api/departments', [
             'department_name' => 'Finance',
             'department_abbreviation' => 'FIN',
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
         $response->assertStatus(403);
@@ -99,12 +101,12 @@ class DepartmentControllerTest extends TestCase
     public function test_approver_cannot_create_department(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(3, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::TEAM_LEAD, ['department_id' => 1]);
 
         $response = $this->postJson('/api/departments', [
             'department_name' => 'Finance',
             'department_abbreviation' => 'FIN',
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
         $response->assertStatus(403);
@@ -113,12 +115,12 @@ class DepartmentControllerTest extends TestCase
     public function test_regular_user_cannot_create_department(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(4, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::USER, ['department_id' => 1]);
 
         $response = $this->postJson('/api/departments', [
             'department_name' => 'Finance',
             'department_abbreviation' => 'FIN',
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
         $response->assertStatus(403);
@@ -127,12 +129,12 @@ class DepartmentControllerTest extends TestCase
     public function test_create_department_unique_abbreviation(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(1);
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
 
         $response = $this->postJson('/api/departments', [
             'department_name' => 'Duplicate Eng',
             'department_abbreviation' => 'ENG', // already seeded
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
         $response->assertStatus(422);
@@ -143,7 +145,7 @@ class DepartmentControllerTest extends TestCase
     public function test_super_admin_can_show_any_department(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(1);
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
 
         $response = $this->getJson('/api/departments/1');
 
@@ -158,7 +160,7 @@ class DepartmentControllerTest extends TestCase
     public function test_super_admin_can_update_any_department(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(1);
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
 
         $response = $this->putJson('/api/departments/1', [
             'department_name' => 'Engineering Updated',
@@ -176,7 +178,7 @@ class DepartmentControllerTest extends TestCase
     public function test_admin_can_update_own_department(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(2, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]);
 
         $response = $this->putJson('/api/departments/1', [
             'department_name' => 'My Dept Updated',
@@ -190,7 +192,7 @@ class DepartmentControllerTest extends TestCase
     public function test_admin_cannot_update_other_department(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(2, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]);
 
         $response = $this->putJson('/api/departments/2', [
             'department_name' => 'Hacked Name',
@@ -206,7 +208,7 @@ class DepartmentControllerTest extends TestCase
     public function test_approver_cannot_update_department(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(3, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::TEAM_LEAD, ['department_id' => 1]);
 
         $response = $this->putJson('/api/departments/1', [
             'department_name' => 'Hacked',
@@ -218,7 +220,7 @@ class DepartmentControllerTest extends TestCase
     public function test_regular_user_cannot_update_department(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(4, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::USER, ['department_id' => 1]);
 
         $response = $this->putJson('/api/departments/1', [
             'department_name' => 'Hacked',
@@ -232,12 +234,12 @@ class DepartmentControllerTest extends TestCase
     public function test_super_admin_can_delete_department_without_teams(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(1);
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
 
         $dept = Department::create([
             'department_name' => 'Temp Dept',
             'department_abbreviation' => 'TMP',
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
         $response = $this->deleteJson("/api/departments/{$dept->department_id}");
@@ -252,7 +254,7 @@ class DepartmentControllerTest extends TestCase
     public function test_super_admin_cannot_delete_department_with_teams(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(1);
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
 
         // Department 1 has team "Alpha" seeded
         $response = $this->deleteJson('/api/departments/1');
@@ -268,10 +270,10 @@ class DepartmentControllerTest extends TestCase
         $dept = Department::create([
             'department_name' => 'Temp Dept',
             'department_abbreviation' => 'TMP',
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
-        $this->createAuthenticatedUser(2, ['department_id' => $dept->department_id]);
+        $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => $dept->department_id]);
 
         $response = $this->deleteJson("/api/departments/{$dept->department_id}");
 
@@ -289,10 +291,10 @@ class DepartmentControllerTest extends TestCase
         $dept = Department::create([
             'department_name' => 'Other Dept',
             'department_abbreviation' => 'OTH',
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
-        $this->createAuthenticatedUser(2, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]);
 
         $response = $this->deleteJson("/api/departments/{$dept->department_id}");
 
@@ -309,10 +311,10 @@ class DepartmentControllerTest extends TestCase
         $dept = Department::create([
             'department_name' => 'Temp Dept',
             'department_abbreviation' => 'TMP',
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
-        $this->createAuthenticatedUser(3, ['department_id' => $dept->department_id]);
+        $this->createAuthenticatedUser(RoleLevel::TEAM_LEAD, ['department_id' => $dept->department_id]);
 
         $response = $this->deleteJson("/api/departments/{$dept->department_id}");
 
@@ -326,10 +328,10 @@ class DepartmentControllerTest extends TestCase
         $dept = Department::create([
             'department_name' => 'Temp Dept',
             'department_abbreviation' => 'TMP',
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
-        $this->createAuthenticatedUser(4, ['department_id' => $dept->department_id]);
+        $this->createAuthenticatedUser(RoleLevel::USER, ['department_id' => $dept->department_id]);
 
         $response = $this->deleteJson("/api/departments/{$dept->department_id}");
 
@@ -341,7 +343,7 @@ class DepartmentControllerTest extends TestCase
     public function test_get_department_teams(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(1);
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
 
         $response = $this->getJson('/api/departments/1/teams');
 
@@ -369,7 +371,7 @@ class DepartmentControllerTest extends TestCase
         $response = $this->postJson('/api/departments', [
             'department_name' => 'Test',
             'department_abbreviation' => 'TST',
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
         $response->assertStatus(401);
     }

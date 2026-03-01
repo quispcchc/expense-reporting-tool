@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Notification;
 use App\Notifications\VerifyEmailNotification;
 use App\Models\Position;
 use App\Models\User;
+use App\Enums\RoleLevel;
 use Tests\TestCase;
 use Tests\Traits\SeedsLookups;
 
@@ -24,13 +25,13 @@ class CreateUserControllerTest extends TestCase
         Notification::fake();
         $this->seedLookups();
 
-        $this->createAuthenticatedUser(1); // super_admin
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN); // super_admin
 
         $payload = [
             'first_name' => 'Jane',
             'last_name' => 'Doe',
             'email' => 'jane.doe@example.com',
-            'role_id' => 4,
+            'role_id' => RoleLevel::USER,
             'department_id' => 1,
         ];
 
@@ -43,7 +44,7 @@ class CreateUserControllerTest extends TestCase
             'email' => 'jane.doe@example.com',
             'first_name' => 'Jane',
             'last_name' => 'Doe',
-            'role_id' => 4,
+            'role_id' => RoleLevel::USER,
             'department_id' => 1,
             'user_pass' => null,
             'email_verified_at' => null,
@@ -61,13 +62,13 @@ class CreateUserControllerTest extends TestCase
         Notification::fake();
         $this->seedLookups();
 
-        $this->createAuthenticatedUser(1); // super_admin
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN); // super_admin
 
         $payload = [
             'first_name' => 'John',
             'last_name' => 'Smith',
             'email' => 'john.smith@example.com',
-            'role_id' => 4,
+            'role_id' => RoleLevel::USER,
             'department_id' => 1,
             'team_ids' => [1],
         ];
@@ -89,13 +90,13 @@ class CreateUserControllerTest extends TestCase
         Notification::fake();
         $this->seedLookups();
 
-        $this->createAuthenticatedUser(1); // super_admin
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN); // super_admin
 
         $payload = [
             'first_name' => 'Alice',
             'last_name' => 'Brown',
             'email' => 'alice.brown@example.com',
-            'role_id' => 4,
+            'role_id' => RoleLevel::USER,
             'department_id' => 1,
             'position_name' => 'senior developer',
         ];
@@ -121,13 +122,13 @@ class CreateUserControllerTest extends TestCase
         Notification::fake();
         $this->seedLookups();
 
-        $this->createAuthenticatedUser(1); // super_admin
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN); // super_admin
 
         $payload = [
             'first_name' => 'Bob',
             'last_name' => 'White',
             'email' => 'bob.white@example.com',
-            'role_id' => 4,
+            'role_id' => RoleLevel::USER,
             'department_id' => 1,
             'position_name' => 'Member', // already seeded with position_id=1
         ];
@@ -150,13 +151,13 @@ class CreateUserControllerTest extends TestCase
     {
         $this->seedLookups();
 
-        $this->createAuthenticatedUser(4); // regular user
+        $this->createAuthenticatedUser(RoleLevel::USER); // regular user
 
         $payload = [
             'first_name' => 'Hacker',
             'last_name' => 'McHackface',
             'email' => 'hacker@example.com',
-            'role_id' => 4,
+            'role_id' => RoleLevel::USER,
             'department_id' => 1,
         ];
 
@@ -177,7 +178,7 @@ class CreateUserControllerTest extends TestCase
             'first_name' => 'Nobody',
             'last_name' => 'Anon',
             'email' => 'nobody@example.com',
-            'role_id' => 4,
+            'role_id' => RoleLevel::USER,
             'department_id' => 1,
         ];
 
@@ -193,12 +194,12 @@ class CreateUserControllerTest extends TestCase
     {
         $this->seedLookups();
 
-        $this->createAuthenticatedUser(1); // super_admin
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN); // super_admin
 
         $payload = [
             'last_name' => 'Doe',
             'email' => 'missing.first@example.com',
-            'role_id' => 4,
+            'role_id' => RoleLevel::USER,
             'department_id' => 1,
         ];
 
@@ -215,14 +216,14 @@ class CreateUserControllerTest extends TestCase
     {
         $this->seedLookups();
 
-        $this->createAuthenticatedUser(1); // super_admin
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN); // super_admin
         $existing = $this->createUser(['email' => 'duplicate@example.com']);
 
         $payload = [
             'first_name' => 'Dup',
             'last_name' => 'User',
             'email' => 'duplicate@example.com',
-            'role_id' => 4,
+            'role_id' => RoleLevel::USER,
             'department_id' => 1,
         ];
 
@@ -239,7 +240,7 @@ class CreateUserControllerTest extends TestCase
     {
         $this->seedLookups();
 
-        $this->createAuthenticatedUser(1); // super_admin
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN); // super_admin
 
         $payload = [
             'first_name' => 'Bad',
@@ -262,13 +263,13 @@ class CreateUserControllerTest extends TestCase
     {
         $this->seedLookups();
 
-        $this->createAuthenticatedUser(1); // super_admin
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN); // super_admin
 
         $payload = [
             'first_name' => 'Bad',
             'last_name' => 'Dept',
             'email' => 'baddept@example.com',
-            'role_id' => 4,
+            'role_id' => RoleLevel::USER,
             'department_id' => 999,
         ];
 
