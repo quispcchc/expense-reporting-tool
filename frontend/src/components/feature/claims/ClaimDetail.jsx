@@ -7,6 +7,7 @@ import api from '../../../api/api.js'
 import { showToast } from '../../../utils/helpers.js'
 import { useTranslation } from 'react-i18next'
 import { APPROVAL_STATUS } from '../../../config/constants.js'
+import { formatDate } from '../../../utils/formatters.js'
 
 // ClaimDetail component shows details of a single claim
 // Used in both view and edit claim pages
@@ -122,7 +123,7 @@ function ClaimDetail({ curClaim, toastRef, onClaimRefetch }) {
                         onChange={(value) => handleSelectChange('claim_type_id', value)}
                     />
 
-                    <ClaimDetailRow title={t('claims.dateSubmitted', 'Date Submitted') + ':'} value={submittedDate} />
+                    <ClaimDetailRow title={t('claims.dateSubmitted', 'Date Submitted') + ':'} value={formatDate(submittedDate)} />
                     <ClaimDetailRow title={t('claims.employee', 'Employee') + ':'} value={fullName} />
                     <ClaimDetailRow title={t('users.position') + ':'} value={position} />
                     <ClaimDetailRow title={t('users.department') + ':'} value={department} />
