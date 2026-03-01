@@ -31,12 +31,12 @@ class LoginController extends Controller
             return $this->errorResponse(trans('messages.verify_email'), 403);
         }
 
-        // generate token
-        $token = $user->createToken('api_token')->plainTextToken;
+        // generate token with optional expiration for "Remember Me"
+        $remember = $request->boolean('remember', false);
+        $expiration = $remember ? now()->addDays(30) : null;
+        $token = $user->createToken('api_token', ['*'], $expiration)->plainTextToken;
 
         $data = [
-            'access_token' => $token,
-            'token_type' => 'Bearer',
             'user' => [
                 'full_name' => $user->full_name,
                 'email' => $user->email,
@@ -46,6 +46,12 @@ class LoginController extends Controller
             ],
         ];
 
-        return $this->successResponse($data);
+        // Set auth token as HttpOnly cookie — invisible to JavaScript
+        // Session cookie (0 minutes) when not remembered, 30 days when remembered
+        $cookieMinutes = $remember ? 60 * 24 * 30 : 0;
+        $secure = app()->environment('production');
+        $cookie = cookie('auth_token', $token, $cookieMinutes, '/', null, $secure, true, false, 'Strict');
+
+        return $this->successResponse($data)->withCookie($cookie);
     }
 }

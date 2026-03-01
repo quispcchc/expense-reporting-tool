@@ -45,8 +45,8 @@ describe('AuthContext', () => {
         spy.mockRestore()
     })
 
-    // 3. login success sets token and authUser, returns redirectTo /user for regular_user
-    it('login success sets token and authUser, returns redirectTo /user for regular_user', async () => {
+    // 3. login success sets authUser, returns redirectTo /user for regular_user
+    it('login success sets authUser, returns redirectTo /user for regular_user', async () => {
         const { result } = renderHook(() => useAuth(), { wrapper })
 
         // Wait for initial loading to finish
@@ -63,10 +63,9 @@ describe('AuthContext', () => {
         expect(loginResult.success).toBe(true)
         expect(loginResult.redirectTo).toBe('/user')
         expect(loginResult.user).toEqual(mockUserData)
-        expect(result.current.token).toBe('fake-jwt-token')
         expect(result.current.authUser).toEqual(mockUserData)
-        expect(Cookies.set).toHaveBeenCalledWith('token', 'fake-jwt-token')
-        expect(Cookies.set).toHaveBeenCalledWith('authUser', JSON.stringify(mockUserData))
+        // authUser cookie is set (session cookie — no remember flag)
+        expect(Cookies.set).toHaveBeenCalledWith('authUser', JSON.stringify(mockUserData), {})
     })
 
     // 4. login with admin user returns redirectTo /admin
@@ -75,7 +74,6 @@ describe('AuthContext', () => {
             http.post('/api/login', () =>
                 HttpResponse.json({
                     data: {
-                        access_token: 'admin-token',
                         user: mockAdminData,
                     },
                 }),
@@ -124,8 +122,8 @@ describe('AuthContext', () => {
         expect(result.current.error).toBeTruthy()
     })
 
-    // 6. logout clears authUser and token
-    it('logout clears authUser and token', async () => {
+    // 6. logout clears authUser
+    it('logout clears authUser', async () => {
         const { result } = renderHook(() => useAuth(), { wrapper })
         await waitFor(() => expect(result.current.isLoading).toBe(false))
 
@@ -137,7 +135,6 @@ describe('AuthContext', () => {
             })
         })
 
-        expect(result.current.token).toBe('fake-jwt-token')
         expect(result.current.authUser).toEqual(mockUserData)
 
         // Then logout
@@ -147,10 +144,8 @@ describe('AuthContext', () => {
         })
 
         expect(logoutResult.success).toBe(true)
-        expect(result.current.token).toBeNull()
         expect(result.current.authUser).toBeNull()
-        expect(Cookies.remove).toHaveBeenCalledWith('authUser')
-        expect(Cookies.remove).toHaveBeenCalledWith('token')
+        expect(Cookies.remove).toHaveBeenCalledWith('authUser', { path: '/' })
     })
 
     // 7. forgetPassword success returns success: true
@@ -248,5 +243,21 @@ describe('AuthContext', () => {
         })
 
         expect(result.current.isAuthenticated()).toBe(true)
+    })
+
+    // 13. login with remember=true sets persistent authUser cookie
+    it('login with remember=true sets 30-day authUser cookie', async () => {
+        const { result } = renderHook(() => useAuth(), { wrapper })
+        await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+        await act(async () => {
+            await result.current.login({
+                email: 'test@example.com',
+                password: 'password',
+                remember: true,
+            })
+        })
+
+        expect(Cookies.set).toHaveBeenCalledWith('authUser', JSON.stringify(mockUserData), { expires: 30 })
     })
 })
