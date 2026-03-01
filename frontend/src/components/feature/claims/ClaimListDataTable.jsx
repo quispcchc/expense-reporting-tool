@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react'
 import ComponentContainer from '../../common/ui/ComponentContainer.jsx'
+import Loader from '../../common/ui/Loader.jsx'
 import { DataTable } from 'primereact/datatable'
 import { Column } from 'primereact/column'
 import StatusTab from '../../common/ui/StatusTab.jsx'
@@ -24,19 +25,24 @@ import ClaimListFilterPanel from './ClaimListFilterPanel.jsx'
 import MobileClaimCard from './MobileClaimCard.jsx'
 import MobileClaimListHeader from './MobileClaimListHeader.jsx'
 
-function ClaimListDataTable({ claims, user, path, toastRef }) {
+function ClaimListDataTable({ user, path, toastRef }) {
     const { t } = useTranslation()
-    const { fetchClaims, fetchMyClaims } = useClaims()
+    const { claims: allClaims, myClaims, fetchClaims, fetchMyClaims } = useClaims()
+    const claims = user === USER_TYPE.ADMIN ? allClaims : myClaims
     const isMobile = useIsMobile()
     const { lookups: { claimStatus, claimTypes } } = useLookups()
 
+    const [isLoading, setIsLoading] = useState(true)
+
     useEffect(() => {
         const fetchData = async () => {
+            setIsLoading(true)
             if (user === USER_TYPE.ADMIN) {
                 await fetchClaims()
             } else {
                 await fetchMyClaims()
             }
+            setIsLoading(false)
         }
         fetchData()
     }, [user])
@@ -132,9 +138,9 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
                 try {
                     await api.post(`claims/bulk-${action}`, { claimIds })
                     if (user === USER_TYPE.ADMIN) {
-                        await fetchClaims(true)
+                        await fetchClaims()
                     } else {
-                        await fetchMyClaims(true)
+                        await fetchMyClaims()
                     }
                     showToast(toastRef, { severity: 'success', summary: t('toast.success', 'Success'), detail: t(`claims.bulk${capitalize(action)}Success`) })
                 } catch (error) {
@@ -452,6 +458,8 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
     // ============================================
     // RENDER
     // ============================================
+    if (isLoading) return <Loader />
+
     return (
         <div className="claims-list-wrapper">
             {isMobile ? mobileCardView : desktopTableView}

@@ -1,9 +1,9 @@
 import { claimReducer, CLAIM_ACTIONS } from '../../src/contexts/ClaimContext.jsx'
 
-const initialState = { claims: [], myClaims: [], hasFetchedClaims: false, hasFetchedMyClaims: false }
+const initialState = { claims: [], myClaims: [] }
 
 describe('claimReducer', () => {
-    it('SET_CLAIMS sets claims array and hasFetchedClaims to true', () => {
+    it('SET_CLAIMS sets claims array', () => {
         const claims = [
             { claim_id: 1, title: 'Claim A' },
             { claim_id: 2, title: 'Claim B' },
@@ -13,10 +13,9 @@ describe('claimReducer', () => {
             payload: claims,
         })
         expect(result.claims).toEqual(claims)
-        expect(result.hasFetchedClaims).toBe(true)
     })
 
-    it('SET_MY_CLAIMS sets myClaims array and hasFetchedMyClaims to true', () => {
+    it('SET_MY_CLAIMS sets myClaims array', () => {
         const myClaims = [
             { claim_id: 3, title: 'My Claim' },
         ]
@@ -25,7 +24,6 @@ describe('claimReducer', () => {
             payload: myClaims,
         })
         expect(result.myClaims).toEqual(myClaims)
-        expect(result.hasFetchedMyClaims).toBe(true)
     })
 
     it('CREATE_CLAIM appends new claim to claims array', () => {
