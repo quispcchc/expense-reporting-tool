@@ -9,6 +9,7 @@ import EditableExpansionTable from '../../components/feature/claims/expansionTab
 import Loader from '../../components/common/ui/Loader.jsx'
 import { useAuth } from '../../contexts/AuthContext.jsx'
 import { useTranslation } from 'react-i18next'
+import { ROLE_NAME, VIEW_MODE } from '../../config/constants.js'
 
 function ViewClaimPage() {
     const { t } = useTranslation()
@@ -17,7 +18,7 @@ function ViewClaimPage() {
     const [curClaim, setCurClaim] = useState()
 
     const { authUser } = useAuth()
-    const path = authUser.role_name === 'regular_user' ? '/user' : '/admin'
+    const path = authUser.role_name === ROLE_NAME.USER ? '/user' : '/admin'
 
     const fetchClaim = async () => {
         try {
@@ -45,11 +46,11 @@ function ViewClaimPage() {
                 <div className="flex-1 min-w-[280px]"><ClaimDetail curClaim={curClaim} onClaimRefetch={fetchClaim} /></div>
                 <div className="flex-1 min-w-[280px]">
                     {/* when in view claim mode, disable add note function*/}
-                    <ClaimNotes notes={curClaim.notes} curClaim={curClaim} mode='view' />
+                    <ClaimNotes notes={curClaim.notes} curClaim={curClaim} mode={VIEW_MODE.VIEW} />
                 </div>
             </div>
 
-            <EditableExpansionTable data={curClaim.expenses} curClaim={curClaim} mode='view' />
+            <EditableExpansionTable data={curClaim.expenses} curClaim={curClaim} mode={VIEW_MODE.VIEW} />
 
         </div>
     )

@@ -24,6 +24,7 @@ import SettingsPage from './pages/admin/SettingsPage.jsx'
 import UserCreateClaimPage from './pages/user/UserCreateClaimPage.jsx'
 import RootRedirect from './components/feature/auth/RootRedirect.jsx'
 import DashboardPage from './pages/admin/DashboardPage.jsx'
+import { ROLE_NAME } from './config/constants.js'
 
 const router = createBrowserRouter(
     [
@@ -58,7 +59,7 @@ const router = createBrowserRouter(
         {
             path: '/user',
             element: (
-                <ProtectedRoute allowedRoles={['regular_user', 'super_admin', 'admin', 'approver']}>
+                <ProtectedRoute allowedRoles={[ROLE_NAME.USER, ROLE_NAME.SUPER_ADMIN, ROLE_NAME.ADMIN, ROLE_NAME.APPROVER]}>
                     <UserLayout />
                 </ProtectedRoute>
             ),
@@ -88,7 +89,7 @@ const router = createBrowserRouter(
         {
             path: '/admin',
             element: (
-                <ProtectedRoute allowedRoles={['super_admin', 'admin', 'approver']}>
+                <ProtectedRoute allowedRoles={[ROLE_NAME.SUPER_ADMIN, ROLE_NAME.ADMIN, ROLE_NAME.APPROVER]}>
                     <AdminLayout />
                 </ProtectedRoute>
             ),

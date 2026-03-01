@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Cookies from 'js-cookie'
 import api from '../api/api.js'
+import { ROLE_NAME } from '../config/constants.js'
 
 const AuthContext = createContext()
 
@@ -55,7 +56,7 @@ export const AuthProvider = ({ children }) => {
                 const cookieOptions = credentials.remember ? { expires: 30 } : {}
                 Cookies.set('authUser', JSON.stringify(user), cookieOptions)
 
-                const path = user.role_name === 'regular_user' ? '/user' : '/admin'
+                const path = user.role_name === ROLE_NAME.USER ? '/user' : '/admin'
 
                 return { success: true, redirectTo: path, user: user }
             }

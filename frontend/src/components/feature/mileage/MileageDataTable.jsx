@@ -11,6 +11,7 @@ import api, { API_BASE_URL } from '../../../api/api.js'
 import { getFileIcon } from '../claims/uploadAttchment/getFileIcon.jsx'
 import { useTranslation } from 'react-i18next'
 import { useIsMobile } from '../../../hooks/useIsMobile.js'
+import { VIEW_MODE } from '../../../config/constants.js'
 import Input from '../../common/ui/Input.jsx'
 import { validateForm } from '../../../utils/validation/validator.js'
 import { validationSchemas } from '../../../utils/validation/schemas.js'
@@ -21,7 +22,7 @@ import MobileCard from './MobileCard.jsx'
 const mapTransactions = (transactions, mode) => {
     if (!transactions) return []
 
-    if (mode === 'create') {
+    if (mode === VIEW_MODE.CREATE) {
         let frontendId = 1
         return transactions.map(item => ({
             ...item,
@@ -93,7 +94,7 @@ function MileageDataTable({ data, mode, onTransactionsUpdate, toastRef, onClaimU
         const updated = [...rows]
         updated[index] = { ...newData, total_amount: parseFloat(total.toFixed(2)) }
 
-        if (mode === 'edit') {
+        if (mode === VIEW_MODE.EDIT) {
             const tx = updated[index]
             const formData = new FormData()
             formData.append('_method', 'PUT')
@@ -123,7 +124,7 @@ function MileageDataTable({ data, mode, onTransactionsUpdate, toastRef, onClaimU
         const selectedFiles = Array.from(e.target.files)
         if (!selectedFiles.length) return
 
-        if (mode === 'create') {
+        if (mode === VIEW_MODE.CREATE) {
             const newFiles = selectedFiles.map(file => ({
                 file,
                 url: URL.createObjectURL(file),
@@ -135,7 +136,7 @@ function MileageDataTable({ data, mode, onTransactionsUpdate, toastRef, onClaimU
                 return { ...tx, attachment: [...(tx.attachment || []), ...newFiles] }
             })
             syncUp(updated)
-        } else if (mode === 'edit') {
+        } else if (mode === VIEW_MODE.EDIT) {
             const formData = new FormData()
             formData.append('_method', 'PUT')
             selectedFiles.forEach(file => formData.append('files[]', file))
@@ -150,7 +151,7 @@ function MileageDataTable({ data, mode, onTransactionsUpdate, toastRef, onClaimU
     }
 
     const handleReceiptRemove = async (transactionId, fileIndex) => {
-        if (mode === 'create') {
+        if (mode === VIEW_MODE.CREATE) {
             const updated = rows.map(tx => {
                 if (tx.transactionId !== transactionId) return tx
                 const fileToRemove = (tx.attachment || [])[fileIndex]
@@ -158,7 +159,7 @@ function MileageDataTable({ data, mode, onTransactionsUpdate, toastRef, onClaimU
                 return { ...tx, attachment: (tx.attachment || []).filter((_, i) => i !== fileIndex) }
             })
             syncUp(updated)
-        } else if (mode === 'edit') {
+        } else if (mode === VIEW_MODE.EDIT) {
             const tx = rows.find(r => r.transactionId === transactionId)
             const file = tx?.attachment?.[fileIndex]
             if (file?.receipt_id) {
@@ -190,7 +191,7 @@ function MileageDataTable({ data, mode, onTransactionsUpdate, toastRef, onClaimU
 
     const triggerConfirmDeletions = () => {
         confirmDialog({
-            message: mode === 'create'
+            message: mode === VIEW_MODE.CREATE
                 ? t('mileage.removeItemsMessage', `Remove ${pendingDeletions.length} mileage item(s)?`)
                 : t('mileage.deleteItemsMessage', `Permanently delete ${pendingDeletions.length} mileage item(s)?`),
             header: t('mileage.deleteItems', 'Delete Items'),
@@ -202,11 +203,11 @@ function MileageDataTable({ data, mode, onTransactionsUpdate, toastRef, onClaimU
 
     const handleConfirmDeletions = async () => {
         try {
-            if (mode === 'edit') {
+            if (mode === VIEW_MODE.EDIT) {
                 await Promise.all(pendingDeletions.map(item => api.delete(`mileage-transactions/${item.transactionId}`)))
             }
             setPendingDeletions([])
-            if (onClaimUpdated && mode === 'edit') onClaimUpdated()
+            if (onClaimUpdated && mode === VIEW_MODE.EDIT) onClaimUpdated()
             showToast(toastRef, { severity: 'success', summary: t('toast.success'), detail: t('mileage.itemsDeleted', 'Items deleted') })
         } catch {
             showToast(toastRef, { severity: 'error', summary: t('toast.error'), detail: t('mileage.deleteFailed', 'Failed to delete') })
@@ -331,7 +332,7 @@ function MileageDataTable({ data, mode, onTransactionsUpdate, toastRef, onClaimU
         const updated = [...rows]
         updated[idx] = { ...draft, total_amount: parseFloat(total.toFixed(2)) }
 
-        if (mode === 'edit') {
+        if (mode === VIEW_MODE.EDIT) {
             const tx = updated[idx]
             const formData = new FormData()
             formData.append('_method', 'PUT')
@@ -383,7 +384,7 @@ function MileageDataTable({ data, mode, onTransactionsUpdate, toastRef, onClaimU
                 <div className="text-center py-12 text-gray-500">
                     <p className="text-lg mb-2">{t('mileage.noMileage', 'No mileage transactions')}</p>
                     <p className="text-sm">
-                        {mode === 'create'
+                        {mode === VIEW_MODE.CREATE
                             ? t('mileage.addFirstMileage', 'Add your first mileage transaction above.')
                             : t('mileage.noMileageItems', 'No mileage transactions recorded.')}
                     </p>
@@ -409,48 +410,48 @@ function MileageDataTable({ data, mode, onTransactionsUpdate, toastRef, onClaimU
                         field="transaction_date"
                         header={t('mileage.transactionDate', 'Date')}
                         body={(row) => formatDate(row.transaction_date)}
-                        editor={mode !== 'view' ? dateEditor : undefined}
+                        editor={mode !== VIEW_MODE.VIEW ? dateEditor : undefined}
                         style={{ minWidth: '130px' }}
                     />
                     <Column
                         field="travel_from"
                         header={t('mileage.travelFrom', 'Travel From')}
                         body={(row) => row.travel_from || '—'}
-                        editor={mode !== 'view' ? textEditor : undefined}
+                        editor={mode !== VIEW_MODE.VIEW ? textEditor : undefined}
                         style={{ minWidth: '120px' }}
                     />
                     <Column
                         field="travel_to"
                         header={t('mileage.travelTo', 'Travel To')}
                         body={(row) => row.travel_to || '—'}
-                        editor={mode !== 'view' ? textEditor : undefined}
+                        editor={mode !== VIEW_MODE.VIEW ? textEditor : undefined}
                         style={{ minWidth: '120px' }}
                     />
                     <Column
                         field="distance_km"
                         header={t('mileage.distance', 'Distance (km)')}
-                        editor={mode !== 'view' ? numberEditor : undefined}
+                        editor={mode !== VIEW_MODE.VIEW ? numberEditor : undefined}
                         style={{ minWidth: '110px' }}
                     />
                     <Column
                         field="meter_km"
                         header={t('mileage.meter', 'Meter ($)')}
                         body={(row) => formatCurrency(row.meter_km)}
-                        editor={mode !== 'view' ? numberEditor : undefined}
+                        editor={mode !== VIEW_MODE.VIEW ? numberEditor : undefined}
                         style={{ minWidth: '100px' }}
                     />
                     <Column
                         field="parking_amount"
                         header={t('mileage.parking', 'Parking ($)')}
                         body={(row) => formatCurrency(row.parking_amount)}
-                        editor={mode !== 'view' ? numberEditor : undefined}
+                        editor={mode !== VIEW_MODE.VIEW ? numberEditor : undefined}
                         style={{ minWidth: '110px' }}
                     />
                     <Column
                         field="buyer"
                         header={t('mileage.buyer', 'Buyer')}
                         body={(row) => row.buyer || '—'}
-                        editor={mode !== 'view' ? textEditor : undefined}
+                        editor={mode !== VIEW_MODE.VIEW ? textEditor : undefined}
                         style={{ minWidth: '100px' }}
                     />
                     <Column
@@ -464,14 +465,14 @@ function MileageDataTable({ data, mode, onTransactionsUpdate, toastRef, onClaimU
                         body={receiptTemplate}
                         style={{ minWidth: '180px' }}
                     />
-                    {mode !== 'view' && (
+                    {mode !== VIEW_MODE.VIEW && (
                         <Column
                             rowEditor
                             headerStyle={{ width: '5rem' }}
                             bodyStyle={{ textAlign: 'center' }}
                         />
                     )}
-                    {mode !== 'view' && (
+                    {mode !== VIEW_MODE.VIEW && (
                         <Column
                             body={deleteTemplate}
                             header={t('common.delete', 'Delete')}

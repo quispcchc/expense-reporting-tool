@@ -7,6 +7,7 @@ import { useClaims } from '../../contexts/ClaimContext.jsx'
 import { useAuth } from '../../contexts/AuthContext.jsx'
 import { useTranslation } from 'react-i18next'
 import { showToast, TOAST_LIFE } from '../../utils/helpers.js'
+import { ROLE_NAME, USER_TYPE } from '../../config/constants.js'
 
 function MyClaimPage() {
     const { t } = useTranslation()
@@ -24,13 +25,13 @@ function MyClaimPage() {
     }, [location, navigate, t])
     const { myClaims } = useClaims()
     const { authUser } = useAuth()
-    const path = authUser.role_name === 'regular_user' ? '/user' : '/admin'
+    const path = authUser.role_name === ROLE_NAME.USER ? '/user' : '/admin'
 
     return (
         <>
             <Toast ref={toast} />
             <ContentHeader title={t('claims.myClaimsTitle')} homePath={path} iconKey="claims.myClaimsTitle" />
-            <ClaimListDataTable claims={myClaims} path={path} user='user' />
+            <ClaimListDataTable claims={myClaims} path={path} user={USER_TYPE.USER} />
         </>
     )
 }

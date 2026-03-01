@@ -10,6 +10,7 @@ import Loader from '../../components/common/ui/Loader.jsx'
 import { Toast } from 'primereact/toast'
 import { ConfirmDialog } from 'primereact/confirmdialog'
 import { useTranslation } from 'react-i18next'
+import { VIEW_MODE } from '../../config/constants.js'
 
 
 function EditClaimPage() {
@@ -54,7 +55,7 @@ function EditClaimPage() {
                 </div>
             </div>
 
-            <EditableExpansionTable data={curClaim.expenses} curClaim={curClaim} mode="edit" toastRef={toast}
+            <EditableExpansionTable data={curClaim.expenses} curClaim={curClaim} mode={VIEW_MODE.EDIT} toastRef={toast}
                 onClaimUpdated={fetchClaim}
             />
 

@@ -2,10 +2,11 @@
 
 namespace App\Policies;
 
+use App\Enums\ClaimType;
+use App\Enums\RoleLevel;
 use App\Models\Claim;
 use App\Models\Role;
 use App\Models\User;
-use App\Enums\RoleLevel;
 
 class ClaimPolicy
 {
@@ -36,7 +37,7 @@ class ClaimPolicy
 
         // Block self-approval unless Super Admin or SLT members (Admins) with can_self_approve on Corporate Card claims
         if ($claim->user_id === $user->user_id && $role_level !== RoleLevel::SUPER_ADMIN) {
-            if (!($user->can_self_approve && $claim->claim_type_id === 3)) {
+            if (!($user->can_self_approve && $claim->claim_type_id === ClaimType::CORPORATE_CARD)) {
                 return false;
             }
         }
@@ -59,7 +60,7 @@ class ClaimPolicy
             }
             // Block approver from approving another approver's claim — must escalate to admin
             $claimOwner = $claim->user;
-            if ($claimOwner && $claimOwner->role && $claimOwner->role->role_level <= 3) {
+            if ($claimOwner && $claimOwner->role && $claimOwner->role->role_level <= RoleLevel::TEAM_LEAD) {
                 return false;
             }
             return true;
@@ -75,7 +76,7 @@ class ClaimPolicy
 
         // Block self-reject unless Super Admin or user with can_self_approve on Corporate Card claims
         if ($claim->user_id === $user->user_id && $role_level !== RoleLevel::SUPER_ADMIN) {
-            if (!($user->can_self_approve && $claim->claim_type_id === 3)) {
+            if (!($user->can_self_approve && $claim->claim_type_id === ClaimType::CORPORATE_CARD)) {
                 return false;
             }
         }

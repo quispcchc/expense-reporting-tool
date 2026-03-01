@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\RoleLevel;
 use App\Models\Team;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -23,7 +24,7 @@ class TeamController extends Controller
         $roleLevel = $user->role->role_level;
 
         // Super admin sees all teams
-        if ($roleLevel === 1) {
+        if ($roleLevel === RoleLevel::SUPER_ADMIN) {
             $cacheKey = 'teams_all';
             $teams = Cache::remember($cacheKey, self::CACHE_TTL, function () {
                 return Team::with(['activeStatus', 'department'])->get();

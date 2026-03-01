@@ -6,6 +6,7 @@ import { getFileIcon } from '../claims/uploadAttchment/getFileIcon.jsx'
 import Input from '../../common/ui/Input.jsx'
 import { validateForm } from '../../../utils/validation/validator.js'
 import { validationSchemas } from '../../../utils/validation/schemas.js'
+import { VIEW_MODE } from '../../../config/constants.js'
 
 function MobileCard({ tx, mode, formatDate, formatCurrency, saveMobileEdit, handleReceiptRemove, handleReceiptUpload, deleteTransaction }) {
     const { t } = useTranslation()
@@ -55,7 +56,7 @@ function MobileCard({ tx, mode, formatDate, formatCurrency, saveMobileEdit, hand
                     </div>
                     <div className="text-right shrink-0 ml-2">
                         <p className="text-sm font-semibold text-brand-primary">{formatCurrency(tx.total_amount)}</p>
-                        {mode !== 'view' && (
+                        {mode !== VIEW_MODE.VIEW && (
                             <div className="flex items-center justify-end gap-2 mt-1">
                                 <button onClick={() => { setDraft(tx); setEditing(true) }} type="button" className="text-xs text-blue-600 hover:text-blue-800">
                                     <i className="pi pi-pencil text-xs" />

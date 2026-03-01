@@ -24,10 +24,13 @@ import { formatCurrency } from '../../../../utils/formatters.js'
 import mapExpenseData from './mapExpenseData.js'
 import { useMobileExpenseEdit } from './useMobileExpenseEdit.js'
 import { expenseTextEditor, accountNumEditor, costCentreEditor, currencyInputEditor, dateInputEditor } from './expenseEditors.jsx'
+import { useAuth } from '../../../../contexts/AuthContext.jsx'
+import { ROLE_NAME, VIEW_MODE } from '../../../../config/constants.js'
 
 function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toastRef, onClaimUpdated }) {
     const { t } = useTranslation()
     const isMobile = useIsMobile()
+    const { authUser } = useAuth()
     const [expenseItems, setExpenseItems] = useState(() => mapExpenseData(data, mode))
     const [mobileExpandedId, setMobileExpandedId] = useState(null)
 
@@ -119,7 +122,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
         // Update local state first
         setExpenseItems(updatedExpenseItems)
 
-        if (mode === 'create' && onClaimItemsUpdate) {
+        if (mode === VIEW_MODE.CREATE && onClaimItemsUpdate) {
             // In create mode: notify parent component of changes
             onClaimItemsUpdate(updatedExpenseItems)
 
@@ -143,7 +146,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
     const handleRowEditStart = (editEvent) => { // Was: onRowEditInit
 
         // Only show warning if NOT in create mode AND status is not pending (1)
-        if (mode !== 'create' && editEvent.data.status !== APPROVAL_STATUS.PENDING) {
+        if (mode !== VIEW_MODE.CREATE && editEvent.data.status !== APPROVAL_STATUS.PENDING) {
             confirmDialog({
                 message: t('expenses.editApprovedRejectedMessage', 'Do you want to edit an expense which has already been approved or rejected?'),
                 header: t('expenses.editExpense', 'Edit Expense'),
@@ -282,7 +285,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
 
         // In CREATE mode: only update local state, don't send to server
         // The data will be sent when the claim is submitted
-        if (mode === 'create') {
+        if (mode === VIEW_MODE.CREATE) {
 
             // Clear the temporary expansion changes for this row
             setUnsavedExpansionChanges(previousChanges => {
@@ -494,12 +497,12 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
     // Trigger Final Confirmation
     const triggerConfirmDeletions = () => {
         confirmDialog({
-            message: mode === 'create'
+            message: mode === VIEW_MODE.CREATE
                 ? t('expenses.removeItemsMessage', { count: pendingDeletions.length }, `Are you sure you want to remove these ${pendingDeletions.length} items from the list?`)
                 : t('expenses.deleteItemsMessage', { count: pendingDeletions.length }, `Are you sure you want to delete these ${pendingDeletions.length} items permanently? This action cannot be undone.`),
-            header: mode === 'create' ? t('expenses.removeItems', 'Remove Items') : t('expenses.deleteItems', 'Delete Items'),
+            header: mode === VIEW_MODE.CREATE ? t('expenses.removeItems', 'Remove Items') : t('expenses.deleteItems', 'Delete Items'),
             icon: 'pi pi-exclamation-triangle',
-            acceptLabel: mode === 'create' ? t('expenses.yesRemove', 'Yes, Remove') : t('expenses.yesDelete', 'Yes, Delete'),
+            acceptLabel: mode === VIEW_MODE.CREATE ? t('expenses.yesRemove', 'Yes, Remove') : t('expenses.yesDelete', 'Yes, Delete'),
             rejectLabel: t('common.cancel'),
             acceptClassName: 'p-button-danger',
             accept: handleConfirmDeletions,
@@ -512,7 +515,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
             // Process all pending deletions
             const deletePromises = pendingDeletions.map(async (item) => {
                 // Only call API if in edit mode (where we have real backend IDs)
-                if (mode === 'edit' && item.transactionId) {
+                if (mode === VIEW_MODE.EDIT && item.transactionId) {
                     await api.delete(`expenses/${item.transactionId}`)
                 }
             })
@@ -523,7 +526,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
             setPendingDeletions([])
 
             // Notify parent to refresh data if needed
-            if (onClaimUpdated && mode === 'edit') onClaimUpdated()
+            if (onClaimUpdated && mode === VIEW_MODE.EDIT) onClaimUpdated()
 
             showToast(toastRef, { severity: 'success', summary: t('toast.success'), detail: t('expenses.itemsDeletedPermanently', 'Items deleted permanently') })
 
@@ -626,6 +629,59 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
         }
     }
 
+    // Claim-level approve/reject (all expenses)
+    const [isClaimApproving, setIsClaimApproving] = useState(false)
+
+    const isPending = curClaim?.claim_status_id === APPROVAL_STATUS.PENDING
+    const isAdminOrApprover = authUser?.role_name === ROLE_NAME.SUPER_ADMIN || authUser?.role_name === ROLE_NAME.ADMIN || authUser?.role_name === ROLE_NAME.APPROVER
+    const showClaimApprovalButtons = mode === VIEW_MODE.EDIT && isPending && isAdminOrApprover
+
+    const handleApproveClaim = () => {
+        confirmDialog({
+            message: t('claims.approveClaimMessage', 'Are you sure you want to approve this claim?'),
+            header: t('claims.approveClaimHeader', 'Approve Claim'),
+            icon: 'pi pi-check-circle',
+            defaultFocus: 'reject',
+            acceptClassName: 'p-button-success',
+            accept: async () => {
+                setIsClaimApproving(true)
+                try {
+                    await api.post('claims/bulk-approve', { claimIds: [curClaim.claim_id] })
+                    setExpenseItems(prev => prev.map(item => ({ ...item, status: APPROVAL_STATUS.APPROVED })))
+                    if (onClaimUpdated) onClaimUpdated()
+                    showToast(toastRef, { severity: 'success', summary: t('toast.success', 'Success'), detail: t('claims.claimApproved', 'Claim approved successfully') })
+                } catch (error) {
+                    showToast(toastRef, { severity: 'error', summary: t('toast.error', 'Error'), detail: error.message })
+                } finally {
+                    setIsClaimApproving(false)
+                }
+            },
+        })
+    }
+
+    const handleRejectClaim = () => {
+        confirmDialog({
+            message: t('claims.rejectClaimMessage', 'Are you sure you want to reject this claim?'),
+            header: t('claims.rejectClaimHeader', 'Reject Claim'),
+            icon: 'pi pi-times-circle',
+            defaultFocus: 'reject',
+            acceptClassName: 'p-button-danger',
+            accept: async () => {
+                setIsClaimApproving(true)
+                try {
+                    await api.post('claims/bulk-reject', { claimIds: [curClaim.claim_id] })
+                    setExpenseItems(prev => prev.map(item => ({ ...item, status: APPROVAL_STATUS.REJECTED })))
+                    if (onClaimUpdated) onClaimUpdated()
+                    showToast(toastRef, { severity: 'success', summary: t('toast.success', 'Success'), detail: t('claims.claimRejected', 'Claim rejected successfully') })
+                } catch (error) {
+                    showToast(toastRef, { severity: 'error', summary: t('toast.error', 'Error'), detail: error.message })
+                } finally {
+                    setIsClaimApproving(false)
+                }
+            },
+        })
+    }
+
     const renderActionsButton = (rowData) => {
         const isProcessed = rowData.status === APPROVAL_STATUS.APPROVED || rowData.status === APPROVAL_STATUS.REJECTED
 
@@ -678,7 +734,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
-                        {mode !== 'create' && <StatusTab status={item.status} />}
+                        {mode !== VIEW_MODE.CREATE && <StatusTab status={item.status} />}
                         <i className="pi pi-chevron-right text-gray-400 text-xs" />
                     </div>
                 </div>
@@ -704,8 +760,8 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                     <h4 className="text-base font-semibold flex-1">
                         {t('expenses.title')} #{item.transactionId}
                     </h4>
-                    {mode !== 'create' && <StatusTab status={item.status} />}
-                    {mode !== 'view' && (
+                    {mode !== VIEW_MODE.CREATE && <StatusTab status={item.status} />}
+                    {mode !== VIEW_MODE.VIEW && (
                         <div className="flex items-center gap-1">
                             <Button
                                 icon="pi pi-pencil"
@@ -777,7 +833,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                 </div>
 
                 {/* Action buttons */}
-                {mode === 'edit' && (
+                {mode === VIEW_MODE.EDIT && (
                     <div className="mobile-expense-detail-actions">
                         <Button
                             icon="pi pi-check"
@@ -855,9 +911,35 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                     )}
                 </div>
 
-                <div className="text-sm text-gray-600">
-                    {expenseItems.length} {expenseItems.length === 1 ? t('expenses.item') : t('expenses.items')} •
-                    {t('claims.total', 'Total')}: {formatCurrency(expenseItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0))}
+                <div className="flex items-center gap-3 flex-wrap">
+                    {showClaimApprovalButtons && (
+                        <>
+                            <Button
+                                label={t('claims.approveAll', 'Approve All')}
+                                icon="pi pi-check"
+                                iconPos="right"
+                                outlined
+                                className={BUTTON_STYLE.success}
+                                onClick={handleApproveClaim}
+                                loading={isClaimApproving}
+                                disabled={isClaimApproving}
+                            />
+                            <Button
+                                label={t('claims.rejectAll', 'Reject All')}
+                                icon="pi pi-times"
+                                iconPos="right"
+                                outlined
+                                className={BUTTON_STYLE.danger}
+                                onClick={handleRejectClaim}
+                                loading={isClaimApproving}
+                                disabled={isClaimApproving}
+                            />
+                        </>
+                    )}
+                    <div className="text-sm text-gray-600">
+                        {expenseItems.length} {expenseItems.length === 1 ? t('expenses.item') : t('expenses.items')} •
+                        {t('claims.total', 'Total')}: {formatCurrency(expenseItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0))}
+                    </div>
                 </div>
             </div>
 
@@ -866,7 +948,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                 <div className="text-center py-12 text-gray-500">
                     <p className="text-lg mb-2">{t('expenses.noExpenses')}</p>
                     <p className="text-sm">
-                        {mode === 'create'
+                        {mode === VIEW_MODE.CREATE
                             ? t('expenses.addFirstExpense')
                             : t('expenses.noExpenseItems')
                         }
@@ -951,7 +1033,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                         style={{ minWidth: '120px' }}
                     />
 
-                    {mode !== 'create' &&
+                    {mode !== VIEW_MODE.CREATE &&
                         <Column
                             field="status"
                             header={t('common.status')}
@@ -960,20 +1042,20 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                         />
                     }
 
-                    {mode !== 'view' &&
+                    {mode !== VIEW_MODE.VIEW &&
                         <Column
                             rowEditor={true}
                             header={t('common.edit')}
                         />
                     }
 
-                    {mode !== 'view' && <Column
+                    {mode !== VIEW_MODE.VIEW && <Column
                         body={renderDeleteButton}
                         header={t('common.delete')}
                     />
                     }
 
-                    {mode === 'edit' && (
+                    {mode === VIEW_MODE.EDIT && (
                         <Column
                             body={renderActionsButton}
                             header={t('common.action')}

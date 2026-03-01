@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\RoleLevel;
 use App\Models\CostCentre;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
@@ -28,7 +29,7 @@ class CostCentreController extends Controller
         $roleLevel = $user->role->role_level;
 
         // Super admin sees everything
-        if ($roleLevel === 1) {
+        if ($roleLevel === RoleLevel::SUPER_ADMIN) {
             $cacheKey = 'cost_centres_all';
             $costCentres = Cache::remember($cacheKey, self::CACHE_TTL, function () {
                 return CostCentre::with(['activeStatus', 'department'])->get();

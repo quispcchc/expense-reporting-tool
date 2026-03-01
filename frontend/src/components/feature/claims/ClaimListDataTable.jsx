@@ -23,7 +23,7 @@ import api from '../../../api/api.js'
 import { confirmDialog } from 'primereact/confirmdialog'
 import { useIsMobile } from '../../../hooks/useIsMobile.js'
 import { useTranslation } from 'react-i18next'
-import { APPROVAL_STATUS } from '../../../config/constants.js'
+import { APPROVAL_STATUS, USER_TYPE } from '../../../config/constants.js'
 
 // Status color mapping for cards
 const STATUS_COLORS = {
@@ -40,7 +40,7 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
 
     useEffect(() => {
         const fetchData = async () => {
-            if (user === 'admin') {
+            if (user === USER_TYPE.ADMIN) {
                 await fetchClaims()
             } else {
                 await fetchMyClaims()
@@ -180,7 +180,7 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
 
     const actionBodyTemplate = (rowData) => (
         <>
-            {user === 'admin' ?
+            {user === USER_TYPE.ADMIN ?
                 <Link to={`${rowData.claim_id}/edit-claim`}>
                     <button className="pi pi-pencil cursor-pointer"></button>
                 </Link> : <Link to={`${rowData.claim_id}/view-claim`}>
@@ -203,7 +203,7 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
             accept: async () => {
                 try {
                     await api.post('claims/bulk-approve', payload)
-                    if (user === 'admin') {
+                    if (user === USER_TYPE.ADMIN) {
                         await fetchClaims(true)
                     } else {
                         await fetchMyClaims(true)
@@ -234,7 +234,7 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
             accept: async () => {
                 try {
                     await api.post('claims/bulk-reject', payload)
-                    if (user === 'admin') {
+                    if (user === USER_TYPE.ADMIN) {
                         await fetchClaims(true)
                     } else {
                         await fetchMyClaims(true)
@@ -620,7 +620,7 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
         <>
             {desktopFilterOverlay}
             <ComponentContainer>
-                <DataTable value={claims} header={user === 'admin' ? adminHeaderTemplate : userHeaderTemplate}
+                <DataTable value={claims} header={user === USER_TYPE.ADMIN ? adminHeaderTemplate : userHeaderTemplate}
                     paginator rows={10} rowsPerPageOptions={[5, 10, 25, 50]}
                     paginatorTemplate="FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink RowsPerPageDropdown"
                     currentPageReportTemplate="{first} to {last} of {totalRecords}"
@@ -775,7 +775,7 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
                 </button>
 
                 {/* Approve/Reject icon buttons for admin */}
-                {user === 'admin' && (
+                {user === USER_TYPE.ADMIN && (
                     <>
                         <Button
                             icon="pi pi-thumbs-up"
@@ -807,7 +807,7 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
                 </Link>
             </div>
 
-            {user === 'admin' && selectedClaims.length > 0 && (
+            {user === USER_TYPE.ADMIN && selectedClaims.length > 0 && (
                 <div className="flex gap-2 flex-wrap mb-3 items-center">
                     <span className="text-sm text-gray-600">{selectedClaims.length} {t('common.selected', 'selected')}</span>
                     <Button
@@ -853,7 +853,7 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
                         <div className="text-sm">{claim.claim_submitted}</div>
                     </div>
                     <div className="claim-card-actions">
-                        {user === 'admin' ? (
+                        {user === USER_TYPE.ADMIN ? (
                             <Link to={`${claim.claim_id}/edit-claim`}>
                                 <Button icon="pi pi-pencil" size="small" text />
                             </Link>

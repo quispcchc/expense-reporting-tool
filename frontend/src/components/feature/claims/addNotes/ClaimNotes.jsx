@@ -3,6 +3,7 @@ import Note from './Note.jsx'
 import ComponentContainer from '../../../common/ui/ComponentContainer.jsx'
 import AddNote from './AddNote.jsx'
 import { useTranslation } from 'react-i18next'
+import { VIEW_MODE } from '../../../../config/constants.js'
 
 function ClaimNotes({ curClaim, mode, toastRef }) {
     const { t } = useTranslation()
@@ -24,7 +25,7 @@ function ClaimNotes({ curClaim, mode, toastRef }) {
                         submittedBy={note.user.full_name} />))) : (<p className="text-gray-500 text-sm mb-4">{t('claims.noNotes', 'No notes available')}</p>)
             }
 
-            {mode !== 'view' && <AddNote curClaim={curClaim} onAddNote={handleAddNote} toastRef={toastRef} />}
+            {mode !== VIEW_MODE.VIEW && <AddNote curClaim={curClaim} onAddNote={handleAddNote} toastRef={toastRef} />}
 
         </div>
     )

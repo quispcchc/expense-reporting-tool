@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '../../../contexts/AuthContext.jsx'
+import { ROLE_NAME } from '../../../config/constants.js'
 import { TbLayoutSidebarLeftCollapse, TbLayoutSidebarRightCollapse, TbUsers } from 'react-icons/tb'
 import { IoSettingsOutline } from 'react-icons/io5'
 import { MdOutlineDashboard } from "react-icons/md";
@@ -33,7 +34,7 @@ function SideBar() {
                 ],
             },
         ];
-        if (authUser && (authUser.role_name === 'super_admin' || authUser.role_name === 'admin')) {
+        if (authUser && (authUser.role_name === ROLE_NAME.SUPER_ADMIN || authUser.role_name === ROLE_NAME.ADMIN)) {
             data.push({
                 title: t('sidebar.general'),
                 items: [

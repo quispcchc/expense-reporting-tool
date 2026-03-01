@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ActiveStatus;
 use App\Models\Project;
 use Illuminate\Http\Request;
 
@@ -23,7 +24,7 @@ class ProjectController extends Controller
             'department_id' => 'required|integer',
         ]);
         if (empty($validated['active_status_id'])) {
-            $validated['active_status_id'] = 1;
+            $validated['active_status_id'] = ActiveStatus::ACTIVE;
         }
         $project = Project::create($validated);
 

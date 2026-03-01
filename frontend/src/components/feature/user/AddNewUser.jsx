@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next'
 import { showToast } from '../../../utils/helpers.js'
 import { MultiSelect } from 'primereact/multiselect'
 import { InputSwitch } from 'primereact/inputswitch'
+import { ROLE_LEVEL } from '../../../config/constants.js'
 
 function AddNewUser() {
     const { t } = useTranslation()
@@ -63,9 +64,9 @@ function AddNewUser() {
         ? lookups.teams.filter(team => team.department_id === userFormData.department)
         : [];
 
-    // Check if selected role is admin-level (role_level <= 2)
+    // Check if selected role is admin-level
     const selectedRole = lookups.roles.find(r => r.role_id === userFormData.role)
-    const isAdminRole = selectedRole && selectedRole.role_level <= 2
+    const isAdminRole = selectedRole && selectedRole.role_level <= ROLE_LEVEL.DEPARTMENT_MANAGER
 
     const resetForm = () => {
         setUserFormData({

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\ClaimStatus;
+use App\Enums\ClaimType;
 use App\Enums\RoleLevel;
 use App\Models\AppSetting;
 use App\Models\Claim;
@@ -34,7 +35,7 @@ class ClaimService
                     if ($user->can_self_approve) {
                         $q->orWhere(function ($q2) use ($user) {
                             $q2->where('user_id', $user->user_id)
-                                ->where('claim_type_id', 3);
+                                ->where('claim_type_id', ClaimType::CORPORATE_CARD);
                         });
                     }
                 });

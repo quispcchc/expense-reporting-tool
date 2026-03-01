@@ -3,6 +3,7 @@ import MileageHeaderForm from './MileageHeaderForm.jsx'
 import MileageTransactionForm from './MileageTransactionForm.jsx'
 import MileageDataTable from './MileageDataTable.jsx'
 import { useTranslation } from 'react-i18next'
+import { VIEW_MODE } from '../../../config/constants.js'
 
 let nextTransactionId = 1
 
@@ -72,7 +73,7 @@ function MileageSection({ mileageData, setMileageData, mileageRate, toastRef }) 
 
             <MileageDataTable
                 data={mileageData.transactions || []}
-                mode="create"
+                mode={VIEW_MODE.CREATE}
                 onTransactionsUpdate={handleTransactionsUpdate}
                 toastRef={toastRef}
                 mileageRate={mileageRate}
