@@ -7,6 +7,7 @@ import { validationSchemas } from '../../../utils/validation/schemas.js'
 import { validateForm } from '../../../utils/validation/validator.js'
 import { useLookups } from '../../../contexts/LookupContext.jsx'
 import { useTranslation } from 'react-i18next'
+import { showToast, TOAST_LIFE } from '../../../utils/helpers.js'
 
 function AddNewTeam({ toastRef, departmentId, onCreated }) {
     const { t } = useTranslation()
@@ -57,14 +58,14 @@ function AddNewTeam({ toastRef, departmentId, onCreated }) {
                 setFormData({ team_abbreviation: '', team_name: '', active_status_id: '' })
                 setErrors({})
                 setIsOpen(false)
-                toastRef?.current?.show({ severity: 'success', summary: t('common.success'), detail: t('teams.createSuccess', 'Team added successfully'), life: 3000 })
+                showToast(toastRef, { severity: 'success', summary: t('common.success'), detail: t('teams.createSuccess', 'Team added successfully'), life: TOAST_LIFE.SUCCESS })
                 await refreshLookups()
                 onCreated?.()
             } else {
-                toastRef?.current?.show({ severity: 'error', summary: t('common.error'), detail: result.error || t('teams.createError', 'Failed to add team'), life: 5000 })
+                showToast(toastRef, { severity: 'error', summary: t('common.error'), detail: result.error || t('teams.createError', 'Failed to add team'), life: TOAST_LIFE.ERROR })
             }
         } catch (err) {
-            toastRef?.current?.show({ severity: 'error', summary: t('common.error'), detail: err?.message || t('teams.createError', 'Failed to add team'), life: 5000 })
+            showToast(toastRef, { severity: 'error', summary: t('common.error'), detail: err?.message || t('teams.createError', 'Failed to add team'), life: TOAST_LIFE.ERROR })
         } finally {
             setIsSubmitting(false)
         }

@@ -22,36 +22,15 @@ function LoginForm() {
         remember: false,
     })
 
-    // On component mount, load saved email/password if "remember me" was checked
+    // On mount, restore saved email if "Remember Me" was previously checked
     useEffect(() => {
-        const savedEmail = localStorage.getItem('email') || ''
-        const savedPassword = localStorage.getItem('password') || ''
         const savedRemember = localStorage.getItem('remember') === 'true'
-
-        setFormData(prev => (
-            {
-                ...prev,
-                email: savedEmail,
-                password: savedPassword,
-                remember: savedRemember,
-            }))
+        if (savedRemember) {
+            const savedEmail = localStorage.getItem('email') || ''
+            setFormData(prev => ({ ...prev, email: savedEmail, remember: true }))
+        }
     }, [])
 
-    // Save or clear saved credentials based on "remember me" checkbox
-    const rememberEmailAndPassword = () => {
-        if (formData.remember) {
-            localStorage.setItem('email', formData.email)
-            localStorage.setItem('password', formData.password)
-            localStorage.setItem('remember', 'true')
-
-        } else {
-            localStorage.removeItem('email')
-            localStorage.removeItem('password')
-
-        }
-    }
-
-    // Handle form field changes (email, password, remember)
     const handleFormChange = (e) => {
         const { name, value, type, checked } = e.target
         setFormData((prev) => ({
@@ -62,33 +41,33 @@ function LoginForm() {
 
     const handleSubmit = async (e) => {
         e.preventDefault()
-        setError(null)      // Clear server-side errors
-        setFormErrors([])   // Clear client-side validation errors
+        setError(null)
+        setFormErrors([])
 
-        // Validate form data locally using schema
-        const schema = validationSchemas.login
-        const validation = validateForm(formData, schema)
+        const validation = validateForm(formData, validationSchemas.login)
         setFormErrors(validation.errors)
+        if (!validation.isValid) return
 
-        // Clear client-side validation errors
-        rememberEmailAndPassword()
+        const result = await login({
+            email: formData.email,
+            password: formData.password,
+            remember: formData.remember,
+        })
 
-        // If validation passed, attempt login
-        if (validation.isValid) {
-            const result = await login({
-                email: formData.email,
-                password: formData.password,
-            })
-
-            if (result.success) {
-                navigate(result.redirectTo)
+        if (result.success) {
+            if (formData.remember) {
+                localStorage.setItem('email', formData.email)
+                localStorage.setItem('remember', 'true')
+            } else {
+                localStorage.removeItem('email')
+                localStorage.removeItem('remember')
             }
+            navigate(result.redirectTo)
         }
-
     }
 
     return (
-        <form onSubmit={handleSubmit} className="w-100 p-5">
+        <form onSubmit={handleSubmit} className="w-100 p-5" autoComplete="on">
             <div className="mb-6">
                 <h2 className="text-2xl font-bold text-brand-secondary">CCHC</h2>
                 <h3 className="text-lg font-medium text-brand-secondary">Expense Claim Portal</h3>
@@ -100,12 +79,12 @@ function LoginForm() {
 
             {/* Email */}
             <Input name="email" id="email" label={t('users.email')} placeholder={t('auth.emailPlaceholder')}
-                value={formData.email}
+                value={formData.email} autoComplete="username"
                 onChange={handleFormChange} errors={formErrors} />
 
             {/* Password */}
             <InputPassword name="password" id="password" label={t('auth.password', 'Password')} placeholder={t('auth.passwordPlaceholder')}
-                onChange={handleFormChange}
+                onChange={handleFormChange} autoComplete="current-password"
                 value={formData.password} errors={formErrors} />
 
             {/* Remember & Forget */}
@@ -127,4 +106,3 @@ function LoginForm() {
 }
 
 export default LoginForm
-

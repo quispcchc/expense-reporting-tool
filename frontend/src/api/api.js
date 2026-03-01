@@ -9,25 +9,10 @@ export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
 const api = axios.create({
     baseURL: `${API_BASE_URL}/api`, // Base URL for all API requests
     timeout: Number(import.meta.env.VITE_API_TIMEOUT) || 300000, // Request timeout set to 300 seconds (5 minutes) for PDF generation
+    withCredentials: true, // Send HttpOnly auth cookie with every request
 })
 
 import Cookies from 'js-cookie'
-
-// Add a request interceptor to attach the Authorization header if a token exists
-api.interceptors.request.use(
-    (config) => {
-        const token = Cookies.get('token')
-
-        if (token) {
-            const cleanToken = token.replace(/^"|"$/g, '')
-            config.headers.Authorization = `Bearer ${cleanToken}`
-        }
-        return config
-    },
-    (error) => {
-        return Promise.reject(error)
-    },
-)
 
 // Add a response interceptor to handle errors globally and auto-unwrap data
 api.interceptors.response.use(
@@ -64,7 +49,6 @@ api.interceptors.response.use(
             // Handle 401 Unauthorized globally
             if (status === 401) {
                 console.warn('Unauthorized access. Clearing session and redirecting.');
-                Cookies.remove('token', { path: '/' });
                 Cookies.remove('authUser', { path: '/' });
 
                 // Optional: Redirect to login or reload page to let AuthContext handle it
@@ -83,7 +67,6 @@ api.interceptors.response.use(
             message = error.message;
         }
 
-        console.error('API Error:', message, status);
         return Promise.reject({ message, status, fullError });
     },
 )

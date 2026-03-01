@@ -20,52 +20,10 @@ describe('api (axios instance)', () => {
         })
     })
 
-    // --- Request interceptor ---
-    describe('request interceptor', () => {
-        it('attaches Authorization header when token cookie exists', async () => {
-            let capturedAuth
-            server.use(
-                http.get('/api/user', ({ request }) => {
-                    capturedAuth = request.headers.get('Authorization')
-                    return HttpResponse.json({ data: { user_id: 1 } })
-                }),
-            )
-
-            Cookies.get.mockReturnValue('test-token')
-            await api.get('/user')
-
-            expect(Cookies.get).toHaveBeenCalledWith('token')
-            expect(capturedAuth).toBe('Bearer test-token')
-        })
-
-        it('strips surrounding quotes from the token', async () => {
-            let capturedAuth
-            server.use(
-                http.get('/api/user', ({ request }) => {
-                    capturedAuth = request.headers.get('Authorization')
-                    return HttpResponse.json({ data: { user_id: 1 } })
-                }),
-            )
-
-            Cookies.get.mockReturnValue('"quoted-token"')
-            await api.get('/user')
-
-            expect(capturedAuth).toBe('Bearer quoted-token')
-        })
-
-        it('does not attach Authorization header when no token exists', async () => {
-            let capturedAuth
-            server.use(
-                http.get('/api/user', ({ request }) => {
-                    capturedAuth = request.headers.get('Authorization')
-                    return HttpResponse.json({ data: { user_id: 1 } })
-                }),
-            )
-
-            Cookies.get.mockReturnValue(undefined)
-            await api.get('/user')
-
-            expect(capturedAuth).toBeNull()
+    // --- Request config ---
+    describe('request config', () => {
+        it('sends requests with withCredentials enabled', () => {
+            expect(api.defaults.withCredentials).toBe(true)
         })
     })
 
@@ -78,7 +36,6 @@ describe('api (axios instance)', () => {
                 ),
             )
 
-            Cookies.get.mockReturnValue('test-token')
             const response = await api.get('/user')
 
             // The interceptor unwraps response.data.data -> response.data
@@ -92,7 +49,6 @@ describe('api (axios instance)', () => {
                 ),
             )
 
-            Cookies.get.mockReturnValue('test-token')
             const response = await api.get('/download', { responseType: 'blob' })
 
             // For blob responses, the interceptor skips unwrapping.
@@ -115,15 +71,13 @@ describe('api (axios instance)', () => {
                 ),
             )
 
-            Cookies.get.mockReturnValue('test-token')
-
             await expect(api.get('/user')).rejects.toMatchObject({
                 message: 'Server broke',
                 status: 500,
             })
         })
 
-        it('clears cookies on 401 Unauthorized', async () => {
+        it('clears authUser cookie on 401 Unauthorized', async () => {
             server.use(
                 http.get('/api/user', () =>
                     HttpResponse.json(
@@ -133,14 +87,12 @@ describe('api (axios instance)', () => {
                 ),
             )
 
-            Cookies.get.mockReturnValue('test-token')
-
             await expect(api.get('/user')).rejects.toMatchObject({
                 message: 'Unauthenticated',
                 status: 401,
             })
 
-            expect(Cookies.remove).toHaveBeenCalledWith('token', { path: '/' })
+            // Only authUser cookie is cleared (token is HttpOnly, managed by backend)
             expect(Cookies.remove).toHaveBeenCalledWith('authUser', { path: '/' })
         })
 
@@ -156,8 +108,6 @@ describe('api (axios instance)', () => {
                 ),
             )
 
-            Cookies.get.mockReturnValue('test-token')
-
             await expect(api.get('/user')).rejects.toMatchObject({
                 message: 'Unauthenticated',
                 status: 401,
@@ -172,8 +122,6 @@ describe('api (axios instance)', () => {
             server.use(
                 http.get('/api/user', () => HttpResponse.error()),
             )
-
-            Cookies.get.mockReturnValue('test-token')
 
             await expect(api.get('/user')).rejects.toMatchObject({
                 message: expect.any(String),
@@ -194,8 +142,6 @@ describe('api (axios instance)', () => {
                     )
                 }),
             )
-
-            Cookies.get.mockReturnValue('test-token')
 
             await expect(api.get('/user')).rejects.toMatchObject({
                 status: 500,
@@ -219,8 +165,6 @@ describe('api (axios instance)', () => {
                     )
                 }),
             )
-
-            Cookies.get.mockReturnValue('test-token')
 
             await expect(api.get('/user')).rejects.toMatchObject({
                 status: 404,

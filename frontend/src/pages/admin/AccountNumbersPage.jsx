@@ -1,20 +1,21 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef } from 'react'
 import ContentHeader from '../../components/common/layout/ContentHeader.jsx'
 import AddNewAccountNumber from '../../components/feature/accountNumber/AddNewAccountNumber.jsx'
 import { DataTable } from 'primereact/datatable'
 import { Column } from 'primereact/column'
 import { useAccountNumber } from '../../contexts/AccountNumberContext.jsx'
-import { InputText } from 'primereact/inputtext'
 import { Button } from 'primereact/button'
-import { Dialog } from 'primereact/dialog'
-import { FilterMatchMode } from 'primereact/api'
-import { IconField } from 'primereact/iconfield'
-import { InputIcon } from 'primereact/inputicon'
 import { useLookups } from '../../contexts/LookupContext.jsx'
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog'
 import { Toast } from 'primereact/toast'
 import { useTranslation } from 'react-i18next'
 import { useIsMobile } from '../../hooks/useIsMobile.js'
+import { useDataTableFilter } from '../../hooks/useDataTableFilter.js'
+import { useMobileEditDialog } from '../../hooks/useMobileEditDialog.js'
+import { textInputEditor } from '../../utils/dataTableEditors.jsx'
+import DataTableSearchHeader from '../../components/common/ui/DataTableSearchHeader.jsx'
+import MobileEditDialog from '../../components/common/ui/MobileEditDialog.jsx'
+import { showToast, TOAST_LIFE } from '../../utils/helpers.js'
 import { validateForm } from '../../utils/validation/validator.js'
 import { validationSchemas } from '../../utils/validation/schemas.js'
 import Input from '../../components/common/ui/Input.jsx'
@@ -29,74 +30,34 @@ function AccountNumbersPage() {
         actions: { updateAccountNumber, deleteAccountNumber },
     } = useAccountNumber()
 
-    const [globalFilterValue, setGlobalFilterValue] = useState('')
-    const [filters, setFilters] = useState({
-        global: { value: null, matchMode: FilterMatchMode.CONTAINS },
-    })
+    const { globalFilterValue, filters, onGlobalFilterChange } = useDataTableFilter()
+    const { editDialog, editData, editErrors, openDialog, closeDialog, updateField, validate } = useMobileEditDialog({ validationSchema: validationSchemas.editAccountNumber })
 
-    // Mobile edit dialog state
-    const [editDialog, setEditDialog] = useState(false)
-    const [editData, setEditData] = useState(null)
-    const [editErrors, setEditErrors] = useState({})
-
-    const onGlobalFilterChange = (e) => {
-        const value = e.target.value
-        let _filters = { ...filters }
-        _filters['global'].value = value
-        setFilters(_filters)
-        setGlobalFilterValue(value)
-    }
-
-    const renderHeader = () => {
-        return (
-            <div className="flex justify-end">
-                <IconField iconPosition="left">
-                    <InputIcon className="pi pi-search" />
-                    <InputText value={globalFilterValue} onChange={onGlobalFilterChange}
-                        placeholder={t('common.keywordSearch')} />
-                </IconField>
-            </div>
-        )
-    }
-
-    const textInputEditor = (editorOptions) => (
-        <InputText
-            type="text"
-            value={editorOptions.value || ''}
-            onChange={(e) => editorOptions.editorCallback(e.target.value)}
-            className="w-full"
-        />
-    )
 
     const toast = useRef(null)
     const toasts = {
         created: () => {
-            toast.current.show(
-                { severity: 'success', summary: t('common.success', 'Success'), detail: t('accountNumbers.createSuccess', 'Account Number created successfully!'), life: 3000 })
+            showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('accountNumbers.createSuccess', 'Account Number created successfully!'), life: TOAST_LIFE.SUCCESS })
             refreshLookups()
         },
         updated: () => {
-            toast.current.show(
-                { severity: 'success', summary: t('common.success', 'Success'), detail: t('accountNumbers.updateSuccess', 'Account Number updated successfully!'), life: 3000 })
+            showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('accountNumbers.updateSuccess', 'Account Number updated successfully!'), life: TOAST_LIFE.SUCCESS })
             refreshLookups()
         },
         error: () => {
-            toast.current.show(
-                { severity: 'error', summary: t('common.error', 'Error'), detail: error || 'Something went wrong.', life: 3000 })
+            showToast(toast, { severity: 'error', summary: t('common.error'), detail: error || 'Something went wrong.', life: TOAST_LIFE.ERROR })
         },
         accept: async (accountNumberId) => {
-            const response = await deleteAccountNumber(accountNumberId)
-            if (response && !response.error) {
-                toast.current.show(
-                    { severity: 'success', summary: t('common.success', 'Success'), detail: t('accountNumbers.deleteSuccess', 'Account Number deleted successfully!'), life: 3000 })
+            const result = await deleteAccountNumber(accountNumberId)
+            if (result?.success) {
+                showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('accountNumbers.deleteSuccess', 'Account Number deleted successfully!'), life: TOAST_LIFE.SUCCESS })
                 refreshLookups()
             } else {
-                toast.current.show(
-                    { severity: 'error', summary: t('common.error', 'Error'), detail: response?.error || 'Delete failed', life: 3000 })
+                showToast(toast, { severity: 'error', summary: t('common.error'), detail: result?.error || 'Delete failed', life: TOAST_LIFE.ERROR })
             }
         },
         reject: () => {
-            toast.current.show({ severity: 'info', summary: t('common.cancelled', 'Cancelled'), detail: t('common.operationCancelled', 'Operation cancelled'), life: 3000 })
+            showToast(toast, { severity: 'info', summary: t('common.cancelled', 'Cancelled'), detail: t('common.operationCancelled', 'Operation cancelled'), life: TOAST_LIFE.INFO })
         },
     }
 
@@ -110,11 +71,11 @@ function AccountNumbersPage() {
         const { isValid, errors: validationErrors } = validateForm(e.newData, validationSchemas.editAccountNumber)
         if (!isValid) {
             const messages = Object.values(validationErrors).map(key => t(key)).join(', ')
-            toast.current?.show({ severity: 'error', summary: t('common.error'), detail: messages, life: 5000 })
+            showToast(toast, { severity: 'error', summary: t('common.error'), detail: messages, life: TOAST_LIFE.ERROR })
             return
         }
-        const response = await updateAccountNumber(e.newData)
-        if (response?.status === 200) {
+        const result = await updateAccountNumber(e.newData)
+        if (result?.success) {
             toasts.updated()
         }
     }
@@ -147,18 +108,13 @@ function AccountNumbersPage() {
     // Mobile edit dialog save
     const handleMobileEditSave = async () => {
         if (!editData) return
-        const { isValid, errors: validationErrors } = validateForm(editData, validationSchemas.editAccountNumber)
-        if (!isValid) {
-            setEditErrors(validationErrors)
-            return
-        }
-        setEditErrors({})
-        const response = await updateAccountNumber(editData)
-        if (response?.status === 200) {
+        const { isValid } = validate()
+        if (!isValid) return
+        const result = await updateAccountNumber(editData)
+        if (result?.success) {
             toasts.updated()
         }
-        setEditDialog(false)
-        setEditData(null)
+        closeDialog()
     }
 
     // Filter account numbers for mobile search
@@ -175,14 +131,7 @@ function AccountNumbersPage() {
     const mobileCardView = (
         <div className="admin-mobile-container">
             <div className="admin-mobile-search">
-                <IconField iconPosition="left">
-                    <InputIcon className="pi pi-search" />
-                    <InputText
-                        value={globalFilterValue}
-                        onChange={onGlobalFilterChange}
-                        placeholder={t('common.keywordSearch')}
-                    />
-                </IconField>
+                <DataTableSearchHeader value={globalFilterValue} onChange={onGlobalFilterChange} />
             </div>
 
             <div className="admin-mobile-list">
@@ -209,10 +158,7 @@ function AccountNumbersPage() {
                                     icon="pi pi-pencil"
                                     size="small"
                                     text
-                                    onClick={() => {
-                                        setEditData({ ...an })
-                                        setEditDialog(true)
-                                    }}
+                                    onClick={() => openDialog(an)}
                                 />
                                 <Button
                                     icon="pi pi-trash"
@@ -239,7 +185,7 @@ function AccountNumbersPage() {
                     'account_number',
                     'description',
                 ]}
-                header={renderHeader} emptyMessage={t('common.noResults')}
+                header={<DataTableSearchHeader value={globalFilterValue} onChange={onGlobalFilterChange} />} emptyMessage={t('common.noResults')}
                 editMode="row" onRowEditComplete={onRowEditComplete}
                 sortMode="multiple" removableSort
                 loading={loading}
@@ -269,28 +215,16 @@ function AccountNumbersPage() {
             {isMobile ? mobileCardView : desktopTableView}
 
             {/* Mobile Edit Dialog */}
-            <Dialog
-                header={t('accountNumbers.editAccountNumber', 'Edit Account Number')}
-                visible={editDialog}
-                style={{ width: '90vw', maxWidth: '450px' }}
-                onHide={() => { setEditDialog(false); setEditData(null); setEditErrors({}) }}
-                className="mobile-edit-dialog"
-                footer={
-                    <div className="flex justify-end gap-2">
-                        <Button label={t('common.cancel', 'Cancel')} icon="pi pi-times" outlined onClick={() => { setEditDialog(false); setEditData(null); setEditErrors({}) }} />
-                        <Button label={t('common.save', 'Save')} icon="pi pi-check" onClick={handleMobileEditSave} />
-                    </div>
-                }
-            >
+            <MobileEditDialog visible={editDialog} header={t('accountNumbers.editAccountNumber', 'Edit Account Number')} onHide={closeDialog} onSave={handleMobileEditSave}>
                 {editData && (
                     <div className="flex flex-col gap-4">
                         <Input name="account_number" label={t('accountNumbers.accountNumber', 'Account Number')} type="number" value={editData.account_number || ''} errors={editErrors}
-                            onChange={(e) => { setEditData({ ...editData, account_number: e.target.value }); setEditErrors(prev => ({ ...prev, account_number: undefined })) }} />
+                            onChange={(e) => updateField('account_number', e.target.value)} />
                         <Input name="description" label={t('accountNumbers.description', 'Description')} value={editData.description || ''} errors={editErrors}
-                            onChange={(e) => { setEditData({ ...editData, description: e.target.value }); setEditErrors(prev => ({ ...prev, description: undefined })) }} />
+                            onChange={(e) => updateField('description', e.target.value)} />
                     </div>
                 )}
-            </Dialog>
+            </MobileEditDialog>
         </>
     )
 }

@@ -152,7 +152,6 @@ function DashboardPage() {
                 detail: t('dashboard.search.foundDetail', '{{count}} record(s) found.', { count: rows.length }),
             })
         } catch (error) {
-            console.error('Search failed:', error)
             setPreviewData([])
             showToast(toast, {
                 severity: 'error',
@@ -207,7 +206,6 @@ function DashboardPage() {
                 detail: t('dashboard.export.successDetail', 'CSV file has been downloaded.'),
             })
         } catch (error) {
-            console.error('CSV Export failed:', error)
             showToast(toast, {
                 severity: 'error',
                 summary: t('dashboard.export.error', 'Export Failed'),

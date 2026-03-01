@@ -53,7 +53,6 @@ export const validateForm = (formData, schema, options = {}) => {
                     }
                 }
             } catch (error) {
-                console.error(`Validation error for field ${fieldName}, rule ${rule}:`, error)
                 fieldErrors.push('Validation error occurred')
             }
         })

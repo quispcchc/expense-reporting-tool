@@ -6,7 +6,6 @@ import { Button } from 'primereact/button'
 import Input from '../../common/ui/Input.jsx'
 import Select from '../../common/ui/Select.jsx'
 import EditableExpansionTable from './expansionTable/EditableExpansionTable.jsx'
-import { autoFillForm } from '../../../utils/helpers.js'
 import { useLookups } from '../../../contexts/LookupContext.jsx'
 import { useTranslation } from 'react-i18next'
 
@@ -183,11 +182,9 @@ function AddExpenseForm({
                 </div>
             </div>
 
-            {/* Buttons for adding expense and autofill form (autofill:for quick test) */}
             <div className="flex justify-end gap-2 p-4 md:p-5 flex-wrap">
                 <Button label={t('expenses.addExpense')} type="button" icon="pi pi-check" iconPos="right"
                     onClick={onAddExpense} />
-                <Button label={t('common.autoFill', 'Auto Fill Form')} type="button" onClick={() => autoFillForm(onSetExpenseForm)} />
             </div>
 
             {/* Expansion table showing claim items in create mode */}

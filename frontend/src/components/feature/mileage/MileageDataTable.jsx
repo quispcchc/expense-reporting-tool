@@ -14,6 +14,7 @@ import { useIsMobile } from '../../../hooks/useIsMobile.js'
 import Input from '../../common/ui/Input.jsx'
 import { validateForm } from '../../../utils/validation/validator.js'
 import { validationSchemas } from '../../../utils/validation/schemas.js'
+import { formatCurrency, formatDate } from '../../../utils/formatters.js'
 import MobileCard from './MobileCard.jsx'
 
 // Map backend transaction data → frontend row format
@@ -66,17 +67,7 @@ function MileageDataTable({ data, mode, onTransactionsUpdate, toastRef, onClaimU
         setRows(mapTransactions(data, mode))
     }, [data, mode])
 
-    // ─── Helpers ─────────────────────────────────────────────────
-    const formatCurrency = (amount) =>
-        new Intl.NumberFormat(APP_SETTINGS.currency.locale, {
-            style: 'currency',
-            currency: APP_SETTINGS.currency.code,
-        }).format(amount || 0)
 
-    const formatDate = (dateStr) => {
-        if (!dateStr) return '—'
-        return typeof dateStr === 'string' ? dateStr.substring(0, 10) : String(dateStr)
-    }
 
     const syncUp = (updated) => {
         internalUpdate.current = true

@@ -4,6 +4,7 @@ import Input from '../../common/ui/Input.jsx'
 import Select from '../../common/ui/Select.jsx'
 import { useLookups } from '../../../contexts/LookupContext.jsx'
 import { useTranslation } from 'react-i18next'
+import { ACTIVE_STATUS } from '../../../config/constants.js'
 import MileageToggle from '../mileage/MileageToggle.jsx'
 
 function ClaimForm({ claimFormData, onFieldChange, errors, includeMileage, onMileageToggle }) {
@@ -39,13 +40,13 @@ function ClaimForm({ claimFormData, onFieldChange, errors, includeMileage, onMil
 
                 <Select name="department" id="department" label={t('users.department')} value={claimFormData.department}
                     onChange={onFieldChange}
-                    options={departments.filter(dept => dept.active_status_id === 1).map(opt => ({ label: opt.department_name, value: opt.department_id }))}
+                    options={departments.filter(dept => dept.active_status_id === ACTIVE_STATUS.ACTIVE).map(opt => ({ label: opt.department_name, value: opt.department_id }))}
                     placeholder={t('claimForm.selectDepartment', 'Select a Department')}
                     errors={errors} />
 
                 <Select name="team" id="team" label={t('users.team')} value={claimFormData.team}
                     onChange={onFieldChange}
-                    options={teams.filter(team => team.department_id === claimFormData.department && team.active_status_id === 1).map(opt => ({ label: opt.team_name, value: opt.team_id }))}
+                    options={teams.filter(team => team.department_id === claimFormData.department && team.active_status_id === ACTIVE_STATUS.ACTIVE).map(opt => ({ label: opt.team_name, value: opt.team_id }))}
                     placeholder={t('claimForm.selectTeam', 'Select a Team')}
                     errors={errors} />
             </div>

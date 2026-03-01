@@ -130,8 +130,6 @@ function ClaimRowExpansion({
                 {/* Mileage details if bound to this expense */}
                 {displayData.mileage?.transactions?.length > 0 && (() => {
                     const mileage = displayData.mileage
-                    console.log(mileage);
-                    
                     const mileageTotal = mileage.transactions.reduce((s, tx) => s + (parseFloat(tx.total_amount) || 0), 0)
                     const totalKm = mileage.transactions.reduce((s, tx) => s + (parseFloat(tx.distance_km) || 0), 0)
                     const rate = mileage.transactions[0]?.mileage_rate

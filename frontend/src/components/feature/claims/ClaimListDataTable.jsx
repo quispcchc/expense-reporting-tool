@@ -23,6 +23,7 @@ import api from '../../../api/api.js'
 import { confirmDialog } from 'primereact/confirmdialog'
 import { useIsMobile } from '../../../hooks/useIsMobile.js'
 import { useTranslation } from 'react-i18next'
+import { APPROVAL_STATUS } from '../../../config/constants.js'
 
 // Status color mapping for cards
 const STATUS_COLORS = {
@@ -147,7 +148,7 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
     }
 
     const togglePendingFilter = () => {
-        const pendingStatusName = claimStatus?.find(s => s.claim_status_id === 1)?.claim_status_name || 'Pending'
+        const pendingStatusName = claimStatus?.find(s => s.claim_status_id === APPROVAL_STATUS.PENDING)?.claim_status_name || 'Pending'
         const isPendingActive = filterValues.status === pendingStatusName
 
         const newStatus = isPendingActive ? '' : pendingStatusName
@@ -321,11 +322,9 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
         } catch (error) {
             // Ignore aborted requests
             if (error?.name === 'AbortError' || error?.name === 'CanceledError') {
-                console.log('PDF export request was cancelled')
                 return
             }
 
-            console.error('Error exporting PDF:', error)
             let errorDetail = t('claims.exportFailed');
 
             if (error?.message) {
@@ -520,7 +519,7 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
     // ============================================
     // DESKTOP TABLE VIEW
     // ============================================
-    const pendingStatusName = claimStatus?.find(s => s.claim_status_id === 1)?.claim_status_name || 'Pending'
+    const pendingStatusName = claimStatus?.find(s => s.claim_status_id === APPROVAL_STATUS.PENDING)?.claim_status_name || 'Pending'
     const isPendingActive = filterValues.status === pendingStatusName
 
     const adminHeaderTemplate = () => (
@@ -768,7 +767,7 @@ function ClaimListDataTable({ claims, user, path, toastRef }) {
                 </button>
 
                 <button
-                    className={`mobile-filter-btn ${filterValues.status === (claimStatus?.find(s => s.claim_status_id === 1)?.claim_status_name || 'Pending') ? 'mobile-filter-btn-active bg-blue-50 border-blue-200 text-blue-600' : ''}`}
+                    className={`mobile-filter-btn ${filterValues.status === (claimStatus?.find(s => s.claim_status_id === APPROVAL_STATUS.PENDING)?.claim_status_name || 'Pending') ? 'mobile-filter-btn-active bg-blue-50 border-blue-200 text-blue-600' : ''}`}
                     onClick={togglePendingFilter}
                 >
                     <i className="pi pi-clock" />

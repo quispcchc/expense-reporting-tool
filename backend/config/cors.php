@@ -25,6 +25,6 @@ return [
     // Cache preflight responses for 1 day
     'max_age' => 86400,
 
-    // We use Bearer tokens so credentials can stay disabled
-    'supports_credentials' => false,
+    // Required for HttpOnly auth cookie to be sent cross-origin
+    'supports_credentials' => true,
 ];

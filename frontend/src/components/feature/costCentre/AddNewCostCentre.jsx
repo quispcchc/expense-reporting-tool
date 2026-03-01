@@ -43,9 +43,9 @@ function AddNewCostCentre({ createdToast }) {
         const validation = validateForm(costCentreFormData, schema)
 
         if (validation.isValid) {
-            const response = await createCostCentre(costCentreFormData)
+            const result = await createCostCentre(costCentreFormData)
 
-            if (response?.status === 201) {
+            if (result?.success) {
                 setCostCentreFormData(initialData)
                 createdToast()
             }

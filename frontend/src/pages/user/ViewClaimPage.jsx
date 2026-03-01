@@ -24,7 +24,7 @@ function ViewClaimPage() {
             const data = await getClaimById(Number(claimId))
             setCurClaim(data)
         } catch (error) {
-            console.error(error)
+            // Error handled by caller
         }
     }
 

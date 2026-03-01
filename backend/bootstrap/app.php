@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -21,8 +22,14 @@ return Application::configure(basePath: dirname(__DIR__))
         // API middleware group (adds route model binding + throttle if needed later)
         $middleware->group('api', [
             \Illuminate\Http\Middleware\HandleCors::class,
+            \Illuminate\Cookie\Middleware\EncryptCookies::class,
+            \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
+            \App\Http\Middleware\ReadTokenFromCookie::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ]);
+
+        // Exclude frontend-set cookies from encryption/decryption
+        EncryptCookies::except(['authUser', 'token', 'remember_session']);
 
         $middleware->alias([
             'role' => \App\Http\Middleware\RoleCheck::class,

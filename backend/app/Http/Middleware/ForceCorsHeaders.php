@@ -12,9 +12,13 @@ class ForceCorsHeaders
     {
         $response = $next($request);
 
-        $origin = $request->headers->get('Origin', '*');
+        $origin = $request->headers->get('Origin');
 
-        $response->headers->set('Access-Control-Allow-Origin', $origin ?: '*');
+        if ($origin) {
+            $response->headers->set('Access-Control-Allow-Origin', $origin);
+            $response->headers->set('Access-Control-Allow-Credentials', 'true');
+        }
+
         $response->headers->set('Vary', 'Origin');
         $response->headers->set('Access-Control-Expose-Headers', 'Authorization');
         $response->headers->set('X-Force-Cors', 'applied');

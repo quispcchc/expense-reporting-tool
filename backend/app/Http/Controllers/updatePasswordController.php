@@ -32,6 +32,10 @@ class updatePasswordController extends Controller
         $user->user_pass = Hash::make($request->new_password);
         $user->save();
 
-        return response()->json(['message' => 'Password updated successfully']);
+        // Revoke all tokens so the user must re-login with the new password
+        $user->tokens()->delete();
+
+        return response()->json(['message' => 'Password updated successfully'])
+            ->withCookie(cookie()->forget('auth_token'));
     }
 }

@@ -59,7 +59,6 @@ function VerifyEmailPage() {
                 }
             } catch (error) {
                 // If endpoint fails, continue to show the form
-                console.error('Error checking email verification status', error)
             }
         }
 

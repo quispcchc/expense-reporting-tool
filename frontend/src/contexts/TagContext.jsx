@@ -37,10 +37,11 @@ export function TagProvider({ children }) {
         try {
             const response = await api.post('tags', { tag_name })
             setTags(prev => [...prev, response.data])
-            return response.data
+            return { success: true, data: response.data }
         } catch (err) {
-            setError(err.message || 'Failed to create tag')
-            throw err
+            const errorMsg = err.message || 'Failed to create tag'
+            setError(errorMsg)
+            return { success: false, error: errorMsg }
         } finally {
             setLoading(false)
         }
@@ -52,8 +53,11 @@ export function TagProvider({ children }) {
         try {
             const response = await api.put(`tags/${tag_id}`, { tag_name })
             setTags(prev => prev.map(t => t.tag_id === tag_id ? response.data : t))
+            return { success: true, data: response.data }
         } catch (err) {
-            setError(err.message || 'Failed to update tag')
+            const errorMsg = err.message || 'Failed to update tag'
+            setError(errorMsg)
+            return { success: false, error: errorMsg }
         } finally {
             setLoading(false)
         }
@@ -65,9 +69,11 @@ export function TagProvider({ children }) {
         try {
             await api.delete(`tags/${tag_id}`)
             setTags(prev => prev.filter(t => t.tag_id !== tag_id))
+            return { success: true }
         } catch (err) {
-            setError(err.message || 'Failed to delete tag')
-            throw err
+            const errorMsg = err.message || 'Failed to delete tag'
+            setError(errorMsg)
+            return { success: false, error: errorMsg }
         } finally {
             setLoading(false)
         }

@@ -74,13 +74,12 @@ export function ClaimProvider({ children }) {
             try {
                 isFetchingClaims.current = true
                 const response = await api.get('/claims')
-                console.log('fetch claims', response)
                 dispatch({
                     type: CLAIM_ACTIONS.SET_CLAIMS,
                     payload: response.data,
                 })
             } catch (error) {
-                console.error("Error fetching claims:", error)
+                // Error handled by caller
             } finally {
                 isFetchingClaims.current = false
             }
@@ -94,13 +93,12 @@ export function ClaimProvider({ children }) {
             try {
                 isFetchingMyClaims.current = true
                 const response = await api.get('/my-claims')
-                console.log('fetch my claims', response)
                 dispatch({
                     type: CLAIM_ACTIONS.SET_MY_CLAIMS,
                     payload: response.data,
                 })
             } catch (error) {
-                console.error("Error fetching my claims:", error)
+                // Error handled by caller
             } finally {
                 isFetchingMyClaims.current = false
             }
@@ -109,7 +107,6 @@ export function ClaimProvider({ children }) {
         createClaim: async (claim) => {
             try {
                 const response = await api.post('claims', claim)
-                console.log(response)
 
                 // Add to local state for UI display
                 dispatch({
@@ -118,7 +115,6 @@ export function ClaimProvider({ children }) {
                 })
             }
             catch (error) {
-                console.error('Error creating claim:', error.response?.data || error.message)
                 throw error
             }
         },
@@ -141,7 +137,6 @@ export function ClaimProvider({ children }) {
         // Helper function to find a claim by ID
         getClaimById: async (claimId) => {
             const response = await api.get(`claims/${claimId}`)
-            console.log('fetch single claim', response.data)
             return response.data
         },
 

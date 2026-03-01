@@ -29,9 +29,77 @@ class LoginControllerTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertJsonStructure([
-            'data' => ['access_token', 'token_type', 'user'],
+            'data' => ['user'],
         ]);
-        $this->assertEquals('Bearer', $response->json('data.token_type'));
+    }
+
+    public function test_login_sets_httponly_auth_cookie()
+    {
+        $this->seedLookups();
+        $this->createUser([
+            'role_id' => 1,
+            'email' => 'test@example.com',
+            'user_pass' => Hash::make('password123'),
+            'email_verified_at' => now(),
+        ]);
+
+        $response = $this->postJson('/api/login', [
+            'email' => 'test@example.com',
+            'password' => 'password123',
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertCookie('auth_token');
+    }
+
+    public function test_login_without_remember_sets_session_cookie()
+    {
+        $this->seedLookups();
+        $this->createUser([
+            'role_id' => 1,
+            'email' => 'test@example.com',
+            'user_pass' => Hash::make('password123'),
+            'email_verified_at' => now(),
+        ]);
+
+        $response = $this->postJson('/api/login', [
+            'email' => 'test@example.com',
+            'password' => 'password123',
+            'remember' => false,
+        ]);
+
+        $response->assertStatus(200);
+        $cookie = collect($response->headers->getCookies())
+            ->first(fn ($c) => $c->getName() === 'auth_token');
+
+        $this->assertNotNull($cookie);
+        // Session cookie: expires at 0 (end of browser session)
+        $this->assertEquals(0, $cookie->getExpiresTime());
+    }
+
+    public function test_login_with_remember_sets_persistent_cookie()
+    {
+        $this->seedLookups();
+        $this->createUser([
+            'role_id' => 1,
+            'email' => 'test@example.com',
+            'user_pass' => Hash::make('password123'),
+            'email_verified_at' => now(),
+        ]);
+
+        $response = $this->postJson('/api/login', [
+            'email' => 'test@example.com',
+            'password' => 'password123',
+            'remember' => true,
+        ]);
+
+        $response->assertStatus(200);
+        $cookie = collect($response->headers->getCookies())
+            ->first(fn ($c) => $c->getName() === 'auth_token');
+
+        $this->assertNotNull($cookie);
+        // Persistent cookie: should expire ~30 days from now
+        $this->assertGreaterThan(time(), $cookie->getExpiresTime());
     }
 
     public function test_login_returns_user_info()

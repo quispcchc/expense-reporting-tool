@@ -31,7 +31,6 @@ function AddNote({ curClaim, onAddNote, toastRef }) {
 
         }
         catch (error) {
-            console.error('Error adding note:', error)
             showToast(toastRef, { severity: 'error', summary: t('toast.error', 'Error'), detail: t('toast.errorOccurred', 'Error occurred!') })
         }
 

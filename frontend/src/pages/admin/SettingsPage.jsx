@@ -4,6 +4,7 @@ import { Button } from 'primereact/button'
 import Input from '../../components/common/ui/Input.jsx'
 import { Toast } from 'primereact/toast'
 import { useTranslation } from 'react-i18next'
+import { showToast, TOAST_LIFE } from '../../utils/helpers.js'
 import api from '../../api/api.js'
 
 function SettingsPage() {
@@ -29,7 +30,7 @@ function SettingsPage() {
                 setRate(response.data.mileage_rate)
             }
         } catch (error) {
-            console.error('Failed to load settings:', error)
+            // Error handled by caller
         }
     }
 
@@ -37,17 +38,9 @@ function SettingsPage() {
         setLoading(true)
         try {
             await api.put('settings', { mileage_rate: rate })
-            toast.current?.show({
-                severity: 'success',
-                summary: t('toast.success', 'Success'),
-                detail: t('settings.saved', 'Settings saved successfully'),
-            })
+            showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('settings.saved', 'Settings saved successfully'), life: TOAST_LIFE.SUCCESS })
         } catch (error) {
-            toast.current?.show({
-                severity: 'error',
-                summary: t('toast.error', 'Error'),
-                detail: t('settings.saveFailed', 'Failed to save settings'),
-            })
+            showToast(toast, { severity: 'error', summary: t('common.error'), detail: t('settings.saveFailed', 'Failed to save settings'), life: TOAST_LIFE.ERROR })
         } finally {
             setLoading(false)
         }

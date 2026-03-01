@@ -61,7 +61,6 @@ export const DepartmentProvider = ({ children }) => {
                 const response = await api.get('/departments')
                 dispatch({ type: 'SET_INITIAL_DATA', payload: response.data })
             } catch (err) {
-                console.error('DepartmentContext: Error fetching departments', err)
                 dispatch({ type: 'SET_ERROR', payload: err.message })
             } finally {
                 isFetching.current = false

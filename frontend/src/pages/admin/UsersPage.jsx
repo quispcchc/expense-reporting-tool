@@ -5,13 +5,8 @@ import { DataTable } from 'primereact/datatable'
 import { Column } from 'primereact/column'
 import { useUser, useUserDispatch } from '../../contexts/UserContext.jsx'
 import { Dropdown } from 'primereact/dropdown'
-import { InputText } from 'primereact/inputtext'
-import { FilterMatchMode } from 'primereact/api'
-import { InputIcon } from 'primereact/inputicon'
-import { IconField } from 'primereact/iconfield'
 import { MultiSelect } from 'primereact/multiselect'
 import { Button } from 'primereact/button'
-import { Dialog } from 'primereact/dialog'
 import { useLookups } from '../../contexts/LookupContext.jsx'
 import { useTranslation } from 'react-i18next'
 import ActiveStatusTab from '../../components/common/ui/ActiveStatusTab.jsx'
@@ -20,6 +15,12 @@ import Select from '../../components/common/ui/Select.jsx'
 import { Toast } from 'primereact/toast'
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog'
 import { useIsMobile } from '../../hooks/useIsMobile.js'
+import { useDataTableFilter } from '../../hooks/useDataTableFilter.js'
+import { useMobileEditDialog } from '../../hooks/useMobileEditDialog.js'
+import { textInputEditor } from '../../utils/dataTableEditors.jsx'
+import DataTableSearchHeader from '../../components/common/ui/DataTableSearchHeader.jsx'
+import MobileEditDialog from '../../components/common/ui/MobileEditDialog.jsx'
+import { showToast, TOAST_LIFE } from '../../utils/helpers.js'
 import { validateForm } from '../../utils/validation/validator.js'
 import { validationSchemas } from '../../utils/validation/schemas.js'
 
@@ -31,10 +32,7 @@ function UsersPage() {
     const usersState = useUser()
     const { deleteUser, updateUser, refresh } = useUserDispatch()
 
-    // Mobile edit dialog state
-    const [editDialog, setEditDialog] = useState(false)
-    const [editData, setEditData] = useState(null)
-    const [editErrors, setEditErrors] = useState({})
+    const { editDialog, editData, editErrors, openDialog, closeDialog, updateField, validate, setEditData } = useMobileEditDialog({ validationSchema: validationSchemas.editUser })
 
     // Controlled row editing state (preserves edit mode across re-renders)
     const [editingRows, setEditingRows] = useState({})
@@ -71,26 +69,12 @@ function UsersPage() {
             icon: 'pi pi-exclamation-triangle',
             acceptClassName: 'p-button-danger',
             accept: async () => {
-                try {
-                    await deleteUser(rowData.user_id)
+                const result = await deleteUser(rowData.user_id)
+                if (result?.success) {
                     await refresh()
-                    if (toastRef.current) {
-                        toastRef.current.show({
-                            severity: 'success',
-                            summary: t('common.success', 'Success'),
-                            detail: t('users.deleteSuccess', 'User deleted successfully'),
-                            life: 3000
-                        })
-                    }
-                } catch (err) {
-                    if (toastRef.current) {
-                        toastRef.current.show({
-                            severity: 'error',
-                            summary: t('common.error', 'Error'),
-                            detail: err.message || t('users.deleteError', 'Failed to delete user'),
-                            life: 4000
-                        })
-                    }
+                    showToast(toastRef, { severity: 'success', summary: t('common.success'), detail: t('users.deleteSuccess', 'User deleted successfully'), life: TOAST_LIFE.SUCCESS })
+                } else {
+                    showToast(toastRef, { severity: 'error', summary: t('common.error'), detail: result?.error || t('users.deleteError', 'Failed to delete user'), life: TOAST_LIFE.ERROR })
                 }
             },
             reject: () => { },
@@ -121,20 +105,7 @@ function UsersPage() {
         }
     }, [usersState])
 
-    // States for global search filter
-    const [globalFilterValue, setGlobalFilterValue] = useState('')
-    const [filters, setFilters] = useState({
-        global: { value: null, matchMode: FilterMatchMode.CONTAINS },
-    })
-
-    // Handle global filter input change
-    const onGlobalFilterChange = (e) => {
-        const value = e.target.value
-        let _filters = { ...filters }
-        _filters['global'].value = value
-        setFilters(_filters)
-        setGlobalFilterValue(value)
-    }
+    const { globalFilterValue, filters, onGlobalFilterChange } = useDataTableFilter()
 
     // Get teams and roles from lookups
     const teamOptions = lookups.teams.map(t => ({ label: t.team_name, value: t.team_id }))
@@ -171,23 +142,11 @@ function UsersPage() {
         )
     }
 
-    // Editor for text input fields
-    const textInputEditor = (editorOptions) => (
-        <InputText
-            type="text"
-            value={editorOptions.value || ''}
-            onChange={(e) => editorOptions.editorCallback(e.target.value)}
-            className="w-full"
-        />
-    )
-
     // Dropdown editor for teams field (multi-select)
     // Reads from refs to avoid stale closures when PrimeReact memoizes BodyCell
     const teamsEditor = useCallback((editorOptions) => {
         const rowKey = editorOptions.rowData?.user_id;
         const deptMap = editingDepartmentMapRef.current;
-        console.log(deptMap);
-        
         const teamsMap = editingTeamsMapRef.current;
 
         // Use editingDepartmentMap if available (user changed department during this edit session)
@@ -292,7 +251,7 @@ function UsersPage() {
         const { isValid, errors: validationErrors } = validateForm(newData, validationSchemas.editUser)
         if (!isValid) {
             const messages = Object.values(validationErrors).map(key => t(key)).join(', ')
-            toastRef.current?.show({ severity: 'error', summary: t('common.error', 'Error'), detail: messages, life: 5000 })
+            showToast(toastRef, { severity: 'error', summary: t('common.error'), detail: messages, life: TOAST_LIFE.ERROR })
             return
         }
 
@@ -320,42 +279,26 @@ function UsersPage() {
         _users[index] = newData
         setUsers(_users)
             ; (async () => {
-                try {
-                    const updatePayload = {
-                        user_id: newData.user_id,
-                        first_name: newData.first_name,
-                        last_name: newData.last_name,
-                        email: newData.email,
-                        department_id: newData.department_id,
-                        role_id: newData.role_id,
-                        active_status_id: newData.active_status_id,
-                        team_ids: teamIds,
-                    }
-                    Object.keys(updatePayload).forEach(key =>
-                        updatePayload[key] === undefined && delete updatePayload[key]
-                    )
+                const updatePayload = {
+                    user_id: newData.user_id,
+                    first_name: newData.first_name,
+                    last_name: newData.last_name,
+                    email: newData.email,
+                    department_id: newData.department_id,
+                    role_id: newData.role_id,
+                    active_status_id: newData.active_status_id,
+                    team_ids: teamIds,
+                }
+                Object.keys(updatePayload).forEach(key =>
+                    updatePayload[key] === undefined && delete updatePayload[key]
+                )
 
-                    await updateUser(updatePayload)
+                const result = await updateUser(updatePayload)
+                if (result?.success) {
                     await refresh()
-
-                    if (toastRef.current) {
-                        toastRef.current.show({
-                            severity: 'success',
-                            summary: t('common.success', 'Success'),
-                            detail: t('users.updateSuccess', 'User updated successfully'),
-                            life: 3000
-                        })
-                    }
-                } catch (err) {
-                    console.error('Failed to update user', err)
-                    if (toastRef.current) {
-                        toastRef.current.show({
-                            severity: 'error',
-                            summary: t('common.error', 'Error'),
-                            detail: err.message || t('users.updateError', 'Failed to update user'),
-                            life: 4000
-                        })
-                    }
+                    showToast(toastRef, { severity: 'success', summary: t('common.success'), detail: t('users.updateSuccess', 'User updated successfully'), life: TOAST_LIFE.SUCCESS })
+                } else {
+                    showToast(toastRef, { severity: 'error', summary: t('common.error'), detail: result?.error || t('users.updateError', 'Failed to update user'), life: TOAST_LIFE.ERROR })
                     setUsers(users)
                 }
             })()
@@ -381,67 +324,33 @@ function UsersPage() {
     // Mobile edit dialog save
     const handleMobileEditSave = async () => {
         if (!editData) return
-        const { isValid, errors: validationErrors } = validateForm(editData, validationSchemas.editUser)
-        if (!isValid) {
-            setEditErrors(validationErrors)
-            return
+        const { isValid } = validate()
+        if (!isValid) return
+        const updatePayload = {
+            user_id: editData.user_id,
+            first_name: editData.first_name,
+            last_name: editData.last_name,
+            email: editData.email,
+            department_id: editData.department_id,
+            role_id: editData.role_id,
+            active_status_id: editData.active_status_id,
+            team_ids: Array.isArray(editData.teams)
+                ? editData.teams.map(t => t.team_id || t.value || t)
+                : [],
         }
-        setEditErrors({})
-        try {
-            const updatePayload = {
-                user_id: editData.user_id,
-                first_name: editData.first_name,
-                last_name: editData.last_name,
-                email: editData.email,
-                department_id: editData.department_id,
-                role_id: editData.role_id,
-                active_status_id: editData.active_status_id,
-                team_ids: Array.isArray(editData.teams)
-                    ? editData.teams.map(t => t.team_id || t.value || t)
-                    : [],
-            }
-            Object.keys(updatePayload).forEach(key =>
-                updatePayload[key] === undefined && delete updatePayload[key]
-            )
-            await updateUser(updatePayload)
+        Object.keys(updatePayload).forEach(key =>
+            updatePayload[key] === undefined && delete updatePayload[key]
+        )
+        const result = await updateUser(updatePayload)
+        if (result?.success) {
             await refresh()
-            if (toastRef.current) {
-                toastRef.current.show({
-                    severity: 'success',
-                    summary: t('common.success', 'Success'),
-                    detail: t('users.updateSuccess', 'User updated successfully'),
-                    life: 3000
-                })
-            }
-        } catch (err) {
-            if (toastRef.current) {
-                toastRef.current.show({
-                    severity: 'error',
-                    summary: t('common.error', 'Error'),
-                    detail: err.message || t('users.updateError', 'Failed to update user'),
-                    life: 4000
-                })
-            }
+            showToast(toastRef, { severity: 'success', summary: t('common.success'), detail: t('users.updateSuccess', 'User updated successfully'), life: TOAST_LIFE.SUCCESS })
+        } else {
+            showToast(toastRef, { severity: 'error', summary: t('common.error'), detail: result?.error || t('users.updateError', 'Failed to update user'), life: TOAST_LIFE.ERROR })
         }
-        setEditDialog(false)
-        setEditData(null)
+        closeDialog()
     }
 
-    // Render the table header
-    const renderHeader = () => {
-        return (
-            <div className="flex justify-end">
-                <IconField iconPosition="left">
-                    <InputIcon className="pi pi-search" />
-                    <InputText
-                        value={globalFilterValue}
-                        onChange={onGlobalFilterChange}
-                        placeholder={t('common.keywordSearch')}
-                    />
-                </IconField>
-            </div>
-        )
-    }
 
     // Filter users for mobile search
     const filteredUsers = users?.filter(user => {
@@ -467,14 +376,7 @@ function UsersPage() {
     const mobileCardView = (
         <div className="admin-mobile-container">
             <div className="admin-mobile-search">
-                <IconField iconPosition="left">
-                    <InputIcon className="pi pi-search" />
-                    <InputText
-                        value={globalFilterValue}
-                        onChange={onGlobalFilterChange}
-                        placeholder={t('common.keywordSearch')}
-                    />
-                </IconField>
+                <DataTableSearchHeader value={globalFilterValue} onChange={onGlobalFilterChange} />
             </div>
 
             <div className="admin-mobile-list">
@@ -519,11 +421,10 @@ function UsersPage() {
                                         size="small"
                                         text
                                         onClick={() => {
-                                            setEditData({
+                                            openDialog({
                                                 ...user,
                                                 teams: user.teams?.map(t => t.team_id || t.value || t) || []
                                             })
-                                            setEditDialog(true)
                                         }}
                                     />
                                     <Button
@@ -557,7 +458,7 @@ function UsersPage() {
                     'user_id', 'first_name', 'last_name',
                     'department', 'position', 'role', 'status',
                 ]}
-                header={renderHeader}
+                header={<DataTableSearchHeader value={globalFilterValue} onChange={onGlobalFilterChange} />}
                 emptyMessage={t('common.noResults')}
                 editMode="row"
                 editingRows={editingRows}
@@ -595,36 +496,24 @@ function UsersPage() {
             {isMobile ? mobileCardView : desktopTableView}
 
             {/* Mobile Edit Dialog */}
-            <Dialog
-                header={t('users.editUser', 'Edit User')}
-                visible={editDialog}
-                style={{ width: '90vw', maxWidth: '450px' }}
-                onHide={() => { setEditDialog(false); setEditData(null); setEditErrors({}) }}
-                className="mobile-edit-dialog"
-                footer={
-                    <div className="flex justify-end gap-2">
-                        <Button label={t('common.cancel', 'Cancel')} icon="pi pi-times" outlined onClick={() => { setEditDialog(false); setEditData(null); setEditErrors({}) }} />
-                        <Button label={t('common.save', 'Save')} icon="pi pi-check" onClick={handleMobileEditSave} />
-                    </div>
-                }
-            >
+            <MobileEditDialog visible={editDialog} header={t('users.editUser', 'Edit User')} onHide={closeDialog} onSave={handleMobileEditSave}>
                 {editData && (
                     <div className="flex flex-col gap-4">
                         <Input name="first_name" label={t('users.firstName')} value={editData.first_name || ''} errors={editErrors}
-                            onChange={(e) => { setEditData({ ...editData, first_name: e.target.value }); setEditErrors(prev => ({ ...prev, first_name: undefined })) }} />
+                            onChange={(e) => updateField('first_name', e.target.value)} />
                         <Input name="last_name" label={t('users.lastName')} value={editData.last_name || ''} errors={editErrors}
-                            onChange={(e) => { setEditData({ ...editData, last_name: e.target.value }); setEditErrors(prev => ({ ...prev, last_name: undefined })) }} />
+                            onChange={(e) => updateField('last_name', e.target.value)} />
                         <Input name="email" label={t('users.email', 'Email')} value={editData.email || ''} errors={editErrors}
-                            onChange={(e) => { setEditData({ ...editData, email: e.target.value }); setEditErrors(prev => ({ ...prev, email: undefined })) }} />
+                            onChange={(e) => updateField('email', e.target.value)} />
                         <Select name="department_id" label={t('users.department')} value={editData.department_id} options={departmentOptions} optionValue="value" errors={editErrors}
-                            onChange={(e) => { setEditData({ ...editData, department_id: e.value, teams: [] }); setEditErrors(prev => ({ ...prev, department_id: undefined })) }} />
+                            onChange={(e) => { setEditData(prev => ({ ...prev, department_id: e.value, teams: [] })); }} />
                         <div className="relative">
                             <div className="flex items-center gap-2 mb-2">
                                 <label className="block text-sm font-medium">{t('users.teams', 'Teams')}</label>
                             </div>
                             <MultiSelect
                                 value={editData.teams || []}
-                                onChange={(e) => setEditData({ ...editData, teams: e.value })}
+                                onChange={(e) => updateField('teams', e.value)}
                                 options={getMobileTeamOptions(editData.department_id)}
                                 optionLabel="label"
                                 optionValue="value"
@@ -635,12 +524,12 @@ function UsersPage() {
                             />
                         </div>
                         <Select name="role_id" label={t('users.role')} value={editData.role_id} options={roleOptions} optionValue="value" errors={editErrors}
-                            onChange={(e) => { setEditData({ ...editData, role_id: e.value }); setEditErrors(prev => ({ ...prev, role_id: undefined })) }} />
+                            onChange={(e) => updateField('role_id', e.value)} />
                         <Select name="active_status_id" label={t('common.status')} value={editData.active_status_id} options={statusOptions} optionValue="value" errors={editErrors}
-                            onChange={(e) => { setEditData({ ...editData, active_status_id: e.value }); setEditErrors(prev => ({ ...prev, active_status_id: undefined })) }} />
+                            onChange={(e) => updateField('active_status_id', e.value)} />
                     </div>
                 )}
-            </Dialog>
+            </MobileEditDialog>
         </>
     )
 }

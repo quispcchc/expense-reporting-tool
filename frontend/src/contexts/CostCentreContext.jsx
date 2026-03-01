@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useReducer, useRef } from 'react'
 import api from '../api/api.js'
+import { ACTIVE_STATUS } from '../config/constants.js'
 
 const CostCentreContext = createContext()
 const CostCentreDispatchContext = createContext()
@@ -79,19 +80,17 @@ export const CostCentreProvider = ({ children }) => {
             const newCostCentre = {
                 department_id: costCentre.department,
                 cost_centre_code: costCentre.code,
-                active_status_id: 1,
+                active_status_id: ACTIVE_STATUS.ACTIVE,
                 description: costCentre.description,
             }
             try {
                 const response = await api.post('cost-centres', newCostCentre)
-                console.log(response);
-                
-                
                 dispatch({ type: 'CREATE_COST_CENTRE', payload: response.data })
-                return response
+                return { success: true, data: response.data }
             }
             catch (err) {
                 dispatch({ type: 'SET_ERROR', payload: err.message })
+                return { success: false, error: err.message }
             }
         },
 
@@ -108,21 +107,23 @@ export const CostCentreProvider = ({ children }) => {
             try {
                 const response = await api.put(`cost-centres/${newData.cost_centre_id}`, updatedCostCentre)
                 dispatch({ type: 'UPDATE_COST_CENTRE', payload: response.data })
-                return response
+                return { success: true, data: response.data }
             }
             catch (err) {
                 dispatch({ type: 'SET_ERROR', payload: err.message })
+                return { success: false, error: err.message }
             }
         },
 
         deleteCostCentre: async (costCentreId) => {
             dispatch({ type: 'SET_LOADING' })
             try {
-                const response = await api.delete(`cost-centres/${costCentreId}`)
+                await api.delete(`cost-centres/${costCentreId}`)
                 dispatch({ type: 'DELETE_COST_CENTRE', payload: costCentreId })
-                return response
+                return { success: true }
             } catch (err) {
                 dispatch({ type: 'SET_ERROR', payload: err.message })
+                return { success: false, error: err.message }
             }
         },
 

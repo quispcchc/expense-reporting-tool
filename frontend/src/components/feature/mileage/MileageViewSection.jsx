@@ -2,16 +2,12 @@ import React from 'react'
 import MileageDataTable from './MileageDataTable.jsx'
 import MileageHeaderForm from './MileageHeaderForm.jsx'
 import { useTranslation } from 'react-i18next'
+import { formatDate } from '../../../utils/formatters.js'
 
 function MileageViewSection({ mileage, mode, toastRef, onClaimUpdated }) {
     const { t } = useTranslation()
 
     if (!mileage) return null
-
-    const formatDate = (dateStr) => {
-        if (!dateStr) return '—'
-        return dateStr.substring(0, 10)
-    }
 
     const mileageTotal = (mileage.transactions || []).reduce(
         (sum, tx) => sum + (parseFloat(tx.total_amount) || 0), 0,

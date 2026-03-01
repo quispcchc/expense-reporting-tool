@@ -25,7 +25,7 @@ function EditClaimPage() {
             setCurClaim(data)
         }
         catch (error) {
-            console.error(error)
+            // Error handled by caller
         }
     }
 

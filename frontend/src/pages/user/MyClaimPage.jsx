@@ -6,6 +6,7 @@ import ClaimListDataTable from '../../components/feature/claims/ClaimListDataTab
 import { useClaims } from '../../contexts/ClaimContext.jsx'
 import { useAuth } from '../../contexts/AuthContext.jsx'
 import { useTranslation } from 'react-i18next'
+import { showToast, TOAST_LIFE } from '../../utils/helpers.js'
 
 function MyClaimPage() {
     const { t } = useTranslation()
@@ -17,7 +18,7 @@ function MyClaimPage() {
     useEffect(() => {
         if (location.state?.flashMessage && !toastDisplayed.current) {
             toastDisplayed.current = true
-            toast.current.show({ severity: 'success', summary: t('common.success'), detail: location.state.flashMessage, life: 3000 })
+            showToast(toast, { severity: 'success', summary: t('common.success'), detail: location.state.flashMessage, life: TOAST_LIFE.SUCCESS })
             navigate(location.pathname, { replace: true, state: {} })
         }
     }, [location, navigate, t])

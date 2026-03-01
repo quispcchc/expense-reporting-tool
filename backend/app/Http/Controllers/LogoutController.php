@@ -18,6 +18,7 @@ class LogoutController extends Controller
             $token->delete();
         }
 
-        return response()->json(['message' => 'Successfully logged out']);
+        return response()->json(['message' => 'Successfully logged out'])
+            ->withCookie(cookie()->forget('auth_token'));
     }
 }

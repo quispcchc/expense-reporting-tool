@@ -1,22 +1,23 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef } from 'react'
 import ContentHeader from '../../components/common/layout/ContentHeader.jsx'
 import AddNewCostCentre from '../../components/feature/costCentre/AddNewCostCentre.jsx'
 import { DataTable } from 'primereact/datatable'
 import { Column } from 'primereact/column'
 import { useCostCentre } from '../../contexts/CostCentreContext.jsx'
-import { InputText } from 'primereact/inputtext'
 import { Dropdown } from 'primereact/dropdown'
 import { Button } from 'primereact/button'
-import { Dialog } from 'primereact/dialog'
-import { FilterMatchMode } from 'primereact/api'
-import { IconField } from 'primereact/iconfield'
-import { InputIcon } from 'primereact/inputicon'
 import { useLookups } from '../../contexts/LookupContext.jsx'
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog'
 import { Toast } from 'primereact/toast'
 import ActiveStatusTab from '../../components/common/ui/ActiveStatusTab.jsx'
 import { useTranslation } from 'react-i18next'
 import { useIsMobile } from '../../hooks/useIsMobile.js'
+import { useDataTableFilter } from '../../hooks/useDataTableFilter.js'
+import { useMobileEditDialog } from '../../hooks/useMobileEditDialog.js'
+import { textInputEditor } from '../../utils/dataTableEditors.jsx'
+import DataTableSearchHeader from '../../components/common/ui/DataTableSearchHeader.jsx'
+import MobileEditDialog from '../../components/common/ui/MobileEditDialog.jsx'
+import { showToast, TOAST_LIFE } from '../../utils/helpers.js'
 import { validateForm } from '../../utils/validation/validator.js'
 import { validationSchemas } from '../../utils/validation/schemas.js'
 import Input from '../../components/common/ui/Input.jsx'
@@ -32,35 +33,9 @@ function CostCentresPage() {
         actions: { updateCostCentre, deleteCostCentre },
     } = useCostCentre()
 
-    const [globalFilterValue, setGlobalFilterValue] = useState('')
-    const [filters, setFilters] = useState({
-        global: { value: null, matchMode: FilterMatchMode.CONTAINS },
-    })
+    const { globalFilterValue, filters, onGlobalFilterChange } = useDataTableFilter()
+    const { editDialog, editData, editErrors, openDialog, closeDialog, updateField, validate } = useMobileEditDialog({ validationSchema: validationSchemas.editCostCentre })
 
-    // Mobile edit dialog state
-    const [editDialog, setEditDialog] = useState(false)
-    const [editData, setEditData] = useState(null)
-    const [editErrors, setEditErrors] = useState({})
-
-    const onGlobalFilterChange = (e) => {
-        const value = e.target.value
-        let _filters = { ...filters }
-        _filters['global'].value = value
-        setFilters(_filters)
-        setGlobalFilterValue(value)
-    }
-
-    const renderHeader = () => {
-        return (
-            <div className="flex justify-end">
-                <IconField iconPosition="left">
-                    <InputIcon className="pi pi-search" />
-                    <InputText value={globalFilterValue} onChange={onGlobalFilterChange}
-                        placeholder={t('common.keywordSearch')} />
-                </IconField>
-            </div>
-        )
-    }
 
     const renderStatus = (rowData) => (
         <ActiveStatusTab status={rowData.active_status_id} />
@@ -84,15 +59,6 @@ function CostCentresPage() {
         />
     )
 
-    const textInputEditor = (editorOptions) => (
-        <InputText
-            type="text"
-            value={editorOptions.value || ''}
-            onChange={(e) => editorOptions.editorCallback(e.target.value)}
-            className="w-full"
-        />
-    )
-
     const statusEditor = (editorOptions) => (
         <Dropdown
             value={editorOptions.value}
@@ -104,29 +70,24 @@ function CostCentresPage() {
     const toast = useRef(null)
     const toasts = {
         created: () => {
-            toast.current.show(
-                { severity: 'success', summary: t('common.success'), detail: t('costCentre.createSuccess'), life: 3000 })
+            showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('costCentre.createSuccess'), life: TOAST_LIFE.SUCCESS })
         },
         updated: () => {
-            toast.current.show(
-                { severity: 'success', summary: t('common.success'), detail: t('costCentre.updateSuccess'), life: 3000 })
+            showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('costCentre.updateSuccess'), life: TOAST_LIFE.SUCCESS })
         },
         error: () => {
-            toast.current.show(
-                { severity: 'error', summary: t('common.error'), detail: error || t('common.unknownError'), life: 3000 })
+            showToast(toast, { severity: 'error', summary: t('common.error'), detail: error || t('common.unknownError'), life: TOAST_LIFE.ERROR })
         },
         accept: async (costCentreId) => {
-            const response = await deleteCostCentre(costCentreId)
-            if (response?.error) {
-                toast.current.show(
-                    { severity: 'error', summary: t('common.error'), detail: response.error, life: 5000 })
-            } else if (response) {
-                toast.current.show(
-                    { severity: 'success', summary: t('common.success'), detail: t('costCentre.deleteSuccess'), life: 3000 })
+            const result = await deleteCostCentre(costCentreId)
+            if (result?.success) {
+                showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('costCentre.deleteSuccess'), life: TOAST_LIFE.SUCCESS })
+            } else {
+                showToast(toast, { severity: 'error', summary: t('common.error'), detail: result?.error || t('common.unknownError'), life: TOAST_LIFE.ERROR })
             }
         },
         reject: () => {
-            toast.current.show({ severity: 'info', summary: t('toast.info', 'Info'), detail: t('costCentre.cancelled'), life: 3000 })
+            showToast(toast, { severity: 'info', summary: t('toast.info', 'Info'), detail: t('costCentre.cancelled'), life: TOAST_LIFE.INFO })
         },
     }
 
@@ -140,14 +101,14 @@ function CostCentresPage() {
         const { isValid, errors: validationErrors } = validateForm(e.newData, validationSchemas.editCostCentre)
         if (!isValid) {
             const messages = Object.values(validationErrors).map(key => t(key)).join(', ')
-            toast.current?.show({ severity: 'error', summary: t('common.error'), detail: messages, life: 5000 })
+            showToast(toast, { severity: 'error', summary: t('common.error'), detail: messages, life: TOAST_LIFE.ERROR })
             return
         }
-        const response = await updateCostCentre(e.newData)
-        if (response?.error) {
-            toast.current?.show({ severity: 'error', summary: t('common.error', 'Error'), detail: response.error, life: 5000 })
-        } else if (response?.status === 200) {
+        const result = await updateCostCentre(e.newData)
+        if (result?.success) {
             toasts.updated()
+        } else {
+            showToast(toast, { severity: 'error', summary: t('common.error'), detail: result?.error || t('common.unknownError'), life: TOAST_LIFE.ERROR })
         }
     }
 
@@ -179,19 +140,14 @@ function CostCentresPage() {
     // Mobile edit dialog save
     const handleMobileEditSave = async () => {
         if (!editData) return
-        const { isValid, errors: validationErrors } = validateForm(editData, validationSchemas.editCostCentre)
-        if (!isValid) {
-            setEditErrors(validationErrors)
-            return
-        }
-        setEditErrors({})
-        const response = await updateCostCentre(editData)
-        if (response?.error) {
-            toast.current?.show({ severity: 'error', summary: t('common.error', 'Error'), detail: response.error, life: 5000 })
-        } else if (response?.status === 200) {
+        const { isValid } = validate()
+        if (!isValid) return
+        const result = await updateCostCentre(editData)
+        if (result?.success) {
             toasts.updated()
-            setEditDialog(false)
-            setEditData(null)
+            closeDialog()
+        } else {
+            showToast(toast, { severity: 'error', summary: t('common.error'), detail: result?.error || t('common.unknownError'), life: TOAST_LIFE.ERROR })
         }
     }
 
@@ -210,14 +166,7 @@ function CostCentresPage() {
     const mobileCardView = (
         <div className="admin-mobile-container">
             <div className="admin-mobile-search">
-                <IconField iconPosition="left">
-                    <InputIcon className="pi pi-search" />
-                    <InputText
-                        value={globalFilterValue}
-                        onChange={onGlobalFilterChange}
-                        placeholder={t('common.keywordSearch')}
-                    />
-                </IconField>
+                <DataTableSearchHeader value={globalFilterValue} onChange={onGlobalFilterChange} />
             </div>
 
             <div className="admin-mobile-list">
@@ -246,10 +195,7 @@ function CostCentresPage() {
                                     icon="pi pi-pencil"
                                     size="small"
                                     text
-                                    onClick={() => {
-                                        setEditData({ ...cc })
-                                        setEditDialog(true)
-                                    }}
+                                    onClick={() => openDialog(cc)}
                                 />
                                 <Button
                                     icon="pi pi-trash"
@@ -278,7 +224,7 @@ function CostCentresPage() {
                     'active_status.active_status_name',
                     'description',
                 ]}
-                header={renderHeader} emptyMessage={t('common.noResults')}
+                header={<DataTableSearchHeader value={globalFilterValue} onChange={onGlobalFilterChange} />} emptyMessage={t('common.noResults')}
                 editMode="row" onRowEditComplete={onRowEditComplete}
                 sortMode="multiple" removableSort
                 loading={loading}
@@ -312,32 +258,20 @@ function CostCentresPage() {
             {isMobile ? mobileCardView : desktopTableView}
 
             {/* Mobile Edit Dialog */}
-            <Dialog
-                header={t('costCentre.editCostCentre', 'Edit Cost Centre')}
-                visible={editDialog}
-                style={{ width: '90vw', maxWidth: '450px' }}
-                onHide={() => { setEditDialog(false); setEditData(null); setEditErrors({}) }}
-                className="mobile-edit-dialog"
-                footer={
-                    <div className="flex justify-end gap-2">
-                        <Button label={t('common.cancel', 'Cancel')} icon="pi pi-times" outlined onClick={() => { setEditDialog(false); setEditData(null); setEditErrors({}) }} />
-                        <Button label={t('common.save', 'Save')} icon="pi pi-check" onClick={handleMobileEditSave} />
-                    </div>
-                }
-            >
+            <MobileEditDialog visible={editDialog} header={t('costCentre.editCostCentre', 'Edit Cost Centre')} onHide={closeDialog} onSave={handleMobileEditSave}>
                 {editData && (
                     <div className="flex flex-col gap-4">
                         <Select name="department_id" label={t('users.department')} value={editData.department_id} options={departmentOptions} optionValue="value" errors={editErrors}
-                            onChange={(e) => { setEditData({ ...editData, department_id: e.value }); setEditErrors(prev => ({ ...prev, department_id: undefined })) }} />
+                            onChange={(e) => updateField('department_id', e.value)} />
                         <Input name="cost_centre_code" label={t('teams.code')} value={editData.cost_centre_code || ''} errors={editErrors}
-                            onChange={(e) => { setEditData({ ...editData, cost_centre_code: e.target.value }); setEditErrors(prev => ({ ...prev, cost_centre_code: undefined })) }} />
+                            onChange={(e) => updateField('cost_centre_code', e.target.value)} />
                         <Select name="active_status_id" label={t('common.status')} value={editData.active_status_id} options={statusOptions} optionValue="value" errors={editErrors}
-                            onChange={(e) => { setEditData({ ...editData, active_status_id: e.value }) }} />
+                            onChange={(e) => updateField('active_status_id', e.value)} />
                         <Input name="description" label={t('costCentre.description', 'Description')} value={editData.description || ''} errors={editErrors}
-                            onChange={(e) => { setEditData({ ...editData, description: e.target.value }); setEditErrors(prev => ({ ...prev, description: undefined })) }} />
+                            onChange={(e) => updateField('description', e.target.value)} />
                     </div>
                 )}
-            </Dialog>
+            </MobileEditDialog>
         </>
     )
 }
