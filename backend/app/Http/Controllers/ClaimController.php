@@ -158,7 +158,10 @@ class ClaimController extends Controller
                 return $this->errorResponse(trans('messages.not_authorized_approve', ['id' => $claim->claim_id]), 403);
             }
         }
+
         $this->claimService->bulkApproveClaim($claimIds, $user);
+
+        return $this->successResponse(['message' => trans('messages.claims_approved')]);
     }
 
     public function bulkRejectClaim(Request $request)
@@ -172,9 +175,11 @@ class ClaimController extends Controller
             if ($user->cannot('reject', $claim)) {
                 return $this->errorResponse(trans('messages.not_authorized_reject', ['id' => $claim->claim_id]), 403);
             }
-
-            $this->claimService->bulkRejectClaim($claimIds, $user);
         }
+
+        $this->claimService->bulkRejectClaim($claimIds, $user);
+
+        return $this->successResponse(['message' => trans('messages.claims_rejected')]);
     }
 
     /**
@@ -209,12 +214,12 @@ class ClaimController extends Controller
             ];
 
             $csvColumns = [
-                'Claim ID', 'Claim Date', 'Claim Type', 'Claim Status', 'Claim Total',
+                'Claim ID', 'Claim Date', 'Claim Type', 'Claim Status', 'Reviewed By', 'Review Date', 'Claim Total',
                 'Submitter', 'Department', 'Team', 'Position',
                 'Expense ID', 'Buyer Name', 'Vendor Name', 'Transaction Date',
                 'Expense Amount', 'Description', 'Notes', 'Expense Status',
                 'Project', 'Cost Centre', 'Account Number', 'Tags', 'Claim Notes',
-                'Travel From', 'Travel To', 'Distance (km)', 'Mileage Rate',
+                'Mileage ID', 'Travel From', 'Travel To', 'Distance (km)', 'Mileage Rate',
                 'Parking Amount', 'Meter (km)', 'Mileage Total',
             ];
 
@@ -231,11 +236,21 @@ class ClaimController extends Controller
 
                     $submitter = trim(($claim->user->first_name ?? '') . ' ' . ($claim->user->last_name ?? ''));
 
+                    $lastApproval = $claim->claimApprovals->sortByDesc('claim_approval_id')->first();
+                    $reviewedBy = $lastApproval && $lastApproval->approvedByUser
+                        ? trim(($lastApproval->approvedByUser->first_name ?? '') . ' ' . ($lastApproval->approvedByUser->last_name ?? ''))
+                        : '';
+                    $reviewDate = $lastApproval && $lastApproval->created_at
+                        ? $lastApproval->created_at->format('Y-m-d H:i:s')
+                        : '';
+
                     $claimBase = [
                         self::na($claim->claim_id),
                         self::na($claim->claim_submitted),
                         self::na($claim->claimType->claim_type_name),
                         self::na($claim->status->claim_status_name),
+                        self::na($reviewedBy),
+                        self::na($reviewDate),
                         self::na($claim->total_amount),
                         self::na($submitter),
                         self::na($claim->department->department_name),
@@ -245,7 +260,7 @@ class ClaimController extends Controller
 
                     if ($claim->expenses->isEmpty()) {
                         // Output claim-level row even if no expenses
-                        fputcsv($handle, array_merge($claimBase, array_fill(0, 20, self::NA)));
+                        fputcsv($handle, array_merge($claimBase, array_fill(0, 21, self::NA)));
                         continue;
                     }
 
@@ -276,6 +291,7 @@ class ClaimController extends Controller
                         if ($mileageTransactions && $mileageTransactions->isNotEmpty()) {
                             foreach ($mileageTransactions as $mt) {
                                 fputcsv($handle, array_merge($claimBase, $expenseBase, [
+                                    self::na($mt->transaction_id),
                                     self::na($mt->travel_from),
                                     self::na($mt->travel_to),
                                     self::na($mt->distance_km),
@@ -286,7 +302,7 @@ class ClaimController extends Controller
                                 ]));
                             }
                         } else {
-                            fputcsv($handle, array_merge($claimBase, $expenseBase, array_fill(0, 7, self::NA)));
+                            fputcsv($handle, array_merge($claimBase, $expenseBase, array_fill(0, 8, self::NA)));
                         }
                     }
                 }
@@ -329,6 +345,7 @@ class ClaimController extends Controller
                 'expenses.receipts',
                 'expenses.mileage.transactions.receipts',
                 'notes.user',
+                'claimApprovals.approvedByUser',
             ])->findOrFail($claimId);
 
             \Log::info('Claim loaded. Expenses count: '.count($claim->expenses ?? []));
@@ -426,6 +443,7 @@ class ClaimController extends Controller
                     'expenses.receipts',
                     'expenses.mileage.transactions.receipts',
                     'notes.user',
+                    'claimApprovals.approvedByUser',
                 ])->find($claimId);
 
                 if ($claim) {

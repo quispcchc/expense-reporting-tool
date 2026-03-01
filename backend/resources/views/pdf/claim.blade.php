@@ -322,7 +322,24 @@
                 <td class="label">Claim Type:</td>
                 <td>{{ $na(optional($claim->claimType)->claim_type_name) }}</td>
                 <td class="label">Submitted Date:</td>
-                <td>{{ $na(optional($claim)->created_at ? optional($claim)->created_at->format('Y-m-d') : null) }}</td>
+                <td>{{ $na(optional($claim)->created_at ? optional($claim)->created_at->format('Y-m-d H:i:s') : null) }}</td>
+            </tr>
+            @php
+                $lastApproval = optional($claim)->claimApprovals
+                    ? $claim->claimApprovals->sortByDesc('claim_approval_id')->first()
+                    : null;
+                $reviewerName = $lastApproval && $lastApproval->approvedByUser
+                    ? trim($lastApproval->approvedByUser->first_name . ' ' . $lastApproval->approvedByUser->last_name)
+                    : null;
+                $reviewDate = $lastApproval && $lastApproval->created_at
+                    ? $lastApproval->created_at->format('Y-m-d H:i:s')
+                    : null;
+            @endphp
+            <tr>
+                <td class="label">Reviewed By:</td>
+                <td>{{ $na($reviewerName) }}</td>
+                <td class="label">Review Date:</td>
+                <td>{{ $na($reviewDate) }}</td>
             </tr>
         </table>
 
@@ -416,14 +433,14 @@
                     <tr>
                         
                         <th style="width: 9%;">Expense ID</th>
-                        <th style="width: 9%;">Mileage ID</th>
-                        <th style="width: 9%;">Date</th>
+                        <th style="width: 8%;">Mileage ID</th>
+                        <th style="width: 8%;">Date</th>
                         <th style="width: 9%;">From</th>
                         <th style="width: 9%;">To</th>
-                        <th style="width: 9%;">Distance (km)</th>
-                        <th style="width: 9%;">Rate</th>
-                        <th style="width: 9%;">Parking</th>
-                        <th style="width: 9%;">Meter (km)</th>
+                        <th style="width: 8%;">Distance (km)</th>
+                        <th style="width: 8%;">Rate</th>
+                        <th style="width: 8%;">Parking</th>
+                        <th style="width: 8%;">Meter (km)</th>
                         <th style="width: 9%;" class="amount">Total</th>
                     </tr>
                 </thead>
@@ -432,8 +449,8 @@
                         @if($expense->mileage && $expense->mileage->transactions && count($expense->mileage->transactions) > 0)
                             @foreach($expense->mileage->transactions as $mt)
                                 <tr>
-                                    <td>{{ $na($expense->mileage->mileage_id) }}</td>
                                     <td>{{ $expense->expense_id }}</td>
+                                    <td>{{ $na($mt->transaction_id) }}</td>
                                     <td>{{ optional($mt->transaction_date)->format('Y-m-d') ?? $mt->transaction_date }}</td>
                                     <td>{{ $na($mt->travel_from) }}</td>
                                     <td>{{ $na($mt->travel_to) }}</td>

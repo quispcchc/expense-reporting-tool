@@ -182,14 +182,11 @@ class ExpenseService
 
         // Record who approved/rejected only when claim reaches a final status
         if ($approver && $newStatusId !== ClaimStatus::PENDING) {
-            // Remove any previous approval records for this claim to keep only the latest
-            \App\Models\ClaimApproval::where('claim_id', $claimId)->delete();
-
             \App\Models\ClaimApproval::create([
                 'claim_id' => $claimId,
                 'approved_by' => $approver->user_id,
                 'approval_status_id' => $newStatusId,
-                'claim_approval_details' => $newStatusId === ClaimStatus::APPROVED ? 'Claim approved' : 'Claim rejected',
+                'claim_approval_details' => $newStatusId === ClaimStatus::APPROVED ? 'Approved' : 'Rejected',
             ]);
         }
 

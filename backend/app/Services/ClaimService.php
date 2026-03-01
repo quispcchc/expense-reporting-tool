@@ -71,6 +71,7 @@ class ClaimService
             'expenses.project',
             'expenses.mileage.transactions',
             'notes.user',
+            'claimApprovals.approvedByUser',
         ]);
 
         $query->when($filters['date_from'] ?? null, fn ($q, $v) => $q->where('claim_submitted', '>=', $v))
