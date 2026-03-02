@@ -84,29 +84,29 @@ class ClaimService
         ]);
 
         $query->when($filters['date_from'] ?? null, fn ($q, $v) => $q->where('claim_submitted', '>=', $v))
-              ->when($filters['date_to'] ?? null, fn ($q, $v) => $q->where('claim_submitted', '<=', $v . ' 23:59:59'))
-              ->when($filters['claim_type_id'] ?? null, fn ($q, $v) => $q->where('claim_type_id', $v))
-              ->when($filters['claim_status_id'] ?? null, fn ($q, $v) => $q->where('claim_status_id', $v))
-              ->when($filters['department_id'] ?? null, fn ($q, $v) => $q->where('department_id', $v))
-              ->when($filters['team_id'] ?? null, fn ($q, $v) => $q->where('team_id', $v))
-              ->when($filters['amount_min'] ?? null, fn ($q, $v) => $q->where('total_amount', '>=', $v))
-              ->when($filters['amount_max'] ?? null, fn ($q, $v) => $q->where('total_amount', '<=', $v))
-              ->when($filters['submitter'] ?? null, function ($q, $v) {
-                  $q->whereHas('user', function ($uq) use ($v) {
-                      $uq->where('first_name', 'like', "%{$v}%")
-                          ->orWhere('last_name', 'like', "%{$v}%");
-                  });
-              })
-              ->when($filters['project_id'] ?? null, function ($q, $v) {
-                  $q->whereHas('expenses', fn ($eq) => $eq->where('project_id', $v));
-              })
-              ->when($filters['cost_centre_id'] ?? null, function ($q, $v) {
-                  $q->whereHas('expenses', fn ($eq) => $eq->where('cost_centre_id', $v));
-              })
-              ->when($filters['tag_ids'] ?? null, function ($q, $v) {
-                  $tagIds = is_array($v) ? $v : explode(',', $v);
-                  $q->whereHas('expenses.tags', fn ($tq) => $tq->whereIn('tags.tag_id', $tagIds));
-              });
+            ->when($filters['date_to'] ?? null, fn ($q, $v) => $q->where('claim_submitted', '<=', $v.' 23:59:59'))
+            ->when($filters['claim_type_id'] ?? null, fn ($q, $v) => $q->where('claim_type_id', $v))
+            ->when($filters['claim_status_id'] ?? null, fn ($q, $v) => $q->where('claim_status_id', $v))
+            ->when($filters['department_id'] ?? null, fn ($q, $v) => $q->where('department_id', $v))
+            ->when($filters['team_id'] ?? null, fn ($q, $v) => $q->where('team_id', $v))
+            ->when($filters['amount_min'] ?? null, fn ($q, $v) => $q->where('total_amount', '>=', $v))
+            ->when($filters['amount_max'] ?? null, fn ($q, $v) => $q->where('total_amount', '<=', $v))
+            ->when($filters['submitter'] ?? null, function ($q, $v) {
+                $q->whereHas('user', function ($uq) use ($v) {
+                    $uq->where('first_name', 'like', "%{$v}%")
+                        ->orWhere('last_name', 'like', "%{$v}%");
+                });
+            })
+            ->when($filters['project_id'] ?? null, function ($q, $v) {
+                $q->whereHas('expenses', fn ($eq) => $eq->where('project_id', $v));
+            })
+            ->when($filters['cost_centre_id'] ?? null, function ($q, $v) {
+                $q->whereHas('expenses', fn ($eq) => $eq->where('cost_centre_id', $v));
+            })
+            ->when($filters['tag_ids'] ?? null, function ($q, $v) {
+                $tagIds = is_array($v) ? $v : explode(',', $v);
+                $q->whereHas('expenses.tags', fn ($tq) => $tq->whereIn('tags.tag_id', $tagIds));
+            });
 
         return $query->orderBy('claim_submitted', 'desc')->get();
     }
@@ -310,7 +310,7 @@ class ClaimService
     /**
      * Shared logic for approving/rejecting with error handling
      */
-    private function updateClaimStatus(int $claimId, int $newStatusId, User $approver = null)
+    private function updateClaimStatus(int $claimId, int $newStatusId, ?User $approver = null)
     {
         DB::beginTransaction();
 

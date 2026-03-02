@@ -2,12 +2,12 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Notification;
-use App\Notifications\VerifyEmailNotification;
+use App\Enums\RoleLevel;
 use App\Models\Position;
 use App\Models\User;
-use App\Enums\RoleLevel;
+use App\Notifications\VerifyEmailNotification;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 use Tests\Traits\SeedsLookups;
 

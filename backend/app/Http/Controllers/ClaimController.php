@@ -201,16 +201,16 @@ class ClaimController extends Controller
 
             // Build filename reflecting date filters
             $from = $filters['date_from'] ?? 'all';
-            $to   = $filters['date_to']   ?? now()->format('Y-m-d');
+            $to = $filters['date_to'] ?? now()->format('Y-m-d');
             $timestamp = now()->timestamp;
             $filename = "claims_export_{$timestamp}.csv";
 
             $headers = [
-                'Content-Type'        => 'text/csv; charset=UTF-8',
+                'Content-Type' => 'text/csv; charset=UTF-8',
                 'Content-Disposition' => "attachment; filename=\"{$filename}\"",
-                'Cache-Control'       => 'no-cache, no-store, must-revalidate',
-                'Pragma'              => 'no-cache',
-                'Expires'             => '0',
+                'Cache-Control' => 'no-cache, no-store, must-revalidate',
+                'Pragma' => 'no-cache',
+                'Expires' => '0',
             ];
 
             $csvColumns = [
@@ -226,7 +226,7 @@ class ClaimController extends Controller
             $callback = function () use ($claims, $csvColumns) {
                 // Add UTF-8 BOM for Excel compatibility
                 $handle = fopen('php://output', 'w');
-                fprintf($handle, chr(0xEF) . chr(0xBB) . chr(0xBF));
+                fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
                 fputcsv($handle, $csvColumns);
 
                 foreach ($claims as $claim) {
@@ -234,11 +234,11 @@ class ClaimController extends Controller
                         ->map(fn ($n) => $n->claim_note_text)
                         ->implode(' | ');
 
-                    $submitter = trim(($claim->user->first_name ?? '') . ' ' . ($claim->user->last_name ?? ''));
+                    $submitter = trim(($claim->user->first_name ?? '').' '.($claim->user->last_name ?? ''));
 
                     $lastApproval = $claim->claimApprovals->sortByDesc('claim_approval_id')->first();
                     $reviewedBy = $lastApproval && $lastApproval->approvedByUser
-                        ? trim(($lastApproval->approvedByUser->first_name ?? '') . ' ' . ($lastApproval->approvedByUser->last_name ?? ''))
+                        ? trim(($lastApproval->approvedByUser->first_name ?? '').' '.($lastApproval->approvedByUser->last_name ?? ''))
                         : '';
                     $reviewDate = $lastApproval && $lastApproval->created_at
                         ? $lastApproval->created_at->format('Y-m-d H:i:s')
@@ -261,6 +261,7 @@ class ClaimController extends Controller
                     if ($claim->expenses->isEmpty()) {
                         // Output claim-level row even if no expenses
                         fputcsv($handle, array_merge($claimBase, array_fill(0, 21, self::NA)));
+
                         continue;
                     }
 
@@ -312,9 +313,9 @@ class ClaimController extends Controller
 
             return response()->stream($callback, 200, $headers);
         } catch (Throwable $e) {
-            Log::error('CSV Export Error: ' . $e->getMessage());
+            Log::error('CSV Export Error: '.$e->getMessage());
 
-            return $this->errorResponse('Failed to export CSV: ' . $e->getMessage(), 500);
+            return $this->errorResponse('Failed to export CSV: '.$e->getMessage(), 500);
         }
     }
 

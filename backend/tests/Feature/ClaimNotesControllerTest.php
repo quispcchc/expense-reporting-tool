@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\ClaimNote;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 use Tests\Traits\SeedsLookups;

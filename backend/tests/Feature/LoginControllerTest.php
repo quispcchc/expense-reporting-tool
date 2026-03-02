@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Enums\ActiveStatus;
 use App\Enums\RoleLevel;
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;

@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Enums\RoleLevel;
-use App\Models\Tag;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;

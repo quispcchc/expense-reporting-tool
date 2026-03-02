@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Enums\ClaimStatus;
-use App\Enums\ClaimType;
 use App\Enums\RoleLevel;
 use App\Models\Claim;
 use App\Models\User;

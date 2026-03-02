@@ -140,7 +140,7 @@ class CreateUserController extends Controller
                 }),
                 'active_status_id' => $user->active_status_id,
                 'can_self_approve' => $user->can_self_approve,
-            ]
+            ],
         ], 201);
     }
 }

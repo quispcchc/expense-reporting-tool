@@ -144,10 +144,10 @@ class ExpenseService
                     // If tags sent but empty → remove all tags
                     $expense->tags()->detach();
                 }
-            }else {
-                    // when formdata ignore empty tags array→ remove all tags
-                    $expense->tags()->detach();
-                }
+            } else {
+                // when formdata ignore empty tags array→ remove all tags
+                $expense->tags()->detach();
+            }
 
             $result = $expense->fresh(['tags', 'receipts']);
             \Log::info('=== UPDATE EXPENSE END ===');

@@ -139,7 +139,7 @@ class DepartmentController extends Controller
     public function getTeams($departmentId)
     {
         $cacheKey = "department_{$departmentId}_teams";
-        
+
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($departmentId) {
             $department = Department::findOrFail($departmentId);
             $teams = Team::where('department_id', $departmentId)
@@ -162,7 +162,7 @@ class DepartmentController extends Controller
         // Clear department caches
         Cache::forget('departments_all');
         Cache::forget('departments');
-        
+
         // Clear user-specific department caches
         $departments = Department::pluck('department_id');
         foreach ($departments as $deptId) {

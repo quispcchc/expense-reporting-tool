@@ -13,4 +13,4 @@ putenv('DB_HOST=postgres');
 putenv('DB_PORT=5432');
 putenv('DB_DATABASE=expense_db_test');
 
-require __DIR__ . '/../vendor/autoload.php';
+require __DIR__.'/../vendor/autoload.php';

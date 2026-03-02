@@ -163,7 +163,7 @@ class CostCentreController extends Controller
     {
         // Clear the main cache
         Cache::forget('cost_centres_all');
-        
+
         // Clear department-specific caches (we need to clear all possible department caches)
         // Since we don't track which departments have cached data, we use cache tags in production
         // For now, we'll clear common patterns

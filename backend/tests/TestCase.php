@@ -34,8 +34,8 @@ abstract class TestCase extends BaseTestCase
         $dbName = config('database.connections.pgsql.database');
         if ($dbName !== 'expense_db_test') {
             $this->fail(
-                "Tests must target expense_db_test but connected to '{$dbName}'. " .
-                'Run tests with: docker exec -e DB_HOST=postgres -e DB_PORT=5432 ' .
+                "Tests must target expense_db_test but connected to '{$dbName}'. ".
+                'Run tests with: docker exec -e DB_HOST=postgres -e DB_PORT=5432 '.
                 '-e DB_DATABASE=expense_db_test expense_backend php artisan test'
             );
         }

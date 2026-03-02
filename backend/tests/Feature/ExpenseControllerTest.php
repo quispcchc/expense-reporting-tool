@@ -2,13 +2,12 @@
 
 namespace Tests\Feature;
 
-use App\Models\Claim;
+use App\Enums\ClaimStatus;
+use App\Enums\RoleLevel;
 use App\Models\Expense;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
-use App\Enums\ClaimStatus;
-use App\Enums\RoleLevel;
 use Tests\TestCase;
 use Tests\Traits\SeedsLookups;
 

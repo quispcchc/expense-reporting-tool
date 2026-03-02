@@ -36,16 +36,16 @@ trait SeedsLookups
 
         DB::table('departments')->insert([
             ['department_id' => 1, 'department_name' => 'Engineering',
-             'department_abbreviation' => 'ENG', 'active_status_id' => ActiveStatus::ACTIVE],
+                'department_abbreviation' => 'ENG', 'active_status_id' => ActiveStatus::ACTIVE],
             ['department_id' => 2, 'department_name' => 'Marketing',
-             'department_abbreviation' => 'MKT', 'active_status_id' => ActiveStatus::ACTIVE],
+                'department_abbreviation' => 'MKT', 'active_status_id' => ActiveStatus::ACTIVE],
         ]);
 
         DB::table('teams')->insert([
             ['team_id' => 1, 'team_name' => 'Alpha', 'team_abbreviation' => 'ALP',
-             'active_status_id' => ActiveStatus::ACTIVE, 'department_id' => 1],
+                'active_status_id' => ActiveStatus::ACTIVE, 'department_id' => 1],
             ['team_id' => 2, 'team_name' => 'Beta', 'team_abbreviation' => 'BET',
-             'active_status_id' => ActiveStatus::ACTIVE, 'department_id' => 2],
+                'active_status_id' => ActiveStatus::ACTIVE, 'department_id' => 2],
         ]);
 
         DB::table('claim_status')->insert([
@@ -68,12 +68,12 @@ trait SeedsLookups
 
         DB::table('projects')->insert([
             ['project_id' => 1, 'project_name' => 'Project A',
-             'active_status_id' => ActiveStatus::ACTIVE, 'department_id' => 1],
+                'active_status_id' => ActiveStatus::ACTIVE, 'department_id' => 1],
         ]);
 
         DB::table('cost_centres')->insert([
             ['cost_centre_id' => 1, 'cost_centre_code' => 1001, 'description' => 'Centre 1',
-             'department_id' => 1, 'active_status_id' => ActiveStatus::ACTIVE],
+                'department_id' => 1, 'active_status_id' => ActiveStatus::ACTIVE],
         ]);
 
         DB::table('account_numbers')->insert([

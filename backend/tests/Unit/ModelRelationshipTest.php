@@ -3,12 +3,6 @@
 namespace Tests\Unit;
 
 use App\Enums\RoleLevel;
-use App\Models\User;
-use App\Models\Claim;
-use App\Models\Expense;
-use App\Models\Mileage;
-use App\Models\MileageTransaction;
-use App\Models\Tag;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;

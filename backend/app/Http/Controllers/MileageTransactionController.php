@@ -17,10 +17,14 @@ class MileageTransactionController extends Controller
     private function syncExpenseAndClaimTotals(MileageTransaction $transaction): void
     {
         $mileage = $transaction->mileage;
-        if (!$mileage) return;
+        if (! $mileage) {
+            return;
+        }
 
         $expense = $mileage->expense;
-        if (!$expense) return;
+        if (! $expense) {
+            return;
+        }
 
         // Sum all mileage transaction totals → update expense amount
         $newExpenseAmount = $mileage->transactions()->sum('total_amount');

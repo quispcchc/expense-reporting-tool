@@ -6,7 +6,6 @@ use App\Enums\ActiveStatus;
 use App\Enums\RoleLevel;
 use App\Models\CostCentre;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 use Tests\Traits\SeedsLookups;
 

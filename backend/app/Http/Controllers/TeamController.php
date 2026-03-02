@@ -137,7 +137,7 @@ class TeamController extends Controller
         // Clear main team caches
         Cache::forget('teams_all');
         Cache::forget('teams_active');
-        
+
         // Clear department-specific team caches
         $departments = \App\Models\Department::pluck('department_id');
         foreach ($departments as $deptId) {
@@ -149,4 +149,3 @@ class TeamController extends Controller
         LookupController::clearCache();
     }
 }
-

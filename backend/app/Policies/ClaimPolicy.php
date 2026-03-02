@@ -5,7 +5,6 @@ namespace App\Policies;
 use App\Enums\ClaimType;
 use App\Enums\RoleLevel;
 use App\Models\Claim;
-use App\Models\Role;
 use App\Models\User;
 
 class ClaimPolicy
@@ -24,6 +23,7 @@ class ClaimPolicy
 
         if ($role_level === RoleLevel::TEAM_LEAD) {
             $teamIds = $user->teams->pluck('team_id')->toArray();
+
             return in_array($claim->team_id, $teamIds);
         }
 
@@ -37,7 +37,7 @@ class ClaimPolicy
 
         // Block self-approval unless Super Admin or SLT members (Admins) with can_self_approve on Corporate Card claims
         if ($claim->user_id === $user->user_id && $role_level !== RoleLevel::SUPER_ADMIN) {
-            if (!($user->can_self_approve && $claim->claim_type_id === ClaimType::CORPORATE_CARD)) {
+            if (! ($user->can_self_approve && $claim->claim_type_id === ClaimType::CORPORATE_CARD)) {
                 return false;
             }
         }
@@ -55,7 +55,7 @@ class ClaimPolicy
         // Approver can only approve claims under own team, but not claims from other approvers
         if ($user->role->role_level === RoleLevel::TEAM_LEAD) {
             $teamIds = $user->teams->pluck('team_id')->toArray();
-            if (!in_array($claim->team_id, $teamIds)) {
+            if (! in_array($claim->team_id, $teamIds)) {
                 return false;
             }
             // Block approver from approving another approver's claim — must escalate to admin
@@ -63,6 +63,7 @@ class ClaimPolicy
             if ($claimOwner && $claimOwner->role && $claimOwner->role->role_level <= RoleLevel::TEAM_LEAD) {
                 return false;
             }
+
             return true;
         }
 
@@ -76,7 +77,7 @@ class ClaimPolicy
 
         // Block self-reject unless Super Admin or user with can_self_approve on Corporate Card claims
         if ($claim->user_id === $user->user_id && $role_level !== RoleLevel::SUPER_ADMIN) {
-            if (!($user->can_self_approve && $claim->claim_type_id === ClaimType::CORPORATE_CARD)) {
+            if (! ($user->can_self_approve && $claim->claim_type_id === ClaimType::CORPORATE_CARD)) {
                 return false;
             }
         }
@@ -94,7 +95,7 @@ class ClaimPolicy
         // Approver can only reject claims under own team, but not claims from other approvers
         if ($user->role->role_level === RoleLevel::TEAM_LEAD) {
             $teamIds = $user->teams->pluck('team_id')->toArray();
-            if (!in_array($claim->team_id, $teamIds)) {
+            if (! in_array($claim->team_id, $teamIds)) {
                 return false;
             }
             // Block approver from rejecting another approver's claim — must escalate to admin
@@ -102,6 +103,7 @@ class ClaimPolicy
             if ($claimOwner && $claimOwner->role && $claimOwner->role->role_level <= RoleLevel::TEAM_LEAD) {
                 return false;
             }
+
             return true;
         }
 

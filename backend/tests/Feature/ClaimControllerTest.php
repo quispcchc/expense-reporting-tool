@@ -2,14 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Enums\ClaimStatus;
+use App\Enums\ClaimType;
+use App\Enums\RoleLevel;
 use App\Models\Claim;
 use App\Models\Expense;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
-use App\Enums\ClaimStatus;
-use App\Enums\ClaimType;
-use App\Enums\RoleLevel;
 use Tests\Traits\SeedsLookups;
 
 class ClaimControllerTest extends TestCase
