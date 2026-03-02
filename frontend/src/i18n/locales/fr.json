@@ -349,6 +349,8 @@
         "amountNumeric": "Le montant doit être un nombre",
         "travelFromRequired": "Le lieu de départ est requis",
         "travelToRequired": "La destination est requise",
+        "periodFromRequired": "La période de début est requise",
+        "periodToRequired": "La période de fin est requise",
         "distanceMeterParkingRequired": "La distance, le compteur ou le stationnement est requis",
         "distanceNumeric": "La distance doit être un nombre",
         "distanceNonNegative": "La distance ne peut pas être négative",

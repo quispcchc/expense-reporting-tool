@@ -16,7 +16,7 @@ const initialDraft = {
     buyer: '',
 }
 
-function MileageTransactionForm({ mileageRate, onAddTransaction }) {
+function MileageTransactionForm({ mileageRate, onAddTransaction, validateHeader }) {
     const { t } = useTranslation()
     const [draft, setDraft] = useState(initialDraft)
     const [files, setFiles] = useState([])
@@ -39,12 +39,15 @@ function MileageTransactionForm({ mileageRate, onAddTransaction }) {
     ).toFixed(2)
 
     const handleAdd = () => {
-        const { isValid, errors: validationErrors } = validateForm(draft, validationSchemas.mileageTransaction)
+        // Run both validations simultaneously so all errors show at once
+        const { isValid: txValid, errors: txErrors } = validateForm(draft, validationSchemas.mileageTransaction)
+        const headerValid = validateHeader ? validateHeader() : true
 
-        if (!isValid) {
-            setErrors(validationErrors)
-            return
+        if (!txValid) {
+            setErrors(txErrors)
         }
+
+        if (!txValid || !headerValid) return
 
         onAddTransaction({
             ...draft,

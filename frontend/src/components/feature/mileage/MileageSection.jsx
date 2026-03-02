@@ -1,20 +1,38 @@
-import React from 'react'
+import React, { useState } from 'react'
 import MileageHeaderForm from './MileageHeaderForm.jsx'
 import MileageTransactionForm from './MileageTransactionForm.jsx'
 import MileageDataTable from './MileageDataTable.jsx'
 import { useTranslation } from 'react-i18next'
 import { VIEW_MODE } from '../../../config/constants.js'
+import { validateForm } from '../../../utils/validation/validator.js'
+import { validationSchemas } from '../../../utils/validation/schemas.js'
 
 let nextTransactionId = 1
 
-function MileageSection({ mileageData, setMileageData, mileageRate, toastRef }) {
+function MileageSection({ mileageData, setMileageData, mileageRate, toastRef, headerErrors = {} }) {
     const { t } = useTranslation()
+    const [localHeaderErrors, setLocalHeaderErrors] = useState({})
 
     const handleHeaderChange = (updatedHeader) => {
         setMileageData(prev => ({
             ...prev,
             ...updatedHeader,
         }))
+        // Clear local errors for fields being changed
+        if (Object.keys(localHeaderErrors).length > 0) {
+            const cleared = { ...localHeaderErrors }
+            Object.keys(updatedHeader).forEach(key => { delete cleared[key] })
+            setLocalHeaderErrors(cleared)
+        }
+    }
+
+    const validateHeader = () => {
+        const headerValidation = validateForm(
+            { period_of_from: mileageData.period_of_from, period_of_to: mileageData.period_of_to },
+            validationSchemas.mileageHeader,
+        )
+        setLocalHeaderErrors(headerValidation.isValid ? {} : headerValidation.errors)
+        return headerValidation.isValid
     }
 
     const handleAddTransaction = (transaction) => {
@@ -63,11 +81,13 @@ function MileageSection({ mileageData, setMileageData, mileageRate, toastRef }) 
                         period_of_to: mileageData.period_of_to || '',
                     }}
                     onHeaderChange={handleHeaderChange}
+                    errors={{ ...headerErrors, ...localHeaderErrors }}
                 />
 
                 <MileageTransactionForm
                     mileageRate={mileageRate}
                     onAddTransaction={handleAddTransaction}
+                    validateHeader={validateHeader}
                 />
             </div>
 

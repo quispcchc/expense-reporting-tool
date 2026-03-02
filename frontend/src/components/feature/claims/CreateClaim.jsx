@@ -41,6 +41,7 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
 
     const [expenseErrors, setExpenseErrors] = useState([])
     const [claimErrors, setClaimErrors] = useState()
+    const [mileageHeaderErrors, setMileageHeaderErrors] = useState({})
     const [validationDialog, setValidationDialog] = useState({ visible: false, header: '', message: '' })
     const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -153,6 +154,19 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
         const validation = validateForm(expenseFormData, expenseSchema)
         setExpenseErrors(validation.errors)
 
+        // Validate mileage header (period dates) when binding mileage to an expense
+        let mileageHeaderValid = true
+        if (includeMileage && mileageData.transactions?.length > 0) {
+            const headerValidation = validateForm(
+                { period_of_from: mileageData.period_of_from, period_of_to: mileageData.period_of_to },
+                validationSchemas.mileageHeader,
+            )
+            setMileageHeaderErrors(headerValidation.errors)
+            mileageHeaderValid = headerValidation.isValid
+        } else {
+            setMileageHeaderErrors({})
+        }
+
         // files is already an array of {file, url} objects
         const completeExpenseData = {
             ...expenseFormData,
@@ -170,7 +184,7 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
             } : {}),
         }
 
-        if (!validation.isValid) {
+        if (!validation.isValid || !mileageHeaderValid) {
             setValidationDialog({
                 visible: true,
                 header: t('validation.error', 'Validation Error'),
@@ -348,6 +362,7 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
                         setMileageData={setMileageData}
                         mileageRate={mileageRate}
                         toastRef={toastRef}
+                        headerErrors={mileageHeaderErrors}
                     />
                 </div>
             )}
