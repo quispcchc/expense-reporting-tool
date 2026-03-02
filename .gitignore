@@ -6,6 +6,7 @@ dist/
 .git/
 copilot-instructions.md
 CONTEXT.md
+CLAUDE.md
 backend/public/storage
 .gemini/
 gemini-*
