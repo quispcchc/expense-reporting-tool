@@ -139,6 +139,25 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
         )
     }
 
+    // Mobile: confirm before editing an approved/rejected expense
+    const handleMobileEditStart = (item) => {
+        if (mode !== VIEW_MODE.CREATE && item.status !== APPROVAL_STATUS.PENDING) {
+            confirmDialog({
+                message: t('expenses.editApprovedRejectedMessage', 'Do you want to edit an expense which has already been approved or rejected?'),
+                header: t('expenses.editExpense', 'Edit Expense'),
+                icon: 'pi pi-info-circle',
+                defaultFocus: 'reject',
+                rejectClassName: 'p-button-danger',
+                accept: () => startMobileEdit(item),
+                reject: () => {
+                    showToast(toastRef, { severity: 'info', summary: t('toast.info'), detail: t('expenses.editCancelled', 'Edit cancelled') })
+                },
+            })
+            return
+        }
+        startMobileEdit(item)
+    }
+
     // Handle starting to edit a row
     const handleRowEditStart = (editEvent) => { // Was: onRowEditInit
 
@@ -788,7 +807,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                                 text
                                 rounded
                                 severity="info"
-                                onClick={() => startMobileEdit(item)}
+                                onClick={() => handleMobileEditStart(item)}
                                 className="!p-1"
                                 type="button"
                             />

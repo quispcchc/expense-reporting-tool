@@ -94,34 +94,26 @@ function MileageDetailsSection({ mileage, isEditing, rowData, handleInputChange 
     }
 
     return (
-        <div className="mt-3 rounded-xl overflow-hidden border border-blue-200 shadow-sm">
+        <div className="mt-3 rounded-xl overflow-hidden border border-blue-200 shadow-sm max-w-5xl">
             {/* Header */}
-            <div className="bg-gradient-to-r from-blue-50 to-blue-100 px-3 sm:px-4 py-3 flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center">
-                        <i className="pi pi-car text-blue-600 text-sm" />
-                    </div>
-                    <div>
-                        <p className="text-sm font-semibold text-blue-900">
-                            {t('mileage.boundMileage', 'Mileage Details')}
-                        </p>
-                    </div>
-                </div>
-                <div className="flex items-center gap-4 text-right">
-                    {isEditing ? (
-                        <div className="flex flex-col sm:flex-row gap-1 sm:gap-0.5">
-                            <Input name="period_of_from" type='date' value={mileage.period_of_from?.substring(0, 10) || ''} onChange={(e) => updateMileageHeader('period_of_from', e.target.value)} />
-                            <Input name="period_of_to" type='date' value={mileage.period_of_to?.substring(0, 10) || ''} onChange={(e) => updateMileageHeader('period_of_to', e.target.value)} />
+            <div className="bg-gradient-to-r from-blue-50 to-blue-100 px-3 sm:px-4 py-3 space-y-2">
+                {/* Title row */}
+                <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+                            <i className="pi pi-car text-blue-600 text-sm" />
                         </div>
-                    ) : (mileage.period_of_from || mileage.period_of_to) && (
-                        <div>
-                            <p className="text-[10px] uppercase tracking-wider text-blue-400">{t('mileage.period', 'Period')}</p>
-                            <p className="text-xs font-medium text-blue-700">
-                                {mileage.period_of_from?.substring(0, 10)} — {mileage.period_of_to?.substring(0, 10)}
+                        <div className="min-w-0">
+                            <p className="text-sm font-semibold text-blue-900">
+                                {t('mileage.boundMileage', 'Mileage Details')}
+                            </p>
+                            <p className="text-xs text-blue-500">
+                                {mileage.transactions.length} {t('mileage.trips', 'trips')} · {totalKm.toFixed(1)} km
+                                {rate ? ` · $${parseFloat(rate).toFixed(2)}/km` : ''}
                             </p>
                         </div>
-                    )}
-                    <div>
+                    </div>
+                    <div className="text-right shrink-0">
                         <p className="text-[10px] uppercase tracking-wider text-blue-400">{t('claims.total', 'Total')}</p>
                         <p className="text-base font-bold text-blue-700">${mileageTotal.toFixed(2)}</p>
                     </div>

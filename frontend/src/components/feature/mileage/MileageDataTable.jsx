@@ -92,7 +92,9 @@ function MileageDataTable({ data, mode, onTransactionsUpdate, toastRef, onClaimU
             (parseFloat(newData.meter_km) || 0)
 
         const updated = [...rows]
-        updated[index] = { ...newData, total_amount: parseFloat(total.toFixed(2)) }
+        // Preserve current attachment — receipts are uploaded/removed directly via syncUp
+        // during editing, so rows[index].attachment is the source of truth (not newData)
+        updated[index] = { ...newData, attachment: rows[index].attachment, total_amount: parseFloat(total.toFixed(2)) }
 
         if (mode === VIEW_MODE.EDIT) {
             const tx = updated[index]
@@ -330,7 +332,7 @@ function MileageDataTable({ data, mode, onTransactionsUpdate, toastRef, onClaimU
         if (idx === -1) return
 
         const updated = [...rows]
-        updated[idx] = { ...draft, total_amount: parseFloat(total.toFixed(2)) }
+        updated[idx] = { ...draft, attachment: rows[idx].attachment, total_amount: parseFloat(total.toFixed(2)) }
 
         if (mode === VIEW_MODE.EDIT) {
             const tx = updated[idx]
