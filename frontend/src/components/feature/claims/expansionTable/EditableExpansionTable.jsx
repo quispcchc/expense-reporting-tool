@@ -707,9 +707,9 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
             <div className="flex gap-2">
                 <Button label={t('claims.approve')} outlined className={BUTTON_STYLE.success} icon="pi pi-check" iconPos="right"
                     onClick={() => approveExpense(rowData.transactionId)} disabled={isProcessed || isProcessing}
-                    loading={isProcessing} />
+                    loading={isProcessing} type="button" />
                 <Button label={t('claims.reject')} outlined className={BUTTON_STYLE.danger} icon="pi pi-times" iconPos="right"
-                    onClick={() => rejectExpense(rowData.transactionId)} disabled={isProcessed || isProcessing} />
+                    onClick={() => rejectExpense(rowData.transactionId)} disabled={isProcessed || isProcessing} type="button" />
             </div>
         )
     }
@@ -775,6 +775,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                         severity="secondary"
                         onClick={() => setMobileExpandedId(null)}
                         className="!p-1"
+                        type="button"
                     />
                     <h4 className="text-base font-semibold flex-1">
                         {t('expenses.title')} #{item.transactionId}
@@ -789,6 +790,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                                 severity="info"
                                 onClick={() => startMobileEdit(item)}
                                 className="!p-1"
+                                type="button"
                             />
                             <Button
                                 icon="pi pi-trash"
@@ -800,6 +802,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                                     setMobileExpandedId(null)
                                 }}
                                 className="!p-1"
+                                type="button"
                             />
                         </div>
                     )}
@@ -863,6 +866,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                             onClick={() => approveExpense(item.transactionId)}
                             disabled={isProcessed || processingExpenses.has(item.transactionId)}
                             loading={processingExpenses.has(item.transactionId)}
+                            type="button"
                         />
                         <Button
                             icon="pi pi-times"
@@ -872,6 +876,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                             label={t('claims.reject', 'Reject')}
                             onClick={() => rejectExpense(item.transactionId)}
                             disabled={isProcessed || processingExpenses.has(item.transactionId)}
+                            type="button"
                         />
                     </div>
                 )}
@@ -943,6 +948,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                                 onClick={handleApproveClaim}
                                 loading={isClaimApproving}
                                 disabled={isClaimApproving}
+                                type="button"
                             />
                             <Button
                                 label={t('claims.rejectAll', 'Reject All')}
@@ -953,6 +959,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                                 onClick={handleRejectClaim}
                                 loading={isClaimApproving}
                                 disabled={isClaimApproving}
+                                type="button"
                             />
                         </>
                     )}
@@ -1094,8 +1101,8 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                 className="mobile-edit-dialog"
                 footer={
                     <div className="flex justify-end gap-2">
-                        <Button label={t('common.cancel', 'Cancel')} icon="pi pi-times" outlined onClick={() => cancelMobileEdit()} />
-                        <Button label={t('common.save', 'Save')} icon="pi pi-check" onClick={saveMobileEdit} />
+                        <Button label={t('common.cancel', 'Cancel')} icon="pi pi-times" outlined onClick={() => cancelMobileEdit()} type="button" />
+                        <Button label={t('common.save', 'Save')} icon="pi pi-check" onClick={saveMobileEdit} type="button" />
                     </div>
                 }
             >
