@@ -40,21 +40,31 @@ function LoginForm() {
         }))
     }
 
+    const handleBlur = (e) => {
+        const { name, value } = e.target
+        if (name === 'email') {
+            setFormData(prev => ({ ...prev, email: value.trim() }))
+        }
+    }
+
     const handleSubmit = async (e) => {
         e.preventDefault()
         setError(null)
         setFormErrors([])
 
-        const validation = validateForm(formData, validationSchemas.login)
+        const cleaned = { ...formData, email: formData.email.trim() }
+        setFormData(cleaned)
+
+        const validation = validateForm(cleaned, validationSchemas.login)
         setFormErrors(validation.errors)
         if (!validation.isValid) return
 
         setIsSubmitting(true)
         try {
             const result = await login({
-                email: formData.email,
-                password: formData.password,
-                remember: formData.remember,
+                email: cleaned.email,
+                password: cleaned.password,
+                remember: cleaned.remember,
             })
 
             if (result.success) {
@@ -86,7 +96,7 @@ function LoginForm() {
             {/* Email */}
             <Input name="email" id="email" label={t('users.email')} placeholder={t('auth.emailPlaceholder')}
                 value={formData.email} autoComplete="username"
-                onChange={handleFormChange} errors={formErrors} />
+                onChange={handleFormChange} onBlur={handleBlur} errors={formErrors} />
 
             {/* Password */}
             <InputPassword name="password" id="password" label={t('auth.password', 'Password')} placeholder={t('auth.passwordPlaceholder')}
