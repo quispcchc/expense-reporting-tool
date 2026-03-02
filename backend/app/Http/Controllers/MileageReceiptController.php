@@ -14,7 +14,7 @@ class MileageReceiptController extends Controller
     public function storeForTransaction(Request $request, $transactionId)
     {
         $request->validate([
-            'receipts' => ['required', 'array','min:1'],
+            'receipts' => ['required', 'array', 'min:1'],
             'receipts.*' => ['file', 'mimes:pdf,jpeg,jpg,png', 'max:20480'],
         ]);
 
@@ -38,6 +38,7 @@ class MileageReceiptController extends Controller
             ], 201);
         });
     }
+
     public function update(Request $request, $receiptId)
     {
         $request->validate([
@@ -49,7 +50,7 @@ class MileageReceiptController extends Controller
             $receipt = MileageReceipt::findOrFail($receiptId);
 
             // delete old file (if exists)
-            if (!empty($receipt->file_path)) {
+            if (! empty($receipt->file_path)) {
                 Storage::disk('public')->delete($receipt->file_path);
             }
 
@@ -76,6 +77,7 @@ class MileageReceiptController extends Controller
 
         return response()->json(['message' => 'Receipt deleted'], 200);
     }
+
     public function bulkDestroy(Request $request)
     {
         $validated = $request->validate([

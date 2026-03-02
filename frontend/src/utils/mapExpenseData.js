@@ -1,4 +1,5 @@
-import { API_BASE_URL } from '../../../../api/api.js'
+import { API_BASE_URL } from '../api/api.js'
+import { VIEW_MODE } from '../config/constants.js'
 
 /**
  * Maps expense data between backend and frontend shapes based on mode.
@@ -8,7 +9,7 @@ import { API_BASE_URL } from '../../../../api/api.js'
 const mapExpenseData = (data, mode) => {
     if (!data) return []
 
-    if (mode === 'create') {
+    if (mode === VIEW_MODE.CREATE) {
         let frontendId = 1
         // Create mode: data is already in frontend form shape
         return data.map(item => ({
@@ -16,7 +17,7 @@ const mapExpenseData = (data, mode) => {
             transactionId: item.transactionId || frontendId++,
         }))
 
-    } else if (mode === 'edit' || mode === 'view') {
+    } else if (mode === VIEW_MODE.EDIT || mode === VIEW_MODE.VIEW) {
         // Map backend fields to frontend form fields.
         // Mileage is now per-expense (expense.mileage from the backend).
         return data.map((expense, index) => ({

@@ -1,5 +1,5 @@
 import AddExpenseForm from './AddExpenseForm.jsx'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import ContentHeader from '../../common/layout/ContentHeader.jsx'
 import { Button } from 'primereact/button'
 import { Dialog } from 'primereact/dialog'
@@ -41,6 +41,7 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
 
     const [expenseErrors, setExpenseErrors] = useState([])
     const [claimErrors, setClaimErrors] = useState()
+    const [mileageHeaderErrors, setMileageHeaderErrors] = useState({})
     const [validationDialog, setValidationDialog] = useState({ visible: false, header: '', message: '' })
     const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -56,26 +57,21 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
     }
     const [mileageData, setMileageData] = useState(initialMileageData)
 
-    const isFetchingRate = useRef(false)
-
     // Fetch mileage rate from settings on mount
     useEffect(() => {
-        if (!isFetchingRate.current) {
-            isFetchingRate.current = true
-            const fetchMileageRate = async () => {
-                try {
-                    const response = await api.get('settings')
-                    if (response.data?.mileage_rate !== undefined) {
-                        setMileageRate(parseFloat(response.data.mileage_rate))
-                    }
-                } catch (error) {
-                    // Error handled by caller
-                } finally {
-                    isFetchingRate.current = false
+        let cancelled = false
+        const fetchRate = async () => {
+            try {
+                const response = await api.get('settings')
+                if (!cancelled && response.data?.mileage_rate !== undefined) {
+                    setMileageRate(parseFloat(response.data.mileage_rate))
                 }
+            } catch {
+                // Error handled by caller
             }
-            fetchMileageRate()
         }
+        fetchRate()
+        return () => { cancelled = true }
     }, [])
 
     const handleMileageToggle = (checked) => {
@@ -110,9 +106,6 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
 
     const [expenseFormData, setExpenseFormData] = useState(initialExpenseFormData)
 
-    useEffect(() => {
-    }, [claimFormData, expenseFormData, tags])
-
     // Auto-fill expense form amount from mileage total when mileage transactions change
     const currentMileageTotal = includeMileage
         ? (mileageData.transactions || []).reduce((sum, tx) => sum + (parseFloat(tx.total_amount) || 0), 0)
@@ -130,6 +123,7 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
                 ...(prev.transactionDate === '' && firstTx?.transaction_date ? { transactionDate: firstTx.transaction_date } : {}),
             }))
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [includeMileage, currentMileageTotal])
 
     const handleFormFieldChange = (e) => {
@@ -160,6 +154,19 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
         const validation = validateForm(expenseFormData, expenseSchema)
         setExpenseErrors(validation.errors)
 
+        // Validate mileage header (period dates) when binding mileage to an expense
+        let mileageHeaderValid = true
+        if (includeMileage && mileageData.transactions?.length > 0) {
+            const headerValidation = validateForm(
+                { period_of_from: mileageData.period_of_from, period_of_to: mileageData.period_of_to },
+                validationSchemas.mileageHeader,
+            )
+            setMileageHeaderErrors(headerValidation.errors)
+            mileageHeaderValid = headerValidation.isValid
+        } else {
+            setMileageHeaderErrors({})
+        }
+
         // files is already an array of {file, url} objects
         const completeExpenseData = {
             ...expenseFormData,
@@ -177,7 +184,7 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
             } : {}),
         }
 
-        if (!validation.isValid) {
+        if (!validation.isValid || !mileageHeaderValid) {
             setValidationDialog({
                 visible: true,
                 header: t('validation.error', 'Validation Error'),
@@ -355,6 +362,7 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
                         setMileageData={setMileageData}
                         mileageRate={mileageRate}
                         toastRef={toastRef}
+                        headerErrors={mileageHeaderErrors}
                     />
                 </div>
             )}

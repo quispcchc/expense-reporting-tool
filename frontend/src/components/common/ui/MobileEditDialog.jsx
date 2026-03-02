@@ -14,8 +14,8 @@ function MobileEditDialog({ visible, header, onHide, onSave, children }) {
             className="mobile-edit-dialog"
             footer={
                 <div className="flex justify-end gap-2">
-                    <Button label={t('common.cancel', 'Cancel')} icon="pi pi-times" outlined onClick={onHide} />
-                    <Button label={t('common.save', 'Save')} icon="pi pi-check" onClick={onSave} />
+                    <Button label={t('common.cancel', 'Cancel')} icon="pi pi-times" outlined onClick={onHide} type="button" />
+                    <Button label={t('common.save', 'Save')} icon="pi pi-check" onClick={onSave} type="button" />
                 </div>
             }
         >

@@ -1,6 +1,6 @@
 import { useAuth } from '../../../contexts/AuthContext.jsx'
 import { Navigate, useLocation } from 'react-router-dom'
-import Unauthorized from '../../../pages/shared/Unauthrized.jsx'
+import Unauthorized from '../../../pages/shared/Unauthorized.jsx'
 import Loader from '../../common/ui/Loader.jsx'
 
 function ProtectedRoute({ children, allowedRoles = [] }) {

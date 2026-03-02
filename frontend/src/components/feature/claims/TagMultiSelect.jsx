@@ -1,13 +1,12 @@
-import React, { use } from 'react'
+import React, { useEffect } from 'react'
 import { MultiSelect } from 'primereact/multiselect'
 import { useLookups } from '../../../contexts/LookupContext.jsx'
 import { useTranslation } from 'react-i18next'
 import { useTags } from '../../../contexts/TagContext.jsx'
-import { useEffect } from 'react'
 
 export default function TagMultiSelect({ value, onChange }) {
     const { t } = useTranslation()
-    const { lookups, loading } = useLookups()
+    const { loading } = useLookups()
     const { tags, fetchTags } = useTags()
     
     useEffect(() => {

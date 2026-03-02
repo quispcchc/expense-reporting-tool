@@ -2,7 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Models\Claim;
+use App\Enums\ClaimStatus;
+use App\Enums\RoleLevel;
 use App\Models\Expense;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -118,8 +119,8 @@ class ExpenseControllerTest extends TestCase
     {
         $this->seedLookups();
         Notification::fake();
-        $superAdmin = $this->createAuthenticatedUser(1);
-        $regularUser = $this->createUser(['role_id' => 4]);
+        $superAdmin = $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
+        $regularUser = $this->createUser(['role_id' => RoleLevel::USER]);
         $claim = $this->createClaimWithExpenses($regularUser);
         $expense = $claim->expenses->first();
 
@@ -127,15 +128,15 @@ class ExpenseControllerTest extends TestCase
 
         $response->assertStatus(200);
         $expense->refresh();
-        $this->assertEquals(2, $expense->approval_status_id);
+        $this->assertEquals(ClaimStatus::APPROVED, $expense->approval_status_id);
     }
 
     public function test_approving_all_expenses_cascades_claim_to_approved()
     {
         $this->seedLookups();
         Notification::fake();
-        $superAdmin = $this->createAuthenticatedUser(1);
-        $regularUser = $this->createUser(['role_id' => 4]);
+        $superAdmin = $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
+        $regularUser = $this->createUser(['role_id' => RoleLevel::USER]);
         $claim = $this->createClaimWithExpenses($regularUser, 2);
         $expenses = $claim->expenses;
 
@@ -143,29 +144,29 @@ class ExpenseControllerTest extends TestCase
         $this->postJson("/api/expenses/{$expenses[1]->expense_id}/approve");
 
         $claim->refresh();
-        $this->assertEquals(2, $claim->claim_status_id);
+        $this->assertEquals(ClaimStatus::APPROVED, $claim->claim_status_id);
     }
 
     public function test_approving_one_of_two_expenses_keeps_claim_pending()
     {
         $this->seedLookups();
         Notification::fake();
-        $superAdmin = $this->createAuthenticatedUser(1);
-        $regularUser = $this->createUser(['role_id' => 4]);
+        $superAdmin = $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
+        $regularUser = $this->createUser(['role_id' => RoleLevel::USER]);
         $claim = $this->createClaimWithExpenses($regularUser, 2);
         $expense = $claim->expenses->first();
 
         $this->postJson("/api/expenses/{$expense->expense_id}/approve");
 
         $claim->refresh();
-        $this->assertEquals(1, $claim->claim_status_id);
+        $this->assertEquals(ClaimStatus::PENDING, $claim->claim_status_id);
     }
 
     public function test_unauthorized_user_cannot_approve_expense()
     {
         $this->seedLookups();
-        $regularUser = $this->createAuthenticatedUser(4);
-        $otherUser = $this->createUser(['role_id' => 4]);
+        $regularUser = $this->createAuthenticatedUser(RoleLevel::USER);
+        $otherUser = $this->createUser(['role_id' => RoleLevel::USER]);
         $claim = $this->createClaimWithExpenses($otherUser);
         $expense = $claim->expenses->first();
 
@@ -180,8 +181,8 @@ class ExpenseControllerTest extends TestCase
     {
         $this->seedLookups();
         Notification::fake();
-        $superAdmin = $this->createAuthenticatedUser(1);
-        $regularUser = $this->createUser(['role_id' => 4]);
+        $superAdmin = $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
+        $regularUser = $this->createUser(['role_id' => RoleLevel::USER]);
         $claim = $this->createClaimWithExpenses($regularUser);
         $expense = $claim->expenses->first();
 
@@ -189,29 +190,29 @@ class ExpenseControllerTest extends TestCase
 
         $response->assertStatus(200);
         $expense->refresh();
-        $this->assertEquals(3, $expense->approval_status_id);
+        $this->assertEquals(ClaimStatus::REJECTED, $expense->approval_status_id);
     }
 
     public function test_rejecting_any_expense_cascades_claim_to_rejected()
     {
         $this->seedLookups();
         Notification::fake();
-        $superAdmin = $this->createAuthenticatedUser(1);
-        $regularUser = $this->createUser(['role_id' => 4]);
+        $superAdmin = $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
+        $regularUser = $this->createUser(['role_id' => RoleLevel::USER]);
         $claim = $this->createClaimWithExpenses($regularUser, 2);
         $expense = $claim->expenses->first();
 
         $this->postJson("/api/expenses/{$expense->expense_id}/reject");
 
         $claim->refresh();
-        $this->assertEquals(3, $claim->claim_status_id);
+        $this->assertEquals(ClaimStatus::REJECTED, $claim->claim_status_id);
     }
 
     public function test_unauthorized_user_cannot_reject_expense()
     {
         $this->seedLookups();
-        $regularUser = $this->createAuthenticatedUser(4);
-        $otherUser = $this->createUser(['role_id' => 4]);
+        $regularUser = $this->createAuthenticatedUser(RoleLevel::USER);
+        $otherUser = $this->createUser(['role_id' => RoleLevel::USER]);
         $claim = $this->createClaimWithExpenses($otherUser);
         $expense = $claim->expenses->first();
 

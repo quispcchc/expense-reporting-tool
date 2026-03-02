@@ -1,5 +1,5 @@
 import React from 'react'
-import { getFileIcon } from './getFileIcon.jsx'
+import { getFileIcon } from '../../../../utils/getFileIcon.jsx'
 
 // Component to display a single file preview with icon, name link, and optional remove button
 function FilePreview({ selectedFile, showRemoveButton = true, handleRemoveFile }) {

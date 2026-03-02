@@ -17,6 +17,7 @@ const AmountRangeFilter = ({ options }) => {
         if (startAmount && endAmount) {
             options.filterApplyCallback([startAmount, endAmount]);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [startAmount, endAmount]);
 
     return (

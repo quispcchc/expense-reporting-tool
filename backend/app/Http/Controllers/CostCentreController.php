@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\RoleLevel;
 use App\Models\CostCentre;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
@@ -28,10 +29,10 @@ class CostCentreController extends Controller
         $roleLevel = $user->role->role_level;
 
         // Super admin sees everything
-        if ($roleLevel === 1) {
+        if ($roleLevel === RoleLevel::SUPER_ADMIN) {
             $cacheKey = 'cost_centres_all';
             $costCentres = Cache::remember($cacheKey, self::CACHE_TTL, function () {
-                return CostCentre::with(['activeStatus', 'department'])->get();
+                return CostCentre::with(['activeStatus', 'department'])->orderBy('cost_centre_id')->get();
             });
 
             return response()->json([
@@ -45,6 +46,7 @@ class CostCentreController extends Controller
         $costCentres = Cache::remember($cacheKey, self::CACHE_TTL, function () use ($user) {
             return CostCentre::where('department_id', $user->department_id)
                 ->with(['activeStatus', 'department'])
+                ->orderBy('cost_centre_id')
                 ->get();
         });
 
@@ -161,7 +163,7 @@ class CostCentreController extends Controller
     {
         // Clear the main cache
         Cache::forget('cost_centres_all');
-        
+
         // Clear department-specific caches (we need to clear all possible department caches)
         // Since we don't track which departments have cached data, we use cache tags in production
         // For now, we'll clear common patterns

@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\RoleLevel;
 use App\Models\Department;
 use App\Models\User;
 
@@ -13,7 +14,7 @@ class DepartmentPolicy
      */
     public function create(User $user): bool
     {
-        return $user->role->role_level === 1;
+        return $user->role->role_level === RoleLevel::SUPER_ADMIN;
     }
 
     /**
@@ -23,11 +24,11 @@ class DepartmentPolicy
      */
     public function update(User $user, Department $department): bool
     {
-        if ($user->role->role_level === 1) {
+        if ($user->role->role_level === RoleLevel::SUPER_ADMIN) {
             return true;
         }
 
-        if ($user->role->role_level === 2) {
+        if ($user->role->role_level === RoleLevel::DEPARTMENT_MANAGER) {
             return $department->department_id === $user->department_id;
         }
 
@@ -41,11 +42,11 @@ class DepartmentPolicy
      */
     public function delete(User $user, Department $department): bool
     {
-        if ($user->role->role_level === 1) {
+        if ($user->role->role_level === RoleLevel::SUPER_ADMIN) {
             return true;
         }
 
-        if ($user->role->role_level === 2) {
+        if ($user->role->role_level === RoleLevel::DEPARTMENT_MANAGER) {
             return $department->department_id === $user->department_id;
         }
 

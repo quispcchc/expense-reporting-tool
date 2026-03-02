@@ -18,7 +18,7 @@ class ExpenseController extends Controller
 
     public function index()
     {
-        return response()->json(Expense::all());
+        return response()->json(Expense::orderBy('expense_id')->get());
     }
 
     public function update(Request $request, $id)

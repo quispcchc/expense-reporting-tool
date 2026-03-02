@@ -153,16 +153,8 @@ class ClaimExportNaTest extends TestCase
 
         $response = $this->get("/api/claims/{$claim->claim_id}/export-pdf");
 
-        // mPDF may not be available in test env — accept 200 (PDF) or 500 (mPDF missing)
-        $status = $response->getStatusCode();
-        $this->assertTrue(
-            in_array($status, [200, 500]),
-            "Expected 200 or 500, got {$status}"
-        );
-
-        if ($status === 200) {
-            $this->assertStringContainsString('application/pdf', $response->headers->get('Content-Type'));
-        }
+        $response->assertStatus(200);
+        $this->assertStringContainsString('application/pdf', $response->headers->get('Content-Type'));
     }
 
     public function test_pdf_export_with_mileage_contains_mileage_data()

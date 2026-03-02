@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\ActiveStatus;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -36,7 +37,7 @@ class RoleControllerTest extends TestCase
         $response = $this->postJson('/api/roles', [
             'role_id' => 5,
             'role_name' => 'moderator',
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
             'role_level' => 5,
         ]);
 
@@ -55,7 +56,7 @@ class RoleControllerTest extends TestCase
 
         $response = $this->postJson('/api/roles', [
             'role_id' => 5,
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
         $response->assertStatus(422);
@@ -69,7 +70,7 @@ class RoleControllerTest extends TestCase
         $response = $this->postJson('/api/roles', [
             'role_id' => 5,
             'role_name' => 'super_admin',
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
         $response->assertStatus(422);
@@ -81,7 +82,7 @@ class RoleControllerTest extends TestCase
         $this->createAuthenticatedUser();
 
         $response = $this->putJson('/api/roles/4', [
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
             'role_name' => 'basic_user',
         ]);
 
@@ -99,7 +100,7 @@ class RoleControllerTest extends TestCase
         $this->createAuthenticatedUser();
 
         $response = $this->putJson('/api/roles/4', [
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
             'role_name' => 'user',
         ]);
 
@@ -115,7 +116,7 @@ class RoleControllerTest extends TestCase
         DB::table('roles')->insert([
             'role_id' => 5,
             'role_name' => 'temporary',
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
             'role_level' => 5,
         ]);
 

@@ -1,13 +1,13 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Claim;
-use App\Models\MileageTransaction;
 
 class Mileage extends Model
 {
     protected $table = 'mileage';
+
     protected $primaryKey = 'mileage_id';
 
     protected $fillable = [

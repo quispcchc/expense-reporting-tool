@@ -10,7 +10,7 @@ class RoleController extends Controller
     // List all roles
     public function index()
     {
-        return response()->json(Role::all());
+        return response()->json(Role::orderBy('role_id')->get());
     }
 
     // Create a new role

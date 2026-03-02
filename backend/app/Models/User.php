@@ -31,6 +31,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'active_status_id',
         'department_id',
         'role_id',
+        'can_self_approve',
         'position_id',
         'email_verified_at',
     ];
@@ -84,6 +85,7 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'can_self_approve' => 'boolean',
         ];
     }
 

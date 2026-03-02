@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ActiveStatus;
+use App\Enums\RoleLevel;
 use App\Models\Position;
 use App\Models\Role;
 use App\Models\User;
@@ -18,7 +20,7 @@ class CreateUserController extends Controller
         $authUser = $request->user();
 
         // Check if user is admin or super_admin
-        if (! $authUser || ! in_array($authUser->role?->role_name, ['admin', 'super_admin'])) {
+        if (! $authUser || $authUser->role?->role_level > RoleLevel::DEPARTMENT_MANAGER) {
             return response()->json([
                 'message' => 'Unauthorized. Only admin and super admin can create users.',
             ], 403);
@@ -33,14 +35,15 @@ class CreateUserController extends Controller
             'team_ids' => 'nullable|array',
             'team_ids.*' => 'exists:teams,team_id',
             'position_name' => 'nullable|string|max:255',
+            'can_self_approve' => 'nullable|boolean',
         ]);
 
         // Authorization checks
         $newRole = Role::find($request->role_id);
 
         // Only super_admin can grant admin or super_admin roles
-        if ($newRole && in_array($newRole->role_name, ['admin', 'super_admin'])) {
-            if ($authUser->role?->role_name !== 'super_admin') {
+        if ($newRole && $newRole->role_level <= RoleLevel::DEPARTMENT_MANAGER) {
+            if ($authUser->role?->role_level !== RoleLevel::SUPER_ADMIN) {
                 return response()->json([
                     'message' => 'Unauthorized. Only super admin can grant admin privileges.',
                 ], 403);
@@ -48,7 +51,7 @@ class CreateUserController extends Controller
         }
 
         // If auth user is admin (not super_admin), they can only create users in their own department
-        if ($authUser->role?->role_name === 'admin' && $authUser->role?->role_name !== 'super_admin') {
+        if ($authUser->role?->role_level === RoleLevel::DEPARTMENT_MANAGER) {
             if ($request->filled('department_id') && $request->department_id !== $authUser->department_id) {
                 return response()->json([
                     'message' => 'Unauthorized. You can only create users in your own department.',
@@ -74,7 +77,7 @@ class CreateUserController extends Controller
                 $position = Position::create([
                     'position_name' => $positionName,
                     'position_desc' => null,
-                    'active_status_id' => 1,
+                    'active_status_id' => ActiveStatus::ACTIVE,
                 ]);
             }
 
@@ -91,9 +94,10 @@ class CreateUserController extends Controller
 
             'user_pass' => null,
             'role_id' => $request->role_id,
+            'can_self_approve' => $request->boolean('can_self_approve', false),
             'department_id' => $request->department_id,
             'position_id' => $positionId,
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
             'email_verified_at' => null,
         ]);
 
@@ -135,7 +139,8 @@ class CreateUserController extends Controller
                     ];
                 }),
                 'active_status_id' => $user->active_status_id,
-            ]
+                'can_self_approve' => $user->can_self_approve,
+            ],
         ], 201);
     }
 }

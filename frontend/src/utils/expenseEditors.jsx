@@ -2,7 +2,7 @@ import React from 'react'
 import { InputText } from 'primereact/inputtext'
 import { InputNumber } from 'primereact/inputnumber'
 import { Dropdown } from 'primereact/dropdown'
-import { APP_SETTINGS } from '../../../../config/settings.js'
+import { APP_SETTINGS } from '../config/settings.js'
 
 export const expenseTextEditor = (editorOptions) => (
     <InputText

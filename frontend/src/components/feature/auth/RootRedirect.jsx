@@ -1,6 +1,7 @@
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../../../contexts/AuthContext'
 import { useTranslation } from 'react-i18next'
+import { ROLE_NAME } from '../../../config/constants.js'
 
 const RootRedirect = () => {
     const { t } = useTranslation()
@@ -11,7 +12,7 @@ const RootRedirect = () => {
     }
 
     if (isAuthenticated() && authUser) {
-        const path = authUser.role_name === 'regular_user' ? '/user' : '/admin'
+        const path = authUser.role_name === ROLE_NAME.USER ? '/user' : '/admin'
         return <Navigate to={path} replace />
     }
 

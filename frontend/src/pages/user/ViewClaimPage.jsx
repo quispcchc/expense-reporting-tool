@@ -9,6 +9,7 @@ import EditableExpansionTable from '../../components/feature/claims/expansionTab
 import Loader from '../../components/common/ui/Loader.jsx'
 import { useAuth } from '../../contexts/AuthContext.jsx'
 import { useTranslation } from 'react-i18next'
+import { ROLE_NAME, VIEW_MODE } from '../../config/constants.js'
 
 function ViewClaimPage() {
     const { t } = useTranslation()
@@ -17,19 +18,20 @@ function ViewClaimPage() {
     const [curClaim, setCurClaim] = useState()
 
     const { authUser } = useAuth()
-    const path = authUser.role_name === 'regular_user' ? '/user' : '/admin'
+    const path = authUser.role_name === ROLE_NAME.USER ? '/user' : '/admin'
 
     const fetchClaim = async () => {
         try {
             const data = await getClaimById(Number(claimId))
             setCurClaim(data)
-        } catch (error) {
+        } catch {
             // Error handled by caller
         }
     }
 
     useEffect(() => {
         fetchClaim()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [claimId, getClaimById])
 
     if (!curClaim) return <Loader />
@@ -41,15 +43,15 @@ function ViewClaimPage() {
                 <ClaimStatus curClaim={curClaim} />
             </div>
 
-            <div className="flex flex-wrap gap-5 my-5">
-                <div className="flex-1 min-w-[280px]"><ClaimDetail curClaim={curClaim} onClaimRefetch={fetchClaim} /></div>
-                <div className="flex-1 min-w-[280px]">
+            <div className="flex flex-col lg:flex-row gap-5 my-5">
+                <div className="flex-1 min-w-0"><ClaimDetail curClaim={curClaim} onClaimRefetch={fetchClaim} /></div>
+                <div className="flex-1 min-w-0">
                     {/* when in view claim mode, disable add note function*/}
-                    <ClaimNotes notes={curClaim.notes} curClaim={curClaim} mode='view' />
+                    <ClaimNotes notes={curClaim.notes} curClaim={curClaim} mode={VIEW_MODE.VIEW} />
                 </div>
             </div>
 
-            <EditableExpansionTable data={curClaim.expenses} curClaim={curClaim} mode='view' />
+            <EditableExpansionTable data={curClaim.expenses} curClaim={curClaim} mode={VIEW_MODE.VIEW} />
 
         </div>
     )

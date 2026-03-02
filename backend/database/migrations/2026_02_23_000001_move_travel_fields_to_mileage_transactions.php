@@ -16,13 +16,13 @@ return new class extends Migration
         });
 
         // 2️ Copy data from mileage → mileage_transactions
-        DB::statement("
+        DB::statement('
             UPDATE mileage_transactions mt
             SET travel_from = m.travel_from,
                 travel_to   = m.travel_to
             FROM mileage m
             WHERE mt.mileage_id = m.mileage_id
-        ");
+        ');
 
         // 3️ Drop columns from mileage
         Schema::table('mileage', function (Blueprint $table) {
@@ -39,7 +39,7 @@ return new class extends Migration
         });
 
         // 2️ Copy data back (Postgres-safe way)
-        DB::statement("
+        DB::statement('
             UPDATE mileage m
             SET travel_from = mt.travel_from,
                 travel_to   = mt.travel_to
@@ -52,7 +52,7 @@ return new class extends Migration
                 ORDER BY mileage_id
             ) mt
             WHERE m.mileage_id = mt.mileage_id
-        ");
+        ');
 
         // 3️ Drop columns from mileage_transactions
         Schema::table('mileage_transactions', function (Blueprint $table) {

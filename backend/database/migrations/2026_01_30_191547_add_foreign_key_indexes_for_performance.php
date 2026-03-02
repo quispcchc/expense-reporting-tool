@@ -11,18 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table("departments", function (Blueprint $table) {
-            $table->index("active_status_id");
+        Schema::table('departments', function (Blueprint $table) {
+            $table->index('active_status_id');
         });
 
-        Schema::table("teams", function (Blueprint $table) {
-            $table->index("department_id");
-            $table->index("active_status_id");
+        Schema::table('teams', function (Blueprint $table) {
+            $table->index('department_id');
+            $table->index('active_status_id');
         });
 
-        Schema::table("cost_centres", function (Blueprint $table) {
-            $table->index("department_id");
-            $table->index("active_status_id");
+        Schema::table('cost_centres', function (Blueprint $table) {
+            $table->index('department_id');
+            $table->index('active_status_id');
         });
     }
 
@@ -31,18 +31,18 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table("departments", function (Blueprint $table) {
-            $table->dropIndex(["active_status_id"]);
+        Schema::table('departments', function (Blueprint $table) {
+            $table->dropIndex(['active_status_id']);
         });
 
-        Schema::table("teams", function (Blueprint $table) {
-            $table->dropIndex(["department_id"]);
-            $table->dropIndex(["active_status_id"]);
+        Schema::table('teams', function (Blueprint $table) {
+            $table->dropIndex(['department_id']);
+            $table->dropIndex(['active_status_id']);
         });
 
-        Schema::table("cost_centres", function (Blueprint $table) {
-            $table->dropIndex(["department_id"]);
-            $table->dropIndex(["active_status_id"]);
+        Schema::table('cost_centres', function (Blueprint $table) {
+            $table->dropIndex(['department_id']);
+            $table->dropIndex(['active_status_id']);
         });
     }
 };

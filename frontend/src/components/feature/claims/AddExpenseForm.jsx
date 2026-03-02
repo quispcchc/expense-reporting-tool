@@ -1,6 +1,5 @@
-import React, { useEffect } from 'react'
-import { useTags } from '../../../contexts/TagContext.jsx'
-import UploadAttachment from './uploadAttchment/UploadAttachment.jsx'
+import React from 'react'
+import UploadAttachment from './uploadAttachment/UploadAttachment.jsx'
 import TagMultiSelect from './TagMultiSelect.jsx'
 import { Button } from 'primereact/button'
 import Input from '../../common/ui/Input.jsx'
@@ -8,12 +7,12 @@ import Select from '../../common/ui/Select.jsx'
 import EditableExpansionTable from './expansionTable/EditableExpansionTable.jsx'
 import { useLookups } from '../../../contexts/LookupContext.jsx'
 import { useTranslation } from 'react-i18next'
+import { VIEW_MODE } from '../../../config/constants.js'
 
 
 function AddExpenseForm({
     claimFormData,
     expenseFormData,
-    onSetExpenseForm,
     onClaimItemsUpdate,
     onExpenseChange,
     onAddExpense,
@@ -189,7 +188,7 @@ function AddExpenseForm({
 
             {/* Expansion table showing claim items in create mode */}
             <EditableExpansionTable data={claimFormData.claimItems} onClaimItemsUpdate={onClaimItemsUpdate}
-                mode="create" toastRef={toastRef} />
+                mode={VIEW_MODE.CREATE} toastRef={toastRef} />
 
         </div>
     )

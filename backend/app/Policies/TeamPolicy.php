@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\RoleLevel;
 use App\Models\Team;
 use App\Models\User;
 
@@ -14,11 +15,11 @@ class TeamPolicy
      */
     public function create(User $user, Team $team): bool
     {
-        if ($user->role->role_level === 1) {
+        if ($user->role->role_level === RoleLevel::SUPER_ADMIN) {
             return true;
         }
 
-        if ($user->role->role_level === 2) {
+        if ($user->role->role_level === RoleLevel::DEPARTMENT_MANAGER) {
             return $team->department_id === $user->department_id;
         }
 
@@ -32,11 +33,11 @@ class TeamPolicy
      */
     public function update(User $user, Team $team): bool
     {
-        if ($user->role->role_level === 1) {
+        if ($user->role->role_level === RoleLevel::SUPER_ADMIN) {
             return true;
         }
 
-        if ($user->role->role_level === 2) {
+        if ($user->role->role_level === RoleLevel::DEPARTMENT_MANAGER) {
             return $team->department_id === $user->department_id;
         }
 
@@ -50,11 +51,11 @@ class TeamPolicy
      */
     public function delete(User $user, Team $team): bool
     {
-        if ($user->role->role_level === 1) {
+        if ($user->role->role_level === RoleLevel::SUPER_ADMIN) {
             return true;
         }
 
-        if ($user->role->role_level === 2) {
+        if ($user->role->role_level === RoleLevel::DEPARTMENT_MANAGER) {
             return $team->department_id === $user->department_id;
         }
 

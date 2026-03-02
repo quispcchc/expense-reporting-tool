@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import mapExpenseData from '../../../src/components/feature/claims/expansionTable/mapExpenseData.js'
+import mapExpenseData from '../../../src/utils/mapExpenseData.js'
 
 // Mock the API_BASE_URL
 vi.mock('../../../src/api/api.js', () => ({

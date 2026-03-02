@@ -27,6 +27,7 @@ function VerifyEmailPage() {
     const [loading, setLoading] = useState(false)
     const [resendLoading, setResendLoading] = useState(false)
     const [isAlreadyVerified, setIsAlreadyVerified] = useState(false)
+    const redirectTimerRef = useRef(null)
 
     useEffect(() => {
         const email = searchParams.get('email')
@@ -42,6 +43,8 @@ function VerifyEmailPage() {
             return
         }
 
+        let cancelled = false
+
         // Check if email is already verified using the email_verified_at field
         const checkVerificationStatus = async () => {
             try {
@@ -49,7 +52,7 @@ function VerifyEmailPage() {
                     email: email,
                 })
 
-                if (response.data.is_verified) {
+                if (!cancelled && response.data.is_verified) {
                     setIsAlreadyVerified(true)
                     showToast(toastRef, {
                         severity: 'info',
@@ -57,13 +60,24 @@ function VerifyEmailPage() {
                         detail: response.data.message,
                     })
                 }
-            } catch (error) {
+            } catch {
                 // If endpoint fails, continue to show the form
             }
         }
 
         checkVerificationStatus()
+
+        return () => { cancelled = true }
     }, [searchParams, t])
+
+    // Clean up redirect timer on unmount
+    useEffect(() => {
+        return () => {
+            if (redirectTimerRef.current) {
+                clearTimeout(redirectTimerRef.current)
+            }
+        }
+    }, [])
 
     const handleChange = (e) => {
         const { name, value } = e.target
@@ -108,7 +122,7 @@ function VerifyEmailPage() {
 
         setLoading(true)
         try {
-            const response = await api.post('/verify-email', {
+            await api.post('/verify-email', {
                 email: formData.email,
                 token: formData.token,
                 password: formData.password,
@@ -122,7 +136,7 @@ function VerifyEmailPage() {
             })
 
             // Redirect to login after 2 seconds
-            setTimeout(() => {
+            redirectTimerRef.current = setTimeout(() => {
                 navigate('/login')
             }, 2000)
         } catch (error) {

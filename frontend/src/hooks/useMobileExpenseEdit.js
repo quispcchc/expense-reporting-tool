@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { validateForm } from '../../../../utils/validation/validator.js'
-import { validationSchemas } from '../../../../utils/validation/schemas.js'
+import { validateForm } from '../utils/validation/validator.js'
+import { validationSchemas } from '../utils/validation/schemas.js'
 
 /**
  * Hook encapsulating mobile expense edit state and handlers.

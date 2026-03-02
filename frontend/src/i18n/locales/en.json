@@ -218,7 +218,9 @@
         "enterPosition": "Enter position",
         "selectRole": "Select role",
         "userCreatedSuccess": "User created successfully. An email verification has been sent.",
-        "userCreatedError": "Failed to create user"
+        "userCreatedError": "Failed to create user",
+        "canSelfApprove": "Can self-approve corporate card claims",
+        "selfApprove": "Self-Approve"
     },
     "teams": {
         "title": "Teams",
@@ -363,6 +365,8 @@
         "amountNumeric": "Amount must be a number",
         "travelFromRequired": "Travel From is required",
         "travelToRequired": "Travel To is required",
+        "periodFromRequired": "Period From is required",
+        "periodToRequired": "Period To is required",
         "distanceMeterParkingRequired": "Distance, Meter, or Parking is required",
         "distanceNumeric": "Distance must be a number",
         "distanceNonNegative": "Distance cannot be negative",

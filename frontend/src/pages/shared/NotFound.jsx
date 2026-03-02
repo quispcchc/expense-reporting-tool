@@ -2,8 +2,9 @@ import React from 'react'
 import { useAuth } from '../../contexts/AuthContext.jsx'
 import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { ROLE_NAME } from '../../config/constants.js'
 
-function NotFound(props) {
+function NotFound() {
     const { t } = useTranslation()
     const navigate = useNavigate()
     const { authUser } = useAuth()
@@ -17,10 +18,11 @@ function NotFound(props) {
         }
     }
 
-    const getDashboardPath = () => {
+    const getHomePath
+      = () => {
         if (!authUser) return '/login'
-        if (authUser.role === 'user') return '/user'
-        if (authUser.role === 'admin' || authUser.role === 'super admin') return '/admin'
+        if (authUser.role_name === ROLE_NAME.USER) return '/user'
+        return '/admin'
     }
 
     return (
@@ -49,7 +51,7 @@ function NotFound(props) {
                         </button>
 
                         <Link
-                            to={getDashboardPath()}
+                            to={getHomePath()}
                             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                         >
                             <svg className="mr-2 -ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

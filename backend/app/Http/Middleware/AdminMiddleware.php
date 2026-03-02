@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\RoleLevel;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -16,7 +17,7 @@ class AdminMiddleware
         // Ensure the user is authenticated and has the admin role
         $user = $request->user();
 
-        if (! $user || $user->role !== 'admin') {
+        if (! $user || ! $user->role || $user->role->role_level > RoleLevel::DEPARTMENT_MANAGER) {
             return response()->json(['message' => 'Unauthorized. Admins only.'], 403);
         }
 

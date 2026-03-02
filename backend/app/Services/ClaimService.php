@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\ClaimStatus;
+use App\Enums\ClaimType;
 use App\Enums\RoleLevel;
 use App\Models\AppSetting;
 use App\Models\Claim;
@@ -27,9 +28,17 @@ class ClaimService
         $query = Claim::with(['expenses.receipts', 'expenses.mileage.transactions.receipts', 'claimType', 'department', 'team', 'status']);
 
         if ($role_level === RoleLevel::DEPARTMENT_MANAGER) {
-            // Department-level access
+            // Department-level access — include own corporate card claims if can_self_approve
             $query->where('department_id', $user->department_id)
-                ->where('user_id', '!=', $user->user_id);
+                ->where(function ($q) use ($user) {
+                    $q->where('user_id', '!=', $user->user_id);
+                    if ($user->can_self_approve) {
+                        $q->orWhere(function ($q2) use ($user) {
+                            $q2->where('user_id', $user->user_id)
+                                ->where('claim_type_id', ClaimType::CORPORATE_CARD);
+                        });
+                    }
+                });
 
         } elseif ($role_level === RoleLevel::TEAM_LEAD) {
             // Team-level access, exclude own claims and claims from other approvers
@@ -47,7 +56,7 @@ class ClaimService
 
         // else role_level 1 or super admin sees all claims
 
-        $claims = $query->get();
+        $claims = $query->orderBy('claim_id')->get();
 
         return $claims;
     }
@@ -71,32 +80,33 @@ class ClaimService
             'expenses.project',
             'expenses.mileage.transactions',
             'notes.user',
+            'claimApprovals.approvedByUser',
         ]);
 
         $query->when($filters['date_from'] ?? null, fn ($q, $v) => $q->where('claim_submitted', '>=', $v))
-              ->when($filters['date_to'] ?? null, fn ($q, $v) => $q->where('claim_submitted', '<=', $v . ' 23:59:59'))
-              ->when($filters['claim_type_id'] ?? null, fn ($q, $v) => $q->where('claim_type_id', $v))
-              ->when($filters['claim_status_id'] ?? null, fn ($q, $v) => $q->where('claim_status_id', $v))
-              ->when($filters['department_id'] ?? null, fn ($q, $v) => $q->where('department_id', $v))
-              ->when($filters['team_id'] ?? null, fn ($q, $v) => $q->where('team_id', $v))
-              ->when($filters['amount_min'] ?? null, fn ($q, $v) => $q->where('total_amount', '>=', $v))
-              ->when($filters['amount_max'] ?? null, fn ($q, $v) => $q->where('total_amount', '<=', $v))
-              ->when($filters['submitter'] ?? null, function ($q, $v) {
-                  $q->whereHas('user', function ($uq) use ($v) {
-                      $uq->where('first_name', 'like', "%{$v}%")
-                          ->orWhere('last_name', 'like', "%{$v}%");
-                  });
-              })
-              ->when($filters['project_id'] ?? null, function ($q, $v) {
-                  $q->whereHas('expenses', fn ($eq) => $eq->where('project_id', $v));
-              })
-              ->when($filters['cost_centre_id'] ?? null, function ($q, $v) {
-                  $q->whereHas('expenses', fn ($eq) => $eq->where('cost_centre_id', $v));
-              })
-              ->when($filters['tag_ids'] ?? null, function ($q, $v) {
-                  $tagIds = is_array($v) ? $v : explode(',', $v);
-                  $q->whereHas('expenses.tags', fn ($tq) => $tq->whereIn('tags.tag_id', $tagIds));
-              });
+            ->when($filters['date_to'] ?? null, fn ($q, $v) => $q->where('claim_submitted', '<=', $v.' 23:59:59'))
+            ->when($filters['claim_type_id'] ?? null, fn ($q, $v) => $q->where('claim_type_id', $v))
+            ->when($filters['claim_status_id'] ?? null, fn ($q, $v) => $q->where('claim_status_id', $v))
+            ->when($filters['department_id'] ?? null, fn ($q, $v) => $q->where('department_id', $v))
+            ->when($filters['team_id'] ?? null, fn ($q, $v) => $q->where('team_id', $v))
+            ->when($filters['amount_min'] ?? null, fn ($q, $v) => $q->where('total_amount', '>=', $v))
+            ->when($filters['amount_max'] ?? null, fn ($q, $v) => $q->where('total_amount', '<=', $v))
+            ->when($filters['submitter'] ?? null, function ($q, $v) {
+                $q->whereHas('user', function ($uq) use ($v) {
+                    $uq->where('first_name', 'like', "%{$v}%")
+                        ->orWhere('last_name', 'like', "%{$v}%");
+                });
+            })
+            ->when($filters['project_id'] ?? null, function ($q, $v) {
+                $q->whereHas('expenses', fn ($eq) => $eq->where('project_id', $v));
+            })
+            ->when($filters['cost_centre_id'] ?? null, function ($q, $v) {
+                $q->whereHas('expenses', fn ($eq) => $eq->where('cost_centre_id', $v));
+            })
+            ->when($filters['tag_ids'] ?? null, function ($q, $v) {
+                $tagIds = is_array($v) ? $v : explode(',', $v);
+                $q->whereHas('expenses.tags', fn ($tq) => $tq->whereIn('tags.tag_id', $tagIds));
+            });
 
         return $query->orderBy('claim_submitted', 'desc')->get();
     }
@@ -104,7 +114,9 @@ class ClaimService
     public function getClaimsByUserId(User $user)
     {
         return Claim::with(['expenses.receipts', 'expenses.mileage.transactions.receipts', 'claimType', 'department', 'team', 'status'])
-            ->where('user_id', $user->user_id)->get();
+            ->where('user_id', $user->user_id)
+            ->orderBy('claim_id')
+            ->get();
     }
 
     public function getClaimById(int $claimId)
@@ -298,7 +310,7 @@ class ClaimService
     /**
      * Shared logic for approving/rejecting with error handling
      */
-    private function updateClaimStatus(int $claimId, int $newStatusId, User $approver = null)
+    private function updateClaimStatus(int $claimId, int $newStatusId, ?User $approver = null)
     {
         DB::beginTransaction();
 

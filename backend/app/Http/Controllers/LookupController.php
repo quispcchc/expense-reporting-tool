@@ -27,17 +27,17 @@ class LookupController extends Controller
         // Cache all lookups together for better performance
         return Cache::remember('lookups_all', self::CACHE_TTL, function () {
             return $this->successResponse([
-                'roles' => Role::all(),
-                'teams' => Team::with('activeStatus')->get(),
-                'activeStatuses' => ActiveStatus::all(),
-                'positions' => Position::all(),
-                'departments' => Department::with('activeStatus')->get(),
-                'costCentres' => CostCentre::with(['department', 'activeStatus'])->get(),
-                'projects' => Project::all(),
-                'accountNums' => AccountNumber::all(),
-                'claimTypes' => ClaimType::all(),
-                'claimStatus' => ClaimStatus::all(),
-                'tags' => Tag::all(),
+                'roles' => Role::orderBy('role_id')->get(),
+                'teams' => Team::with('activeStatus')->orderBy('team_id')->get(),
+                'activeStatuses' => ActiveStatus::orderBy('active_status_id')->get(),
+                'positions' => Position::orderBy('position_id')->get(),
+                'departments' => Department::with('activeStatus')->orderBy('department_id')->get(),
+                'costCentres' => CostCentre::with(['department', 'activeStatus'])->orderBy('cost_centre_id')->get(),
+                'projects' => Project::orderBy('project_id')->get(),
+                'accountNums' => AccountNumber::orderBy('account_number_id')->get(),
+                'claimTypes' => ClaimType::orderBy('claim_type_id')->get(),
+                'claimStatus' => ClaimStatus::orderBy('claim_status_id')->get(),
+                'tags' => Tag::orderBy('tag_id')->get(),
             ]);
         });
     }

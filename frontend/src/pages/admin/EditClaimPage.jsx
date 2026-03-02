@@ -10,6 +10,7 @@ import Loader from '../../components/common/ui/Loader.jsx'
 import { Toast } from 'primereact/toast'
 import { ConfirmDialog } from 'primereact/confirmdialog'
 import { useTranslation } from 'react-i18next'
+import { VIEW_MODE } from '../../config/constants.js'
 
 
 function EditClaimPage() {
@@ -24,13 +25,14 @@ function EditClaimPage() {
             const data = await getClaimById(Number(claimId))
             setCurClaim(data)
         }
-        catch (error) {
+        catch {
             // Error handled by caller
         }
     }
 
     useEffect(() => {
         fetchClaim()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [claimId])
 
     const toast = useRef(null)
@@ -47,14 +49,14 @@ function EditClaimPage() {
                 <ClaimStatus curClaim={curClaim} />
             </div>
 
-            <div className="flex flex-wrap gap-5 my-5 items-stretch">
-                <div className="flex-1 flex min-w-[280px]"><ClaimDetail curClaim={curClaim} toastRef={toast} onClaimRefetch={fetchClaim} /></div>
-                <div className="flex-1 flex min-w-[280px]">
+            <div className="flex flex-col lg:flex-row gap-5 my-5 items-stretch">
+                <div className="flex-1 flex min-w-0"><ClaimDetail curClaim={curClaim} toastRef={toast} onClaimRefetch={fetchClaim} /></div>
+                <div className="flex-1 flex min-w-0">
                     <ClaimNotes curClaim={curClaim} toastRef={toast} />
                 </div>
             </div>
 
-            <EditableExpansionTable data={curClaim.expenses} curClaim={curClaim} mode="edit" toastRef={toast}
+            <EditableExpansionTable data={curClaim.expenses} curClaim={curClaim} mode={VIEW_MODE.EDIT} toastRef={toast}
                 onClaimUpdated={fetchClaim}
             />
 

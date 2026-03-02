@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ActiveStatus;
 use App\Models\User;
 use Illuminate\Http\Request; // require for API login
 use Illuminate\Support\Facades\Hash;
@@ -23,7 +24,7 @@ class LoginController extends Controller
             return $this->errorResponse(trans('messages.invalid_email_password'), 401);
         }
         // Check if user is inactive
-        if ($user->activeStatus && strtolower($user->activeStatus->active_status_name) === 'inactive') {
+        if ($user->active_status_id === ActiveStatus::INACTIVE) {
             return $this->errorResponse('Your account is inactive. Please contact the administrator.', 403);
         }
         // Check if email is verified

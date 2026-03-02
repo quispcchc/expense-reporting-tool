@@ -7,6 +7,7 @@ import api from '../../../api/api.js'
 import { showToast } from '../../../utils/helpers.js'
 import { useTranslation } from 'react-i18next'
 import { APPROVAL_STATUS } from '../../../config/constants.js'
+import { formatDate } from '../../../utils/formatters.js'
 
 // ClaimDetail component shows details of a single claim
 // Used in both view and edit claim pages
@@ -39,17 +40,9 @@ function ClaimDetail({ curClaim, toastRef, onClaimRefetch }) {
 
             showToast(toastRef, { severity: 'success', summary: t('common.success'), detail: t('claims.updateSuccess') })
             setIsEditing(false)
-        } catch (error) {
+        } catch {
             showToast(toastRef, { severity: 'error', summary: t('common.error'), detail: t('claims.updateError') })
         }
-    }
-
-    function getDepartmentName(id) {
-        return lookups.claimTypes?.find(c => c.claim_type_id === id)?.claim_type_name
-    }
-
-    function getTeamName(id) {
-        return lookups.teams?.find(t => t.team_id === id)?.team_name
     }
 
     // Safe getter for claimType with null checks
@@ -63,41 +56,37 @@ function ClaimDetail({ curClaim, toastRef, onClaimRefetch }) {
     return (
 
         <ComponentContainer>
-            <div className="flex justify-between items-start mb-4">
-                <div>
-                    <h5 className="text-xl font-semibold text-gray-800 mb-1">{t('claims.claimDetails')}</h5>
-                    <p className="text-sm text-gray-500">{t('claims.claimDetailDescription', 'View and manage the details of this expense claim submission.')}</p>
+            <div className="flex justify-between items-start gap-3 mb-4">
+                <div className="min-w-0">
+                    <h5 className="text-lg sm:text-xl font-semibold text-gray-800 mb-1">{t('claims.claimDetails')}</h5>
+                    <p className="text-xs sm:text-sm text-gray-500">{t('claims.claimDetailDescription', 'View and manage the details of this expense claim submission.')}</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-shrink-0">
                     {!isEditing && <Button
                         rounded
                         icon="pi pi-pencil"
                         onClick={() => setIsEditing(prev => !prev)}
                     />}
-                    <div>
-                        {isEditing && (
-                            <div className="flex gap-2">
-                                <Button
-                                    rounded
-                                    icon="pi pi-check"
-                                    onClick={handleSelectSave}
-                                />
-
-                                <Button
-                                    icon="pi pi-times"
-                                    rounded
-                                    text
-                                    aria-label={t('common.cancel')}
-                                    onClick={() => {
-                                        setIsEditing(false)
-                                        setClaimDetail({ team_id: curClaim.team_id, claim_type_id: curClaim.claim_type_id })
-                                    }}
-                                />
-                            </div>
-                        )}
-                    </div>
+                    {isEditing && (
+                        <div className="flex gap-2">
+                            <Button
+                                rounded
+                                icon="pi pi-check"
+                                onClick={handleSelectSave}
+                            />
+                            <Button
+                                icon="pi pi-times"
+                                rounded
+                                text
+                                aria-label={t('common.cancel')}
+                                onClick={() => {
+                                    setIsEditing(false)
+                                    setClaimDetail({ team_id: curClaim.team_id, claim_type_id: curClaim.claim_type_id })
+                                }}
+                            />
+                        </div>
+                    )}
                 </div>
-
             </div>
 
             <table className="table-fixed w-full text-left">
@@ -122,7 +111,7 @@ function ClaimDetail({ curClaim, toastRef, onClaimRefetch }) {
                         onChange={(value) => handleSelectChange('claim_type_id', value)}
                     />
 
-                    <ClaimDetailRow title={t('claims.dateSubmitted', 'Date Submitted') + ':'} value={submittedDate} />
+                    <ClaimDetailRow title={t('claims.dateSubmitted', 'Date Submitted') + ':'} value={formatDate(submittedDate)} />
                     <ClaimDetailRow title={t('claims.employee', 'Employee') + ':'} value={fullName} />
                     <ClaimDetailRow title={t('users.position') + ':'} value={position} />
                     <ClaimDetailRow title={t('users.department') + ':'} value={department} />

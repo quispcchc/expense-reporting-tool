@@ -38,10 +38,10 @@ function UsersPage() {
     const [editingRows, setEditingRows] = useState({})
     // Tracks department changes per editing row: { [userId]: departmentId }
     // Both state (to trigger re-renders) and refs (to avoid stale closures in PrimeReact's memoized callbacks)
-    const [editingDepartmentMap, setEditingDepartmentMap] = useState({})
+    const [, setEditingDepartmentMap] = useState({})
     const editingDepartmentMapRef = useRef({})
     // Tracks teams per editing row so we can clear them when department changes: { [userId]: [teamId, ...] }
-    const [editingTeamsMap, setEditingTeamsMap] = useState({})
+    const [, setEditingTeamsMap] = useState({})
     const editingTeamsMapRef = useRef({})
 
     // Keep refs in sync with state
@@ -108,7 +108,6 @@ function UsersPage() {
     const { globalFilterValue, filters, onGlobalFilterChange } = useDataTableFilter()
 
     // Get teams and roles from lookups
-    const teamOptions = lookups.teams.map(t => ({ label: t.team_name, value: t.team_id }))
     const roleOptions = lookups.roles.map(r => ({ label: r.role_name.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase()), value: r.role_id }))
     const statusOptions = lookups.activeStatuses.map(s => ({ label: s.active_status_name, value: s.active_status_id }))
     const departmentOptions = lookups.departments.map(d => ({ label: d.department_name, value: d.department_id }))

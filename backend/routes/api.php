@@ -11,15 +11,13 @@ use App\Http\Controllers\LoginController;
 use App\Http\Controllers\LogoutController;
 use App\Http\Controllers\LookupController;
 use App\Http\Controllers\MileageController;
-use App\Http\Controllers\NotificationController;
-use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\MileageTransactionController;
 use App\Http\Controllers\ResetPasswordController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\UpdatePasswordController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VerifyEmailController;
-use App\Http\Controllers\MileageTransactionController;
-use App\Http\Controllers\MileageReceiptController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 

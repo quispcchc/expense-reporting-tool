@@ -15,7 +15,7 @@ class DatabaseSeeder extends Seeder
      * Seed the application's database for development.
      * This seeder calls ProductionSeeder first for base data,
      * then adds development-specific test users.
-     * 
+     *
      * Run with: php artisan db:seed
      */
     public function run(): void

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\ClaimStatus;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 use Tests\Traits\SeedsLookups;
@@ -63,10 +64,10 @@ class ClaimExportCsvTest extends TestCase
         $admin = $this->createAuthenticatedUser();
 
         // Pending claim
-        $this->createClaimWithExpenses($admin, 1, ['claim_status_id' => 1]);
+        $this->createClaimWithExpenses($admin, 1, ['claim_status_id' => ClaimStatus::PENDING]);
 
         // Approved claim
-        $this->createClaimWithExpenses($admin, 1, ['claim_status_id' => 2]);
+        $this->createClaimWithExpenses($admin, 1, ['claim_status_id' => ClaimStatus::APPROVED]);
 
         $response = $this->getJson('/api/claims/export-csv?claim_status_id=2');
 

@@ -1,10 +1,10 @@
 import React from 'react'
-import Upload from '../uploadAttchment/Upload.jsx'
-import AttachmentList from '../uploadAttchment/AttachmentList.jsx'
+import Upload from '../uploadAttachment/Upload.jsx'
+import AttachmentList from '../uploadAttachment/AttachmentList.jsx'
 import { useTranslation } from 'react-i18next'
 
 // Customized expanded row: attachment editing dropdown in datatable
-function ClaimExpansionAttachmentRow({ label, file, isEditing, rowData, handleInputChange, mode }) {
+function ClaimExpansionAttachmentRow({ label, file, isEditing, rowData, handleInputChange }) {
     const { t } = useTranslation()
 
     // Handle new files selected by user (supports multiple files)

@@ -208,6 +208,15 @@ export const validationSchemas = {
         ],
     },
 
+    mileageHeader: {
+        period_of_from: [
+            { rule: 'required', messageKey: 'validation.periodFromRequired' },
+        ],
+        period_of_to: [
+            { rule: 'required', messageKey: 'validation.periodToRequired' },
+        ],
+    },
+
     mileageTransaction: {
         transaction_date: [
             { rule: 'required', messageKey: 'validation.transactionDateRequired' },

@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Enums\ActiveStatus;
+use App\Enums\RoleLevel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 use Tests\Traits\SeedsLookups;
@@ -15,7 +17,7 @@ class TeamControllerTest extends TestCase
     public function test_super_admin_sees_all_teams(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(1);
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
 
         $response = $this->getJson('/api/teams');
 
@@ -27,7 +29,7 @@ class TeamControllerTest extends TestCase
     public function test_admin_sees_only_own_department_teams(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(2, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]);
 
         $response = $this->getJson('/api/teams');
 
@@ -40,7 +42,7 @@ class TeamControllerTest extends TestCase
     public function test_approver_sees_own_department_teams(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(3, ['department_id' => 2]);
+        $this->createAuthenticatedUser(RoleLevel::TEAM_LEAD, ['department_id' => 2]);
 
         $response = $this->getJson('/api/teams');
 
@@ -53,7 +55,7 @@ class TeamControllerTest extends TestCase
     public function test_regular_user_sees_own_department_teams(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(4, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::USER, ['department_id' => 1]);
 
         $response = $this->getJson('/api/teams');
 
@@ -73,14 +75,14 @@ class TeamControllerTest extends TestCase
     public function test_super_admin_can_create_team_in_any_department(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(1);
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
 
         $response = $this->postJson('/api/teams', [
             'team_name' => 'Gamma',
             'team_abbreviation' => 'GAM',
             'team_desc' => 'Gamma team',
             'department_id' => 2,
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
         $response->assertStatus(201)
@@ -91,13 +93,13 @@ class TeamControllerTest extends TestCase
     public function test_admin_can_create_team_in_own_department(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(2, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]);
 
         $response = $this->postJson('/api/teams', [
             'team_name' => 'Gamma',
             'team_abbreviation' => 'GAM',
             'department_id' => 1,
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
         $response->assertStatus(201)
@@ -107,13 +109,13 @@ class TeamControllerTest extends TestCase
     public function test_admin_cannot_create_team_in_other_department(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(2, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]);
 
         $response = $this->postJson('/api/teams', [
             'team_name' => 'Gamma',
             'team_abbreviation' => 'GAM',
             'department_id' => 2,
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
         $response->assertStatus(403);
@@ -122,13 +124,13 @@ class TeamControllerTest extends TestCase
     public function test_approver_cannot_create_team(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(3, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::TEAM_LEAD, ['department_id' => 1]);
 
         $response = $this->postJson('/api/teams', [
             'team_name' => 'Gamma',
             'team_abbreviation' => 'GAM',
             'department_id' => 1,
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
         $response->assertStatus(403);
@@ -137,13 +139,13 @@ class TeamControllerTest extends TestCase
     public function test_regular_user_cannot_create_team(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(4, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::USER, ['department_id' => 1]);
 
         $response = $this->postJson('/api/teams', [
             'team_name' => 'Gamma',
             'team_abbreviation' => 'GAM',
             'department_id' => 1,
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
         $response->assertStatus(403);
@@ -152,12 +154,12 @@ class TeamControllerTest extends TestCase
     public function test_create_team_validation_requires_department(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(1);
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
 
         $response = $this->postJson('/api/teams', [
             'team_name' => 'No Dept Team',
             'team_abbreviation' => 'NDT',
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
         $response->assertStatus(422);
@@ -166,13 +168,13 @@ class TeamControllerTest extends TestCase
     public function test_create_team_unique_abbreviation(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(1);
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
 
         $response = $this->postJson('/api/teams', [
             'team_name' => 'Duplicate Alpha',
             'team_abbreviation' => 'ALP',
             'department_id' => 1,
-            'active_status_id' => 1,
+            'active_status_id' => ActiveStatus::ACTIVE,
         ]);
 
         $response->assertStatus(422);
@@ -183,7 +185,7 @@ class TeamControllerTest extends TestCase
     public function test_super_admin_can_update_any_team(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(1);
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
 
         $response = $this->putJson('/api/teams/2', [
             'team_name' => 'Beta Updated',
@@ -196,7 +198,7 @@ class TeamControllerTest extends TestCase
     public function test_admin_can_update_team_in_own_department(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(2, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]);
 
         $response = $this->putJson('/api/teams/1', [
             'team_name' => 'Alpha Updated',
@@ -209,7 +211,7 @@ class TeamControllerTest extends TestCase
     public function test_admin_cannot_update_team_in_other_department(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(2, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]);
 
         $response = $this->putJson('/api/teams/2', [
             'team_name' => 'Beta Updated',
@@ -221,7 +223,7 @@ class TeamControllerTest extends TestCase
     public function test_approver_cannot_update_team(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(3, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::TEAM_LEAD, ['department_id' => 1]);
 
         $response = $this->putJson('/api/teams/1', [
             'team_name' => 'Alpha Updated',
@@ -233,7 +235,7 @@ class TeamControllerTest extends TestCase
     public function test_regular_user_cannot_update_team(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(4, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::USER, ['department_id' => 1]);
 
         $response = $this->putJson('/api/teams/1', [
             'team_name' => 'Alpha Updated',
@@ -247,7 +249,7 @@ class TeamControllerTest extends TestCase
     public function test_super_admin_can_delete_any_team(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(1);
+        $this->createAuthenticatedUser(RoleLevel::SUPER_ADMIN);
 
         $response = $this->deleteJson('/api/teams/2');
 
@@ -258,7 +260,7 @@ class TeamControllerTest extends TestCase
     public function test_admin_can_delete_team_in_own_department(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(2, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]);
 
         $response = $this->deleteJson('/api/teams/1');
 
@@ -269,7 +271,7 @@ class TeamControllerTest extends TestCase
     public function test_admin_cannot_delete_team_in_other_department(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(2, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::DEPARTMENT_MANAGER, ['department_id' => 1]);
 
         $response = $this->deleteJson('/api/teams/2');
 
@@ -280,7 +282,7 @@ class TeamControllerTest extends TestCase
     public function test_approver_cannot_delete_team(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(3, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::TEAM_LEAD, ['department_id' => 1]);
 
         $response = $this->deleteJson('/api/teams/1');
 
@@ -291,7 +293,7 @@ class TeamControllerTest extends TestCase
     public function test_regular_user_cannot_delete_team(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(4, ['department_id' => 1]);
+        $this->createAuthenticatedUser(RoleLevel::USER, ['department_id' => 1]);
 
         $response = $this->deleteJson('/api/teams/1');
 
@@ -304,7 +306,7 @@ class TeamControllerTest extends TestCase
     public function test_authenticated_user_can_view_team(): void
     {
         $this->seedLookups();
-        $this->createAuthenticatedUser(4);
+        $this->createAuthenticatedUser(RoleLevel::USER);
 
         $response = $this->getJson('/api/teams/1');
 

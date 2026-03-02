@@ -1,7 +1,5 @@
-import { renderHook, act, waitFor } from '@testing-library/react'
+import { renderHook, act } from '@testing-library/react'
 import { ClaimProvider, useClaims } from '../../src/contexts/ClaimContext.jsx'
-import { server } from '../mocks/server.js'
-import { http, HttpResponse } from 'msw'
 
 const wrapper = ({ children }) => <ClaimProvider>{children}</ClaimProvider>
 
@@ -12,8 +10,6 @@ describe('ClaimContext', () => {
 
             expect(result.current.claims).toEqual([])
             expect(result.current.myClaims).toEqual([])
-            expect(result.current.hasFetchedClaims).toBe(false)
-            expect(result.current.hasFetchedMyClaims).toBe(false)
         })
     })
 
@@ -29,57 +25,6 @@ describe('ClaimContext', () => {
                 { claim_id: 1, total_amount: 100, claim_status_id: 1 },
                 { claim_id: 2, total_amount: 200, claim_status_id: 2 },
             ])
-            expect(result.current.hasFetchedClaims).toBe(true)
-        })
-
-        it('skips fetch when hasFetchedClaims is true and force is false', async () => {
-            let callCount = 0
-            server.use(
-                http.get('/api/claims', () => {
-                    callCount++
-                    return HttpResponse.json({
-                        data: [{ claim_id: 1, total_amount: 100 }],
-                    })
-                }),
-            )
-
-            const { result } = renderHook(() => useClaims(), { wrapper })
-
-            // First call should fetch
-            await act(async () => {
-                await result.current.fetchClaims()
-            })
-            expect(callCount).toBe(1)
-
-            // Second call should skip (hasFetchedClaims is now true)
-            await act(async () => {
-                await result.current.fetchClaims()
-            })
-            expect(callCount).toBe(1)
-        })
-
-        it('fetches again when force is true even if already fetched', async () => {
-            let callCount = 0
-            server.use(
-                http.get('/api/claims', () => {
-                    callCount++
-                    return HttpResponse.json({
-                        data: [{ claim_id: 1, total_amount: 100 }],
-                    })
-                }),
-            )
-
-            const { result } = renderHook(() => useClaims(), { wrapper })
-
-            await act(async () => {
-                await result.current.fetchClaims()
-            })
-            expect(callCount).toBe(1)
-
-            await act(async () => {
-                await result.current.fetchClaims(true)
-            })
-            expect(callCount).toBe(2)
         })
     })
 
@@ -94,7 +39,6 @@ describe('ClaimContext', () => {
             expect(result.current.myClaims).toEqual([
                 { claim_id: 3, total_amount: 50, claim_status_id: 1 },
             ])
-            expect(result.current.hasFetchedMyClaims).toBe(true)
         })
     })
 

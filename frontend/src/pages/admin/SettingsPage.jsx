@@ -29,7 +29,7 @@ function SettingsPage() {
             if (response.data?.mileage_rate !== undefined) {
                 setRate(response.data.mileage_rate)
             }
-        } catch (error) {
+        } catch {
             // Error handled by caller
         }
     }
@@ -39,7 +39,7 @@ function SettingsPage() {
         try {
             await api.put('settings', { mileage_rate: rate })
             showToast(toast, { severity: 'success', summary: t('common.success'), detail: t('settings.saved', 'Settings saved successfully'), life: TOAST_LIFE.SUCCESS })
-        } catch (error) {
+        } catch {
             showToast(toast, { severity: 'error', summary: t('common.error'), detail: t('settings.saveFailed', 'Failed to save settings'), life: TOAST_LIFE.ERROR })
         } finally {
             setLoading(false)

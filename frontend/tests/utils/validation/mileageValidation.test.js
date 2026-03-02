@@ -165,3 +165,42 @@ describe('mileage transaction schema validation', () => {
         expect(result.errors.buyer).toBeDefined()
     })
 })
+
+describe('mileage header schema validation', () => {
+    it('valid header with both dates passes', () => {
+        const result = validateForm(
+            { period_of_from: '2026-01-01', period_of_to: '2026-01-31' },
+            validationSchemas.mileageHeader,
+        )
+        expect(result.isValid).toBe(true)
+        expect(Object.keys(result.errors)).toHaveLength(0)
+    })
+
+    it('missing period_of_from fails', () => {
+        const result = validateForm(
+            { period_of_from: '', period_of_to: '2026-01-31' },
+            validationSchemas.mileageHeader,
+        )
+        expect(result.isValid).toBe(false)
+        expect(result.errors.period_of_from).toBe('validation.periodFromRequired')
+    })
+
+    it('missing period_of_to fails', () => {
+        const result = validateForm(
+            { period_of_from: '2026-01-01', period_of_to: '' },
+            validationSchemas.mileageHeader,
+        )
+        expect(result.isValid).toBe(false)
+        expect(result.errors.period_of_to).toBe('validation.periodToRequired')
+    })
+
+    it('both dates missing fails with both errors', () => {
+        const result = validateForm(
+            { period_of_from: '', period_of_to: '' },
+            validationSchemas.mileageHeader,
+        )
+        expect(result.isValid).toBe(false)
+        expect(result.errors.period_of_from).toBe('validation.periodFromRequired')
+        expect(result.errors.period_of_to).toBe('validation.periodToRequired')
+    })
+})

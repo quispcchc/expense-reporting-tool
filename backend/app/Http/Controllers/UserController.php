@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\RoleLevel;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -26,7 +27,7 @@ class UserController extends Controller
         $query = User::with(['role', 'department', 'teams', 'activeStatus']);
         $query = $this->applyRoleBasedFiltering($query, $authUser);
 
-        return response()->json($this->formatUsers($query->get()));
+        return response()->json($this->formatUsers($query->orderBy('user_id')->get()));
     }
 
     /**
@@ -43,9 +44,9 @@ class UserController extends Controller
             return $authError;
         }
         // If admin is updating, prevent promoting to admin or super_admin
-        if ($authUser->role?->role_level === 2 && $request->filled('role_id')) {
+        if ($authUser->role?->role_level === RoleLevel::DEPARTMENT_MANAGER && $request->filled('role_id')) {
             $newRole = \App\Models\Role::find($request->role_id);
-            if ($newRole && $newRole->role_level <= 2) {
+            if ($newRole && $newRole->role_level <= RoleLevel::DEPARTMENT_MANAGER) {
                 return response()->json([
                     'message' => 'Admins cannot promote users to admin or super admin roles.',
                 ], 403);
@@ -96,7 +97,7 @@ class UserController extends Controller
      */
     private function canViewUsers($authUser): bool
     {
-        return $authUser->role?->role_level <= 3;
+        return $authUser->role?->role_level <= RoleLevel::TEAM_LEAD;
     }
 
     /**
@@ -108,9 +109,9 @@ class UserController extends Controller
         $roleLevel = $authUser->role?->role_level;
 
         return match (true) {
-            $roleLevel === 1 => $query, // Super admin sees all
-            $roleLevel === 2 => $query->where('department_id', $authUser->department_id), // Admin sees own dept
-            $roleLevel === 3 => $query->whereHas('teams', function ($q) use ($authUser) {
+            $roleLevel === RoleLevel::SUPER_ADMIN => $query, // Super admin sees all
+            $roleLevel === RoleLevel::DEPARTMENT_MANAGER => $query->where('department_id', $authUser->department_id), // Admin sees own dept
+            $roleLevel === RoleLevel::TEAM_LEAD => $query->whereHas('teams', function ($q) use ($authUser) {
                 if (method_exists($authUser, 'teams')) {
                     $q->whereIn('teams.team_id', $authUser->teams->pluck('team_id'));
                 }
@@ -140,6 +141,7 @@ class UserController extends Controller
                     ];
                 }),
                 'active_status_id' => $user->active_status_id,
+                'can_self_approve' => $user->can_self_approve,
             ];
         });
     }
@@ -161,12 +163,12 @@ class UserController extends Controller
         $userRoleLevel = $user->role?->role_level;
 
         // Super admin can edit anyone, including themselves
-        if ($authRoleLevel === 1) {
+        if ($authRoleLevel === RoleLevel::SUPER_ADMIN) {
             return null; // Authorized
         }
 
         // Admin (department_manager) can only edit regular users in their department
-        if ($authRoleLevel === 2) {
+        if ($authRoleLevel === RoleLevel::DEPARTMENT_MANAGER) {
             // Admin cannot edit themselves
             if ($authUser->user_id === $user->user_id) {
                 return response()->json([
@@ -175,7 +177,7 @@ class UserController extends Controller
             }
 
             // Admin cannot edit other admin or super_admin users
-            if ($userRoleLevel <= 2) {
+            if ($userRoleLevel <= RoleLevel::DEPARTMENT_MANAGER) {
                 return response()->json([
                     'message' => 'Unauthorized. You can only edit regular users and approvers in your department.',
                 ], 403);
@@ -213,7 +215,7 @@ class UserController extends Controller
         $userRoleLevel = $user->role?->role_level;
 
         // Super admin can delete anyone (except themselves)
-        if ($authRoleLevel === 1) {
+        if ($authRoleLevel === RoleLevel::SUPER_ADMIN) {
             if ($authUser->user_id === $user->user_id) {
                 return response()->json([
                     'message' => 'You cannot delete yourself.',
@@ -224,14 +226,14 @@ class UserController extends Controller
         }
 
         // Admin can delete users in their department (not self, not admins/super_admins)
-        if ($authRoleLevel === 2) {
+        if ($authRoleLevel === RoleLevel::DEPARTMENT_MANAGER) {
             if ($authUser->user_id === $user->user_id) {
                 return response()->json([
                     'message' => 'You cannot delete yourself.',
                 ], 403);
             }
 
-            if ($userRoleLevel <= 2) {
+            if ($userRoleLevel <= RoleLevel::DEPARTMENT_MANAGER) {
                 return response()->json([
                     'message' => 'Unauthorized. You can only delete regular users and approvers in your department.',
                 ], 403);
@@ -266,6 +268,7 @@ class UserController extends Controller
             'team_ids.*' => 'exists:teams,team_id',
             'position_id' => 'sometimes|integer|exists:positions,position_id',
             'active_status_id' => 'sometimes|integer|exists:active_status,active_status_id',
+            'can_self_approve' => 'sometimes|boolean',
         ];
     }
 
@@ -282,6 +285,7 @@ class UserController extends Controller
             'department_id',
             'position_id',
             'active_status_id',
+            'can_self_approve',
         ];
     }
 }

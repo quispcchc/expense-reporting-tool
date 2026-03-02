@@ -24,19 +24,18 @@ function TagsPage() {
     const { t } = useTranslation()
     const toast = useRef(null)
     const isMobile = useIsMobile()
-    const { tags, loading: tagsLoading, error: tagsError, fetchTags, createTag, updateTag, deleteTag } = useTags()
-    const { lookups, loading: lookupsLoading, error: lookupsError, refreshLookups } = useLookups()
+    const { tags, loading: tagsLoading, fetchTags, createTag, updateTag, deleteTag } = useTags()
+    const { lookups, loading: lookupsLoading } = useLookups()
 
     const [projectLoading, setProjectLoading] = useState(false)
     const [search, setSearch] = useState({ tag: '', project: '' })
-    const [projectError, setProjectError] = useState(null)
-    const { projects, loading: projectsLoading, error: projectsError, fetchProjects, createProject, updateProject, deleteProject } = useProjects()
+    const [, setProjectError] = useState(null)
+    const { projects, fetchProjects, createProject, updateProject, deleteProject } = useProjects()
 
-    const [newTagLoading, setNewTagLoading] = useState(false);
+    const [, setNewTagLoading] = useState(false);
     const [newTagError, setNewTagError] = useState('');
 
-    const [showAddProject] = useState(false);
-    const [newProjectLoading, setNewProjectLoading] = useState(false);
+    const [, setNewProjectLoading] = useState(false);
     const [newProjectError, setNewProjectError] = useState('');
 
     const [isTagsOpen, setIsTagsOpen] = useState(false);
@@ -54,6 +53,7 @@ function TagsPage() {
     useEffect(() => {
         fetchTags()
         fetchProjects()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     // Add new tag handler

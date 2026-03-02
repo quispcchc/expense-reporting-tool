@@ -14,6 +14,7 @@ function LoginForm() {
     const { t } = useTranslation()
     const { login, error, setError } = useAuth()
     const [formErrors, setFormErrors] = useState([])
+    const [isSubmitting, setIsSubmitting] = useState(false)
     const navigate = useNavigate()
 
     const [formData, setFormData] = useState({
@@ -39,30 +40,45 @@ function LoginForm() {
         }))
     }
 
+    const handleBlur = (e) => {
+        const { name, value } = e.target
+        if (name === 'email') {
+            setFormData(prev => ({ ...prev, email: value.trim() }))
+        }
+    }
+
     const handleSubmit = async (e) => {
         e.preventDefault()
         setError(null)
         setFormErrors([])
 
-        const validation = validateForm(formData, validationSchemas.login)
+        const cleaned = { ...formData, email: formData.email.trim() }
+        setFormData(cleaned)
+
+        const validation = validateForm(cleaned, validationSchemas.login)
         setFormErrors(validation.errors)
         if (!validation.isValid) return
 
-        const result = await login({
-            email: formData.email,
-            password: formData.password,
-            remember: formData.remember,
-        })
+        setIsSubmitting(true)
+        try {
+            const result = await login({
+                email: cleaned.email,
+                password: cleaned.password,
+                remember: cleaned.remember,
+            })
 
-        if (result.success) {
-            if (formData.remember) {
-                localStorage.setItem('email', formData.email)
-                localStorage.setItem('remember', 'true')
-            } else {
-                localStorage.removeItem('email')
-                localStorage.removeItem('remember')
+            if (result.success) {
+                if (formData.remember) {
+                    localStorage.setItem('email', formData.email)
+                    localStorage.setItem('remember', 'true')
+                } else {
+                    localStorage.removeItem('email')
+                    localStorage.removeItem('remember')
+                }
+                navigate(result.redirectTo)
             }
-            navigate(result.redirectTo)
+        } finally {
+            setIsSubmitting(false)
         }
     }
 
@@ -80,7 +96,7 @@ function LoginForm() {
             {/* Email */}
             <Input name="email" id="email" label={t('users.email')} placeholder={t('auth.emailPlaceholder')}
                 value={formData.email} autoComplete="username"
-                onChange={handleFormChange} errors={formErrors} />
+                onChange={handleFormChange} onBlur={handleBlur} errors={formErrors} />
 
             {/* Password */}
             <InputPassword name="password" id="password" label={t('auth.password', 'Password')} placeholder={t('auth.passwordPlaceholder')}
@@ -100,7 +116,8 @@ function LoginForm() {
 
             {/* Server side validation message */}
             {error && <div className="bg-red-100 text-red-600 rounded-xl p-2 mb-6">{error}</div>}
-            <Button type="submit" label={t('common.submit')} className="w-full" />
+            <Button type="submit" label={t('common.submit')} className="w-full"
+                loading={isSubmitting} disabled={isSubmitting} />
         </form>
     )
 }
