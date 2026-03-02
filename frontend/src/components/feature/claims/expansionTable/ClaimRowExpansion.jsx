@@ -1,13 +1,10 @@
-import React from 'react'
 import ClaimExpansionDropdownRow from './ClaimExpansionDropdownRow.jsx'
 import ClaimExpansionInputRow from './ClaimExpansionInputRow.jsx'
 import ClaimExpansionAttachmentRow from './ClaimExpansionAttachmentRow.jsx'
 import { useLookups } from '../../../../contexts/LookupContext.jsx'
 import { useTranslation } from 'react-i18next'
 import ClaimExpansionMultiSelectRow from './ClaimExpansionMultiSelectRow.jsx'
-import { getFileIcon } from '../uploadAttchment/getFileIcon.jsx'
-import { API_BASE_URL } from '../../../../api/api.js'
-import Input from '../../../common/ui/Input.jsx'
+import MileageDetailsSection from './MileageDetailsSection.jsx'
 
 
 function ClaimRowExpansion({
@@ -21,22 +18,14 @@ function ClaimRowExpansion({
     const { t } = useTranslation()
     const { lookups: { projects } } = useLookups()
 
-    // Determine if the current row is in editing mode
     const isEditing = editingRowId === rowData.transactionId
 
-    // Get the original claim item data for this row
     const currentData = claimItems.find(item => item.transactionId === rowData.transactionId) || rowData
-
-    // Get any changes made in the expanded row for this transactionId
     const expansionChanges = expandedRowData[rowData.transactionId] || {}
 
-    // Merge original data with any expanded data changes
-    // For attachment field: if expansion has changes, use ONLY those (not merged) to prevent duplication
     const displayData = {
         ...currentData,
         ...expansionChanges,
-        // If expansionChanges explicitly set attachment, use that value only (could be new files only)
-        // Otherwise fall back to currentData.attachment
         attachment: Object.prototype.hasOwnProperty.call(expansionChanges, 'attachment')
             ? expansionChanges.attachment
             : currentData.attachment
@@ -48,7 +37,6 @@ function ClaimRowExpansion({
             className="px-18"
         >
             <div className="grid grid-cols-1 gap-4">
-                {/* Dropdown to select program/project */}
                 <ClaimExpansionDropdownRow
                     label={t('expenses.program')}
                     field="program"
@@ -61,7 +49,6 @@ function ClaimRowExpansion({
                     handleInputChange={handleInputChange}
                 />
 
-                {/* Multi-select for tags */}
                 <ClaimExpansionMultiSelectRow
                     label={t('expenses.tags', 'Tags')}
                     field="tags"
@@ -73,7 +60,6 @@ function ClaimRowExpansion({
                     handleInputChange={handleInputChange}
                 />
 
-                {/* Input for expense description */}
                 <ClaimExpansionInputRow
                     label={t('expenses.description')}
                     field="description"
@@ -83,7 +69,6 @@ function ClaimRowExpansion({
                     handleInputChange={handleInputChange}
                 />
 
-                {/* Input for notes */}
                 <ClaimExpansionInputRow
                     label={t('expenses.notes')}
                     field="notes"
@@ -93,7 +78,6 @@ function ClaimRowExpansion({
                     handleInputChange={handleInputChange}
                 />
 
-                {/* Attachment list and upload functionality */}
                 <ClaimExpansionAttachmentRow
                     label={t('expenses.attachments')}
                     isEditing={isEditing}
@@ -103,437 +87,14 @@ function ClaimRowExpansion({
                     mode={mode}
                 />
 
-                {/* Mileage details if bound to this expense */}
-                {displayData.mileage?.transactions?.length > 0 && (() => {
-                    const mileage = displayData.mileage
-                    const mileageTotal = mileage.transactions.reduce((s, tx) => s + (parseFloat(tx.total_amount) || 0), 0)
-                    const totalKm = mileage.transactions.reduce((s, tx) => s + (parseFloat(tx.distance_km) || 0), 0)
-                    const rate = mileage.transactions[0]?.mileage_rate
-
-                    const updateMileageHeader = (field, value) => {
-                        handleInputChange(rowData.transactionId, 'mileage', { ...mileage, [field]: value })
-                    }
-
-                    const updateMileageTransaction = (txIndex, field, value) => {
-                        const updatedTransactions = mileage.transactions.map((tx, i) => {
-                            if (i !== txIndex) return tx
-                            const updated = { ...tx, [field]: value }
-                            const r = parseFloat(updated.mileage_rate || rate) || 0
-                            updated.total_amount = parseFloat((
-                                (parseFloat(updated.distance_km) || 0) * r +
-                                (parseFloat(updated.meter_km) || 0) +
-                                (parseFloat(updated.parking_amount) || 0)
-                            ).toFixed(2))
-                            return updated
-                        })
-                        handleInputChange(rowData.transactionId, 'mileage', { ...mileage, transactions: updatedTransactions })
-                    }
-
-                    // Get receipts from a transaction (handles backend `receipts` and frontend `attachment` formats)
-                    const getTransactionReceipts = (tx) => {
-                        if (tx.attachment) return tx.attachment
-                        if (tx.receipts) {
-                            return tx.receipts.map(r => ({
-                                url: `${API_BASE_URL}/storage/${r.file_path}`,
-                                name: r.file_name,
-                                fileType: r.file_type,
-                                receipt_id: r.receipt_id,
-                            }))
-                        }
-                        return []
-                    }
-
-                    const handleMileageReceiptUpload = (txIndex, e) => {
-                        const selectedFiles = Array.from(e.target.files)
-                        if (!selectedFiles.length) return
-                        const newFiles = selectedFiles.map(file => ({
-                            file,
-                            url: URL.createObjectURL(file),
-                            name: file.name,
-                            fileType: file.type,
-                            isNew: true,
-                        }))
-                        const updatedTransactions = mileage.transactions.map((tx, i) => {
-                            if (i !== txIndex) return tx
-                            const existing = getTransactionReceipts(tx)
-                            return { ...tx, attachment: [...existing, ...newFiles] }
-                        })
-                        handleInputChange(rowData.transactionId, 'mileage', { ...mileage, transactions: updatedTransactions })
-                        e.target.value = ''
-                    }
-
-                    const handleMileageReceiptRemove = (txIndex, fileIndex) => {
-                        const tx = mileage.transactions[txIndex]
-                        const receipts = getTransactionReceipts(tx)
-                        const fileToRemove = receipts[fileIndex]
-
-                        if (fileToRemove?.url?.startsWith('blob:')) {
-                            URL.revokeObjectURL(fileToRemove.url)
-                        }
-
-                        const updatedReceipts = receipts.filter((_, i) => i !== fileIndex)
-
-                        // Track deleted backend receipt IDs per transaction
-                        let deletedMileageReceiptIds = mileage._deletedReceiptIds || {}
-                        if (fileToRemove?.receipt_id) {
-                            const txId = tx.transaction_id || tx.transactionId
-                            deletedMileageReceiptIds = {
-                                ...deletedMileageReceiptIds,
-                                [txId]: [...(deletedMileageReceiptIds[txId] || []), fileToRemove.receipt_id],
-                            }
-                        }
-
-                        const updatedTransactions = mileage.transactions.map((t, i) => {
-                            if (i !== txIndex) return t
-                            return { ...t, attachment: updatedReceipts }
-                        })
-                        handleInputChange(rowData.transactionId, 'mileage', {
-                            ...mileage,
-                            transactions: updatedTransactions,
-                            _deletedReceiptIds: deletedMileageReceiptIds,
-                        })
-                    }
-
-                    return (
-                        <div className="mt-3 rounded-xl overflow-hidden border border-blue-200 shadow-sm">
-                            {/* Header */}
-                            <div className="bg-gradient-to-r from-blue-50 to-blue-100 px-3 sm:px-4 py-3 flex flex-wrap items-center justify-between gap-2">
-                                <div className="flex items-center gap-2.5">
-                                    <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center">
-                                        <i className="pi pi-car text-blue-600 text-sm" />
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-semibold text-blue-900">
-                                            {t('mileage.boundMileage', 'Mileage Details')}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-4 text-right">
-                                    {isEditing ? (
-                                        <div className="flex flex-col sm:flex-row gap-1 sm:gap-0.5">
-                                                <Input name="period_of_from" type='date' value={mileage.period_of_from?.substring(0, 10) || ''} onChange={(e) => updateMileageHeader('period_of_from', e.target.value)} />
-                                                <Input name="period_of_to" type='date' value={mileage.period_of_to?.substring(0, 10) || ''} onChange={(e) => updateMileageHeader('period_of_to', e.target.value)} />
-                                        </div>
-                                    ) : (mileage.period_of_from || mileage.period_of_to) && (
-                                        <div>
-                                            <p className="text-[10px] uppercase tracking-wider text-blue-400">{t('mileage.period', 'Period')}</p>
-                                            <p className="text-xs font-medium text-blue-700">
-                                                {mileage.period_of_from?.substring(0, 10)} — {mileage.period_of_to?.substring(0, 10)}
-                                            </p>
-                                        </div>
-                                    )}
-                                    <div>
-                                        <p className="text-[10px] uppercase tracking-wider text-blue-400">{t('claims.total', 'Total')}</p>
-                                        <p className="text-base font-bold text-blue-700">${mileageTotal.toFixed(2)}</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Mobile card layout */}
-                            <div className="md:hidden p-2 space-y-3">
-                                {mileage.transactions.map((tx, idx) => {
-                                    const receipts = getTransactionReceipts(tx)
-                                    return (
-                                        <div key={idx} className="rounded-lg border border-blue-100 bg-white shadow-sm overflow-hidden">
-                                            {/* Card header: date + amount badge */}
-                                            <div className="flex items-center justify-between bg-blue-50/70 px-3 py-2">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-6 h-6 rounded-full bg-blue-500/10 flex items-center justify-center">
-                                                        <span className="text-[10px] font-bold text-blue-600">{idx + 1}</span>
-                                                    </div>
-                                                    {isEditing ? (
-                                                        <Input name={`tx_date_${idx}`} type="date" value={tx.transaction_date?.substring(0, 10) || ''} onChange={(e) => updateMileageTransaction(idx, 'transaction_date', e.target.value)} />
-                                                    ) : (
-                                                        <span className="text-sm font-medium text-gray-800">{tx.transaction_date?.substring(0, 10) || '—'}</span>
-                                                    )}
-                                                </div>
-                                                <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-sm font-bold text-blue-700">
-                                                    ${parseFloat(tx.total_amount || 0).toFixed(2)}
-                                                </span>
-                                            </div>
-
-                                            <div className="px-3 py-2.5 space-y-2.5">
-                                                {/* Route: from → to */}
-                                                <div className="flex items-center gap-2 text-sm">
-                                                    <i className="pi pi-map-marker text-blue-400 text-xs shrink-0" />
-                                                    {isEditing ? (
-                                                        <div className="flex-1 grid grid-cols-2 gap-2">
-                                                            <Input name={`tx_travel_from_${idx}`} value={tx.travel_from || ''} placeholder={t('mileage.travelFrom', 'From')} onChange={(e) => updateMileageTransaction(idx, 'travel_from', e.target.value)} />
-                                                            <Input name={`tx_travel_to_${idx}`} value={tx.travel_to || ''} placeholder={t('mileage.travelTo', 'To')} onChange={(e) => updateMileageTransaction(idx, 'travel_to', e.target.value)} />
-                                                        </div>
-                                                    ) : (
-                                                        <span className="text-gray-700">
-                                                            {tx.travel_from || '—'}
-                                                            <i className="pi pi-arrow-right text-[10px] text-gray-400 mx-1.5" />
-                                                            {tx.travel_to || '—'}
-                                                        </span>
-                                                    )}
-                                                </div>
-
-                                                {/* Metrics row */}
-                                                <div className="grid grid-cols-3 gap-1.5">
-                                                    <div className="rounded-md bg-gray-50 px-2 py-1.5 text-center">
-                                                        <p className="text-[10px] uppercase tracking-wider text-gray-400">{t('mileage.distance', 'Distance')}</p>
-                                                        {isEditing ? (
-                                                            <Input name={`tx_distance_${idx}`} type="number" value={tx.distance_km ?? ''} onChange={(e) => updateMileageTransaction(idx, 'distance_km', e.target.value)} />
-                                                        ) : (
-                                                            <p className="text-sm font-semibold text-gray-700">{parseFloat(tx.distance_km || 0).toFixed(1)} km</p>
-                                                        )}
-                                                    </div>
-                                                    <div className="rounded-md bg-gray-50 px-2 py-1.5 text-center">
-                                                        <p className="text-[10px] uppercase tracking-wider text-gray-400">{t('mileage.rate', 'Rate')}</p>
-                                                        <p className="text-sm font-semibold text-gray-700">${parseFloat(tx.mileage_rate || rate || 0).toFixed(2)}</p>
-                                                    </div>
-                                                    <div className="rounded-md bg-gray-50 px-2 py-1.5 text-center">
-                                                        <p className="text-[10px] uppercase tracking-wider text-gray-400">{t('mileage.buyer', 'Buyer')}</p>
-                                                        {isEditing ? (
-                                                            <Input name={`tx_buyer_${idx}`} value={tx.buyer || ''} onChange={(e) => updateMileageTransaction(idx, 'buyer', e.target.value)} />
-                                                        ) : (
-                                                            <p className="text-sm font-semibold text-gray-700 truncate">{tx.buyer || '—'}</p>
-                                                        )}
-                                                    </div>
-                                                </div>
-
-                                                {/* Meter + parking */}
-                                                <div className="grid grid-cols-2 gap-1.5">
-                                                    <div className="rounded-md bg-gray-50 px-2 py-1.5 text-center">
-                                                        <p className="text-[10px] uppercase tracking-wider text-gray-400">{t('mileage.meter', 'Meter')}</p>
-                                                        {isEditing ? (
-                                                            <Input name={`tx_meter_${idx}`} type="number" value={tx.meter_km ?? ''} onChange={(e) => updateMileageTransaction(idx, 'meter_km', e.target.value)} />
-                                                        ) : (
-                                                            <p className="text-sm font-semibold text-gray-700">${parseFloat(tx.meter_km || 0).toFixed(2)}</p>
-                                                        )}
-                                                    </div>
-                                                    <div className="rounded-md bg-gray-50 px-2 py-1.5 text-center">
-                                                        <p className="text-[10px] uppercase tracking-wider text-gray-400">{t('mileage.parking', 'Parking')}</p>
-                                                        {isEditing ? (
-                                                            <Input name={`tx_parking_${idx}`} type="number" value={tx.parking_amount ?? ''} onChange={(e) => updateMileageTransaction(idx, 'parking_amount', e.target.value)} />
-                                                        ) : (
-                                                            <p className="text-sm font-semibold text-gray-700">${parseFloat(tx.parking_amount || 0).toFixed(2)}</p>
-                                                        )}
-                                                    </div>
-                                                </div>
-
-                                                {/* Receipts */}
-                                                {(receipts.length > 0 || isEditing) && (
-                                                    <div className="pt-1 border-t border-gray-100">
-                                                        <p className="text-[10px] uppercase tracking-wider text-gray-400 mb-1">{t('mileage.receipt', 'Receipts')}</p>
-                                                        <div className="flex flex-wrap gap-1.5">
-                                                            {receipts.map((att, i) => {
-                                                                const fileName = att.file ? att.file.name : (att.name || 'Attachment')
-                                                                const fileType = att.file ? att.file.type : (att.fileType || 'application/octet-stream')
-                                                                const fileUrl = att.url || att.path
-                                                                return (
-                                                                    <div key={i} className="inline-flex items-center gap-1 rounded bg-gray-50 px-2 py-1 text-xs">
-                                                                        <span className="shrink-0 [&_svg]:mr-0">{getFileIcon(fileType)}</span>
-                                                                        <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline truncate max-w-[100px]" title={fileName}>{fileName}</a>
-                                                                        {isEditing && (
-                                                                            <button type="button" onClick={() => handleMileageReceiptRemove(idx, i)} className="shrink-0 text-red-500 hover:text-red-700 cursor-pointer ml-0.5">
-                                                                                <i className="pi pi-times text-[10px]" />
-                                                                            </button>
-                                                                        )}
-                                                                    </div>
-                                                                )
-                                                            })}
-                                                            {isEditing && (
-                                                                <label className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs text-blue-600 hover:bg-blue-100 cursor-pointer transition-colors">
-                                                                    <i className="pi pi-upload text-[10px]" />
-                                                                    <span>{t('components.upload', 'Upload')}</span>
-                                                                    <input type="file" multiple accept="image/*,application/pdf" onChange={(e) => handleMileageReceiptUpload(idx, e)} className="hidden" />
-                                                                </label>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                                {receipts.length === 0 && !isEditing && (
-                                                    <div className="text-xs text-gray-400 italic">{t('upload.noAttachments', 'No receipts')}</div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )
-                                })}
-                                {/* Mobile totals */}
-                                <div className="rounded-lg bg-gradient-to-r from-blue-50 to-blue-100 px-3 py-2.5 flex justify-between items-center">
-                                    <div className="flex items-center gap-2">
-                                        <i className="pi pi-map text-blue-500 text-sm" />
-                                        <span className="text-sm font-semibold text-gray-700">{totalKm.toFixed(1)} km</span>
-                                    </div>
-                                    <span className="text-base font-bold text-blue-700">${mileageTotal.toFixed(2)}</span>
-                                </div>
-                            </div>
-
-                            {/* Desktop table */}
-                            <div className="hidden md:block overflow-x-auto">
-                                <table className="w-full text-sm">
-                                    <thead>
-                                        <tr className="bg-blue-50/60 text-xs text-gray-500 uppercase tracking-wider">
-                                            <th className="px-4 py-2.5 text-left font-medium">{t('mileage.transactionDate', 'Date')}</th>
-                                            <th className="px-4 py-2.5 text-left font-medium">{t('mileage.travelFrom', 'Travel From')}</th>
-                                            <th className="px-4 py-2.5 text-left font-medium">{t('mileage.travelTo', 'Travel To')}</th>
-                                            <th className="px-4 py-2.5 text-right font-medium">{t('mileage.distance', 'Distance (km)')}</th>
-                                            <th className="px-4 py-2.5 text-right font-medium">{t('mileage.rate', 'Rate ($/km)')}</th>
-                                            <th className="px-4 py-2.5 text-right font-medium">{t('mileage.meter', 'Meter ($)')}</th>
-                                            <th className="px-4 py-2.5 text-right font-medium">{t('mileage.parking', 'Parking ($)')}</th>
-                                            <th className="px-4 py-2.5 text-left font-medium">{t('mileage.buyer', 'Buyer')}</th>
-                                            <th className="px-4 py-2.5 text-right font-medium">{t('mileage.totalAmount', 'Amount')}</th>
-                                            <th className="px-4 py-2.5 text-left font-medium">{t('mileage.receipt', 'Receipt')}</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-100">
-                                        {mileage.transactions.map((tx, idx) => (
-                                            <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
-                                                <td className="px-4 py-2 text-gray-800">
-                                                    {isEditing ? (
-                                                        <Input
-                                                            name={`tx_date_${idx}`}
-                                                            type="date"
-                                                            value={tx.transaction_date?.substring(0, 10) || ''}
-                                                            onChange={(e) => updateMileageTransaction(idx, 'transaction_date', e.target.value)}
-                                                                                                                   />
-                                                    ) : tx.transaction_date?.substring(0, 10)}
-                                                </td>
-                                                <td className="px-4 py-2 text-gray-700">
-                                                    {isEditing ? (
-                                                        <Input
-                                                            name={`tx_travel_from_${idx}`}
-                                                            value={tx.travel_from || ''}
-                                                            onChange={(e) => updateMileageTransaction(idx, 'travel_from', e.target.value)}
-                                                                                                                   />
-                                                    ) : (tx.travel_from || '—')}
-                                                </td>
-                                                <td className="px-4 py-2 text-gray-700">
-                                                    {isEditing ? (
-                                                        <Input
-                                                            name={`tx_travel_to_${idx}`}
-                                                            value={tx.travel_to || ''}
-                                                            onChange={(e) => updateMileageTransaction(idx, 'travel_to', e.target.value)}
-                                                                                                                   />
-                                                    ) : (tx.travel_to || '—')}
-                                                </td>
-                                                <td className="px-4 py-2 text-right text-gray-700">
-                                                    {isEditing ? (
-                                                        <Input
-                                                            name={`tx_distance_${idx}`}
-                                                            type="number"
-                                                            value={tx.distance_km ?? ''}
-                                                            onChange={(e) => updateMileageTransaction(idx, 'distance_km', e.target.value)}
-                                                                                                                   />
-                                                    ) : parseFloat(tx.distance_km || 0).toFixed(1)}
-                                                </td>
-                                                <td className="px-4 py-2 text-right text-gray-700">
-                                                    ${parseFloat(tx.mileage_rate || rate || 0).toFixed(2)}
-                                                </td>
-                                                <td className="px-4 py-2 text-right text-gray-700">
-                                                    {isEditing ? (
-                                                        <Input
-                                                            name={`tx_meter_${idx}`}
-                                                            type="number"
-                                                            value={tx.meter_km ?? ''}
-                                                            onChange={(e) => updateMileageTransaction(idx, 'meter_km', e.target.value)}
-                                                                                                                   />
-                                                    ) : `$${parseFloat(tx.meter_km || 0).toFixed(2)}`}
-                                                </td>
-                                                <td className="px-4 py-2 text-right text-gray-700">
-                                                    {isEditing ? (
-                                                        <Input
-                                                            name={`tx_parking_${idx}`}
-                                                            type="number"
-                                                            value={tx.parking_amount ?? ''}
-                                                            onChange={(e) => updateMileageTransaction(idx, 'parking_amount', e.target.value)}
-                                                                                                                   />
-                                                    ) : `$${parseFloat(tx.parking_amount || 0).toFixed(2)}`}
-                                                </td>
-                                                <td className="px-4 py-2 text-gray-700">
-                                                    {isEditing ? (
-                                                        <Input
-                                                            name={`tx_buyer_${idx}`}
-                                                            value={tx.buyer || ''}
-                                                            onChange={(e) => updateMileageTransaction(idx, 'buyer', e.target.value)}
-                                                                                                                   />
-                                                    ) : (tx.buyer || '—')}
-                                                </td>
-                                                <td className="px-4 py-2 text-right font-semibold text-blue-700">
-                                                    ${parseFloat(tx.total_amount || 0).toFixed(2)}
-                                                </td>
-                                                <td className="px-4 py-2">
-                                                    {(() => {
-                                                        const receipts = getTransactionReceipts(tx)
-                                                        return (
-                                                            <div className="flex flex-col gap-1">
-                                                                {receipts.length > 0 && (
-                                                                    <div className="flex flex-wrap gap-x-3 gap-y-1">
-                                                                        {receipts.map((att, i) => {
-                                                                            const fileName = att.file ? att.file.name : (att.name || 'Attachment')
-                                                                            const fileType = att.file ? att.file.type : (att.fileType || 'application/octet-stream')
-                                                                            const fileUrl = att.url || att.path
-                                                                            return (
-                                                                                <div key={i} className="flex items-center gap-1 text-xs leading-tight">
-                                                                                    <span className="shrink-0 [&_svg]:mr-0">{getFileIcon(fileType)}</span>
-                                                                                    <a
-                                                                                        href={fileUrl}
-                                                                                        target="_blank"
-                                                                                        rel="noopener noreferrer"
-                                                                                        className="text-blue-600 hover:underline truncate max-w-[100px]"
-                                                                                        title={fileName}
-                                                                                    >
-                                                                                        {fileName}
-                                                                                    </a>
-                                                                                    {isEditing && (
-                                                                                        <button
-                                                                                            type="button"
-                                                                                            onClick={() => handleMileageReceiptRemove(idx, i)}
-                                                                                            className="shrink-0 text-red-500 hover:text-red-700 cursor-pointer ml-0.5"
-                                                                                        >
-                                                                                            <i className="pi pi-times text-[10px]" />
-                                                                                        </button>
-                                                                                    )}
-                                                                                </div>
-                                                                            )
-                                                                        })}
-                                                                    </div>
-                                                                )}
-                                                                {isEditing && (
-                                                                    <label className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 cursor-pointer w-fit">
-                                                                        <i className="pi pi-upload text-[10px]" />
-                                                                        <span>{t('components.upload', 'Upload')}</span>
-                                                                        <input
-                                                                            type="file"
-                                                                            multiple
-                                                                            accept="image/*,application/pdf"
-                                                                            onChange={(e) => handleMileageReceiptUpload(idx, e)}
-                                                                            className="hidden"
-                                                                        />
-                                                                    </label>
-                                                                )}
-                                                                {receipts.length === 0 && !isEditing && (
-                                                                    <span className="text-gray-400 text-xs">—</span>
-                                                                )}
-                                                            </div>
-                                                        )
-                                                    })()}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                    <tfoot>
-                                        <tr className="bg-blue-50/40 font-semibold text-sm">
-                                            <td className="px-4 py-2.5 text-gray-700">{t('claims.total', 'Total')}</td>
-                                            <td className="px-4 py-2.5" />
-                                            <td className="px-4 py-2.5" />
-                                            <td className="px-4 py-2.5 text-right text-gray-700">{totalKm.toFixed(1)} km</td>
-                                            <td className="px-4 py-2.5" />
-                                            <td className="px-4 py-2.5" />
-                                            <td className="px-4 py-2.5" />
-                                            <td className="px-4 py-2.5" />
-                                            <td className="px-4 py-2.5 text-right text-blue-700">${mileageTotal.toFixed(2)}</td>
-                                            <td className="px-4 py-2.5" />
-                                        </tr>
-                                    </tfoot>
-                                </table>
-                            </div>
-                        </div>
-                    )
-                })()}
+                {displayData.mileage?.transactions?.length > 0 && (
+                    <MileageDetailsSection
+                        mileage={displayData.mileage}
+                        isEditing={isEditing}
+                        rowData={rowData}
+                        handleInputChange={handleInputChange}
+                    />
+                )}
             </div>
         </div>
     )
