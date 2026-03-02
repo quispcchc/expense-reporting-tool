@@ -37,34 +37,10 @@ function ClaimRowExpansion({
         ...expansionChanges,
         // If expansionChanges explicitly set attachment, use that value only (could be new files only)
         // Otherwise fall back to currentData.attachment
-        attachment: expansionChanges.hasOwnProperty('attachment')
+        attachment: Object.prototype.hasOwnProperty.call(expansionChanges, 'attachment')
             ? expansionChanges.attachment
             : currentData.attachment
     }
-
-    // Convert tags array to comma-separated string or fallback to empty string
-    const getTagsValue = (tags) => {
-
-        if (!tags) return ''
-
-        // String → return directly
-        if (typeof tags === 'string') {
-            return tags
-        }
-
-        // Array
-        if (Array.isArray(tags)) {
-            // Array of objects (edit/view)
-            if (tags.length && typeof tags[0] === 'object') {
-                return tags.map(tag => tag.tag_name).join(',');
-            }
-
-            // Array of strings (create)
-            return tags.join(',');
-        }
-        return ''
-    }
-
 
     return (
         <div

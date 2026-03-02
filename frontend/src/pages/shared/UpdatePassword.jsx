@@ -24,7 +24,7 @@ function UpdatePassword() {
         new_password_confirmation: '',
     })
     const [formErrors, setFormErrors] = useState({})
-    const [isUpdateSuccess, setIsUpdateSuccess] = useState(false)
+    const [, setIsUpdateSuccess] = useState(false)
     
     // API state
     const { updatePassword, logout, error: apiError, setError, isLoading } = useAuth()

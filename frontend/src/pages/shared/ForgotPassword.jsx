@@ -19,7 +19,7 @@ function ForgotPassword() {
     
     // Form state
     const [email, setEmail] = useState('')
-    const [emailError, setEmailError] = useState(null)
+    const [, setEmailError] = useState(null)
     const [isLinkSent, setIsLinkSent] = useState(false)
     const [resetInfo, setResetInfo] = useState(null)
     

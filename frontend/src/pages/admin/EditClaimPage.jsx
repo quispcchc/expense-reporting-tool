@@ -25,13 +25,14 @@ function EditClaimPage() {
             const data = await getClaimById(Number(claimId))
             setCurClaim(data)
         }
-        catch (error) {
+        catch {
             // Error handled by caller
         }
     }
 
     useEffect(() => {
         fetchClaim()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [claimId])
 
     const toast = useRef(null)

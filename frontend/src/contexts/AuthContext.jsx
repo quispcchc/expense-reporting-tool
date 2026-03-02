@@ -1,5 +1,4 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import Cookies from 'js-cookie'
 import api from '../api/api.js'
 import { ROLE_NAME } from '../config/constants.js'
@@ -10,7 +9,7 @@ export const AuthProvider = ({ children }) => {
     const [authUser, setAuthUser] = useState(null)
     const [error, setError] = useState(null)
     const [isLoading, setIsLoading] = useState(true)
-    const [path, setPath] = useState()
+    const [path] = useState()
 
     // On component mount, verify auth with server via HttpOnly cookie
     useEffect(() => {
@@ -76,7 +75,7 @@ export const AuthProvider = ({ children }) => {
             try {
                 await api.post('/logout')
             }
-            catch (err) {
+            catch {
                 // Logout errors are non-critical — state is cleared regardless
             } finally {
                 // Clear state regardless of server response
@@ -84,8 +83,8 @@ export const AuthProvider = ({ children }) => {
                 setError(null)
                 Cookies.remove('authUser', { path: '/' })
                 setIsLoading(false)
-                return { success: true, message: 'Log out successfully!' }
             }
+            return { success: true, message: 'Log out successfully!' }
         },
 
         // Request password reset

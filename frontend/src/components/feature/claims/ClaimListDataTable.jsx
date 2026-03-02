@@ -5,7 +5,6 @@ import { DataTable } from 'primereact/datatable'
 import { Column } from 'primereact/column'
 import StatusTab from '../../common/ui/StatusTab.jsx'
 import { Link } from 'react-router-dom'
-import { Dropdown } from 'primereact/dropdown'
 import { InputText } from 'primereact/inputtext'
 import { IconField } from 'primereact/iconfield'
 import { InputIcon } from 'primereact/inputicon'
@@ -45,6 +44,7 @@ function ClaimListDataTable({ user, path, toastRef }) {
             setIsLoading(false)
         }
         fetchData()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user])
 
     // Selection & export state
@@ -78,35 +78,6 @@ function ClaimListDataTable({ user, path, toastRef }) {
 
     const totalAmountBodyTemplate = (rowData) => (
         <>${rowData.total_amount}</>
-    )
-
-    const statusItemTemplate = (option) => (
-        <div className={`rounded-lg p-1 text-center text-sm font-medium w-21 ${STATUS_STYLES[option.value]}`}>
-            {option.value}
-        </div>
-    )
-
-    const statusRowFilterTemplate = (options) => (
-        <Dropdown value={options.value} options={claimStatus.map(
-            opt => ({ label: opt.claim_status_name, value: opt.claim_status_name }))}
-            onChange={(e) => options.filterApplyCallback(e.value)} itemTemplate={statusItemTemplate}
-            placeholder={t('filter.select', 'Select')} className="p-column-filter min-w-5" showClear />
-    )
-
-    const claimTypeFilterTemplate = (options) => (
-        <Dropdown value={options.value}
-            options={claimTypes.map(opt => ({ label: opt.claim_type_name, value: opt.claim_type_name }))}
-            onChange={(e) => options.filterApplyCallback(e.value)}
-            placeholder={t('filter.selectOne', 'Select One')} className="p-column-filter" />
-    )
-
-    const customTextFilter = (options) => (
-        <InputText
-            value={options.value || ''}
-            onChange={(e) => options.filterApplyCallback(e.target.value)}
-            placeholder={t('common.search', 'Search')}
-            className="p-column-filter min-w-30"
-        />
     )
 
     const actionBodyTemplate = (rowData) => (

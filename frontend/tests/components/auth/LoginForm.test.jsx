@@ -21,7 +21,7 @@ vi.mock('react-router-dom', async () => {
 // Mock react-i18next so t() returns the key
 vi.mock('react-i18next', () => ({
     useTranslation: () => ({
-        t: (key, fallback) => key,
+        t: (key) => key,
         i18n: { changeLanguage: vi.fn() },
     }),
     initReactI18next: { type: '3rdParty', init: vi.fn() },

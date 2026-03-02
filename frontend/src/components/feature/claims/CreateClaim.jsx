@@ -65,7 +65,7 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
                 if (!cancelled && response.data?.mileage_rate !== undefined) {
                     setMileageRate(parseFloat(response.data.mileage_rate))
                 }
-            } catch (error) {
+            } catch {
                 // Error handled by caller
             }
         }
@@ -122,6 +122,7 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
                 ...(prev.transactionDate === '' && firstTx?.transaction_date ? { transactionDate: firstTx.transaction_date } : {}),
             }))
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [includeMileage, currentMileageTotal])
 
     const handleFormFieldChange = (e) => {

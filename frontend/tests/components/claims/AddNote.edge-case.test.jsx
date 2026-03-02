@@ -40,17 +40,11 @@ describe('AddNote – edge cases', () => {
         )
 
     it('does not call API when submitting empty note', async () => {
-        const user = userEvent.setup()
         renderAddNote()
 
-        const btn = screen.getByRole('button', { name: /submit note/i })
-        await user.click(btn)
-
+        const btn = screen.getByRole('button')
+        expect(btn).toBeDisabled()
         expect(api.post).not.toHaveBeenCalled()
-        expect(showToast).toHaveBeenCalledWith(
-            mockToastRef,
-            expect.objectContaining({ severity: 'info' }),
-        )
     })
 
     it('calls API with correct payload on valid note submission', async () => {
@@ -58,9 +52,9 @@ describe('AddNote – edge cases', () => {
         const user = userEvent.setup()
         renderAddNote()
 
-        const textarea = screen.getByPlaceholderText(/enter a text/i)
+        const textarea = screen.getByPlaceholderText(/write a note/i)
         await user.type(textarea, 'Test note')
-        await user.click(screen.getByRole('button', { name: /submit note/i }))
+        await user.click(screen.getByRole('button'))
 
         await waitFor(() => {
             expect(api.post).toHaveBeenCalledWith('notes', {
@@ -75,9 +69,9 @@ describe('AddNote – edge cases', () => {
         const user = userEvent.setup()
         renderAddNote()
 
-        const textarea = screen.getByPlaceholderText(/enter a text/i)
+        const textarea = screen.getByPlaceholderText(/write a note/i)
         await user.type(textarea, 'Test note')
-        await user.click(screen.getByRole('button', { name: /submit note/i }))
+        await user.click(screen.getByRole('button'))
 
         await waitFor(() => {
             expect(textarea).toHaveValue('')
@@ -89,8 +83,8 @@ describe('AddNote – edge cases', () => {
         const user = userEvent.setup()
         renderAddNote()
 
-        await user.type(screen.getByPlaceholderText(/enter a text/i), 'Test note')
-        const btn = screen.getByRole('button', { name: /submit note/i })
+        await user.type(screen.getByPlaceholderText(/write a note/i), 'Test note')
+        const btn = screen.getByRole('button')
         await user.click(btn)
 
         await waitFor(() => {
@@ -105,9 +99,9 @@ describe('AddNote – edge cases', () => {
         const user = userEvent.setup()
         renderAddNote()
 
-        await user.type(screen.getByPlaceholderText(/enter a text/i), 'Test note')
+        await user.type(screen.getByPlaceholderText(/write a note/i), 'Test note')
 
-        const btn = screen.getByRole('button', { name: /submit note/i })
+        const btn = screen.getByRole('button')
 
         // Click twice rapidly
         await user.click(btn)
@@ -125,8 +119,8 @@ describe('AddNote – edge cases', () => {
         const user = userEvent.setup()
         renderAddNote()
 
-        await user.type(screen.getByPlaceholderText(/enter a text/i), 'Test note')
-        const btn = screen.getByRole('button', { name: /submit note/i })
+        await user.type(screen.getByPlaceholderText(/write a note/i), 'Test note')
+        const btn = screen.getByRole('button')
         await user.click(btn)
 
         await waitFor(() => {
@@ -139,8 +133,8 @@ describe('AddNote – edge cases', () => {
         const user = userEvent.setup()
         renderAddNote()
 
-        await user.type(screen.getByPlaceholderText(/enter a text/i), 'Test note')
-        await user.click(screen.getByRole('button', { name: /submit note/i }))
+        await user.type(screen.getByPlaceholderText(/write a note/i), 'Test note')
+        await user.click(screen.getByRole('button'))
 
         await waitFor(() => {
             expect(showToast).toHaveBeenCalledWith(
@@ -156,8 +150,8 @@ describe('AddNote – edge cases', () => {
         const user = userEvent.setup()
         renderAddNote()
 
-        await user.type(screen.getByPlaceholderText(/enter a text/i), 'My note')
-        await user.click(screen.getByRole('button', { name: /submit note/i }))
+        await user.type(screen.getByPlaceholderText(/write a note/i), 'My note')
+        await user.click(screen.getByRole('button'))
 
         await waitFor(() => {
             expect(mockOnAddNote).toHaveBeenCalledWith(noteData)

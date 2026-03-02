@@ -28,7 +28,7 @@ function TeamsPage() {
     const isMobile = useIsMobile()
 
     // Access global team state and actions from context
-    const { state: { teams, loading, error }, actions: { updateTeam, refreshTeams } } = useTeam()
+    const { state: { teams }, actions: { updateTeam, refreshTeams } } = useTeam()
     const { lookups, refreshLookups } = useLookups()
 
     // Get active statuses from lookups

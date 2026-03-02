@@ -4,7 +4,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ROLE_NAME } from '../../config/constants.js'
 
-function NotFound(props) {
+function NotFound() {
     const { t } = useTranslation()
     const navigate = useNavigate()
     const { authUser } = useAuth()

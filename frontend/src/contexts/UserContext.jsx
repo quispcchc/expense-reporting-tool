@@ -77,6 +77,7 @@ export const UserProvider = ({ children }) => {
         if (!state.hasFetched) {
             getUsers()
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [state.hasFetched])
 
     // Actions exposed to components

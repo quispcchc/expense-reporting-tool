@@ -60,7 +60,7 @@ function VerifyEmailPage() {
                         detail: response.data.message,
                     })
                 }
-            } catch (error) {
+            } catch {
                 // If endpoint fails, continue to show the form
             }
         }
@@ -122,7 +122,7 @@ function VerifyEmailPage() {
 
         setLoading(true)
         try {
-            const response = await api.post('/verify-email', {
+            await api.post('/verify-email', {
                 email: formData.email,
                 token: formData.token,
                 password: formData.password,

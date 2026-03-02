@@ -3,7 +3,7 @@ import Upload from '../claims/uploadAttchment/Upload.jsx'
 import AttachmentList from '../claims/uploadAttchment/AttachmentList.jsx'
 import { useTranslation } from 'react-i18next'
 
-function UploadMileageAttachment({ files, onSetFiles, errors }) {
+function UploadMileageAttachment({ files, onSetFiles }) {
     const { t } = useTranslation()
 
     const handleFileSelect = (e) => {

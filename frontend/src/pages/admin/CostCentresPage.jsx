@@ -95,6 +95,7 @@ function CostCentresPage() {
         if (error) {
             toasts.error()
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [error])
 
     const onRowEditComplete = async (e) => {

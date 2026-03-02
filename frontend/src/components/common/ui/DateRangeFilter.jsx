@@ -18,6 +18,7 @@ const DateRangeFilter = ({ options }) => {
         if (startDate && endDate) {
             options.filterApplyCallback([startDate, endDate]);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [startDate, endDate]);
 
     return (

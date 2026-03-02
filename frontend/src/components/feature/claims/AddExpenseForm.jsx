@@ -1,5 +1,4 @@
-import React, { useEffect } from 'react'
-import { useTags } from '../../../contexts/TagContext.jsx'
+import React from 'react'
 import UploadAttachment from './uploadAttchment/UploadAttachment.jsx'
 import TagMultiSelect from './TagMultiSelect.jsx'
 import { Button } from 'primereact/button'
@@ -14,7 +13,6 @@ import { VIEW_MODE } from '../../../config/constants.js'
 function AddExpenseForm({
     claimFormData,
     expenseFormData,
-    onSetExpenseForm,
     onClaimItemsUpdate,
     onExpenseChange,
     onAddExpense,

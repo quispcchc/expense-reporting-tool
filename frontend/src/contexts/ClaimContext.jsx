@@ -74,7 +74,7 @@ export function ClaimProvider({ children }) {
                     type: CLAIM_ACTIONS.SET_CLAIMS,
                     payload: response.data,
                 })
-            } catch (error) {
+            } catch {
                 // Error handled by caller
             } finally {
                 isFetchingClaims.current = false
@@ -91,7 +91,7 @@ export function ClaimProvider({ children }) {
                     type: CLAIM_ACTIONS.SET_MY_CLAIMS,
                     payload: response.data,
                 })
-            } catch (error) {
+            } catch {
                 // Error handled by caller
             } finally {
                 isFetchingMyClaims.current = false
@@ -99,18 +99,13 @@ export function ClaimProvider({ children }) {
         },
 
         createClaim: async (claim) => {
-            try {
-                const response = await api.post('claims', claim)
+            const response = await api.post('claims', claim)
 
-                // Add to local state for UI display
-                dispatch({
-                    type: CLAIM_ACTIONS.CREATE_CLAIM,
-                    payload: response.data,
-                })
-            }
-            catch (error) {
-                throw error
-            }
+            // Add to local state for UI display
+            dispatch({
+                type: CLAIM_ACTIONS.CREATE_CLAIM,
+                payload: response.data,
+            })
         },
 
         // Add updated timestamp and dispatch update action

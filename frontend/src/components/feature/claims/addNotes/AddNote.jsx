@@ -28,7 +28,7 @@ function AddNote({ curClaim, onAddNote, toastRef }) {
             showToast(toastRef, { severity: 'success', summary: t('toast.success', 'Success'), detail: t('claims.noteSubmitted', 'Note submitted successfully!') })
             setNoteText('')
         }
-        catch (error) {
+        catch {
             showToast(toastRef, { severity: 'error', summary: t('toast.error', 'Error'), detail: t('toast.errorOccurred', 'Error occurred!') })
         } finally {
             setIsSubmitting(false)

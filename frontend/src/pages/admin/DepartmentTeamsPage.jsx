@@ -19,6 +19,7 @@ import { textInputEditor } from '../../utils/dataTableEditors.jsx'
 import MobileEditDialog from '../../components/common/ui/MobileEditDialog.jsx'
 import api from '../../api/api.js'
 import { showToast, TOAST_LIFE } from '../../utils/helpers.js'
+import { validateForm } from '../../utils/validation/validator.js'
 import { validationSchemas } from '../../utils/validation/schemas.js'
 import Input from '../../components/common/ui/Input.jsx'
 import Select from '../../components/common/ui/Select.jsx'
@@ -72,7 +73,7 @@ function DepartmentTeamsPage() {
             deptTeamsCache[departmentId] = { department, teams: fetchedTeams }
             setDepartmentData(department)
             setTeams(fetchedTeams)
-        } catch (err) {
+        } catch {
             // Error handled by caller
         } finally {
             isFetching.current = false
@@ -119,7 +120,7 @@ function DepartmentTeamsPage() {
             showToast(toast, { severity: 'error', summary: t('common.error'), detail: err.message || t('teams.updateError', 'Failed to update team'), life: TOAST_LIFE.ERROR })
             try {
                 await fetchData(true)
-            } catch (fetchErr) {
+            } catch {
                 // Error handled by caller
             }
         }

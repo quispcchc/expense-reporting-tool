@@ -52,7 +52,7 @@ export const validateForm = (formData, schema, options = {}) => {
                         if (abortEarly) return // Stop at first error for this field
                     }
                 }
-            } catch (error) {
+            } catch {
                 fieldErrors.push('Validation error occurred')
             }
         })

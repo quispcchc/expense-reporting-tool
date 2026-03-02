@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 
 function Select(props) {
     const { t } = useTranslation()
-    const { name, id, value, label, onChange, options, placeholder = t('filters.selectIndication'), errors = [] } = { ...props }
+    const { name, id, label, errors = [] } = { ...props }
     return (
         <div className='relative'>
             <div className="flex items-center gap-2 mb-2">

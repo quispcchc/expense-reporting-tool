@@ -40,17 +40,9 @@ function ClaimDetail({ curClaim, toastRef, onClaimRefetch }) {
 
             showToast(toastRef, { severity: 'success', summary: t('common.success'), detail: t('claims.updateSuccess') })
             setIsEditing(false)
-        } catch (error) {
+        } catch {
             showToast(toastRef, { severity: 'error', summary: t('common.error'), detail: t('claims.updateError') })
         }
-    }
-
-    function getDepartmentName(id) {
-        return lookups.claimTypes?.find(c => c.claim_type_id === id)?.claim_type_name
-    }
-
-    function getTeamName(id) {
-        return lookups.teams?.find(t => t.team_id === id)?.team_name
     }
 
     // Safe getter for claimType with null checks

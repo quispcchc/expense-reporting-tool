@@ -3,7 +3,6 @@ import { DataTable } from 'primereact/datatable'
 import { Column } from 'primereact/column'
 import { InputNumber } from 'primereact/inputnumber'
 import ClaimRowExpansion from './ClaimRowExpansion.jsx'
-import { useClaims } from '../../../../contexts/ClaimContext.jsx'
 import { Button } from 'primereact/button'
 import StatusTab from '../../../common/ui/StatusTab.jsx'
 import { useLookups } from '../../../../contexts/LookupContext.jsx'
@@ -33,8 +32,6 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
     const { authUser } = useAuth()
     const [expenseItems, setExpenseItems] = useState(() => mapExpenseData(data, mode))
     const [mobileExpandedId, setMobileExpandedId] = useState(null)
-
-    const { updateClaim } = useClaims()
 
     const [expandedRows, setExpandedRows] = useState(null)
 
@@ -371,9 +368,11 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
 
         // Debug: log FormData contents to verify payload
         try {
-            for (const [k, v] of formData.entries()) {
+            for (const _entry of formData.entries()) {
+                // intentionally empty
             }
-        } catch (e) {
+        } catch {
+            // intentionally empty
         }
 
         const response = await api.post(`expenses/${expenseId}`, formData)
@@ -530,10 +529,10 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
 
             showToast(toastRef, { severity: 'success', summary: t('toast.success'), detail: t('expenses.itemsDeletedPermanently', 'Items deleted permanently') })
 
-        } catch (error) {
+        } catch {
             showToast(toastRef, { severity: 'error', summary: t('toast.error'), detail: t('expenses.deleteItemsFailed', 'Failed to delete some items') })
 
-            // Optional: You might want to restore items if they failed, 
+            // Optional: You might want to restore items if they failed,
             // but for now we assume partial success or user will refresh.
         }
     }
@@ -607,7 +606,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
             showToast(toastRef, { severity: 'success', summary: t('common.success'), detail: t('claims.approvedSuccess') })
 
         }
-        catch (error) {
+        catch {
             showToast(
                 toastRef, { severity: 'error', summary: t('common.error'), detail: t('claims.approveRejectError') })
         } finally {
@@ -636,7 +635,8 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
 
             showToast(toastRef, { severity: 'success', summary: t('common.success'), detail: t('claims.rejectedSuccess') })
         }
-        catch (error) {
+        catch {
+            // Error handling deferred to finally block
         } finally {
             setProcessingExpenses(prev => {
                 const next = new Set(prev)
@@ -734,7 +734,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
 
     // Mobile expense card (summary only, tappable) — plain render function to avoid remount
     const renderMobileExpenseCard = (item) => {
-        const isProcessed = item.status === APPROVAL_STATUS.APPROVED || item.status === APPROVAL_STATUS.REJECTED
+        const _isProcessed = item.status === APPROVAL_STATUS.APPROVED || item.status === APPROVAL_STATUS.REJECTED
         return (
             <div
                 className="admin-card cursor-pointer"

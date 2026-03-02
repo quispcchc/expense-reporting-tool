@@ -10,7 +10,7 @@ import { Outlet } from 'react-router-dom'
 import SideBar from '../common/layout/SideBar.jsx'
 import Header from '../common/layout/Header.jsx'
 
-function Layout({ children }) {
+function Layout() {
     return (
         <ProjectProvider>
             <TagProvider>
