@@ -1,5 +1,5 @@
 import React from 'react'
-import UploadAttachment from './uploadAttchment/UploadAttachment.jsx'
+import UploadAttachment from './uploadAttachment/UploadAttachment.jsx'
 import TagMultiSelect from './TagMultiSelect.jsx'
 import { Button } from 'primereact/button'
 import Input from '../../common/ui/Input.jsx'

@@ -8,7 +8,7 @@ import { confirmDialog } from 'primereact/confirmdialog'
 import { APP_SETTINGS } from '../../../config/settings.js'
 import { showToast } from '../../../utils/helpers.js'
 import api, { API_BASE_URL } from '../../../api/api.js'
-import { getFileIcon } from '../claims/uploadAttchment/getFileIcon.jsx'
+import { getFileIcon } from '../../../utils/getFileIcon.jsx'
 import { useTranslation } from 'react-i18next'
 import { useIsMobile } from '../../../hooks/useIsMobile.js'
 import { VIEW_MODE } from '../../../config/constants.js'
@@ -16,7 +16,7 @@ import Input from '../../common/ui/Input.jsx'
 import { validateForm } from '../../../utils/validation/validator.js'
 import { validationSchemas } from '../../../utils/validation/schemas.js'
 import { formatCurrency, formatDate } from '../../../utils/formatters.js'
-import MobileCard from './MobileCard.jsx'
+import MileageMobileCard from './MileageMobileCard.jsx'
 
 // Map backend transaction data → frontend row format
 const mapTransactions = (transactions, mode) => {
@@ -393,7 +393,7 @@ function MileageDataTable({ data, mode, onTransactionsUpdate, toastRef, onClaimU
                 </div>
             ) : isMobile ? (
                 <div>
-                    {rows.map(tx => <MobileCard key={tx.transactionId} tx={tx} mode={mode} formatDate={formatDate} formatCurrency={formatCurrency} saveMobileEdit={saveMobileEdit} handleReceiptRemove={handleReceiptRemove} handleReceiptUpload={handleReceiptUpload} deleteTransaction={deleteTransaction} />)}
+                    {rows.map(tx => <MileageMobileCard key={tx.transactionId} tx={tx} mode={mode} formatDate={formatDate} formatCurrency={formatCurrency} saveMobileEdit={saveMobileEdit} handleReceiptRemove={handleReceiptRemove} handleReceiptUpload={handleReceiptUpload} deleteTransaction={deleteTransaction} />)}
                 </div>
             ) : (
                 <DataTable

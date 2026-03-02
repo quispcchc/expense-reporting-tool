@@ -1,4 +1,4 @@
-import { getFileIcon } from '../uploadAttchment/getFileIcon.jsx'
+import { getFileIcon } from '../../../../utils/getFileIcon.jsx'
 import { useTranslation } from 'react-i18next'
 
 const resolveFileInfo = (att) => ({

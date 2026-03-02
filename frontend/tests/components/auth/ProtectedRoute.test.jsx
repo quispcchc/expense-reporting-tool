@@ -8,7 +8,7 @@ vi.mock('../../../src/contexts/AuthContext.jsx', () => ({
 }))
 
 // Mock heavy components to simple stubs
-vi.mock('../../../src/pages/shared/Unauthrized.jsx', () => ({
+vi.mock('../../../src/pages/shared/Unauthorized.jsx', () => ({
     default: () => <div data-testid="unauthorized">Unauthorized</div>,
 }))
 

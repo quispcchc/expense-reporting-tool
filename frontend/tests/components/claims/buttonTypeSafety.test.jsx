@@ -88,7 +88,7 @@ describe('Button type="button" safety – prevent accidental form submission', (
             label: 'MobileEditDialog',
         },
         {
-            path: 'src/components/feature/mileage/MobileCard.jsx',
+            path: 'src/components/feature/mileage/MileageMobileCard.jsx',
             label: 'MileageMobileCard',
         },
         {

@@ -1,6 +1,6 @@
 import React from 'react'
-import Upload from '../claims/uploadAttchment/Upload.jsx'
-import AttachmentList from '../claims/uploadAttchment/AttachmentList.jsx'
+import Upload from '../claims/uploadAttachment/Upload.jsx'
+import AttachmentList from '../claims/uploadAttachment/AttachmentList.jsx'
 import { useTranslation } from 'react-i18next'
 
 function UploadMileageAttachment({ files, onSetFiles }) {

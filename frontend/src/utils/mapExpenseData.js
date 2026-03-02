@@ -1,5 +1,5 @@
-import { API_BASE_URL } from '../../../../api/api.js'
-import { VIEW_MODE } from '../../../../config/constants.js'
+import { API_BASE_URL } from '../api/api.js'
+import { VIEW_MODE } from '../config/constants.js'
 
 /**
  * Maps expense data between backend and frontend shapes based on mode.
