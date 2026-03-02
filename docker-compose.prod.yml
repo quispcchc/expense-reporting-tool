@@ -1,5 +1,6 @@
 # Production Docker Compose Configuration
 # Run with: docker-compose -f docker-compose.prod.yml up -d --build
+# Configuration: copy .env.example to .env and fill in the values
 
 # Default logging configuration for all services
 x-logging: &default-logging
@@ -16,16 +17,16 @@ services:
     expose:
       - "5432"
     environment:
-      - POSTGRES_DB=expense_db
-      - POSTGRES_USER=expense_user
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-expense_password}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - expense_network
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U expense_user -d expense_db" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -37,14 +38,14 @@ services:
     image: edoburu/pgbouncer
     container_name: expense_pgbouncer
     environment:
-      - DB_USER=expense_user
-      - DB_PASSWORD=${POSTGRES_PASSWORD:-expense_password}
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
       - DB_HOST=postgres
       - DB_PORT=5432
-      - DB_NAME=expense_db
-      - POOL_MODE=session
-      - MAX_CLIENT_CONN=100
-      - DEFAULT_POOL_SIZE=20
+      - DB_NAME=${POSTGRES_DB}
+      - POOL_MODE=${PGBOUNCER_POOL_MODE}
+      - MAX_CLIENT_CONN=${PGBOUNCER_MAX_CLIENT_CONN}
+      - DEFAULT_POOL_SIZE=${PGBOUNCER_DEFAULT_POOL_SIZE}
       - LISTEN_PORT=6432
       - AUTH_TYPE=scram-sha-256
     depends_on:
@@ -86,22 +87,26 @@ services:
     environment:
       - APP_ENV=production
       - APP_DEBUG=false
-      - APP_URL=http://deneb.ddns.net
-      # SQLite Configuration (Default)
-      # - DB_CONNECTION=sqlite
-      # - DB_DATABASE=/var/www/html/database/database.sqlite
-      # PostgreSQL Configuration (Uncomment to switch)
+      - APP_URL=${APP_URL}
       - DB_CONNECTION=pgsql
       - DB_HOST=pgbouncer
       - DB_PORT=6432
-      - DB_DATABASE=expense_db
-      - DB_USERNAME=expense_user
-      - DB_PASSWORD=${POSTGRES_PASSWORD:-expense_password}
+      - DB_DATABASE=${POSTGRES_DB}
+      - DB_USERNAME=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
       - QUEUE_CONNECTION=database
+      - MAIL_MAILER=smtp
+      - MAIL_HOST=${MAIL_HOST}
+      - MAIL_PORT=${MAIL_PORT}
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - MAIL_ENCRYPTION=${MAIL_ENCRYPTION}
+      - MAIL_FROM_ADDRESS=${MAIL_FROM_ADDRESS}
+      - MAIL_FROM_NAME=${MAIL_FROM_NAME}
       - SESSION_EXPIRE_ON_CLOSE=true
-      - SESSION_LIFETIME=60
-      - FRONTEND_URL=http://deneb.ddns.net
-      - ALT_FRONTEND_URL=http://deneb.ddns.net
+      - SESSION_LIFETIME=${SESSION_LIFETIME}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - ALT_FRONTEND_URL=${ALT_FRONTEND_URL}
     depends_on:
       postgres:
         condition: service_healthy
@@ -126,17 +131,21 @@ services:
       - ./backend/database:/var/www/html/database
     environment:
       - APP_ENV=production
-      # SQLite Configuration (Default)
-      # - DB_CONNECTION=sqlite
-      # - DB_DATABASE=/var/www/html/database/database.sqlite
-      # PostgreSQL Configuration (Uncomment to switch)
       - DB_CONNECTION=pgsql
       - DB_HOST=pgbouncer
       - DB_PORT=6432
-      - DB_DATABASE=expense_db
-      - DB_USERNAME=expense_user
-      - DB_PASSWORD=${POSTGRES_PASSWORD:-expense_password}
+      - DB_DATABASE=${POSTGRES_DB}
+      - DB_USERNAME=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
       - QUEUE_CONNECTION=database
+      - MAIL_MAILER=smtp
+      - MAIL_HOST=${MAIL_HOST}
+      - MAIL_PORT=${MAIL_PORT}
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - MAIL_ENCRYPTION=${MAIL_ENCRYPTION}
+      - MAIL_FROM_ADDRESS=${MAIL_FROM_ADDRESS}
+      - MAIL_FROM_NAME=${MAIL_FROM_NAME}
     depends_on:
       postgres:
         condition: service_healthy
