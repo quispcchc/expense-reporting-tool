@@ -23,6 +23,8 @@ return new class extends Migration
             $table->double('mileage_rate')->default(0);
             $table->double('total_amount')->default(0);
             $table->string('buyer', 100)->nullable();
+            $table->string('travel_from', 255)->nullable();
+            $table->string('travel_to', 255)->nullable();
             $table->timestamps();
         });
     }

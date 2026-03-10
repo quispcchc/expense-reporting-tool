@@ -22,8 +22,6 @@ return new class extends Migration
                 ->references('expense_id')
                 ->on('expenses')
                 ->onDelete('cascade');
-            $table->string('travel_from', 255)->nullable();
-            $table->string('travel_to', 255)->nullable();
             $table->date('period_of_from')->nullable();
             $table->date('period_of_to')->nullable();
             $table->timestamps();
