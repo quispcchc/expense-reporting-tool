@@ -114,3 +114,20 @@ Route::delete('mileages/{mileageId}', [MileageController::class, 'destroy'])->mi
 Route::post('mileage-transactions', [MileageTransactionController::class, 'store'])->middleware('auth:sanctum');
 Route::put('mileage-transactions/{transactionId}', [MileageTransactionController::class, 'update'])->middleware('auth:sanctum');
 Route::delete('mileage-transactions/{transactionId}', [MileageTransactionController::class, 'destroy'])->middleware('auth:sanctum');
+
+// Temporary route to run migrations and seed data
+Route::get('/deploy-setup', function () {
+    try {
+        echo "Running migrations...<br>";
+        \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+        echo \Illuminate\Support\Facades\Artisan::output() . "<br>";
+
+        echo "Seeding database...<br>";
+        \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
+        echo \Illuminate\Support\Facades\Artisan::output() . "<br>";
+
+        return "Setup completed successfully!";
+    } catch (\Exception $e) {
+        return "Error during setup: " . $e->getMessage();
+    }
+});
