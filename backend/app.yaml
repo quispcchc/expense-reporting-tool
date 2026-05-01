@@ -1,0 +1,47 @@
+runtime: php82
+service: api
+
+# Handlers for static and dynamic content
+handlers:
+  - url: /favicon\.ico
+    static_files: public/favicon.ico
+    upload: public/favicon\.ico
+
+  - url: /robots\.txt
+    static_files: public/robots.txt
+    upload: public/robots\.txt
+
+  - url: /.*
+    script: auto
+
+# Environment variables for Google App Engine Standard
+env_variables:
+  # App Configuration
+  APP_ENV: production
+  APP_DEBUG: "false"
+  APP_KEY: base64:+ohMrNdPZ8UUhCueOq6m4oiUyi2JgHM921aKWUmQg0I=
+  APP_STORAGE: /tmp
+  VIEW_COMPILED_PATH: /tmp/storage/framework/views
+  
+  # Session and Cache (GAE Standard has read-only filesystem)
+  # Recommended to use 'database' or 'memcached' for persistent sessions
+  SESSION_DRIVER: cookie
+  CACHE_STORE: database
+  CACHE_PREFIX: cache_
+  
+  # Log to Google Cloud Logging
+  LOG_CHANNEL: errorlog
+
+  # Filesystem
+  FILESYSTEM_DISK: public
+
+  # Database Connection (Replace with your Cloud SQL instance details)
+  DB_CONNECTION: pgsql
+  DB_HOST: /cloudsql/expense-reporting-tool:northamerica-northeast2:expense-db
+  DB_PORT: 5432
+  DB_DATABASE: postgres
+  DB_USERNAME: postgres
+  DB_PASSWORD: AliVeli123.
+
+beta_settings:
+  cloud_sql_instances: expense-reporting-tool:northamerica-northeast2:expense-db

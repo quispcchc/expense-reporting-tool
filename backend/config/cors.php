@@ -8,10 +8,11 @@ return [
     // Allow all HTTP verbs from the SPA during development
     'allowed_methods' => ['*'],
 
-    // Explicitly allow local dev origins; expand if frontend host changes
+    // Explicitly allow local dev and production origins; expand if frontend host changes
     'allowed_origins' => [
         'http://localhost:5173',
         'http://127.0.0.1:5173',
+        'https://*.appspot.com', # Google App Engine origins
     ],
 
     // Pattern to catch any localhost port if needed for previews

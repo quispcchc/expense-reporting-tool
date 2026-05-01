@@ -11,7 +11,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        if (isset($_SERVER['GAE_SERVICE'])) {
+            $this->app->useStoragePath(env('APP_STORAGE', '/tmp'));
+        }
     }
 
     /**

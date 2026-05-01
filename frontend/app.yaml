@@ -1,0 +1,21 @@
+runtime: nodejs20
+service: default
+
+# Serve the static files from the dist directory
+handlers:
+  # Static assets (JS, CSS, images, etc.)
+  - url: /(.*\.(js|css|png|jpg|svg|ico|json|txt))$
+    static_files: dist/\1
+    upload: dist/.*\.(js|css|png|jpg|svg|ico|json|txt)$
+
+  # All other routes should point to index.html (for SPA routing)
+  - url: /.*
+    static_files: dist/index.html
+    upload: dist/index.html
+
+# Environment variables for the build process (if needed)
+# Note: React build environment variables must be set BEFORE running 'npm run build'
+# gcloud app deploy will not use these for the build if you build locally.
+# If you are using relative paths (via dispatch.yaml), VITE_API_BASE_URL is not needed.
+env_variables:
+  # VITE_API_BASE_URL: https://api-dot-YOUR_PROJECT_ID.appspot.com

@@ -6,7 +6,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
-class updatePasswordController extends Controller
+class UpdatePasswordController extends Controller
 {
     /**
      * Update the authenticated user's password.

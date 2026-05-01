@@ -1,7 +1,7 @@
 {
   "name": "volunteering_expense-and-revenue-reporting-tool",
   "version": "1.0.0",
-  "description": "A web-based application for managing volunteering expenses and revenues, built with a Laravel backend and a React frontend, fully containerized with Docker.",
+  "description": "A web-based application for managing volunteering expenses and revenues, built with a Laravel backend and a React frontend, ready for Google App Engine deployment.",
   "main": "index.js",
   "scripts": {
     "test:e2e": "npx playwright test",

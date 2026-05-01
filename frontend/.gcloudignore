@@ -1,0 +1,14 @@
+.git
+.gitignore
+node_modules/
+.env
+.env.*
+.editorconfig
+.dockerignore
+Dockerfile
+Dockerfile.prod
+eslint.config.js
+tests/
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
