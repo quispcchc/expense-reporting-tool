@@ -3,10 +3,10 @@ service: default
 
 # Serve the static files from the dist directory
 handlers:
-  # Static assets (JS, CSS, images, etc.)
-  - url: /(.*\.(js|css|png|jpg|svg|ico|json|txt))$
+  # Static assets (JS, CSS, images, fonts, etc.)
+  - url: /(.*\.(js|css|png|jpg|svg|ico|json|txt|woff|woff2|ttf|eot|otf))$
     static_files: dist/\1
-    upload: dist/.*\.(js|css|png|jpg|svg|ico|json|txt)$
+    upload: dist/.*\.(js|css|png|jpg|svg|ico|json|txt|woff|woff2|ttf|eot|otf)$
 
   # All other routes should point to index.html (for SPA routing)
   - url: /.*

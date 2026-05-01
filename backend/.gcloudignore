@@ -18,3 +18,7 @@ docker-compose.prod.yml
 docker-compose.dev.yml
 scripts/
 tests/
+
+# Ensure bootstrap/cache is included
+!bootstrap/cache/
+!bootstrap/cache/.gitkeep
