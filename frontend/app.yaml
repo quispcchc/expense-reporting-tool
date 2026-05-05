@@ -1,4 +1,4 @@
-runtime: nodejs20
+runtime: nodejs22
 service: default
 
 # Serve the static files from the dist directory

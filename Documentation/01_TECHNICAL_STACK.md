@@ -23,8 +23,8 @@ This document provides a comprehensive overview of the technical stack used in t
 | **State Management** | React Context API | - | Global state management (User, Team, CostCentre) |
 | **HTTP Client** | Axios | Latest | API communication with interceptors |
 | **Form Validation** | Built-in React | - | Form handling and validation |
-| **Development** | Node.js | 16+ | JavaScript runtime |
-| **Package Manager** | npm | 8+ | Dependency management |
+| **Development** | Node.js | 22+ | JavaScript runtime |
+| **Package Manager** | npm | 10+ | Dependency management |
 
 ### 2.2 Backend Stack
 

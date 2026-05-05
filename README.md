@@ -8,7 +8,7 @@ Before you begin, ensure you have the following installed on your machine:
 - **Google Cloud SDK (gcloud)**: [Download & Install](https://cloud.google.com/sdk/docs/install)
 - **PHP 8.2+**: [Download & Install](https://www.php.net/downloads)
 - **Composer**: [Download & Install](https://getcomposer.org/download/)
-- **Node.js 20+ & pnpm**: [Download & Install](https://nodejs.org/)
+- **Node.js 22+ & pnpm**: [Download & Install](https://nodejs.org/)
 - **Git**: [Download & Install](https://git-scm.com/downloads)
 
 ## 🛠️ Installation & Setup

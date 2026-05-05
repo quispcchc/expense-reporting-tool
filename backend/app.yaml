@@ -20,8 +20,11 @@ env_variables:
   APP_ENV: production
   APP_DEBUG: "false"
   APP_KEY: base64:+ohMrNdPZ8UUhCueOq6m4oiUyi2JgHM921aKWUmQg0I=
-  APP_STORAGE: /tmp
+  APP_STORAGE: /tmp/storage
+  STORAGE_ROOT: /tmp/storage/app/private
+  PUBLIC_STORAGE_ROOT: /tmp/storage/app/public
   VIEW_COMPILED_PATH: /tmp/storage/framework/views
+  FRONTEND_URL: https://expense-reporting-tool.nn.r.appspot.com
   
   # Session and Cache (GAE Standard has read-only filesystem)
   # Recommended to use 'database' or 'memcached' for persistent sessions
@@ -29,6 +32,15 @@ env_variables:
   CACHE_STORE: database
   CACHE_PREFIX: cache_
   
+  # Mail Configuration (GAE Standard requires external mail service)
+  MAIL_MAILER: smtp
+  MAIL_HOST: smtp.mailtrap.io # Replace with your mail host
+  MAIL_PORT: 2525
+  MAIL_USERNAME: null # Replace with your mail username
+  MAIL_PASSWORD: null # Replace with your mail password
+  MAIL_FROM_ADDRESS: "noreply@expense-reporting-tool.com"
+  MAIL_FROM_NAME: "Expense Reporting Tool"
+
   # Log to Google Cloud Logging
   LOG_CHANNEL: errorlog
 

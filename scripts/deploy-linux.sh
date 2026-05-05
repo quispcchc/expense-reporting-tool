@@ -56,7 +56,7 @@ install_dependencies() {
     # Install Node.js if not present
     if ! command -v node &> /dev/null; then
         log_info "Installing Node.js..."
-        curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+        curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
         sudo apt install -y nodejs
     fi
 }
