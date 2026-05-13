@@ -15,6 +15,7 @@ use App\Models\MileageTransaction;
 use App\Models\Receipt;
 use App\Models\Tag;
 use App\Models\User;
+use App\Notifications\ClaimCreatedNotification;
 use App\Notifications\ClaimUpdatedNotification;
 use Exception;
 use Illuminate\Support\Facades\DB;
@@ -152,8 +153,60 @@ class ClaimService
                 $this->addExpenses($claim, $data['expenses']);
             }
 
+            // Send notification to the user (Claimant)
+            $user->notify(new ClaimCreatedNotification($claim));
+
+            // Notify Approvers
+            $this->notifyApprovers($claim);
+
             return $claim->load(['expenses.receipts', 'expenses.mileage.transactions.receipts', 'claimType', 'department', 'team', 'status']);
         });
+    }
+
+    /**
+     * Notify relevant approvers about a new claim submission.
+     */
+    protected function notifyApprovers(Claim $claim)
+    {
+        // 1. Notify Team Leads of the team
+        if ($claim->team_id) {
+            $teamLeads = User::whereHas('role', function ($q) {
+                $q->where('role_level', RoleLevel::TEAM_LEAD);
+            })->whereHas('teams', function ($q) use ($claim) {
+                $q->where('teams.team_id', $claim->team_id);
+            })->get();
+
+            foreach ($teamLeads as $lead) {
+                if ($lead->user_id !== $claim->user_id) {
+                    $lead->notify(new ClaimCreatedNotification($claim));
+                }
+            }
+        }
+
+        // 2. Notify Department Manager
+        if ($claim->department_id) {
+            $deptManagers = User::whereHas('role', function ($q) {
+                $q->where('role_level', RoleLevel::DEPARTMENT_MANAGER);
+            })->where('department_id', $claim->department_id)
+            ->get();
+
+            foreach ($deptManagers as $manager) {
+                if ($manager->user_id !== $claim->user_id) {
+                    $manager->notify(new ClaimCreatedNotification($claim));
+                }
+            }
+        }
+
+        // 3. Notify Super Admins
+        $superAdmins = User::whereHas('role', function ($q) {
+            $q->where('role_level', RoleLevel::SUPER_ADMIN);
+        })->get();
+
+        foreach ($superAdmins as $admin) {
+            if ($admin->user_id !== $claim->user_id) {
+                $admin->notify(new ClaimCreatedNotification($claim));
+            }
+        }
     }
 
     protected function addNote(Claim $claim, $user, string $noteText)

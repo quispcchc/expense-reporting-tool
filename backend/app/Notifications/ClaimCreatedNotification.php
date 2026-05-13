@@ -1,0 +1,44 @@
+<?php
+
+namespace App\Notifications;
+
+use App\Models\Claim;
+use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Notifications\Notification;
+
+class ClaimCreatedNotification extends Notification
+{
+    protected Claim $claim;
+
+    /**
+     * Create a new notification instance.
+     */
+    public function __construct(Claim $claim)
+    {
+        $this->claim = $claim;
+    }
+
+    /**
+     * Get the notification delivery channels.
+     */
+    public function via($notifiable)
+    {
+        return ['mail'];
+    }
+
+    /**
+     * Get the mail representation of the notification.
+     */
+    public function toMail($notifiable)
+    {
+        return (new MailMessage)
+            ->subject("New Claim #{$this->claim->claim_id} Submitted")
+            ->line("A new claim has been submitted and is pending review.")
+            ->line("Claimant: {$this->claim->user->full_name}")
+            ->line("Total Amount: {$this->claim->total_amount}")
+            ->action(
+                'View Claim',
+                url("/user/claims/{$this->claim->claim_id}/view-claim"))
+            ->line('Thank you for using our application!');
+    }
+}
