@@ -38,7 +38,7 @@ env_variables:
   MAIL_PORT: 587
   MAIL_SCHEME: tls
   MAIL_USERNAME: expenseclaims@carlingtonchc.org
-  MAIL_PASSWORD: "C@nadianblood2026_"
+  MAIL_PASSWORD: "C@nadianbl00d2026_"
   MAIL_FROM_ADDRESS: "expenseclaims@carlingtonchc.org"
   MAIL_FROM_NAME: "Expense Reporting Tool"
 
