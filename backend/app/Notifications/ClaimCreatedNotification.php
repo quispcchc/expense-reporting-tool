@@ -31,14 +31,15 @@ class ClaimCreatedNotification extends Notification
      */
     public function toMail($notifiable)
     {
+        $frontendUrl = config('app.frontend_url', 'http://localhost:3000');
+        $url = $frontendUrl . "/user/claims/{$this->claim->claim_id}/view-claim";
+
         return (new MailMessage)
             ->subject("New Claim #{$this->claim->claim_id} Submitted")
             ->line("A new claim has been submitted and is pending review.")
             ->line("Claimant: {$this->claim->user->full_name}")
             ->line("Total Amount: {$this->claim->total_amount}")
-            ->action(
-                'View Claim',
-                url("/user/claims/{$this->claim->claim_id}/view-claim"))
+            ->action('View Claim', $url)
             ->line('Thank you for using our application!');
     }
 }

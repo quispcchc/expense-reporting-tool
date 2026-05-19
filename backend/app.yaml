@@ -24,7 +24,7 @@ env_variables:
   STORAGE_ROOT: /tmp/storage/app/private
   PUBLIC_STORAGE_ROOT: /tmp/storage/app/public
   VIEW_COMPILED_PATH: /tmp/storage/framework/views
-  FRONTEND_URL: https://expense-reporting-tool.nn.r.appspot.com
+  FRONTEND_URL: https://revex.carlingtonchchub.ca
   
   # Session and Cache (GAE Standard has read-only filesystem)
   # Recommended to use 'database' or 'memcached' for persistent sessions

@@ -29,7 +29,7 @@ class NotificationController extends Controller
         }
 
         // Send the notification to the user
-        $claim->user->notify(new ClaimUpdatedNotification($request->message));
+        $claim->user->notify(new ClaimUpdatedNotification($claim, $request->message));
 
         return response()->json(['message' => 'Notification sent successfully.']);
     }

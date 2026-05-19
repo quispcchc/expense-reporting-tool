@@ -9,13 +9,15 @@ use Illuminate\Notifications\Notification;
 class ClaimUpdatedNotification extends Notification
 {
     protected Claim $claim;
+    protected ?string $customMessage;
 
     /**
      * Create a new notification instance.
      */
-    public function __construct(Claim $claim)
+    public function __construct(Claim $claim, ?string $customMessage = null)
     {
         $this->claim = $claim;
+        $this->customMessage = $customMessage;
     }
 
     /**
@@ -31,14 +33,21 @@ class ClaimUpdatedNotification extends Notification
      */
     public function toMail($notifiable)
     {
+        $frontendUrl = config('app.frontend_url', 'http://localhost:3000');
+        $url = $frontendUrl . "/user/claims/{$this->claim->claim_id}/view-claim";
 
-        return (new MailMessage)
-            ->subject("Claim #{$this->claim->claim_id} Updated")
-            ->line("Your claim status has been updated to: **{$this->claim->status->claim_status_name}**.")
+        $mailMessage = (new MailMessage)
+            ->subject("Claim #{$this->claim->claim_id} Updated");
+
+        if ($this->customMessage) {
+            $mailMessage->line($this->customMessage);
+        } else {
+            $mailMessage->line("Your claim status has been updated to: **{$this->claim->status->claim_status_name}**.");
+        }
+
+        return $mailMessage
             ->line("Total Amount: {$this->claim->total_amount}")
-            ->action(
-                'View Claim',
-                url("/user/claims/{$this->claim->claim_id}/view-claim"))
+            ->action('View Claim', $url)
             ->line('Thank you for using our application!');
     }
 }
