@@ -48,6 +48,9 @@ env_variables:
   # Filesystem
   FILESYSTEM_DISK: public
 
+  # Queue Configuration
+  QUEUE_CONNECTION: database
+
   # Database Connection (Replace with your Cloud SQL instance details)
   DB_CONNECTION: pgsql
   DB_HOST: /cloudsql/expense-reporting-tool:northamerica-northeast2:expense-db

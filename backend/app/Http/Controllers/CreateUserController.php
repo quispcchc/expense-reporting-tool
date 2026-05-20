@@ -121,6 +121,9 @@ class CreateUserController extends Controller
         // Send email with verification link
         $user->notify(new VerifyEmailNotification($token));
 
+        // Load teams relationship for the response
+        $user->load('teams');
+
         // Return the created user object in the response so frontend can append without re-fetching.
         return response()->json([
             'message' => 'User created. A verification email has been sent.',
