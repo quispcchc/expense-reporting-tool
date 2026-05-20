@@ -190,7 +190,11 @@ class ExpenseService
             ]);
         }
 
-        $claim->user->notify(new ClaimUpdatedNotification($claim));
+        try {
+            $claim->user->notify(new ClaimUpdatedNotification($claim));
+        } catch (\Exception $e) {
+            \Log::error('Failed to send claim updated notification: ' . $e->getMessage());
+        }
     }
 
     public function deleteExpense(int $expenseId)

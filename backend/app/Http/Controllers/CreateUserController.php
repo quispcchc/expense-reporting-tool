@@ -119,7 +119,11 @@ class CreateUserController extends Controller
         );
 
         // Send email with verification link
-        $user->notify(new VerifyEmailNotification($token));
+        try {
+            $user->notify(new VerifyEmailNotification($token));
+        } catch (\Exception $e) {
+            \Log::error('Failed to send verification email: ' . $e->getMessage());
+        }
 
         // Load teams relationship for the response
         $user->load('teams');

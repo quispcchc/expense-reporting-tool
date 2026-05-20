@@ -31,7 +31,11 @@ class ForgetPasswordController extends Controller
                 'created_at' => Carbon::now(),
             ]
         );
-        $user->notify(new ResetPasswordNotification($token));
+        try {
+            $user->notify(new ResetPasswordNotification($token));
+        } catch (\Exception $e) {
+            \Log::error('Failed to send password reset notification: ' . $e->getMessage());
+        }
 
         return response()->json([
             'message' => 'reset link sent',

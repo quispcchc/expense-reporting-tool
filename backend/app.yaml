@@ -49,7 +49,7 @@ env_variables:
   FILESYSTEM_DISK: public
 
   # Queue Configuration
-  QUEUE_CONNECTION: database
+  QUEUE_CONNECTION: sync
 
   # Database Connection (Replace with your Cloud SQL instance details)
   DB_CONNECTION: pgsql

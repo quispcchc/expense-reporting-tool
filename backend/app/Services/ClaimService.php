@@ -154,7 +154,11 @@ class ClaimService
             }
 
             // Send notification to the user (Claimant)
-            $user->notify(new ClaimCreatedNotification($claim));
+            try {
+                $user->notify(new ClaimCreatedNotification($claim));
+            } catch (\Exception $e) {
+                \Log::error('Failed to send claim created notification to user: ' . $e->getMessage());
+            }
 
             // Notify Approvers
             $this->notifyApprovers($claim);
@@ -178,7 +182,11 @@ class ClaimService
 
             foreach ($teamLeads as $lead) {
                 if ($lead->user_id !== $claim->user_id) {
-                    $lead->notify(new ClaimCreatedNotification($claim));
+                    try {
+                        $lead->notify(new ClaimCreatedNotification($claim));
+                    } catch (\Exception $e) {
+                        \Log::error('Failed to send claim created notification to team lead: ' . $e->getMessage());
+                    }
                 }
             }
         }
@@ -192,7 +200,11 @@ class ClaimService
 
             foreach ($deptManagers as $manager) {
                 if ($manager->user_id !== $claim->user_id) {
-                    $manager->notify(new ClaimCreatedNotification($claim));
+                    try {
+                        $manager->notify(new ClaimCreatedNotification($claim));
+                    } catch (\Exception $e) {
+                        \Log::error('Failed to send claim created notification to dept manager: ' . $e->getMessage());
+                    }
                 }
             }
         }
@@ -204,7 +216,11 @@ class ClaimService
 
         foreach ($superAdmins as $admin) {
             if ($admin->user_id !== $claim->user_id) {
-                $admin->notify(new ClaimCreatedNotification($claim));
+                try {
+                    $admin->notify(new ClaimCreatedNotification($claim));
+                } catch (\Exception $e) {
+                    \Log::error('Failed to send claim created notification to super admin: ' . $e->getMessage());
+                }
             }
         }
     }

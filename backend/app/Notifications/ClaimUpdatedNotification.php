@@ -3,15 +3,11 @@
 namespace App\Notifications;
 
 use App\Models\Claim;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class ClaimUpdatedNotification extends Notification implements ShouldQueue
+class ClaimUpdatedNotification extends Notification
 {
-    use Queueable;
-
     protected Claim $claim;
     protected ?string $customMessage;
 

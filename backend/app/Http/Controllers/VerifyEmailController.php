@@ -121,7 +121,14 @@ class VerifyEmailController extends Controller
         );
 
         // Send email with verification link
-        $user->notify(new \App\Notifications\VerifyEmailNotification($token));
+        try {
+            $user->notify(new \App\Notifications\VerifyEmailNotification($token));
+        } catch (\Exception $e) {
+            \Log::error('Failed to resend verification email: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Token generated, but email failed to send. Please contact support.',
+            ], 500);
+        }
 
         return response()->json([
             'message' => 'Verification email sent. Please check your email.',

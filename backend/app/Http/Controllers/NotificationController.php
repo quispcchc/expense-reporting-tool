@@ -29,7 +29,12 @@ class NotificationController extends Controller
         }
 
         // Send the notification to the user
-        $claim->user->notify(new ClaimUpdatedNotification($claim, $request->message));
+        try {
+            $claim->user->notify(new ClaimUpdatedNotification($claim, $request->message));
+        } catch (\Exception $e) {
+            \Log::error('Failed to send claim update notification: ' . $e->getMessage());
+            return response()->json(['message' => 'Notification triggered, but email failed to send.'], 200);
+        }
 
         return response()->json(['message' => 'Notification sent successfully.']);
     }
