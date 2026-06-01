@@ -1,4 +1,5 @@
 import AddExpenseForm from './AddExpenseForm.jsx'
+import EditableExpansionTable from './expansionTable/EditableExpansionTable.jsx'
 import { useEffect, useState } from 'react'
 import ContentHeader from '../../common/layout/ContentHeader.jsx'
 import { Button } from 'primereact/button'
@@ -9,10 +10,14 @@ import { validationSchemas } from '../../../utils/validation/schemas.js'
 import { useNavigate } from 'react-router-dom'
 import { useClaims } from '../../../contexts/ClaimContext.jsx'
 import { useAuth } from '../../../contexts/AuthContext.jsx'
+import { useLookups } from '../../../contexts/LookupContext.jsx'
 import { showToast } from '../../../utils/helpers.js'
 import { useTranslation } from 'react-i18next'
 import MileageSection from '../mileage/MileageSection.jsx'
+import Select from '../../common/ui/Select.jsx'
+import Input from '../../common/ui/Input.jsx'
 import api from '../../../api/api.js'
+import { CLAIM_TYPE, VIEW_MODE } from '../../../config/constants.js'
 
 const calculateTotalAmount = (formData, mileageData, includeMileage) => {
     // Expense totals (mileage amounts are already included in expense amount when bound)
@@ -38,6 +43,14 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
 
     const [tags, setTags] = useState([])
     const [files, setFiles] = useState([])
+
+    const [bankStatementFile, setBankStatementFile] = useState(null)
+    const [isExtracting, setIsExtracting] = useState(false)
+
+    const { lookups: { costCentres, projects, accountNums } } = useLookups()
+
+    // Default field values applied to every expense row for corporate card claims.
+    const [cardDefaults, setCardDefaults] = useState({ costCentre: '', accountNum: '', program: '', buyer: '' })
 
     const [expenseErrors, setExpenseErrors] = useState([])
     const [claimErrors, setClaimErrors] = useState()
@@ -92,6 +105,98 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
     }
     const [claimFormData, setClaimFormData] = useState(initialClaimFormData)
 
+    const isCorporateCard = Number(claimFormData.claimType) === CLAIM_TYPE.CORPORATE_CARD
+
+    // When a default field changes, update the stored default AND overwrite that
+    // field on every existing expense row so the table reflects it immediately.
+    const handleCardDefaultChange = (e) => {
+        const { name, value } = e.target
+        setCardDefaults(prev => ({ ...prev, [name]: value }))
+        setClaimFormData(prev => ({
+            ...prev,
+            claimItems: prev.claimItems.map(item => ({ ...item, [name]: value })),
+        }))
+    }
+
+    const handleBankStatementUpload = async (e) => {
+        const file = e.target.files[0]
+        if (!file) return
+        setBankStatementFile(file)
+        setIsExtracting(true)
+        try {
+            const formData = new FormData()
+            formData.append('bank_statement', file)
+            const response = await api.post('bank-statements/extract', formData)
+            const extracted = response.data?.expenses || []
+            const refunds = response.data?.refunds || []
+            const paired = response.data?.paired || 0
+            const claimItems = extracted.map(exp => ({
+                program: cardDefaults.program || exp.project_id || '',
+                transactionDate: exp.transaction_date || '',
+                costCentre: cardDefaults.costCentre || exp.cost_centre_id || '',
+                vendor: exp.vendor_name || '',
+                accountNum: cardDefaults.accountNum || exp.account_number_id || '',
+                amount: exp.expense_amount || '',
+                buyer: cardDefaults.buyer || exp.buyer_name || '',
+                description: exp.transaction_desc || '',
+                notes: exp.transaction_notes || '',
+                tags: [],
+                attachment: [],
+            }))
+            setClaimFormData(prev => ({ ...prev, claimItems }))
+
+            // Build a refund-aware success message.
+            let detail = t(
+                'claimForm.extractionSuccess',
+                `Extracted ${claimItems.length} expense(s) from bank statement`,
+                { count: claimItems.length },
+            )
+            if (paired > 0) {
+                detail += ` · ${paired} refund${paired === 1 ? '' : 's'} cancelled matching purchase${paired === 1 ? '' : 's'}`
+            }
+            showToast(toastRef, {
+                severity: 'success',
+                summary: t('common.success'),
+                detail,
+                life: 6000,
+            })
+
+            // Surface unmatched refunds separately so the user can manually
+            // reconcile them against their previous claims.
+            if (refunds.length > 0) {
+                const refundList = refunds
+                    .map(r => `${r.transaction_date} ${r.vendor_name} ${r.expense_amount}`)
+                    .join(' · ')
+                showToast(toastRef, {
+                    severity: 'warn',
+                    summary: t('claimForm.unmatchedRefunds', 'Unmatched refunds'),
+                    detail: t(
+                        'claimForm.unmatchedRefundsDetail',
+                        `${refunds.length} refund(s) on this statement could not be matched to a purchase. Please verify: ${refundList}`,
+                        { count: refunds.length, list: refundList },
+                    ),
+                    life: 12000,
+                    sticky: true,
+                })
+            }
+        } catch (err) {
+            // 422 indicates the file was accepted but can't be auto-extracted
+            // (e.g. image upload). The file is still kept and will be saved
+            // with the claim on submit, so this is informational, not fatal.
+            const status = err?.response?.status
+            const serverMessage = err?.response?.data?.message || err?.message
+            const isExtractionUnavailable = status === 422
+            showToast(toastRef, {
+                severity: isExtractionUnavailable ? 'warn' : 'error',
+                summary: isExtractionUnavailable ? t('common.warning', 'Warning') : t('common.error'),
+                detail: serverMessage || t('claimForm.extractionError', 'Failed to extract expenses from bank statement. Please try again.'),
+                life: 6000,
+            })
+        } finally {
+            setIsExtracting(false)
+        }
+    }
+
     const initialExpenseFormData = {
         program: '',
         transactionDate: '',
@@ -123,7 +228,7 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
                 ...(prev.transactionDate === '' && firstTx?.transaction_date ? { transactionDate: firstTx.transaction_date } : {}),
             }))
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [includeMileage, currentMileageTotal])
 
     const handleFormFieldChange = (e) => {
@@ -131,7 +236,12 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
         setClaimFormData(prev => ({
             ...prev,
             [name]: value,
+            ...(name === 'claimType' ? { claimItems: [] } : {}),
         }))
+        if (name === 'claimType') {
+            setBankStatementFile(null)
+            setCardDefaults({ costCentre: '', accountNum: '', program: '', buyer: '' })
+        }
     }
 
     const handleExpenseFieldChange = (e) => {
@@ -236,8 +346,6 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
             return
         }
 
-
-
         if (!validation.isValid) {
             setValidationDialog({
                 visible: true,
@@ -258,6 +366,9 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
         formData.append('team_id', claimFormData.team)
         formData.append('claim_notes', claimFormData.note)
         formData.append('total_amount', totalAmount)
+        if (isCorporateCard && bankStatementFile) {
+            formData.append('bank_statement', bankStatementFile)
+        }
 
         // Add expenses - properly handling files
         claimFormData.claimItems.forEach((expense, index) => {
@@ -351,11 +462,15 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
             <div className="mt-4">
                 <ClaimForm claimFormData={claimFormData} onFieldChange={handleFormFieldChange}
                     errors={claimErrors}
-                    includeMileage={includeMileage} onMileageToggle={handleMileageToggle} />
+                    includeMileage={includeMileage}
+                    onMileageToggle={isCorporateCard ? undefined : handleMileageToggle}
+                    onBankStatementUpload={handleBankStatementUpload}
+                    isExtracting={isExtracting}
+                    bankStatementFile={bankStatementFile}
+                />
             </div>
 
-
-            {includeMileage && (
+            {!isCorporateCard && includeMileage && (
                 <div className="mt-6">
                     <MileageSection
                         mileageData={mileageData}
@@ -367,6 +482,71 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
                 </div>
             )}
 
+            {isCorporateCard && (
+                <div className="mt-4 bg-white rounded-2xl shadow-sm p-5">
+                    <p className="text-sm font-semibold text-gray-700 mb-4">
+                        {t('claimForm.cardDefaults', 'Default values for all expense rows')}
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <Select
+                            name="program"
+                            label={t('expenses.program', 'Program')}
+                            value={cardDefaults.program}
+                            onChange={handleCardDefaultChange}
+                            options={projects.map(p => ({ label: `${p.project_name} - ${p.project_desc}`, value: p.project_id }))}
+                            placeholder={t('expenses.selectProgram', 'Select program')}
+                        />
+                        <Select
+                            name="costCentre"
+                            label={t('expenses.costCentre', 'Cost Centre')}
+                            value={cardDefaults.costCentre}
+                            onChange={handleCardDefaultChange}
+                            options={costCentres.map(c => ({ label: `${c.cost_centre_code} - ${c.description}`, value: c.cost_centre_id }))}
+                            placeholder={t('expenses.selectCostCentre', 'Select cost centre')}
+                        />
+                        <Select
+                            name="accountNum"
+                            label={t('expenses.accountNumber', 'Account Number')}
+                            value={cardDefaults.accountNum}
+                            onChange={handleCardDefaultChange}
+                            options={accountNums.map(a => ({ label: `${a.account_number} - ${a.description}`, value: a.account_number_id }))}
+                            placeholder={t('expenses.selectAccountNumber', 'Select account number')}
+                        />
+                        <Input
+                            name="buyer"
+                            label={t('expenses.buyer', 'Buyer')}
+                            value={cardDefaults.buyer}
+                            onChange={handleCardDefaultChange}
+                            placeholder={t('expenses.buyerPlaceholder', 'Enter buyer name')}
+                        />
+                    </div>
+                </div>
+            )}
+
+
+            {/* <div className="mt-6">
+                {isCorporateCard ? (
+                    <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                        <EditableExpansionTable
+                            data={claimFormData.claimItems}
+                            onClaimItemsUpdate={handleClaimItemsUpdate}
+                            mode={VIEW_MODE.CREATE}
+                            toastRef={toastRef}
+                        />
+                    </div>
+                ) : (
+                    <AddExpenseForm claimFormData={claimFormData} onClaimItemsUpdate={handleClaimItemsUpdate}
+                        expenseFormData={expenseFormData} onSetExpenseForm={setExpenseFormData}
+                        onExpenseChange={handleExpenseFieldChange}
+                        onAddExpense={handleAddExpense} tags={tags} onSetTags={setTags} files={files}
+                        onSetFiles={setFiles} errors={expenseErrors}
+                        toastRef={toastRef}
+                        includeMileage={includeMileage}
+                        mileageData={mileageData}
+                    />
+                )}
+            </div> */}
+
             <div className="mt-6">
                 <AddExpenseForm claimFormData={claimFormData} onClaimItemsUpdate={handleClaimItemsUpdate}
                     expenseFormData={expenseFormData} onSetExpenseForm={setExpenseFormData}
@@ -376,6 +556,7 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
                     toastRef={toastRef}
                     includeMileage={includeMileage}
                     mileageData={mileageData}
+                    bankStatementFile={bankStatementFile}
                 />
             </div>
 

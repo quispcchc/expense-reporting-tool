@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AccountNumberController;
+use App\Http\Controllers\BankStatementController;
 use App\Http\Controllers\ClaimController;
 use App\Http\Controllers\ClaimNotesController;
 use App\Http\Controllers\CostCentreController;
@@ -97,6 +98,9 @@ Route::post('notes', [ClaimNotesController::class, 'store'])->middleware('auth:s
 Route::post('claims/bulk-approve', [ClaimController::class, 'bulkApproveClaim'])->middleware('auth:sanctum');
 Route::post('claims/bulk-reject', [ClaimController::class, 'bulkRejectClaim'])->middleware('auth:sanctum');
 
+// Mark Approved claim as Paid (finance_user or super_admin)
+Route::post('claims/{claimId}/mark-paid', [ClaimController::class, 'markPaid'])->middleware('auth:sanctum')->where(['claimId' => '[0-9]+']);
+
 // Expense API
 Route::apiResource('expenses', ExpenseController::class)->middleware('auth:sanctum');
 Route::post('expenses/{expenseId}/approve', [ExpenseController::class, 'approveExpense'])->middleware('auth:sanctum');
@@ -115,19 +119,5 @@ Route::post('mileage-transactions', [MileageTransactionController::class, 'store
 Route::put('mileage-transactions/{transactionId}', [MileageTransactionController::class, 'update'])->middleware('auth:sanctum');
 Route::delete('mileage-transactions/{transactionId}', [MileageTransactionController::class, 'destroy'])->middleware('auth:sanctum');
 
-// Temporary route to run migrations and seed data
-Route::get('/deploy-setup', function () {
-    try {
-        echo "Running migrations...<br>";
-        \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
-        echo \Illuminate\Support\Facades\Artisan::output() . "<br>";
-
-        echo "Seeding database...<br>";
-        \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
-        echo \Illuminate\Support\Facades\Artisan::output() . "<br>";
-
-        return "Setup completed successfully!";
-    } catch (\Exception $e) {
-        return "Error during setup: " . $e->getMessage();
-    }
-});
+// Bank Statement PDF extraction (Corporate Card claim type)
+Route::post('bank-statements/extract', [BankStatementController::class, 'extract'])->middleware('auth:sanctum');

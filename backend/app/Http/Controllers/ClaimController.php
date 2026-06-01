@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Claim;
 use App\Services\ClaimService;
 use Illuminate\Http\Request;
-use Log;
+use Illuminate\Support\Facades\Log;
 use Mpdf\Config\ConfigVariables;
 use Mpdf\Config\FontVariables;
 use Mpdf\Mpdf;
@@ -80,6 +80,7 @@ class ClaimController extends Controller
             'team_id' => 'required|integer|exists:teams,team_id',
             'claim_notes' => 'nullable|string',
             'total_amount' => 'required|numeric|min:2',
+            'bank_statement' => 'nullable|file|mimes:pdf,jpg,jpeg,png,gif,webp,doc,docx|max:20480',
 
             // expense item validation
             'expenses' => 'nullable|array',
@@ -180,6 +181,32 @@ class ClaimController extends Controller
         $this->claimService->bulkRejectClaim($claimIds, $user);
 
         return $this->successResponse(['message' => trans('messages.claims_rejected')]);
+    }
+
+    /**
+     * Mark an approved claim as Paid. Authorized via the markPaid claim policy
+     * (finance_user within own department, or super_admin).
+     */
+    public function markPaid(Request $request, $claimId)
+    {
+        $user = $request->user();
+        $claim = Claim::find($claimId);
+
+        if (! $claim) {
+            return $this->errorResponse(trans('messages.claim_not_found'), 404);
+        }
+
+        if ($user->cannot('markPaid', $claim)) {
+            return $this->errorResponse('Not authorized to mark this claim as paid.', 403);
+        }
+
+        try {
+            $this->claimService->markClaimPaid((int) $claimId, $user);
+
+            return $this->successResponse(['message' => 'Claim marked as paid.']);
+        } catch (Throwable $e) {
+            return $this->errorResponse($e->getMessage(), 500);
+        }
     }
 
     /**
@@ -517,16 +544,23 @@ class ClaimController extends Controller
     }
 
     /**
-     * Render all receipt attachments (images + PDFs) on a new page.
+     * Render the claim's bank statement and every receipt attachment, one
+     * per page. The "ATTACHMENT(S)" title sits with the first attachment.
      *
      * PDF files are converted to PNG via Ghostscript so they display
-     * inline with the same format as image receipts.
+     * inline with the same format as image receipts; multi-page PDFs
+     * become one output page per source page.
      *
      * Returns an array of temp file paths to clean up AFTER $mpdf->Output().
      */
     private function renderAttachments(Mpdf $mpdf, Claim $claim): array
     {
         $receipts = [];
+
+        // Bank statement is a top-level claim attachment.
+        if ($claim->bank_statement_path) {
+            $receipts[] = ['path' => $claim->bank_statement_path, 'label' => 'Bank Statement'];
+        }
 
         foreach ($claim->expenses ?? [] as $expense) {
             $label = 'Expense #'.($expense->expense_id ?? 'N/A')
@@ -556,78 +590,72 @@ class ClaimController extends Controller
             return [];
         }
 
-        // Start attachments on a new page
-        $mpdf->AddPage();
-        $mpdf->WriteHTML(
-            '<div style="font-size:12px; font-weight:bold; border-bottom:1px solid #333; '
-            .'padding:8px 0 5px 0; margin-bottom:8px;">ATTACHMENT(S)</div>'
-        );
-
+        // Expand receipts into per-page entries: a 3-page PDF → 3 entries.
+        // Each entry: ['image' => string|null, 'label' => string, 'error' => string|null].
         $tempFiles = [];
+        $entries = [];
 
         foreach ($receipts as $receipt) {
             $filePath = storage_path('app/public/'.$receipt['path']);
-            $safeLabel = htmlspecialchars($receipt['label']);
+            $label = $receipt['label'];
 
             if (! file_exists($filePath) || ! is_file($filePath)) {
-                $mpdf->WriteHTML(
-                    '<div style="text-align:center; margin:10px 0;">'
-                    .'<div style="font-size:9px; font-weight:bold; margin-bottom:5px; color:#666;">'
-                    .$safeLabel.'</div>'
-                    .'<p style="color:#999; font-size:9px;">Receipt file not found</p></div>'
-                );
+                $entries[] = ['image' => null, 'label' => $label, 'error' => 'Receipt file not found'];
 
                 continue;
             }
 
             $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
-            \Log::info('Rendering attachment: '.$filePath.' | ext: '.$ext.' | exists: '.(file_exists($filePath) ? 'YES' : 'NO'));
+            Log::info('Rendering attachment: '.$filePath.' | ext: '.$ext);
 
             if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif'])) {
-                // Image — embed directly
-                $mpdf->WriteHTML(
-                    '<div style="text-align:center; margin:10px 0;">'
-                    .'<div style="font-size:9px; font-weight:bold; margin-bottom:5px; color:#666;">'
-                    .$safeLabel.'</div>'
-                    .'<img src="'.$filePath.'" style="max-width:300px; max-height:400px; '
-                    .'margin:10px auto; border:1px solid #ddd; padding:5px; display:block;">'
-                    .'</div>'
-                );
+                $entries[] = ['image' => $filePath, 'label' => $label, 'error' => null];
             } elseif ($ext === 'pdf') {
-                // PDF — convert each page to PNG via Ghostscript, then embed like images
                 $images = $this->convertPdfToImages($filePath);
                 $tempFiles = array_merge($tempFiles, $images);
-                $pageCount = count($images);
 
-                if ($pageCount === 0) {
-                    $mpdf->WriteHTML(
-                        '<div style="text-align:center; margin:10px 0;">'
-                        .'<div style="font-size:9px; font-weight:bold; margin-bottom:5px; color:#666;">'
-                        .$safeLabel.'</div>'
-                        .'<p style="color:#999; font-size:9px;">Could not render PDF</p></div>'
-                    );
+                if (empty($images)) {
+                    $entries[] = ['image' => null, 'label' => $label, 'error' => 'Could not render PDF'];
 
                     continue;
                 }
 
+                $pageCount = count($images);
                 foreach ($images as $idx => $imgPath) {
-                    $pageLabel = $pageCount > 1
-                        ? $safeLabel.' (page '.($idx + 1).' of '.$pageCount.')'
-                        : $safeLabel;
-
-                    $mpdf->WriteHTML(
-                        '<div style="text-align:center; margin:10px 0;">'
-                        .'<div style="font-size:9px; font-weight:bold; margin-bottom:5px; color:#666;">'
-                        .$pageLabel.'</div>'
-                        .'<img src="'.$imgPath.'" style="max-width:300px; max-height:400px; '
-                        .'margin:10px auto; border:1px solid #ddd; padding:5px; display:block;">'
-                        .'</div>'
-                    );
+                    $entryLabel = $pageCount > 1
+                        ? $label.' (page '.($idx + 1).' of '.$pageCount.')'
+                        : $label;
+                    $entries[] = ['image' => $imgPath, 'label' => $entryLabel, 'error' => null];
                 }
             }
         }
 
-        // Return temp files — caller must clean up AFTER $mpdf->Output()
+        // Render: AddPage() per entry; the title is written only on the first.
+        foreach ($entries as $idx => $entry) {
+            $mpdf->AddPage();
+
+            $html = '';
+            if ($idx === 0) {
+                $html .= '<div style="font-size:12px; font-weight:bold; border-bottom:1px solid #333; '
+                    .'padding:8px 0 5px 0; margin-bottom:8px;">ATTACHMENT(S)</div>';
+            }
+
+            $safeLabel = htmlspecialchars($entry['label']);
+            $html .= '<div style="text-align:center; margin:10px 0;">'
+                .'<div style="font-size:9px; font-weight:bold; margin-bottom:5px; color:#666;">'
+                .$safeLabel.'</div>';
+
+            if ($entry['error']) {
+                $html .= '<p style="color:#999; font-size:9px;">'.$entry['error'].'</p>';
+            } else {
+                $html .= '<img src="'.$entry['image'].'" style="max-width:640px; max-height:900px; '
+                    .'margin:10px auto; border:1px solid #ddd; padding:5px; display:block;">';
+            }
+
+            $html .= '</div>';
+            $mpdf->WriteHTML($html);
+        }
+
         return $tempFiles;
     }
 

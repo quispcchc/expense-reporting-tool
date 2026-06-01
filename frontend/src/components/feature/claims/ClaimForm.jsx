@@ -4,12 +4,14 @@ import Input from '../../common/ui/Input.jsx'
 import Select from '../../common/ui/Select.jsx'
 import { useLookups } from '../../../contexts/LookupContext.jsx'
 import { useTranslation } from 'react-i18next'
-import { ACTIVE_STATUS } from '../../../config/constants.js'
+import { ACTIVE_STATUS, CLAIM_TYPE } from '../../../config/constants.js'
 import MileageToggle from '../mileage/MileageToggle.jsx'
+import BankStatementAttachment from './BankStatementAttachment.jsx'
 
-function ClaimForm({ claimFormData, onFieldChange, errors, includeMileage, onMileageToggle }) {
+function ClaimForm({ claimFormData, onFieldChange, errors, includeMileage, onMileageToggle, onBankStatementUpload, isExtracting, bankStatementFile }) {
     const { t } = useTranslation()
     const { lookups: { departments, claimTypes, positions, teams } } = useLookups()
+    const isCorporateCard = Number(claimFormData.claimType) === CLAIM_TYPE.CORPORATE_CARD
 
     return (
         // Main container with title and description
@@ -50,6 +52,33 @@ function ClaimForm({ claimFormData, onFieldChange, errors, includeMileage, onMil
                     placeholder={t('claimForm.selectTeam', 'Select a Team')}
                     errors={errors} />
             </div>
+            {/* Conditionally render the bank statement upload section if the claim type is Corporate Card */}
+            {isCorporateCard && (
+                <div className="mt-5">
+                    <label className="block text-sm font-medium mb-1">
+                        {t('claimForm.bankStatement', 'Bank Statement')}
+                    </label>
+                    <p className="text-gray-500 text-xs mb-3">
+                        {t('claimForm.bankStatementDescription', 'Upload your corporate card bank statement (PDF, image, or Word document). PDFs will be auto-extracted; images and documents will be converted to PDF and saved with the claim.')}
+                    </p>
+                    <div className="flex justify-center items-center border border-gray-300 border-dashed rounded-md p-5 bg-gray-50 hover:bg-gray-100 transition-colors">
+                        <label className={`p-button p-component p-button-outlined p-2 cursor-pointer flex items-center gap-2 ${isExtracting ? 'opacity-50 pointer-events-none' : ''}`}>
+                            {isExtracting
+                                ? t('claimForm.extracting', 'Extracting...')
+                                : t('claimForm.uploadBankStatement', 'Upload Bank Statement')}
+                            <input
+                                type="file"
+                                accept="application/pdf,image/jpeg,image/png,image/gif,image/webp,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.doc,.docx"
+                                onChange={onBankStatementUpload}
+                                className="hidden"
+                                disabled={isExtracting}
+                            />
+                            <i className={`pi ${isExtracting ? 'pi-spin pi-spinner' : 'pi-cloud-upload'}`}></i>
+                        </label>
+                    </div>
+                    {bankStatementFile && <BankStatementAttachment file={bankStatementFile} />}
+                </div>
+            )}
 
             {/* Textarea input for additional notes */}
             <div>
@@ -63,7 +92,6 @@ function ClaimForm({ claimFormData, onFieldChange, errors, includeMileage, onMil
                     className="w-full border border-gray-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
             </div>
-
         </ComponentContainer>
     )
 }

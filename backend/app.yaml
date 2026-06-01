@@ -37,12 +37,9 @@ env_variables:
   MAIL_HOST: smtp.office365.com
   MAIL_PORT: 587
   MAIL_SCHEME: smtp
-  # MAIL_USERNAME: expenseclaims@carlingtonchc.org
-  MAIL_USERNAME: trilliumdashboard@carlingtonchc.org
-  # MAIL_PASSWORD: "C@nadianbl00d2026_"
-  MAIL_PASSWORD: "Aliveli123."
-  # MAIL_FROM_ADDRESS: "expenseclaims@carlingtonchc.org"
-  MAIL_FROM_ADDRESS: "trilliumdashboard@carlingtonchc.org"
+  MAIL_USERNAME: expenseclaims@carlingtonchc.org
+  MAIL_PASSWORD: "C@nadianbl00d2026_"
+  MAIL_FROM_ADDRESS: "expenseclaims@carlingtonchc.org"
   MAIL_FROM_NAME: "Expense Reporting Tool"
 
   # Log to Google Cloud Logging

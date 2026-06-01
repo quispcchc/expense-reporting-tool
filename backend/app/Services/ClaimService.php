@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\ClaimStatus;
 use App\Enums\ClaimType;
 use App\Enums\RoleLevel;
+use App\Enums\RoleName;
 use App\Models\AppSetting;
 use App\Models\Claim;
 use App\Models\ClaimNote;
@@ -15,20 +16,30 @@ use App\Models\MileageTransaction;
 use App\Models\Receipt;
 use App\Models\Tag;
 use App\Models\User;
-use App\Notifications\ClaimCreatedNotification;
 use App\Notifications\ClaimUpdatedNotification;
 use Exception;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ClaimService
 {
     public function getAllClaims(User $user)
     {
         $role_level = $user->role->role_level;
+        $role_name = $user->role->role_name;
 
         $query = Claim::with(['expenses.receipts', 'expenses.mileage.transactions.receipts', 'claimType', 'department', 'team', 'status']);
 
-        if ($role_level === RoleLevel::DEPARTMENT_MANAGER) {
+        if ($role_name === RoleName::FINANCE_USER) {
+            // Finance user sees: all claims in own department (any status)
+            //   + Approved/Paid claims from other departments
+            $query->where(function ($q) use ($user) {
+                $q->where('department_id', $user->department_id)
+                    ->orWhere(function ($q2) {
+                        $q2->whereIn('claim_status_id', [ClaimStatus::APPROVED, ClaimStatus::PAID]);
+                    });
+            });
+        } elseif ($role_level === RoleLevel::DEPARTMENT_MANAGER) {
             // Department-level access — include own corporate card claims if can_self_approve
             $query->where('department_id', $user->department_id)
                 ->where(function ($q) use ($user) {
@@ -40,7 +51,6 @@ class ClaimService
                         });
                     }
                 });
-
         } elseif ($role_level === RoleLevel::TEAM_LEAD) {
             // Team-level access, exclude own claims and claims from other approvers
             // (approver claims should escalate to admin/department manager)
@@ -84,14 +94,14 @@ class ClaimService
             'claimApprovals.approvedByUser',
         ]);
 
-        $query->when($filters['date_from'] ?? null, fn ($q, $v) => $q->where('claim_submitted', '>=', $v))
-            ->when($filters['date_to'] ?? null, fn ($q, $v) => $q->where('claim_submitted', '<=', $v.' 23:59:59'))
-            ->when($filters['claim_type_id'] ?? null, fn ($q, $v) => $q->where('claim_type_id', $v))
-            ->when($filters['claim_status_id'] ?? null, fn ($q, $v) => $q->where('claim_status_id', $v))
-            ->when($filters['department_id'] ?? null, fn ($q, $v) => $q->where('department_id', $v))
-            ->when($filters['team_id'] ?? null, fn ($q, $v) => $q->where('team_id', $v))
-            ->when($filters['amount_min'] ?? null, fn ($q, $v) => $q->where('total_amount', '>=', $v))
-            ->when($filters['amount_max'] ?? null, fn ($q, $v) => $q->where('total_amount', '<=', $v))
+        $query->when($filters['date_from'] ?? null, fn($q, $v) => $q->where('claim_submitted', '>=', $v))
+            ->when($filters['date_to'] ?? null, fn($q, $v) => $q->where('claim_submitted', '<=', $v . ' 23:59:59'))
+            ->when($filters['claim_type_id'] ?? null, fn($q, $v) => $q->where('claim_type_id', $v))
+            ->when($filters['claim_status_id'] ?? null, fn($q, $v) => $q->where('claim_status_id', $v))
+            ->when($filters['department_id'] ?? null, fn($q, $v) => $q->where('department_id', $v))
+            ->when($filters['team_id'] ?? null, fn($q, $v) => $q->where('team_id', $v))
+            ->when($filters['amount_min'] ?? null, fn($q, $v) => $q->where('total_amount', '>=', $v))
+            ->when($filters['amount_max'] ?? null, fn($q, $v) => $q->where('total_amount', '<=', $v))
             ->when($filters['submitter'] ?? null, function ($q, $v) {
                 $q->whereHas('user', function ($uq) use ($v) {
                     $uq->where('first_name', 'like', "%{$v}%")
@@ -99,14 +109,14 @@ class ClaimService
                 });
             })
             ->when($filters['project_id'] ?? null, function ($q, $v) {
-                $q->whereHas('expenses', fn ($eq) => $eq->where('project_id', $v));
+                $q->whereHas('expenses', fn($eq) => $eq->where('project_id', $v));
             })
             ->when($filters['cost_centre_id'] ?? null, function ($q, $v) {
-                $q->whereHas('expenses', fn ($eq) => $eq->where('cost_centre_id', $v));
+                $q->whereHas('expenses', fn($eq) => $eq->where('cost_centre_id', $v));
             })
             ->when($filters['tag_ids'] ?? null, function ($q, $v) {
                 $tagIds = is_array($v) ? $v : explode(',', $v);
-                $q->whereHas('expenses.tags', fn ($tq) => $tq->whereIn('tags.tag_id', $tagIds));
+                $q->whereHas('expenses.tags', fn($tq) => $tq->whereIn('tags.tag_id', $tagIds));
             });
 
         return $query->orderBy('claim_submitted', 'desc')->get();
@@ -131,6 +141,12 @@ class ClaimService
     {
         return DB::transaction(function () use ($data, $user) {
 
+            // Store the bank statement PDF if provided (corporate card claims)
+            $bankStatementPath = null;
+            if (! empty($data['bank_statement']) && $data['bank_statement'] instanceof \Illuminate\Http\UploadedFile) {
+                $bankStatementPath = $data['bank_statement']->store('bank_statements', 'public');
+            }
+
             // Create claim
             $claim = Claim::create([
                 'user_id' => $user->user_id,
@@ -141,6 +157,7 @@ class ClaimService
                 'total_amount' => $data['total_amount'],
                 'claim_submitted' => now(),
                 'claim_status_id' => ClaimStatus::PENDING,
+                'bank_statement_path' => $bankStatementPath,
             ]);
 
             // Add claim note
@@ -153,76 +170,8 @@ class ClaimService
                 $this->addExpenses($claim, $data['expenses']);
             }
 
-            // Send notification to the user (Claimant)
-            try {
-                $user->notify(new ClaimCreatedNotification($claim));
-            } catch (\Exception $e) {
-                \Log::error('Failed to send claim created notification to user: ' . $e->getMessage());
-            }
-
-            // Notify Approvers
-            $this->notifyApprovers($claim);
-
             return $claim->load(['expenses.receipts', 'expenses.mileage.transactions.receipts', 'claimType', 'department', 'team', 'status']);
         });
-    }
-
-    /**
-     * Notify relevant approvers about a new claim submission.
-     */
-    protected function notifyApprovers(Claim $claim)
-    {
-        // 1. Notify Team Leads of the team
-        if ($claim->team_id) {
-            $teamLeads = User::whereHas('role', function ($q) {
-                $q->where('role_level', RoleLevel::TEAM_LEAD);
-            })->whereHas('teams', function ($q) use ($claim) {
-                $q->where('teams.team_id', $claim->team_id);
-            })->get();
-
-            foreach ($teamLeads as $lead) {
-                if ($lead->user_id !== $claim->user_id) {
-                    try {
-                        $lead->notify(new ClaimCreatedNotification($claim));
-                    } catch (\Exception $e) {
-                        \Log::error('Failed to send claim created notification to team lead: ' . $e->getMessage());
-                    }
-                }
-            }
-        }
-
-        // 2. Notify Department Manager
-        if ($claim->department_id) {
-            $deptManagers = User::whereHas('role', function ($q) {
-                $q->where('role_level', RoleLevel::DEPARTMENT_MANAGER);
-            })->where('department_id', $claim->department_id)
-            ->get();
-
-            foreach ($deptManagers as $manager) {
-                if ($manager->user_id !== $claim->user_id) {
-                    try {
-                        $manager->notify(new ClaimCreatedNotification($claim));
-                    } catch (\Exception $e) {
-                        \Log::error('Failed to send claim created notification to dept manager: ' . $e->getMessage());
-                    }
-                }
-            }
-        }
-
-        // 3. Notify Super Admins
-        $superAdmins = User::whereHas('role', function ($q) {
-            $q->where('role_level', RoleLevel::SUPER_ADMIN);
-        })->get();
-
-        foreach ($superAdmins as $admin) {
-            if ($admin->user_id !== $claim->user_id) {
-                try {
-                    $admin->notify(new ClaimCreatedNotification($claim));
-                } catch (\Exception $e) {
-                    \Log::error('Failed to send claim created notification to super admin: ' . $e->getMessage());
-                }
-            }
-        }
     }
 
     protected function addNote(Claim $claim, $user, string $noteText)
@@ -356,7 +305,40 @@ class ClaimService
             'message' => 'Claim updated successfully',
             'claim' => $claim,
         ]);
+    }
 
+    /**
+     * Mark an Approved claim as Paid. Used by finance_user (and super_admin).
+     * Authorization is enforced upstream via the markPaid claim policy.
+     */
+    public function markClaimPaid(int $claimId, User $actor): Claim
+    {
+        return DB::transaction(function () use ($claimId, $actor) {
+            $claim = Claim::with('expenses')->find($claimId);
+
+            if (! $claim) {
+                throw new Exception(trans('messages.claim_not_found'), 404);
+            }
+
+            if ($claim->claim_status_id !== ClaimStatus::APPROVED) {
+                throw new Exception('Only approved claims can be marked as paid.', 400);
+            }
+
+            $claim->update(['claim_status_id' => ClaimStatus::PAID]);
+
+            foreach ($claim->expenses as $expense) {
+                $expense->update(['approval_status_id' => ClaimStatus::PAID]);
+            }
+
+            \App\Models\ClaimApproval::create([
+                'claim_id' => $claim->claim_id,
+                'approved_by' => $actor->user_id,
+                'approval_status_id' => ClaimStatus::PAID,
+                'claim_approval_details' => 'Marked as Paid',
+            ]);
+
+            return $claim;
+        });
     }
 
     /**
@@ -424,11 +406,72 @@ class ClaimService
 
             DB::commit();
 
-            // Send email to the claim owner
-            $claim->user->notify(new ClaimUpdatedNotification($claim));
+            // Send email to the claim owner — if email fails, rollback the entire operation
+            try {
+                $claim->user->notify(new ClaimUpdatedNotification($claim));
+
+                // If the claim was approved, notify all finance users so they can process it.
+                // Finance-user notification failures are logged but do not roll back the approval —
+                // the owner has already been notified successfully and the status update is valid.
+                if ($newStatusId === ClaimStatus::APPROVED) {
+                    $financeUsers = User::whereHas('role', function ($q) {
+                        $q->where('role_name', RoleName::FINANCE_USER);
+                    })->get();
+
+                    foreach ($financeUsers as $financeUser) {
+                        try {
+                            $financeUser->notify(new ClaimUpdatedNotification($claim));
+                            \Illuminate\Support\Facades\Log::info('Finance user notified', [
+                                'finance_user_id' => $financeUser->user_id,
+                                'claim_id' => $claim->claim_id,
+                            ]);
+                        } catch (\Throwable $financeNotifyError) {
+                            \Illuminate\Support\Facades\Log::error('Failed to notify finance user of approved claim', [
+                                'claim_id' => $claim->claim_id,
+                                'finance_user_id' => $financeUser->user_id,
+                                'error' => $financeNotifyError->getMessage(),
+                            ]);
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Email sending failed — rollback the status update
+                DB::beginTransaction();
+                try {
+                    // Revert claim status
+                    $claim->update(['claim_status_id' => ClaimStatus::PENDING]);
+                    // Revert all expenses
+                    foreach ($claim->expenses as $expense) {
+                        $expense->update(['approval_status_id' => ClaimStatus::PENDING]);
+                    }
+                    // Remove claim approval record
+                    \App\Models\ClaimApproval::where('claim_id', $claim->claim_id)
+                        ->where('approval_status_id', $newStatusId)
+                        ->latest()
+                        ->first()
+                        ?->delete();
+                    DB::commit();
+                } catch (\Throwable $rollbackError) {
+                    DB::rollBack();
+                    \Illuminate\Support\Facades\Log::error('Failed to rollback claim status after email error', [
+                        'claim_id' => $claim->claim_id,
+                        'original_error' => $e->getMessage(),
+                        'rollback_error' => $rollbackError->getMessage(),
+                    ]);
+                    throw new Exception('Notification failed and rollback encountered an error: ' . $rollbackError->getMessage(), 500);
+                }
+
+                \Illuminate\Support\Facades\Log::error('Email notification failed for claim update', [
+                    'claim_id' => $claim->claim_id,
+                    'user_id' => $claim->user_id,
+                    'new_status' => $newStatusId,
+                    'error' => $e->getMessage(),
+                ]);
+
+                throw new Exception('Failed to send notification email. Status update has been rolled back.', 500);
+            }
 
             return $claim;
-
         } catch (Exception $e) {
             DB::rollBack();
             throw $e;

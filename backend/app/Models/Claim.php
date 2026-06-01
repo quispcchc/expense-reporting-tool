@@ -27,6 +27,7 @@ class Claim extends Model
         'claim_type_id',
         'claim_status_id',
         'total_amount',
+        'bank_statement_path',
     ];
 
     // Relationships

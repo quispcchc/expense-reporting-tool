@@ -6,8 +6,11 @@ import { Button } from 'primereact/button'
 import api from '../../../api/api.js'
 import { showToast } from '../../../utils/helpers.js'
 import { useTranslation } from 'react-i18next'
-import { APPROVAL_STATUS } from '../../../config/constants.js'
+import { APPROVAL_STATUS, ROLE_NAME } from '../../../config/constants.js'
 import { formatDate } from '../../../utils/formatters.js'
+import { API_BASE_URL } from '../../../api/api.js'
+import BankStatementAttachment from './BankStatementAttachment.jsx'
+import { useAuth } from '../../../contexts/AuthContext.jsx'
 
 // ClaimDetail component shows details of a single claim
 // Used in both view and edit claim pages
@@ -15,6 +18,8 @@ import { formatDate } from '../../../utils/formatters.js'
 function ClaimDetail({ curClaim, toastRef, onClaimRefetch }) {
     const { t } = useTranslation()
     const { lookups } = useLookups()
+    const { authUser } = useAuth()
+    const isFinanceUser = authUser?.role_name === ROLE_NAME.FINANCE_USER
     const [isEditing, setIsEditing] = useState(false)
 
     const [claimDetail, setClaimDetail] = useState({
@@ -62,7 +67,7 @@ function ClaimDetail({ curClaim, toastRef, onClaimRefetch }) {
                     <p className="text-xs sm:text-sm text-gray-500">{t('claims.claimDetailDescription', 'View and manage the details of this expense claim submission.')}</p>
                 </div>
                 <div className="flex gap-2 flex-shrink-0">
-                    {!isEditing && <Button
+                    {!isEditing && !isFinanceUser && <Button
                         rounded
                         icon="pi pi-pencil"
                         onClick={() => setIsEditing(prev => !prev)}
@@ -125,6 +130,16 @@ function ClaimDetail({ curClaim, toastRef, onClaimRefetch }) {
                         onChange={(value) => handleSelectChange('team_id', value)}
                     />
 
+                    {/* Bank statement for corporate card claims */}
+                    {curClaim.bank_statement_path && (
+                        <tr>
+                            <th className="text-left py-2 font-medium">{t('claimForm.bankStatement', 'Bank Statement') + ':'}</th>
+                            <td className="py-2">
+                                <BankStatementAttachment bankStatementPath={curClaim.bank_statement_path} />
+                            </td>
+                        </tr>
+                    )}
+
                     {/* Show who ultimately approved/rejected the claim */}
                     {curClaim?.claim_approvals && curClaim.claim_approvals.length > 0 && (() => {
                         const lastApproval = curClaim.claim_approvals[curClaim.claim_approvals.length - 1]
@@ -139,6 +154,7 @@ function ClaimDetail({ curClaim, toastRef, onClaimRefetch }) {
                             />
                         )
                     })()}
+
                 </tbody>
             </table>
 

@@ -77,7 +77,7 @@ function ClaimListDataTable({ user, path, toastRef }) {
     )
 
     const totalAmountBodyTemplate = (rowData) => (
-        <>${rowData.total_amount}</>
+        <>${Number(rowData.total_amount ?? 0).toFixed(2)}</>
     )
 
     const actionBodyTemplate = (rowData) => (
