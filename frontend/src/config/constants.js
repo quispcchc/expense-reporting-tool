@@ -17,6 +17,7 @@ export const ROLE_NAME = {
     ADMIN: 'admin',
     APPROVER: 'approver',
     USER: 'regular_user',
+    FINANCE_USER: 'finance_user',
 }
 
 // Role levels (match backend role_level values)

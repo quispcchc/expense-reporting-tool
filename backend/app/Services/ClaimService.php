@@ -25,20 +25,17 @@ class ClaimService
 {
     public function getAllClaims(User $user)
     {
+        if (! $user->role) {
+            return collect();
+        }
+
         $role_level = $user->role->role_level;
         $role_name = $user->role->role_name;
 
         $query = Claim::with(['expenses.receipts', 'expenses.mileage.transactions.receipts', 'claimType', 'department', 'team', 'status']);
 
         if ($role_name === RoleName::FINANCE_USER) {
-            // Finance user sees: all claims in own department (any status)
-            //   + Approved/Paid claims from other departments
-            $query->where(function ($q) use ($user) {
-                $q->where('department_id', $user->department_id)
-                    ->orWhere(function ($q2) {
-                        $q2->whereIn('claim_status_id', [ClaimStatus::APPROVED, ClaimStatus::PAID]);
-                    });
-            });
+            // Finance user sees all claims (like super admin)
         } elseif ($role_level === RoleLevel::DEPARTMENT_MANAGER) {
             // Department-level access — include own corporate card claims if can_self_approve
             $query->where('department_id', $user->department_id)

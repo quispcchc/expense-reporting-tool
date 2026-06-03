@@ -92,6 +92,7 @@ class ProductionSeeder extends Seeder
         $roles = [
             ['role_name' => 'super_admin', 'role_level' => 1, 'role_desc' => 'Super Admin role'],
             ['role_name' => 'admin', 'role_level' => 2, 'role_desc' => 'Admin role'],
+            ['role_name' => 'finance_user', 'role_level' => 2, 'role_desc' => 'Finance User role'],
             ['role_name' => 'approver', 'role_level' => 3, 'role_desc' => 'Approver role'],
             ['role_name' => 'regular_user', 'role_level' => 4, 'role_desc' => 'Regular User role'],
         ];

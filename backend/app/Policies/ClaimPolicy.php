@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Enums\ClaimType;
 use App\Enums\RoleLevel;
+use App\Enums\RoleName;
 use App\Models\Claim;
 use App\Models\User;
 
@@ -34,6 +35,7 @@ class ClaimPolicy
     public function approve(User $user, Claim $claim)
     {
         $role_level = $user->role->role_level;
+        $role_name = $user->role->role_name;
 
         // Block self-approval unless Super Admin or SLT members (Admins) with can_self_approve on Corporate Card claims
         if ($claim->user_id === $user->user_id && $role_level !== RoleLevel::SUPER_ADMIN) {
@@ -43,12 +45,12 @@ class ClaimPolicy
         }
 
         // Super admin can approve all claims
-        if ($user->role->role_level === RoleLevel::SUPER_ADMIN) {
+        if ($role_level === RoleLevel::SUPER_ADMIN) {
             return true;
         }
 
-        // Admin can only approve claims under own department
-        if ($user->role->role_level === RoleLevel::DEPARTMENT_MANAGER) {
+        // Admin and Finance User can only approve claims under own department
+        if ($role_level === RoleLevel::DEPARTMENT_MANAGER || $role_name === RoleName::FINANCE_USER) {
             return $user->department_id === $claim->department_id;
         }
 
@@ -74,6 +76,7 @@ class ClaimPolicy
     public function reject(User $user, Claim $claim)
     {
         $role_level = $user->role->role_level;
+        $role_name = $user->role->role_name;
 
         // Block self-reject unless Super Admin or user with can_self_approve on Corporate Card claims
         if ($claim->user_id === $user->user_id && $role_level !== RoleLevel::SUPER_ADMIN) {
@@ -83,12 +86,12 @@ class ClaimPolicy
         }
 
         // Super admin can reject all claims
-        if ($user->role->role_level === RoleLevel::SUPER_ADMIN) {
+        if ($role_level === RoleLevel::SUPER_ADMIN) {
             return true;
         }
 
-        // Admin can only reject claims under own department
-        if ($user->role->role_level === RoleLevel::DEPARTMENT_MANAGER) {
+        // Admin and Finance User can only reject claims under own department
+        if ($role_level === RoleLevel::DEPARTMENT_MANAGER || $role_name === RoleName::FINANCE_USER) {
             return $user->department_id === $claim->department_id;
         }
 
@@ -108,6 +111,24 @@ class ClaimPolicy
         }
 
         // Regular user cannot reject claim
+        return false;
+    }
+
+    public function markPaid(User $user, Claim $claim)
+    {
+        $role_level = $user->role->role_level;
+        $role_name = $user->role->role_name;
+
+        // Super Admin can mark any claim as paid
+        if ($role_level === RoleLevel::SUPER_ADMIN) {
+            return true;
+        }
+
+        // Finance User can mark claims as paid if they are in the same department
+        if ($role_name === RoleName::FINANCE_USER) {
+            return $user->department_id === $claim->department_id;
+        }
+
         return false;
     }
 }
