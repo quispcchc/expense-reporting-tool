@@ -42,7 +42,7 @@ return [
             'root' => env('PUBLIC_STORAGE_ROOT', storage_path('app/public')),
             'url' => env('APP_URL').'/storage',
             'visibility' => 'public',
-            'throw' => false,
+            'throw' => true,
             'report' => false,
             'project_id' => env('GOOGLE_CLOUD_PROJECT_ID', env('GOOGLE_CLOUD_PROJECT')),
             'key_file' => env('GOOGLE_CLOUD_KEY_FILE'),
@@ -72,7 +72,7 @@ return [
             'path_prefix' => env('GOOGLE_CLOUD_STORAGE_PATH_PREFIX', ''),
             'storage_api_uri' => env('GOOGLE_CLOUD_STORAGE_API_URI'),
             'visibility' => 'public',
-            'throw' => false,
+            'throw' => true,
             'report' => false,
         ],
 

@@ -13,10 +13,21 @@ class StorageController extends Controller
      */
     public function show(string $path): StreamedResponse
     {
-        if (!Storage::disk('public')->exists($path)) {
+        $disk = 'public';
+        $exists = Storage::disk($disk)->exists($path);
+        
+        \Log::info('StorageController@show', [
+            'path' => $path,
+            'disk_driver' => config("filesystems.disks.{$disk}.driver"),
+            'bucket' => config("filesystems.disks.{$disk}.bucket"),
+            'exists' => $exists,
+            'url' => Storage::disk($disk)->url($path),
+        ]);
+
+        if (!$exists) {
             abort(404);
         }
 
-        return Storage::disk('public')->response($path);
+        return Storage::disk($disk)->response($path);
     }
 }
