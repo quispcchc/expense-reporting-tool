@@ -206,26 +206,14 @@ class ClaimService
 
                 foreach ($fileArray as $file) {
                     if ($file && $file instanceof \Illuminate\Http\UploadedFile) {
-                        try {
-                            $path = $file->store('receipts', 'public');
-                            Receipt::create([
-                                'receipt_path' => $path,
-                                'receipt_name' => $file->getClientOriginalName(),
-                                'receipt_desc' => $file->getClientMimeType(),
-                                'expense_id' => $expense->expense_id,
-                            ]);
-                            \Log::info('Receipt created', [
-                                'path' => $path,
-                                'disk' => config('filesystems.default'),
-                                'public_driver' => config('filesystems.disks.public.driver'),
-                            ]);
-                        } catch (\Throwable $e) {
-                            \Log::error('Receipt creation failed', [
-                                'message' => $e->getMessage(),
-                                'trace' => $e->getTraceAsString(),
-                            ]);
-                            throw $e;
-                        }
+                        $path = $file->store('receipts', 'public');
+                        Receipt::create([
+                            'receipt_path' => $path,
+                            'receipt_name' => $file->getClientOriginalName(),
+                            'receipt_desc' => $file->getClientMimeType(),
+                            'expense_id' => $expense->expense_id,
+                        ]);
+                        \Log::info('Receipt created', ['path' => $path]);
                     }
                 }
             }
