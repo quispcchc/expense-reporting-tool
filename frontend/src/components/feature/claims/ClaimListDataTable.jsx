@@ -32,6 +32,7 @@ function ClaimListDataTable({ user, path, toastRef }) {
     const { lookups: { claimStatus, claimTypes } } = useLookups()
 
     const [isLoading, setIsLoading] = useState(true)
+    const [isProcessing, setIsProcessing] = useState(false)
 
     useEffect(() => {
         const fetchData = async () => {
@@ -106,6 +107,7 @@ function ClaimListDataTable({ user, path, toastRef }) {
             defaultFocus: 'reject',
             acceptClassName: 'p-button-info',
             accept: async () => {
+                setIsProcessing(true)
                 try {
                     await api.post(`claims/bulk-${action}`, { claimIds })
                     if (user === USER_TYPE.ADMIN) {
@@ -117,6 +119,7 @@ function ClaimListDataTable({ user, path, toastRef }) {
                 } catch (error) {
                     showToast(toastRef, { severity: 'error', summary: t('toast.error', 'Error'), detail: error.message })
                 } finally {
+                    setIsProcessing(false)
                     setSelectedClaims([])
                 }
             },
@@ -267,9 +270,9 @@ function ClaimListDataTable({ user, path, toastRef }) {
 
                 <div className="flex items-center gap-2 flex-wrap">
                     <Button label={t('claims.approve', 'Approve')} outlined className={BUTTON_STYLE.success} icon="pi pi-check" iconPos="right"
-                        onClick={() => executeBulkAction('approve')} disabled={isDisabled || isExporting} />
+                        onClick={() => executeBulkAction('approve')} disabled={isDisabled || isExporting || isProcessing} loading={isProcessing} />
                     <Button label={t('claims.reject', 'Reject')} outlined className={BUTTON_STYLE.danger} icon="pi pi-times" iconPos="right"
-                        onClick={() => executeBulkAction('reject')} disabled={isDisabled || isExporting} />
+                        onClick={() => executeBulkAction('reject')} disabled={isDisabled || isExporting || isProcessing} loading={isProcessing} />
                     <Button
                         label={t('claims.export', 'Export')}
                         outlined
