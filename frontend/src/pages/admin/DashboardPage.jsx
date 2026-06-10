@@ -254,8 +254,8 @@ function DashboardPage() {
 
     // Amount body template
     const amountBodyTemplate = (rowData) => {
-        const amount = rowData['Total Claim Amount']
-        if (!amount) return null
+        const amount = rowData['Claim Total']
+        if (!amount || amount === 'N/A') return null
         return <>${parseFloat(amount).toFixed(2)}</>
     }
 
@@ -542,17 +542,17 @@ function DashboardPage() {
                             style={{ minWidth: '7rem' }} />
                         <Column field="Department" header={t('dashboard.results.department', 'Department')}
                             style={{ minWidth: '7rem' }} />
-                        <Column field="Claim Submitted Date" header={t('dashboard.results.submittedDate', 'Submitted')}
+                        <Column field="Claim Date" header={t('dashboard.results.submittedDate', 'Submitted')}
                             style={{ minWidth: '7rem' }} />
-                        <Column field="Total Claim Amount" header={t('dashboard.results.totalAmount', 'Amount')}
+                        <Column field="Claim Total" header={t('dashboard.results.totalAmount', 'Amount')}
                             body={amountBodyTemplate}
                             style={{ minWidth: '6rem' }} />
                         <Column field="Claim Status" header={t('dashboard.results.status', 'Status')}
                             body={statusBodyTemplate}
                             style={{ minWidth: '6rem' }} />
-                        <Column field="Expense Description" header={t('dashboard.results.description', 'Expense')}
+                        <Column field="Description" header={t('dashboard.results.description', 'Expense')}
                             style={{ minWidth: '10rem' }} />
-                        <Column field="Vendor" header={t('dashboard.results.vendor', 'Vendor')}
+                        <Column field="Vendor Name" header={t('dashboard.results.vendor', 'Vendor')}
                             style={{ minWidth: '7rem' }} />
                         <Column field="Expense Amount" header={t('dashboard.results.expenseAmount', 'Exp. Amount')}
                             style={{ minWidth: '6rem' }} />

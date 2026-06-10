@@ -10,14 +10,18 @@ function StatusTab({ status }) {
     switch (status) {
         // Numeric cases for claim/expense approval status
         case APPROVAL_STATUS.PENDING:
+        case 'Pending':
             label = t('status.pending', 'Pending');
             color = 'bg-status-pending text-status-pending';
             break;
         case APPROVAL_STATUS.APPROVED:
-            label = t('status.approved', 'Approved');
+        case 'Approved':
+        case 'Paid':
+            label = status === 'Paid' ? t('status.paid', 'Paid') : t('status.approved', 'Approved');
             color = 'bg-status-success text-status-success';
             break;
         case APPROVAL_STATUS.REJECTED:
+        case 'Rejected':
             label = t('status.rejected', 'Rejected');
             color = 'bg-status-danger text-status-danger';
             break;
