@@ -244,16 +244,9 @@ class BankStatementProcessor
 
             $base = Str::slug(pathinfo($doc->getClientOriginalName(), PATHINFO_FILENAME) ?: 'bank-statement');
             $relativePath = trim($directory, '/').'/'.$base.'-'.Str::random(8).'.pdf';
-            $absolutePath = storage_path('app/public/'.$relativePath);
 
-            $absDir = dirname($absolutePath);
-            if (! is_dir($absDir) && ! mkdir($absDir, 0775, true) && ! is_dir($absDir)) {
-                throw new Exception('Failed to create storage directory for converted PDF.');
-            }
-
-            if (! rename($convertedPdf, $absolutePath)) {
-                throw new Exception('Failed to move converted PDF to public storage.');
-            }
+            // Store to public disk (which might be GCS)
+            \Illuminate\Support\Facades\Storage::disk('public')->put($relativePath, file_get_contents($convertedPdf));
 
             return $relativePath;
         } catch (Throwable $e) {
@@ -394,14 +387,9 @@ class BankStatementProcessor
 
             $base = Str::slug(pathinfo($image->getClientOriginalName(), PATHINFO_FILENAME) ?: 'bank-statement');
             $relativePath = trim($directory, '/').'/'.$base.'-'.Str::random(8).'.pdf';
-            $absolutePath = storage_path('app/public/'.$relativePath);
 
-            $absDir = dirname($absolutePath);
-            if (! is_dir($absDir) && ! mkdir($absDir, 0775, true) && ! is_dir($absDir)) {
-                throw new Exception('Failed to create storage directory for converted PDF.');
-            }
-
-            $mpdf->Output($absolutePath, Destination::FILE);
+            // Store to public disk (which might be GCS)
+            \Illuminate\Support\Facades\Storage::disk('public')->put($relativePath, $mpdf->Output('', Destination::STRING_RETURN));
 
             return $relativePath;
         } catch (Throwable $e) {

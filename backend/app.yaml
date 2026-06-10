@@ -47,6 +47,10 @@ env_variables:
 
   # Filesystem
   FILESYSTEM_DISK: public
+  PUBLIC_FILESYSTEM_DRIVER: gcs
+  GOOGLE_CLOUD_PROJECT_ID: expense-reporting-tool
+  GOOGLE_CLOUD_STORAGE_BUCKET: expense-reporting-tool.appspot.com
+  # GOOGLE_CLOUD_KEY_FILE: /path/to/service-account.json # Optional in GAE
 
   # Queue Configuration
   QUEUE_CONNECTION: sync

@@ -6,6 +6,7 @@ use App\Models\Claim;
 use App\Services\ClaimService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Mpdf\Config\ConfigVariables;
 use Mpdf\Config\FontVariables;
 use Mpdf\Mpdf;
@@ -381,8 +382,7 @@ class ClaimController extends Controller
             // Log receipt files
             foreach ($claim->expenses ?? [] as $expense) {
                 foreach ($expense->receipts ?? [] as $receipt) {
-                    $imagePath = storage_path('app/public/'.$receipt->receipt_path);
-                    \Log::info('Receipt path: '.$receipt->receipt_path.' | Full path: '.$imagePath.' | Exists: '.(file_exists($imagePath) ? 'YES' : 'NO'));
+                    \Log::info('Receipt path: '.$receipt->receipt_path.' | Exists on disk: '.(Storage::disk('public')->exists($receipt->receipt_path) ? 'YES' : 'NO'));
                 }
             }
 
@@ -596,17 +596,30 @@ class ClaimController extends Controller
         $entries = [];
 
         foreach ($receipts as $receipt) {
-            $filePath = storage_path('app/public/'.$receipt['path']);
+            $path = $receipt['path'];
             $label = $receipt['label'];
 
-            if (! file_exists($filePath) || ! is_file($filePath)) {
+            if (!Storage::disk('public')->exists($path)) {
                 $entries[] = ['image' => null, 'label' => $label, 'error' => 'Receipt file not found'];
-
                 continue;
             }
 
-            $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
-            Log::info('Rendering attachment: '.$filePath.' | ext: '.$ext);
+            // Download file to a temporary local path for mPDF and Ghostscript
+            $extension = pathinfo($path, PATHINFO_EXTENSION);
+            $localTempPath = storage_path('app/temp_receipt_'.uniqid().'.'.$extension);
+            
+            try {
+                file_put_contents($localTempPath, Storage::disk('public')->get($path));
+                $tempFiles[] = $localTempPath;
+            } catch (\Exception $e) {
+                Log::error('Failed to download receipt for PDF: '.$path.' | Error: '.$e->getMessage());
+                $entries[] = ['image' => null, 'label' => $label, 'error' => 'Failed to process receipt'];
+                continue;
+            }
+
+            $filePath = $localTempPath;
+            $ext = strtolower($extension);
+            Log::info('Rendering attachment: '.$path.' | local: '.$filePath.' | ext: '.$ext);
 
             if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif'])) {
                 $entries[] = ['image' => $filePath, 'label' => $label, 'error' => null];
