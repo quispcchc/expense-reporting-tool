@@ -11,9 +11,10 @@ class StorageController extends Controller
      * Serve a file from the public storage disk.
      * This works for both local and cloud storage (GCS).
      */
-    public function show(string $path): StreamedResponse
+    public function show(string $path)
     {
         $disk = 'public';
+        $path = ltrim($path, '/');
         $exists = Storage::disk($disk)->exists($path);
         
         \Log::info('StorageController@show', [
@@ -21,10 +22,18 @@ class StorageController extends Controller
             'disk_driver' => config("filesystems.disks.{$disk}.driver"),
             'bucket' => config("filesystems.disks.{$disk}.bucket"),
             'exists' => $exists,
-            'url' => Storage::disk($disk)->url($path),
+            'full_url' => request()->fullUrl(),
         ]);
 
         if (!$exists) {
+            // Check if it exists on 'gcs' disk directly if 'public' failed
+            if ($disk === 'public' && config('filesystems.disks.public.driver') === 'gcs') {
+                $exists = Storage::disk('gcs')->exists($path);
+                if ($exists) {
+                    \Log::info('File found on gcs disk but not public disk');
+                    return Storage::disk('gcs')->response($path);
+                }
+            }
             abort(404);
         }
 
