@@ -13,6 +13,7 @@ return [
         'http://localhost:5173',
         'http://127.0.0.1:5173',
         'https://*.appspot.com', # Google App Engine origins
+        'https://revex.carlingtonchchub.ca',
     ],
 
     // Pattern to catch any localhost port if needed for previews

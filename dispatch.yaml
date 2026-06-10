@@ -1,6 +1,8 @@
 dispatch:
-  # Route all API requests to the 'api' service (backend)
+  # Route all API and storage requests to the 'api' service (backend)
   - url: "*/api/*"
+    service: api
+  - url: "*/storage/*"
     service: api
 
   # Route everything else to the 'default' service (frontend)

@@ -20,6 +20,7 @@ env_variables:
   APP_ENV: production
   APP_DEBUG: "false"
   APP_KEY: base64:+ohMrNdPZ8UUhCueOq6m4oiUyi2JgHM921aKWUmQg0I=
+  APP_URL: https://revex.carlingtonchchub.ca
   APP_STORAGE: /tmp/storage
   STORAGE_ROOT: /tmp/storage/app/private
   PUBLIC_STORAGE_ROOT: /tmp/storage/app/public
