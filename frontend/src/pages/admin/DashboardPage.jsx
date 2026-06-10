@@ -90,10 +90,53 @@ function DashboardPage() {
             })
 
             // Parse CSV blob into rows for preview
-            const text = await response.data.text()
-            const lines = text.split('\n').filter(line => line.trim())
+            let text = await response.data.text()
+            if (text.charCodeAt(0) === 0xFEFF) {
+                text = text.substring(1)
+            }
 
-            if (lines.length <= 1) {
+            const parseCSV = (str) => {
+                const rows = []
+                let currentField = ''
+                let inQuotes = false
+                let currentRow = []
+
+                // Normalize line endings and iterate
+                const chars = str.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+
+                for (let i = 0; i < chars.length; i++) {
+                    const char = chars[i]
+                    const nextChar = chars[i + 1]
+
+                    if (char === '"') {
+                        if (inQuotes && nextChar === '"') {
+                            currentField += '"'
+                            i++
+                        } else {
+                            inQuotes = !inQuotes
+                        }
+                    } else if (char === ',' && !inQuotes) {
+                        currentRow.push(currentField)
+                        currentField = ''
+                    } else if (char === '\n' && !inQuotes) {
+                        currentRow.push(currentField)
+                        if (currentRow.length > 0) rows.push(currentRow)
+                        currentRow = []
+                        currentField = ''
+                    } else {
+                        currentField += char
+                    }
+                }
+                if (currentField || currentRow.length > 0) {
+                    currentRow.push(currentField)
+                    rows.push(currentRow)
+                }
+                return rows
+            }
+
+            const allRows = parseCSV(text)
+
+            if (allRows.length <= 1) {
                 setPreviewData([])
                 showToast(toast, {
                     severity: 'warn',
@@ -103,46 +146,22 @@ function DashboardPage() {
                 return
             }
 
-            // Parse CSV header + rows
-            const parseCSVLine = (line) => {
-                const result = []
-                let current = ''
-                let inQuotes = false
-                for (let i = 0; i < line.length; i++) {
-                    const ch = line[i]
-                    if (ch === '"') {
-                        if (inQuotes && line[i + 1] === '"') {
-                            current += '"'
-                            i++
-                        } else {
-                            inQuotes = !inQuotes
-                        }
-                    } else if (ch === ',' && !inQuotes) {
-                        result.push(current)
-                        current = ''
-                    } else {
-                        current += ch
-                    }
-                }
-                result.push(current)
-                return result
-            }
-
-            // Remove BOM from first line if present
-            let headerLine = lines[0]
-            if (headerLine.charCodeAt(0) === 0xFEFF) {
-                headerLine = headerLine.substring(1)
-            }
-
-            const headers = parseCSVLine(headerLine)
-            const rows = lines.slice(1).map((line, idx) => {
-                const values = parseCSVLine(line)
-                const row = { _rowIndex: idx }
-                headers.forEach((h, i) => {
-                    row[h] = values[i] || ''
+            const headers = allRows[0].map(h => h.trim())
+            const rows = allRows.slice(1)
+                .map((values, idx) => {
+                    const row = { _rowIndex: idx }
+                    headers.forEach((h, i) => {
+                        row[h] = (values[i] || '').trim()
+                    })
+                    return row
                 })
-                return row
-            })
+                .filter(r => {
+                    // Only include rows that have at least one non-empty value (excluding _rowIndex)
+                    const values = Object.keys(r)
+                        .filter(k => k !== '_rowIndex')
+                        .map(k => r[k])
+                    return values.some(v => v !== '')
+                })
 
             setPreviewData(rows)
 
