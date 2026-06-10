@@ -43,7 +43,7 @@ const mapTransactions = (transactions, mode) => {
         buyer: tx.buyer,
         attachment: tx.receipts
             ? tx.receipts.map(r => ({
-                url: `${API_BASE_URL}/storage/${r.file_path}`,
+                url: `${API_BASE_URL}/api/storage/${r.file_path}`,
                 name: r.file_name,
                 receipt_id: r.receipt_id,
             }))

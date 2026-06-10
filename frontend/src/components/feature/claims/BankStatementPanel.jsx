@@ -14,7 +14,7 @@ function BankStatementPanel({ curClaim }) {
     const path = curClaim?.bank_statement_path
     if (!path) return null
 
-    const url = `${API_BASE_URL}/storage/${path}`
+    const url = `${API_BASE_URL}/api/storage/${path}`
     const filename = path.split('/').pop() || 'bank-statement.pdf'
 
     return (

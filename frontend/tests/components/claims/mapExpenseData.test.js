@@ -72,7 +72,7 @@ describe('mapExpenseData', () => {
         it('maps receipts to attachment array with full URLs', () => {
             const result = mapExpenseData([backendExpense], 'view')
             expect(result[0].attachment).toEqual([
-                { url: 'http://localhost/storage/receipts/test.pdf', name: 'test.pdf', receipt_id: 99 },
+                { url: 'http://localhost/api/storage/receipts/test.pdf', name: 'test.pdf', receipt_id: 99 },
             ])
         })
 

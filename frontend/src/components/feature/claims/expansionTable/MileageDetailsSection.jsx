@@ -34,7 +34,7 @@ function MileageDetailsSection({ mileage, isEditing, rowData, handleInputChange 
         if (tx.attachment) return tx.attachment
         if (tx.receipts) {
             return tx.receipts.map(r => ({
-                url: `${API_BASE_URL}/storage/${r.file_path}`,
+                url: `${API_BASE_URL}/api/storage/${r.file_path}`,
                 name: r.file_name,
                 fileType: r.file_type,
                 receipt_id: r.receipt_id,

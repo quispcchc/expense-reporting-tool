@@ -34,7 +34,7 @@ const mapExpenseData = (data, mode) => {
             status: expense.approval_status_id,
             program: expense.project_id,
             attachment: expense.receipts ? expense.receipts.map(receipt => ({
-                url: `${API_BASE_URL}/storage/${receipt.receipt_path}`,
+                url: `${API_BASE_URL}/api/storage/${receipt.receipt_path}`,
                 name: receipt.receipt_name,
                 receipt_id: receipt.receipt_id,
             })) : [],

@@ -16,7 +16,7 @@ function BankStatementAttachment({ bankStatementPath, file }) {
         }
     }, [file])
 
-    const url = file ? objectUrl : (bankStatementPath ? `${API_BASE_URL}/storage/${bankStatementPath}` : null)
+    const url = file ? objectUrl : (bankStatementPath ? `${API_BASE_URL}/api/storage/${bankStatementPath}` : null)
     const fileName = file ? file.name : 'Corporate Card Bank Statement'
 
     if (!url) return null
