@@ -9,6 +9,7 @@ class ClaimStatus
     const APPROVED = 2;
 
     const REJECTED = 3;
+    const PAID = 4;
 
     public static function getLabel(int $status): string
     {
@@ -16,6 +17,7 @@ class ClaimStatus
             self::PENDING => 'Pending',
             self::APPROVED => 'Approved',
             self::REJECTED => 'Rejected',
+            self::PAID => 'Paid',
             default => 'Unknown',
         };
     }

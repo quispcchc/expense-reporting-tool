@@ -363,7 +363,7 @@ class ClaimService
         DB::beginTransaction();
 
         try {
-            $claim = Claim::with('expenses')->find($claimId);
+            $claim = Claim::with(['expenses', 'user'])->find($claimId);
 
             if (! $claim) {
                 throw new Exception(trans('messages.claim_not_found'), 404);
@@ -403,13 +403,12 @@ class ClaimService
 
             DB::commit();
 
-            // Send email to the claim owner — if email fails, rollback the entire operation
+            // Send notifications - if notifications fail, we log but don't fail the request
             try {
-                $claim->user->notify(new ClaimUpdatedNotification($claim));
+                if ($claim->user) {
+                    $claim->user->notify(new ClaimUpdatedNotification($claim));
+                }
 
-                // If the claim was approved, notify all finance users so they can process it.
-                // Finance-user notification failures are logged but do not roll back the approval —
-                // the owner has already been notified successfully and the status update is valid.
                 if ($newStatusId === ClaimStatus::APPROVED) {
                     $financeUsers = User::whereHas('role', function ($q) {
                         $q->where('role_name', RoleName::FINANCE_USER);
@@ -418,12 +417,8 @@ class ClaimService
                     foreach ($financeUsers as $financeUser) {
                         try {
                             $financeUser->notify(new ClaimUpdatedNotification($claim));
-                            \Illuminate\Support\Facades\Log::info('Finance user notified', [
-                                'finance_user_id' => $financeUser->user_id,
-                                'claim_id' => $claim->claim_id,
-                            ]);
                         } catch (\Throwable $financeNotifyError) {
-                            \Illuminate\Support\Facades\Log::error('Failed to notify finance user of approved claim', [
+                            Log::error('Failed to notify finance user of approved claim', [
                                 'claim_id' => $claim->claim_id,
                                 'finance_user_id' => $financeUser->user_id,
                                 'error' => $financeNotifyError->getMessage(),
@@ -432,40 +427,12 @@ class ClaimService
                     }
                 }
             } catch (\Throwable $e) {
-                // Email sending failed — rollback the status update
-                DB::beginTransaction();
-                try {
-                    // Revert claim status
-                    $claim->update(['claim_status_id' => ClaimStatus::PENDING]);
-                    // Revert all expenses
-                    foreach ($claim->expenses as $expense) {
-                        $expense->update(['approval_status_id' => ClaimStatus::PENDING]);
-                    }
-                    // Remove claim approval record
-                    \App\Models\ClaimApproval::where('claim_id', $claim->claim_id)
-                        ->where('approval_status_id', $newStatusId)
-                        ->latest()
-                        ->first()
-                        ?->delete();
-                    DB::commit();
-                } catch (\Throwable $rollbackError) {
-                    DB::rollBack();
-                    \Illuminate\Support\Facades\Log::error('Failed to rollback claim status after email error', [
-                        'claim_id' => $claim->claim_id,
-                        'original_error' => $e->getMessage(),
-                        'rollback_error' => $rollbackError->getMessage(),
-                    ]);
-                    throw new Exception('Notification failed and rollback encountered an error: ' . $rollbackError->getMessage(), 500);
-                }
-
-                \Illuminate\Support\Facades\Log::error('Email notification failed for claim update', [
+                Log::error('Email notification failed for claim update', [
                     'claim_id' => $claim->claim_id,
                     'user_id' => $claim->user_id,
                     'new_status' => $newStatusId,
                     'error' => $e->getMessage(),
                 ]);
-
-                throw new Exception('Failed to send notification email. Status update has been rolled back.', 500);
             }
 
             return $claim;
