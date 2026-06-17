@@ -5,7 +5,7 @@ namespace App\Services;
 use Exception;
 use Illuminate\Support\Facades\Log;
 use Smalot\PdfParser\Parser;
-use Google\Cloud\Vision\V1\ImageAnnotatorClient;
+use Google\Cloud\Vision\V1\Client\ImageAnnotatorClient;
 use PhpOffice\PhpWord\IOFactory;
 
 class BankStatementExtractor
