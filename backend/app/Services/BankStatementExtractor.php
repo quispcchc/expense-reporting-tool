@@ -219,15 +219,17 @@ class BankStatementExtractor
                 $hasCreditHeader = preg_match('/\b(CREDITS?|DEPOSITS?|ADDITIONS?|INCOME?|REFUNDS?|RECEIPTS?)\b/', $upperLine);
                 
                 if ($hasDebitHeader && $hasCreditHeader) {
-                    // Likely a multi-column header line, reset section mode but clear buffers
+                    Log::info("[Extractor] Multi-column header found: $line");
                     $currentSection = null; 
                     $lastDate = null;
                     $lastVendor = null;
                     continue;
                 } elseif ($hasDebitHeader && !str_contains($upperLine, 'TOTAL') && !str_contains($upperLine, 'SUMMARY')) {
+                    Log::info("[Extractor] Entered DEBIT section: $line");
                     $currentSection = 'debit';
                     continue;
                 } elseif ($hasCreditHeader && !str_contains($upperLine, 'TOTAL') && !str_contains($upperLine, 'SUMMARY')) {
+                    Log::info("[Extractor] Entered CREDIT section: $line");
                     $currentSection = 'credit';
                     continue;
                 }
@@ -373,11 +375,13 @@ class BankStatementExtractor
                         if ($dateToUse && $amount && !empty($vendorToUse) && $this->isLikelyTransaction($vendorToUse, $amount)) {
                             // If it's a credit, skip (only expenses wanted)
                             if ($isCredit) {
+                                Log::info("[Extractor] Skipping credit transaction: $vendorToUse | $amount");
                                 $lastDate = null;
                                 $lastVendor = null;
                                 continue;
                             }
 
+                            Log::info("[Extractor] Found debit transaction: $vendorToUse | $amount");
                             $expenses[] = [
                                 'transaction_date' => $dateToUse,
                                 'vendor_name' => $vendorToUse,
@@ -497,6 +501,9 @@ class BankStatementExtractor
 
     private function parseAmount(string $text): ?float
     {
+        // Remove spaces inside the amount string (e.g. "1 234.56" -> "1234.56")
+        $text = str_replace(' ', '', $text);
+        
         $cleaned = preg_replace('/[^\d.]/', '', $text);
         
         // Handle common OCR noise where a comma is read as a dot in thousands (e.g. 1.124 instead of 1124)
