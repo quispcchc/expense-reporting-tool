@@ -27,7 +27,8 @@ class BankStatementExtractor
     private const BLACKLIST_KEYWORDS = [
         'BALANCE', 'SUMMARY', 'STATEMENT', 'PAGE', 'DATE', 'DESCRIPTION', 
         'CLOSING', 'OPENING', 'PREVIOUS', 'MINIMUM', 
-        'ANNUAL', 'PERCENTAGE', 'BEGAN PROCESSING'
+        'ANNUAL', 'PERCENTAGE', 'BEGAN PROCESSING',
+        'DEBIT', 'CREDIT', 'WITHDRAWAL', 'DEPOSIT'
     ];
     
     public function extract(string $filePath, string $mimeType): array
@@ -201,10 +202,29 @@ class BankStatementExtractor
 
         $lastDate = null;
         $lastVendor = null;
+        $currentSection = null; // 'debit' or 'credit'
 
         foreach ($lines as $i => $line) {
             $line = trim($line);
             if (empty($line)) continue;
+
+            $upperLine = strtoupper($line);
+
+            // Section detection - detect if we entered a specific part of the statement
+            $hasDebitHeader = preg_match('/\b(DEBITS?|WITHDRAWALS?|PAYMENTS?|OUTGOINGS?|CHARGES?)\b/', $upperLine);
+            $hasCreditHeader = preg_match('/\b(CREDITS?|DEPOSITS?|ADDITIONS?|INCOME?|REFUNDS?|RECEIPTS?)\b/', $upperLine);
+            
+            if ($hasDebitHeader && $hasCreditHeader) {
+                // Likely a multi-column header line, reset section mode but clear buffers
+                $currentSection = null; 
+                $lastDate = null;
+                $lastVendor = null;
+                continue;
+            } elseif ($hasDebitHeader && !str_contains($upperLine, 'TOTAL') && !str_contains($upperLine, 'SUMMARY')) {
+                $currentSection = 'debit';
+            } elseif ($hasCreditHeader && !str_contains($upperLine, 'TOTAL') && !str_contains($upperLine, 'SUMMARY')) {
+                $currentSection = 'credit';
+            }
 
             // Extract account number if found
             if ($accountNumber === null) {
@@ -269,6 +289,10 @@ class BankStatementExtractor
 
                 if (!empty($nonZeroMatches)) {
                     $isCredit = false;
+                    if ($currentSection === 'credit') {
+                        $isCredit = true;
+                    }
+
                     $transactionAmount = null;
                     $foundBalance = null;
 
@@ -293,17 +317,31 @@ class BankStatementExtractor
                         $amount = $this->parseAmount($nonZeroMatches[0][1]);
                     }
 
+                    // Check for signs in the raw amount string - plus usually means credit/money in
+                    $rawAmount0 = $nonZeroMatches[0][1];
+                    if (str_contains($rawAmount0, '+')) {
+                        $isCredit = true;
+                    }
+
                     // Check for explicit CR/DR markers in the amount itself
                     if (!$isCredit && isset($nonZeroMatches[0][2])) {
-                        if (strtoupper($nonZeroMatches[0][2]) === 'CR') {
+                        $marker = strtoupper($nonZeroMatches[0][2]);
+                        if ($marker === 'CR') {
                             $isCredit = true;
+                        } elseif ($marker === 'DR') {
+                            $isCredit = false; // Explicitly a debit
                         }
                     }
 
                     // Check for credit keywords in the entire line if still not identified as credit
                     if (!$isCredit) {
                         $lowerLine = strtolower($line);
-                        $creditKeywords = ['refund', 'credit', 'deposit', 'reversal', 'interest paid', 'payment received', 'funds received', 'cr ', ' cr'];
+                        $creditKeywords = [
+                            'refund', 'credit', 'deposit', 'reversal', 'interest paid', 
+                            'payment received', 'funds received', 'cr ', ' cr',
+                            'transfer from', 'incoming', 'direct deposit', 'giro',
+                            'cash back', 'dividend', 'rebate', 'total credits'
+                        ];
                         foreach ($creditKeywords as $kw) {
                             if (str_contains($lowerLine, $kw)) {
                                 $isCredit = true;
@@ -370,6 +408,13 @@ class BankStatementExtractor
 
         // Deduplicate
         $expenses = $this->deduplicate($expenses);
+
+        // Apply the common account number to all transactions
+        if ($accountNumber) {
+            foreach ($expenses as &$expense) {
+                $expense['account_number'] = $accountNumber;
+            }
+        }
         
         return [
             'expenses' => $expenses,
