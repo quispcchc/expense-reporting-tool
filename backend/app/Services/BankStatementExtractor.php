@@ -8,6 +8,9 @@ use Smalot\PdfParser\Parser;
 use Google\Cloud\Vision\V1\Client\ImageAnnotatorClient;
 use Google\Cloud\Vision\V1\AnnotateImageRequest;
 use Google\Cloud\Vision\V1\BatchAnnotateImagesRequest;
+use Google\Cloud\Vision\V1\AnnotateFileRequest;
+use Google\Cloud\Vision\V1\BatchAnnotateFilesRequest;
+use Google\Cloud\Vision\V1\InputConfig;
 use Google\Cloud\Vision\V1\Feature;
 use Google\Cloud\Vision\V1\Feature\Type;
 use Google\Cloud\Vision\V1\Image;
@@ -66,13 +69,60 @@ class BankStatementExtractor
             
             // If text is very short, it might be an image-based PDF. Try Vision API if available.
             if (strlen(trim($text)) < 50) {
-                return $this->extractFromImage($filePath);
+                return $this->extractFromFileViaVision($filePath, 'application/pdf');
             }
             
             return $text;
         } catch (Exception $e) {
             Log::warning('Smalot PDF parser failed, falling back to Vision API', ['error' => $e->getMessage()]);
-            return $this->extractFromImage($filePath);
+            return $this->extractFromFileViaVision($filePath, 'application/pdf');
+        }
+    }
+
+    private function extractFromFileViaVision(string $filePath, string $mimeType): string
+    {
+        try {
+            $imageAnnotator = new ImageAnnotatorClient();
+            $content = file_get_contents($filePath);
+            
+            $inputConfig = new InputConfig();
+            $inputConfig->setContent($content);
+            $inputConfig->setMimeType($mimeType);
+            
+            $feature = new Feature();
+            $feature->setType(Type::DOCUMENT_TEXT_DETECTION);
+            
+            $request = new AnnotateFileRequest();
+            $request->setInputConfig($inputConfig);
+            $request->setFeatures([$feature]);
+            
+            $batchRequest = new BatchAnnotateFilesRequest();
+            $batchRequest->setRequests([$request]);
+            
+            $response = $imageAnnotator->batchAnnotateFiles($batchRequest);
+            $responses = $response->getResponses();
+            
+            $text = '';
+            foreach ($responses as $res) {
+                if ($res->getError()) {
+                    Log::error('Vision API individual file error', ['error' => $res->getError()->getMessage()]);
+                    continue;
+                }
+                
+                $responsesList = $res->getResponses();
+                foreach ($responsesList as $pageRes) {
+                    $annotation = $pageRes->getFullTextAnnotation();
+                    if ($annotation) {
+                        $text .= $annotation->getText();
+                    }
+                }
+            }
+
+            $imageAnnotator->close();
+            return $text;
+        } catch (Exception $e) {
+            Log::error('Google Cloud Vision File API failed', ['error' => $e->getMessage()]);
+            throw $e;
         }
     }
 
