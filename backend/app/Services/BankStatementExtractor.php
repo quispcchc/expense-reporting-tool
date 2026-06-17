@@ -37,7 +37,7 @@ class BankStatementExtractor
         }
 
         // Log a sample of the text to help debug extraction issues
-        Log::info('[OCR DEBUG] Extracted text sample: ' . substr(str_replace("\n", " | ", $text), 0, 500));
+        Log::info('[OCR DEBUG] Extracted text sample: ' . substr(str_replace("\n", " | ", $text), 0, 2000));
         
         return $this->parseText($text);
     }
@@ -195,14 +195,16 @@ class BankStatementExtractor
         $refunds = [];
         $statementYear = $this->extractStatementYear($text);
 
-        foreach ($lines as $line) {
+        $lastDate = null;
+        $lastVendor = null;
+
+        foreach ($lines as $i => $line) {
             $line = trim($line);
             if (empty($line)) continue;
 
             // Skip very long lines which are likely paragraphs of text
             if (strlen($line) > 200) continue;
 
-            // Skip lines that look like headers or informational text
             $upperLine = strtoupper($line);
             $isBlacklisted = false;
             foreach (self::BLACKLIST_KEYWORDS as $keyword) {
@@ -213,25 +215,20 @@ class BankStatementExtractor
             }
             if ($isBlacklisted) continue;
 
+            $foundDate = null;
             if (preg_match(self::DATE_REGEX, $line, $dateMatches)) {
-                $date = $this->normalizeDate($dateMatches[1], $statementYear);
-                if (!$date) continue;
+                $foundDate = $this->normalizeDate($dateMatches[1], $statementYear);
+            }
 
-                if (preg_match_all(self::AMOUNT_REGEX, $line, $amountMatches, PREG_SET_ORDER)) {
-                    // Filter out zero amounts (often placeholders in columns)
-                    $nonZeroMatches = array_filter($amountMatches, function($m) {
-                        $val = $this->parseAmount($m[1]);
-                        return $val !== null && $val > 0.01;
-                    });
-                    $nonZeroMatches = array_values($nonZeroMatches);
+            if (preg_match_all(self::AMOUNT_REGEX, $line, $amountMatches, PREG_SET_ORDER)) {
+                $nonZeroMatches = array_filter($amountMatches, function($m) {
+                    $val = $this->parseAmount($m[1]);
+                    return $val !== null && $val > 0.01;
+                });
+                $nonZeroMatches = array_values($nonZeroMatches);
 
-                    if (empty($nonZeroMatches)) continue;
-
-                    // The first non-zero amount is almost always the transaction (Debit or Credit).
-                    // The last non-zero amount (if different) is usually the Balance.
+                if (!empty($nonZeroMatches)) {
                     $transactionMatch = $nonZeroMatches[0];
-                    
-                    // If any match has an explicit DR/CR marker, that's our transaction
                     foreach ($nonZeroMatches as $m) {
                         if (!empty($m[2])) {
                             $transactionMatch = $m;
@@ -240,64 +237,81 @@ class BankStatementExtractor
                     }
 
                     $amount = $this->parseAmount($transactionMatch[1]);
-                    
-                    // Basic sanity check on amount
-                    if ($amount === null || $amount <= 0.01) continue;
-
-                    // Determine if it's a Credit (Refund/Payment/Deposit)
-                    // In bank statements, CR is a credit (money in), DR is a debit (money out)
-                    $isCredit = (isset($transactionMatch[2]) && strtoupper($transactionMatch[2]) === 'CR');
-                    
-                    // If no explicit marker, we check for other signs of a credit/refund
-                    if (!$isCredit && !isset($transactionMatch[2])) {
-                        $lowerLine = strtolower($line);
-                        $creditKeywords = ['refund', 'credit', 'payment', 'deposit', 'reversal'];
-                        foreach ($creditKeywords as $kw) {
-                            if (str_contains($lowerLine, $kw)) {
-                                $isCredit = true;
-                                break;
+                    if ($amount !== null && $amount > 0.01) {
+                        $isCredit = (isset($transactionMatch[2]) && strtoupper($transactionMatch[2]) === 'CR');
+                        
+                        if (!$isCredit && !isset($transactionMatch[2])) {
+                            $lowerLine = strtolower($line);
+                            foreach (['refund', 'credit', 'payment', 'deposit', 'reversal'] as $kw) {
+                                if (str_contains($lowerLine, $kw)) {
+                                    $isCredit = true;
+                                    break;
+                                }
                             }
                         }
-                    }
 
-                    // If user only wants expenses (debits), and this is a credit, skip it
-                    if ($isCredit) continue;
+                        // Use current date or buffered date from previous line
+                        $dateToUse = $foundDate ?: $lastDate;
+                        
+                        // Extract vendor from this line, or use buffered vendor if this line is just an amount
+                        $allAmountsInLine = array_column($amountMatches, 0);
+                        $vendorInLine = $this->extractVendor($line, $foundDate ? $dateMatches[0] : '', $allAmountsInLine);
+                        
+                        $vendorToUse = $vendorInLine;
+                        if (empty($vendorInLine) && $lastVendor) {
+                            $vendorToUse = $lastVendor;
+                        }
 
-                    // Extract vendor name - remove date and ALL found amounts to clean up the description
-                    $allAmounts = array_column($amountMatches, 0);
-                    $vendor = $this->extractVendor($line, $dateMatches[0], $allAmounts);
-                    
-                    if ($date && $amount && !empty($vendor) && $this->isLikelyTransaction($vendor, $amount)) {
-                        $item = [
-                            'transaction_date' => $date,
-                            'vendor_name' => $vendor,
-                            'expense_amount' => number_format($amount, 2, '.', ''),
-                            'buyer_name' => '',
-                            'transaction_desc' => $vendor,
-                            'transaction_notes' => '',
-                            'project_id' => null,
-                            'cost_centre_id' => null,
-                            'account_number_id' => null,
-                        ];
+                        if ($dateToUse && $amount && !empty($vendorToUse) && $this->isLikelyTransaction($vendorToUse, $amount)) {
+                            // If it's a credit, skip (only expenses wanted)
+                            if ($isCredit) {
+                                $lastDate = null;
+                                $lastVendor = null;
+                                continue;
+                            }
 
-                        if ($isCredit) {
-                            $refunds[] = $item;
-                        } else {
-                            $expenses[] = $item;
+                            $expenses[] = [
+                                'transaction_date' => $dateToUse,
+                                'vendor_name' => $vendorToUse,
+                                'expense_amount' => number_format($amount, 2, '.', ''),
+                                'buyer_name' => '',
+                                'transaction_desc' => $vendorToUse,
+                                'transaction_notes' => '',
+                                'project_id' => null,
+                                'cost_centre_id' => null,
+                                'account_number_id' => null,
+                            ];
+                            
+                            // Clear buffer after successful extraction
+                            $lastDate = null;
+                            $lastVendor = null;
+                            continue;
                         }
                     }
                 }
             }
+
+            // If we found a date but no transaction on this line, buffer it for the next line
+            if ($foundDate) {
+                $lastDate = $foundDate;
+                // If there's extra text on the date line, it might be the vendor start
+                $vendorStart = trim(str_replace($dateMatches[0], '', $line));
+                $lastVendor = $this->isLikelyTransaction($vendorStart, 1.0) ? $vendorStart : null;
+            } elseif (!empty($line) && !$foundDate && !$lastVendor) {
+                // If it's just a text line, it might be a vendor name between a date line and an amount line
+                if ($this->isLikelyTransaction($line, 1.0)) {
+                    $lastVendor = $line;
+                }
+            }
         }
 
-        // Deduplicate and pair refunds (similar to Python logic)
+        // Deduplicate
         $expenses = $this->deduplicate($expenses);
-        [$remainingExpenses, $unmatchedRefunds, $pairedCount] = $this->pairRefunds($expenses, $refunds);
-
+        
         return [
-            'expenses' => $remainingExpenses,
-            'refunds' => $unmatchedRefunds,
-            'paired' => $pairedCount,
+            'expenses' => $expenses,
+            'refunds' => [],
+            'paired' => 0,
         ];
     }
 
