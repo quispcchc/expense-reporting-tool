@@ -22,6 +22,7 @@ class BankStatementExtractor
     private const DATE_REGEX = '/\b(\d{1,2}[\/\-\.]\d{1,2}(?:[\/\-\.]\d{2,4})?|\d{4}[\/\-]\d{2}[\/\-]\d{2}|\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*(?:\s+\d{4})?|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2}(?:,?\s+\d{4})?)\b/i';
     private const AMOUNT_REGEX = '/(?<![0-9,.\/])\$?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{1,3})?|\d+\.\d{1,3})\s*(DR|CR)?(?![0-9,.\/])/i';
     private const YEAR_REGEX = '/\b(20\d{2})\b/';
+    private const ACCOUNT_REGEX = '/(?:Account\s*#|Primary\s*Account\s*#)\s*[:|]?\s*([\d-]+)/i';
     
     private const BLACKLIST_KEYWORDS = [
         'BALANCE', 'SUMMARY', 'STATEMENT', 'PAGE', 'DATE', 'DESCRIPTION', 
@@ -194,6 +195,7 @@ class BankStatementExtractor
         $lines = explode("\n", $text);
         $expenses = [];
         $refunds = [];
+        $accountNumber = null;
         $statementYear = $this->extractStatementYear($text);
         $this->runningBalance = null;
 
@@ -203,6 +205,11 @@ class BankStatementExtractor
         foreach ($lines as $i => $line) {
             $line = trim($line);
             if (empty($line)) continue;
+
+            // Extract account number if found
+            if ($accountNumber === null && preg_match(self::ACCOUNT_REGEX, $line, $accMatches)) {
+                $accountNumber = $accMatches[1];
+            }
 
             // Skip very long lines which are likely paragraphs of text
             if (strlen($line) > 200) continue;
@@ -353,6 +360,7 @@ class BankStatementExtractor
             'expenses' => $expenses,
             'refunds' => [],
             'paired' => 0,
+            'account_number' => $accountNumber
         ];
     }
 

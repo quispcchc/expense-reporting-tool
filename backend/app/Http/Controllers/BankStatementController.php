@@ -41,6 +41,7 @@ class BankStatementController extends Controller
                     'refunds'  => $result['refunds'],
                     'count'    => count($result['expenses']),
                     'paired'   => $result['paired'],
+                    'account_number' => $result['account_number'],
                 ]);
             }
 
