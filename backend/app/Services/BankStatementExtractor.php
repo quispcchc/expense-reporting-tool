@@ -20,9 +20,9 @@ class BankStatementExtractor
 {
     private $runningBalance = null;
     private const DATE_REGEX = '/\b(\d{1,2}[\/\-\.]\d{1,2}(?:[\/\-\.]\d{2,4})?|\d{4}[\/\-]\d{2}[\/\-]\d{2}|\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*(?:\s+\d{4})?|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2}(?:,?\s+\d{4})?)\b/i';
-    private const AMOUNT_REGEX = '/(?<![0-9,.\/])\$?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{1,3})?|\d+\.\d{1,3})\s*(DR|CR)?(?![0-9,.\/])/i';
+    private const AMOUNT_REGEX = '/(?<![0-9,.\/])\$?\s*([+-]?\s*(?:\d{1,3}(?:,\d{3})*(?:\.\d{1,3})?|\d+\.\d{1,3}))\s*(DR|CR)?(?![0-9,.\/])/i';
     private const YEAR_REGEX = '/\b(20\d{2})\b/';
-    private const ACCOUNT_REGEX = '/(?:Account\s*#|Primary\s*Account\s*#)\s*[:|]?\s*([\d-]+)/i';
+    private const ACCOUNT_REGEX = '/(?:Account|Acc|Acct|A\/c)(?:\s*(?:Number|#|No\.?))?\s*[:|-]?\s*([\d-]+)/i';
     
     private const BLACKLIST_KEYWORDS = [
         'BALANCE', 'SUMMARY', 'STATEMENT', 'PAGE', 'DATE', 'DESCRIPTION', 
@@ -207,8 +207,18 @@ class BankStatementExtractor
             if (empty($line)) continue;
 
             // Extract account number if found
-            if ($accountNumber === null && preg_match(self::ACCOUNT_REGEX, $line, $accMatches)) {
-                $accountNumber = $accMatches[1];
+            if ($accountNumber === null) {
+                if (preg_match(self::ACCOUNT_REGEX, $line, $accMatches)) {
+                    $accountNumber = $accMatches[1];
+                } elseif (preg_match('/(?:Account|Acc|Acct|A\/c)(?:\s*(?:Number|#|No\.?))\s*[:|-]?\s*$/i', $line)) {
+                    // Check next line for the number if this line only has the label
+                    if (isset($lines[$i+1])) {
+                        $nextLine = trim($lines[$i+1]);
+                        if (preg_match('/^([\d-]+)/', $nextLine, $nextAccMatches)) {
+                            $accountNumber = $nextAccMatches[1];
+                        }
+                    }
+                }
             }
 
             // Skip very long lines which are likely paragraphs of text
@@ -258,7 +268,7 @@ class BankStatementExtractor
                 $nonZeroMatches = array_values($nonZeroMatches);
 
                 if (!empty($nonZeroMatches)) {
-                    // If multiple amounts, identify which is transaction and which is balance
+                    $isCredit = false;
                     $transactionAmount = null;
                     $foundBalance = null;
 
@@ -268,24 +278,11 @@ class BankStatementExtractor
                         $foundBalance = $this->parseAmount($nonZeroMatches[count($nonZeroMatches)-1][1]);
                         
                         // Check if this was a credit or debit based on balance change
-                        $isCredit = false;
                         if ($this->runningBalance !== null && $foundBalance !== null) {
                             $diff = $foundBalance - $this->runningBalance;
-                            // If balance increased, it's a credit
+                            // If balance increased significantly, it's a credit
                             if ($diff > 0.01) {
                                 $isCredit = true;
-                            }
-                        } else {
-                            // Fallback to keyword check if no previous balance
-                            $isCredit = (isset($nonZeroMatches[0][2]) && strtoupper($nonZeroMatches[0][2]) === 'CR');
-                            if (!$isCredit) {
-                                $lowerLine = strtolower($line);
-                                foreach (['refund', 'credit', 'deposit', 'reversal'] as $kw) {
-                                    if (str_contains($lowerLine, $kw)) {
-                                        $isCredit = true;
-                                        break;
-                                    }
-                                }
                             }
                         }
                         
@@ -294,7 +291,25 @@ class BankStatementExtractor
                     } else {
                         // Single amount - might be just a balance or just a transaction
                         $amount = $this->parseAmount($nonZeroMatches[0][1]);
-                        $isCredit = (isset($nonZeroMatches[0][2]) && strtoupper($nonZeroMatches[0][2]) === 'CR');
+                    }
+
+                    // Check for explicit CR/DR markers in the amount itself
+                    if (!$isCredit && isset($nonZeroMatches[0][2])) {
+                        if (strtoupper($nonZeroMatches[0][2]) === 'CR') {
+                            $isCredit = true;
+                        }
+                    }
+
+                    // Check for credit keywords in the entire line if still not identified as credit
+                    if (!$isCredit) {
+                        $lowerLine = strtolower($line);
+                        $creditKeywords = ['refund', 'credit', 'deposit', 'reversal', 'interest paid', 'payment received', 'funds received', 'cr ', ' cr'];
+                        foreach ($creditKeywords as $kw) {
+                            if (str_contains($lowerLine, $kw)) {
+                                $isCredit = true;
+                                break;
+                            }
+                        }
                     }
 
                     if ($amount !== null && $amount > 0.01) {
