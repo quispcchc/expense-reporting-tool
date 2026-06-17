@@ -19,7 +19,7 @@ use PhpOffice\PhpWord\IOFactory;
 class BankStatementExtractor
 {
     private const DATE_REGEX = '/\b(\d{1,2}[\/\-\.]\d{1,2}(?:[\/\-\.]\d{2,4})?|\d{4}[\/\-]\d{2}[\/\-]\d{2}|\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*(?:\s+\d{4})?|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2}(?:,?\s+\d{4})?)\b/i';
-    private const AMOUNT_REGEX = '/(?<![0-9,.])\$?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{1,3})?|\d+\.\d{1,3})\s*(DR|CR)?(?![0-9,.])/i';
+    private const AMOUNT_REGEX = '/(?<![0-9,.\/])\$?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{1,3})?|\d+\.\d{1,3})\s*(DR|CR)?(?![0-9,.\/])/i';
     private const YEAR_REGEX = '/\b(20\d{2})\b/';
     
     private const BLACKLIST_KEYWORDS = [
@@ -213,7 +213,20 @@ class BankStatementExtractor
                     break;
                 }
             }
-            if ($isBlacklisted) continue;
+            if ($isBlacklisted) {
+                // If we see a blacklisted word like "BALANCE", clear the buffered vendor/date
+                // to avoid mis-attributing it to a later line.
+                $lastDate = null;
+                $lastVendor = null;
+                continue;
+            }
+
+            // Also ignore common header lines explicitly
+            if (preg_match('/(Account\s*#|Statement\s+Period|Cust\s+Ref|Primary\s+Account|Page:)/i', $line)) {
+                $lastDate = null;
+                $lastVendor = null;
+                continue;
+            }
 
             $foundDate = null;
             if (preg_match(self::DATE_REGEX, $line, $dateMatches)) {
@@ -228,11 +241,15 @@ class BankStatementExtractor
                 $nonZeroMatches = array_values($nonZeroMatches);
 
                 if (!empty($nonZeroMatches)) {
+                    // If multiple amounts, usually the last one is the balance.
+                    // The transaction amount is likely the first one that has DR/CR or just the first one.
                     $transactionMatch = $nonZeroMatches[0];
-                    foreach ($nonZeroMatches as $m) {
-                        if (!empty($m[2])) {
-                            $transactionMatch = $m;
-                            break;
+                    if (count($nonZeroMatches) >= 2) {
+                        foreach ($nonZeroMatches as $m) {
+                            if (!empty($m[2])) {
+                                $transactionMatch = $m;
+                                break;
+                            }
                         }
                     }
 
@@ -242,7 +259,8 @@ class BankStatementExtractor
                         
                         if (!$isCredit && !isset($transactionMatch[2])) {
                             $lowerLine = strtolower($line);
-                            foreach (['refund', 'credit', 'deposit', 'reversal'] as $kw) {
+                            // Avoid common credit/deposit terms
+                            foreach (['refund', 'credit', 'deposit', 'reversal', 'interest'] as $kw) {
                                 if (str_contains($lowerLine, $kw)) {
                                     $isCredit = true;
                                     break;
@@ -382,6 +400,12 @@ class BankStatementExtractor
     private function parseAmount(string $text): ?float
     {
         $cleaned = preg_replace('/[^\d.]/', '', $text);
+        
+        // Handle common OCR noise where a comma is read as a dot in thousands (e.g. 1.124 instead of 1124)
+        if (preg_match('/^\d\.\d{3}$/', $cleaned)) {
+            $cleaned = str_replace('.', '', $cleaned);
+        }
+        
         $val = (float)$cleaned;
         return ($val > 0 && $val < 1000000) ? $val : null;
     }
@@ -409,6 +433,17 @@ class BankStatementExtractor
             '/\s\d{4,}(\s|$)/', // Remove isolated long numbers (ref codes)
         ];
         $line = preg_replace($markers, ' ', $line);
+
+        // Common bank-specific noise that shouldn't be part of vendor names
+        $bankNoise = [
+            '/TD\s+Bank/i',
+            '/TD\s+Convenience/i',
+            '/Checking/i',
+            '/Account\s*#\s*\d+/i',
+            '/Statement\s+Period/i',
+            '/America\'s\s+Most\s+Convenient\s+Bank/i'
+        ];
+        $line = preg_replace($bankNoise, ' ', $line);
 
         $line = trim($line, " \t\n\r\0\x0B-_.,;:/\\$|");
         $line = preg_replace('/\s+/', ' ', $line);
