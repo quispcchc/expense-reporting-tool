@@ -19,6 +19,13 @@ class BankStatementExtractor
     private const AMOUNT_REGEX = '/(?<![0-9,.])\$?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d+\.\d{1,2})\s*(DR|CR)?(?![0-9,.])/i';
     private const YEAR_REGEX = '/\b(20\d{2})\b/';
     
+    private const BLACKLIST_KEYWORDS = [
+        'BALANCE', 'INTEREST', 'SUMMARY', 'TOTAL', 'PAYMENT', 'CREDIT', 'DEBIT', 
+        'ACCOUNT', 'STATEMENT', 'PAGE', 'DATE', 'DESCRIPTION', 'AMOUNT', 
+        'TRANSACTION', 'CLOSING', 'OPENING', 'PREVIOUS', 'MINIMUM', 'FEES', 
+        'ANNUAL', 'PERCENTAGE', 'RATE', 'BEGAN PROCESSING'
+    ];
+    
     public function extract(string $filePath, string $mimeType): array
     {
         $text = $this->extractText($filePath, $mimeType);
@@ -139,22 +146,75 @@ class BankStatementExtractor
             $line = trim($line);
             if (empty($line)) continue;
 
-            // Simple heuristic-based extraction for multiple formats
-            // This is a simplified version of the complex Python logic
+            // Skip very long lines which are likely paragraphs of text
+            if (strlen($line) > 200) continue;
+
+            // Skip lines that look like headers or informational text
+            $upperLine = strtoupper($line);
+            $isBlacklisted = false;
+            foreach (self::BLACKLIST_KEYWORDS as $keyword) {
+                if (str_contains($upperLine, $keyword)) {
+                    $isBlacklisted = true;
+                    break;
+                }
+            }
+            if ($isBlacklisted) continue;
+
             if (preg_match(self::DATE_REGEX, $line, $dateMatches)) {
                 $date = $this->normalizeDate($dateMatches[1], $statementYear);
                 if (!$date) continue;
 
                 if (preg_match_all(self::AMOUNT_REGEX, $line, $amountMatches, PREG_SET_ORDER)) {
-                    // Usually the last amount on the line is the transaction amount
-                    $lastMatch = end($amountMatches);
-                    $amount = $this->parseAmount($lastMatch[1]);
-                    $isCredit = (isset($lastMatch[2]) && strtoupper($lastMatch[2]) === 'CR') || str_contains($line, '-');
+                    // Filter out zero amounts (often placeholders in columns)
+                    $nonZeroMatches = array_filter($amountMatches, function($m) {
+                        $val = $this->parseAmount($m[1]);
+                        return $val !== null && $val > 0.01;
+                    });
+                    $nonZeroMatches = array_values($nonZeroMatches);
 
-                    // Extract vendor name - everything between date and amount
-                    $vendor = $this->extractVendor($line, $dateMatches[0], $lastMatch[0]);
+                    if (empty($nonZeroMatches)) continue;
+
+                    // The first non-zero amount is almost always the transaction (Debit or Credit).
+                    // The last non-zero amount (if different) is usually the Balance.
+                    $transactionMatch = $nonZeroMatches[0];
                     
-                    if ($date && $amount && !empty($vendor)) {
+                    // If any match has an explicit DR/CR marker, that's our transaction
+                    foreach ($nonZeroMatches as $m) {
+                        if (!empty($m[2])) {
+                            $transactionMatch = $m;
+                            break;
+                        }
+                    }
+
+                    $amount = $this->parseAmount($transactionMatch[1]);
+                    
+                    // Basic sanity check on amount
+                    if ($amount === null || $amount <= 0.01) continue;
+
+                    // Determine if it's a Credit (Refund/Payment/Deposit)
+                    // In bank statements, CR is a credit (money in), DR is a debit (money out)
+                    $isCredit = (isset($transactionMatch[2]) && strtoupper($transactionMatch[2]) === 'CR');
+                    
+                    // If no explicit marker, we check for other signs of a credit/refund
+                    if (!$isCredit && !isset($transactionMatch[2])) {
+                        $lowerLine = strtolower($line);
+                        $creditKeywords = ['refund', 'credit', 'payment', 'deposit', 'reversal'];
+                        foreach ($creditKeywords as $kw) {
+                            if (str_contains($lowerLine, $kw)) {
+                                $isCredit = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    // If user only wants expenses (debits), and this is a credit, skip it
+                    if ($isCredit) continue;
+
+                    // Extract vendor name - remove date and ALL found amounts to clean up the description
+                    $allAmounts = array_column($amountMatches, 0);
+                    $vendor = $this->extractVendor($line, $dateMatches[0], $allAmounts);
+                    
+                    if ($date && $amount && !empty($vendor) && $this->isLikelyTransaction($vendor, $amount)) {
                         $item = [
                             'transaction_date' => $date,
                             'vendor_name' => $vendor,
@@ -186,6 +246,32 @@ class BankStatementExtractor
             'refunds' => $unmatchedRefunds,
             'paired' => $pairedCount,
         ];
+    }
+
+    private function isLikelyTransaction(string $vendor, float $amount): bool
+    {
+        // Avoid things that look like version numbers or dates in the vendor field
+        if (preg_match('/^\d+(\.\d+)+$/', $vendor)) return false;
+        
+        // Avoid too short vendors
+        if (strlen($vendor) < 3) return false;
+
+        // Common non-vendor words in long strings
+        $noise = ['PROCESSING', 'TRANSACTIONS', 'PENDING', 'ORDER', 'BEGAN', 'BALANCE', 'SUMMARY', 'STATEMENT', 'CONTINUED', 'IMPORTANT', 'INFORMATION', 'DESCRIPTION'];
+        $upperVendor = strtoupper($vendor);
+        
+        // Avoid single words that are just months (likely part of a header)
+        $months = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER', 'JAN', 'FEB', 'MAR', 'APR', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+        if (in_array($upperVendor, $months)) return false;
+
+        $noiseCount = 0;
+        foreach ($noise as $word) {
+            if (str_contains($upperVendor, $word)) $noiseCount++;
+        }
+        
+        if ($noiseCount >= 2) return false;
+
+        return true;
     }
 
     private function extractStatementYear(string $text): ?int
@@ -233,10 +319,30 @@ class BankStatementExtractor
         return ($val > 0 && $val < 1000000) ? $val : null;
     }
 
-    private function extractVendor(string $line, string $dateStr, string $amountStr): string
+    private function extractVendor(string $line, string $dateStr, array|string $amounts): string
     {
         $line = str_replace($dateStr, '', $line);
-        $line = str_replace($amountStr, '', $line);
+        if (is_array($amounts)) {
+            foreach ($amounts as $amt) {
+                $line = str_replace($amt, '', $line);
+            }
+        } else {
+            $line = str_replace($amounts, '', $line);
+        }
+        
+        // Remove common bank markers that clutter the description/vendor name
+        $markers = [
+            '/PURCHASE\s*-?\s*/i', 
+            '/DEBIT\s*-?\s*/i', 
+            '/VISA\s*/i', 
+            '/MASTERCARD\s*/i', 
+            '/M\/C\s*/i', 
+            '/INTERAC\s*-?\s*/i', 
+            '/RETAIL\s*/i',
+            '/\s\d{4,}(\s|$)/', // Remove isolated long numbers (ref codes)
+        ];
+        $line = preg_replace($markers, ' ', $line);
+
         $line = trim($line, " \t\n\r\0\x0B-_.,;:/\\$");
         $line = preg_replace('/\s+/', ' ', $line);
         return strlen($line) >= 2 ? $line : '';
