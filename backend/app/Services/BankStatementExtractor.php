@@ -18,6 +18,7 @@ use PhpOffice\PhpWord\IOFactory;
 
 class BankStatementExtractor
 {
+    private $runningBalance = null;
     private const DATE_REGEX = '/\b(\d{1,2}[\/\-\.]\d{1,2}(?:[\/\-\.]\d{2,4})?|\d{4}[\/\-]\d{2}[\/\-]\d{2}|\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*(?:\s+\d{4})?|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2}(?:,?\s+\d{4})?)\b/i';
     private const AMOUNT_REGEX = '/(?<![0-9,.\/])\$?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{1,3})?|\d+\.\d{1,3})\s*(DR|CR)?(?![0-9,.\/])/i';
     private const YEAR_REGEX = '/\b(20\d{2})\b/';
@@ -194,6 +195,7 @@ class BankStatementExtractor
         $expenses = [];
         $refunds = [];
         $statementYear = $this->extractStatementYear($text);
+        $this->runningBalance = null;
 
         $lastDate = null;
         $lastVendor = null;
@@ -206,6 +208,14 @@ class BankStatementExtractor
             if (strlen($line) > 200) continue;
 
             $upperLine = strtoupper($line);
+
+            // Look for initial balance
+            if ($this->runningBalance === null && (str_contains($upperLine, 'BALANCE AS OF') || str_contains($upperLine, 'SUMMARY'))) {
+                if (preg_match_all(self::AMOUNT_REGEX, $line, $summaryMatches)) {
+                    $this->runningBalance = $this->parseAmount(end($summaryMatches[1]));
+                }
+            }
+
             $isBlacklisted = false;
             foreach (self::BLACKLIST_KEYWORDS as $keyword) {
                 if (str_contains($upperLine, $keyword)) {
@@ -241,33 +251,46 @@ class BankStatementExtractor
                 $nonZeroMatches = array_values($nonZeroMatches);
 
                 if (!empty($nonZeroMatches)) {
-                    // If multiple amounts, usually the last one is the balance.
-                    // The transaction amount is likely the first one that has DR/CR or just the first one.
-                    $transactionMatch = $nonZeroMatches[0];
-                    if (count($nonZeroMatches) >= 2) {
-                        foreach ($nonZeroMatches as $m) {
-                            if (!empty($m[2])) {
-                                $transactionMatch = $m;
-                                break;
-                            }
-                        }
-                    }
+                    // If multiple amounts, identify which is transaction and which is balance
+                    $transactionAmount = null;
+                    $foundBalance = null;
 
-                    $amount = $this->parseAmount($transactionMatch[1]);
-                    if ($amount !== null && $amount > 0.01) {
-                        $isCredit = (isset($transactionMatch[2]) && strtoupper($transactionMatch[2]) === 'CR');
+                    if (count($nonZeroMatches) >= 2) {
+                        // Usually: [Transaction Amount, Running Balance]
+                        $transactionAmount = $this->parseAmount($nonZeroMatches[0][1]);
+                        $foundBalance = $this->parseAmount($nonZeroMatches[count($nonZeroMatches)-1][1]);
                         
-                        if (!$isCredit && !isset($transactionMatch[2])) {
-                            $lowerLine = strtolower($line);
-                            // Avoid common credit/deposit terms
-                            foreach (['refund', 'credit', 'deposit', 'reversal', 'interest'] as $kw) {
-                                if (str_contains($lowerLine, $kw)) {
-                                    $isCredit = true;
-                                    break;
+                        // Check if this was a credit or debit based on balance change
+                        $isCredit = false;
+                        if ($this->runningBalance !== null && $foundBalance !== null) {
+                            $diff = $foundBalance - $this->runningBalance;
+                            // If balance increased, it's a credit
+                            if ($diff > 0.01) {
+                                $isCredit = true;
+                            }
+                        } else {
+                            // Fallback to keyword check if no previous balance
+                            $isCredit = (isset($nonZeroMatches[0][2]) && strtoupper($nonZeroMatches[0][2]) === 'CR');
+                            if (!$isCredit) {
+                                $lowerLine = strtolower($line);
+                                foreach (['refund', 'credit', 'deposit', 'reversal'] as $kw) {
+                                    if (str_contains($lowerLine, $kw)) {
+                                        $isCredit = true;
+                                        break;
+                                    }
                                 }
                             }
                         }
+                        
+                        $this->runningBalance = $foundBalance;
+                        $amount = $transactionAmount;
+                    } else {
+                        // Single amount - might be just a balance or just a transaction
+                        $amount = $this->parseAmount($nonZeroMatches[0][1]);
+                        $isCredit = (isset($nonZeroMatches[0][2]) && strtoupper($nonZeroMatches[0][2]) === 'CR');
+                    }
 
+                    if ($amount !== null && $amount > 0.01) {
                         // Use current date or buffered date from previous line
                         $dateToUse = $foundDate ?: $lastDate;
                         
