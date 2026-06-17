@@ -10,7 +10,18 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip \
     libpq-dev \
-    libzip-dev
+    libzip-dev \
+    python3 \
+    python3-pip \
+    python3-venv \
+    ocrmypdf \
+    tesseract-ocr \
+    libreoffice-writer \
+    libreoffice-java-common
+
+# Install Python dependencies
+RUN python3 -m venv /opt/pdftools \
+    && /opt/pdftools/bin/pip install --no-cache-dir pdfplumber
 
 # Clear cache
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*

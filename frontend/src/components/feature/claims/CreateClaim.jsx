@@ -557,6 +557,7 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
                     includeMileage={includeMileage}
                     mileageData={mileageData}
                     bankStatementFile={bankStatementFile}
+                    isCorporateCard={isCorporateCard}
                 />
             </div>
 

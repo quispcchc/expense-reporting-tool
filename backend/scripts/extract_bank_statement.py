@@ -812,8 +812,6 @@ def main():
                     refunds = result['refunds']
                     break
 
-            expenses = deduplicate(expenses)
-            refunds = deduplicate(refunds)
             expenses, refunds, paired = pair_refunds(expenses, refunds)
 
             dbg(f'After pairing: {len(expenses)} expenses, {len(refunds)} unmatched refunds, {paired} pairs cancelled')

@@ -5,7 +5,6 @@ import { API_BASE_URL } from '../../../api/api.js'
 //   bankStatementPath — a backend storage path (existing saved file)
 //   file              — a File object (new local upload, not yet saved)
 function BankStatementAttachment({ bankStatementPath, file }) {
-    const [showPreview, setShowPreview] = useState(false)
     const [objectUrl, setObjectUrl] = useState(null)
 
     useEffect(() => {

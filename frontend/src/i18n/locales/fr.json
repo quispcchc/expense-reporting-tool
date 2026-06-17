@@ -284,7 +284,16 @@
         "selectClaimType": "Sélectionner un type de réclamation",
         "selectDepartment": "Sélectionner un département",
         "selectTeam": "Sélectionner une équipe",
-        "notesPlaceholder": "Entrez des notes ou commentaires supplémentaires..."
+        "notesPlaceholder": "Entrez des notes ou commentaires supplémentaires...",
+        "bankStatement": "Relevé bancaire",
+        "bankStatementDescription": "Téléchargez votre relevé bancaire de carte corporative (PDF, image ou document Word). Les dépenses seront automatiquement extraites de tous les types de fichiers pris en charge.",
+        "extracting": "Extraction en cours...",
+        "uploadBankStatement": "Télécharger le relevé bancaire",
+        "extractionSuccess": "{{count}} dépense(s) extraite(s) du relevé bancaire",
+        "extractionError": "Échec de l'extraction des dépenses du relevé bancaire. Veuillez réessayer.",
+        "unmatchedRefunds": "Remboursements non appariés",
+        "unmatchedRefundsDetail": "{{count}} remboursement(s) sur ce relevé n'ont pas pu être appariés à un achat. Veuillez vérifier : {{list}}",
+        "cardDefaults": "Valeurs par défaut pour toutes les lignes de dépenses"
     },
     "toast": {
         "success": "Succès",

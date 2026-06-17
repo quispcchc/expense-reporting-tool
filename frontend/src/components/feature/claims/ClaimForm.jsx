@@ -56,16 +56,16 @@ function ClaimForm({ claimFormData, onFieldChange, errors, includeMileage, onMil
             {isCorporateCard && (
                 <div className="mt-5">
                     <label className="block text-sm font-medium mb-1">
-                        {t('claimForm.bankStatement', 'Bank Statement')}
+                        {t('claimForm.bankStatement')}
                     </label>
                     <p className="text-gray-500 text-xs mb-3">
-                        {t('claimForm.bankStatementDescription', 'Upload your corporate card bank statement (PDF, image, or Word document). PDFs will be auto-extracted; images and documents will be converted to PDF and saved with the claim.')}
+                        {t('claimForm.bankStatementDescription')}
                     </p>
                     <div className="flex justify-center items-center border border-gray-300 border-dashed rounded-md p-5 bg-gray-50 hover:bg-gray-100 transition-colors">
                         <label className={`p-button p-component p-button-outlined p-2 cursor-pointer flex items-center gap-2 ${isExtracting ? 'opacity-50 pointer-events-none' : ''}`}>
                             {isExtracting
-                                ? t('claimForm.extracting', 'Extracting...')
-                                : t('claimForm.uploadBankStatement', 'Upload Bank Statement')}
+                                ? t('claimForm.extracting')
+                                : t('claimForm.uploadBankStatement')}
                             <input
                                 type="file"
                                 accept="application/pdf,image/jpeg,image/png,image/gif,image/webp,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.doc,.docx"
