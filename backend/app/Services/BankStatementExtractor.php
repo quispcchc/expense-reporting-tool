@@ -6,6 +6,11 @@ use Exception;
 use Illuminate\Support\Facades\Log;
 use Smalot\PdfParser\Parser;
 use Google\Cloud\Vision\V1\Client\ImageAnnotatorClient;
+use Google\Cloud\Vision\V1\AnnotateImageRequest;
+use Google\Cloud\Vision\V1\BatchAnnotateImagesRequest;
+use Google\Cloud\Vision\V1\Feature;
+use Google\Cloud\Vision\V1\Feature\Type;
+use Google\Cloud\Vision\V1\Image;
 use PhpOffice\PhpWord\IOFactory;
 
 class BankStatementExtractor
@@ -65,13 +70,39 @@ class BankStatementExtractor
     {
         try {
             $imageAnnotator = new ImageAnnotatorClient();
-            $image = file_get_contents($filePath);
-            $response = $imageAnnotator->documentTextDetection($image);
-            $annotation = $response->getFullTextAnnotation();
+            $imageContent = file_get_contents($filePath);
+            
+            $image = new Image();
+            $image->setContent($imageContent);
+            
+            $feature = new Feature();
+            $feature->setType(Type::DOCUMENT_TEXT_DETECTION);
+            
+            $request = new AnnotateImageRequest();
+            $request->setImage($image);
+            $request->setFeatures([$feature]);
+            
+            $batchRequest = new BatchAnnotateImagesRequest();
+            $batchRequest->setRequests([$request]);
+            
+            $response = $imageAnnotator->batchAnnotateImages($batchRequest);
+            $responses = $response->getResponses();
+            
+            $text = '';
+            foreach ($responses as $res) {
+                if ($res->getError()) {
+                    Log::error('Vision API individual error', ['error' => $res->getError()->getMessage()]);
+                    continue;
+                }
+                $annotation = $res->getFullTextAnnotation();
+                if ($annotation) {
+                    $text .= $annotation->getText();
+                }
+            }
 
             $imageAnnotator->close();
 
-            return $annotation ? $annotation->getText() : '';
+            return $text;
         } catch (Exception $e) {
             Log::error('Google Cloud Vision API failed', ['error' => $e->getMessage()]);
             throw $e;
