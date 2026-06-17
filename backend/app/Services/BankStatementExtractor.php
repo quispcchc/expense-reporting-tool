@@ -27,8 +27,7 @@ class BankStatementExtractor
     private const BLACKLIST_KEYWORDS = [
         'BALANCE', 'SUMMARY', 'STATEMENT', 'PAGE', 'DATE', 'DESCRIPTION', 
         'CLOSING', 'OPENING', 'PREVIOUS', 'MINIMUM', 
-        'ANNUAL', 'PERCENTAGE', 'BEGAN PROCESSING',
-        'DEBIT', 'CREDIT', 'WITHDRAWAL', 'DEPOSIT'
+        'ANNUAL', 'PERCENTAGE', 'BEGAN PROCESSING'
     ];
     
     public function extract(string $filePath, string $mimeType): array
@@ -211,19 +210,27 @@ class BankStatementExtractor
             $upperLine = strtoupper($line);
 
             // Section detection - detect if we entered a specific part of the statement
-            $hasDebitHeader = preg_match('/\b(DEBITS?|WITHDRAWALS?|PAYMENTS?|OUTGOINGS?|CHARGES?)\b/', $upperLine);
-            $hasCreditHeader = preg_match('/\b(CREDITS?|DEPOSITS?|ADDITIONS?|INCOME?|REFUNDS?|RECEIPTS?)\b/', $upperLine);
-            
-            if ($hasDebitHeader && $hasCreditHeader) {
-                // Likely a multi-column header line, reset section mode but clear buffers
-                $currentSection = null; 
-                $lastDate = null;
-                $lastVendor = null;
-                continue;
-            } elseif ($hasDebitHeader && !str_contains($upperLine, 'TOTAL') && !str_contains($upperLine, 'SUMMARY')) {
-                $currentSection = 'debit';
-            } elseif ($hasCreditHeader && !str_contains($upperLine, 'TOTAL') && !str_contains($upperLine, 'SUMMARY')) {
-                $currentSection = 'credit';
+            // Only consider it a section header if it doesn't contain a date or amount
+            $hasDateInLine = preg_match(self::DATE_REGEX, $line);
+            $hasAmountInLine = preg_match(self::AMOUNT_REGEX, $line);
+
+            if (!$hasDateInLine && !$hasAmountInLine) {
+                $hasDebitHeader = preg_match('/\b(DEBITS?|WITHDRAWALS?|PAYMENTS?|OUTGOINGS?|CHARGES?)\b/', $upperLine);
+                $hasCreditHeader = preg_match('/\b(CREDITS?|DEPOSITS?|ADDITIONS?|INCOME?|REFUNDS?|RECEIPTS?)\b/', $upperLine);
+                
+                if ($hasDebitHeader && $hasCreditHeader) {
+                    // Likely a multi-column header line, reset section mode but clear buffers
+                    $currentSection = null; 
+                    $lastDate = null;
+                    $lastVendor = null;
+                    continue;
+                } elseif ($hasDebitHeader && !str_contains($upperLine, 'TOTAL') && !str_contains($upperLine, 'SUMMARY')) {
+                    $currentSection = 'debit';
+                    continue;
+                } elseif ($hasCreditHeader && !str_contains($upperLine, 'TOTAL') && !str_contains($upperLine, 'SUMMARY')) {
+                    $currentSection = 'credit';
+                    continue;
+                }
             }
 
             // Extract account number if found
@@ -516,6 +523,8 @@ class BankStatementExtractor
         $markers = [
             '/PURCHASE\s*-?\s*/i', 
             '/DEBIT\s*-?\s*/i', 
+            '/CREDIT\s*-?\s*/i',
+            '/CR\s*/i',
             '/VISA\s*/i', 
             '/MASTERCARD\s*/i', 
             '/M\/C\s*/i', 
