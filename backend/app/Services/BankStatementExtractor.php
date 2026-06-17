@@ -20,19 +20,22 @@ class BankStatementExtractor
     private const YEAR_REGEX = '/\b(20\d{2})\b/';
     
     private const BLACKLIST_KEYWORDS = [
-        'BALANCE', 'INTEREST', 'SUMMARY', 'TOTAL', 'PAYMENT', 'CREDIT', 'DEBIT', 
-        'ACCOUNT', 'STATEMENT', 'PAGE', 'DATE', 'DESCRIPTION', 'AMOUNT', 
-        'TRANSACTION', 'CLOSING', 'OPENING', 'PREVIOUS', 'MINIMUM', 'FEES', 
-        'ANNUAL', 'PERCENTAGE', 'RATE', 'BEGAN PROCESSING'
+        'BALANCE', 'SUMMARY', 'STATEMENT', 'PAGE', 'DATE', 'DESCRIPTION', 
+        'CLOSING', 'OPENING', 'PREVIOUS', 'MINIMUM', 
+        'ANNUAL', 'PERCENTAGE', 'BEGAN PROCESSING'
     ];
     
     public function extract(string $filePath, string $mimeType): array
     {
         $text = $this->extractText($filePath, $mimeType);
         if (empty($text)) {
+            Log::warning('Extractor: No text extracted from file');
             return ['expenses' => [], 'refunds' => [], 'paired' => 0];
         }
 
+        // Log a sample of the text to help debug extraction issues
+        Log::info('[OCR DEBUG] Extracted text sample: ' . substr(str_replace("\n", " | ", $text), 0, 500));
+        
         return $this->parseText($text);
     }
 
