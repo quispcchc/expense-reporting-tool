@@ -36,6 +36,7 @@ class BankStatementExtractor
             }
         } catch (Exception $e) {
             Log::error('Text extraction failed', ['error' => $e->getMessage()]);
+            throw $e;
         }
 
         return '';
@@ -73,7 +74,7 @@ class BankStatementExtractor
             return $annotation ? $annotation->getText() : '';
         } catch (Exception $e) {
             Log::error('Google Cloud Vision API failed', ['error' => $e->getMessage()]);
-            return '';
+            throw $e;
         }
     }
 
