@@ -18,8 +18,8 @@ use PhpOffice\PhpWord\IOFactory;
 
 class BankStatementExtractor
 {
-    private const DATE_REGEX = '/\b(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}|\d{4}[\/\-]\d{2}[\/\-]\d{2}|\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*(?:\s+\d{4})?|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2}(?:,?\s+\d{4})?)\b/i';
-    private const AMOUNT_REGEX = '/(?<![0-9,.])\$?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d+\.\d{1,2})\s*(DR|CR)?(?![0-9,.])/i';
+    private const DATE_REGEX = '/\b(\d{1,2}[\/\-\.]\d{1,2}(?:[\/\-\.]\d{2,4})?|\d{4}[\/\-]\d{2}[\/\-]\d{2}|\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*(?:\s+\d{4})?|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2}(?:,?\s+\d{4})?)\b/i';
+    private const AMOUNT_REGEX = '/(?<![0-9,.])\$?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{1,3})?|\d+\.\d{1,3})\s*(DR|CR)?(?![0-9,.])/i';
     private const YEAR_REGEX = '/\b(20\d{2})\b/';
     
     private const BLACKLIST_KEYWORDS = [
@@ -242,7 +242,7 @@ class BankStatementExtractor
                         
                         if (!$isCredit && !isset($transactionMatch[2])) {
                             $lowerLine = strtolower($line);
-                            foreach (['refund', 'credit', 'payment', 'deposit', 'reversal'] as $kw) {
+                            foreach (['refund', 'credit', 'deposit', 'reversal'] as $kw) {
                                 if (str_contains($lowerLine, $kw)) {
                                     $isCredit = true;
                                     break;
@@ -366,7 +366,7 @@ class BankStatementExtractor
         }
 
         if ($statementYear) {
-            $shortFormats = ['d M', 'd F', 'M d', 'F d', 'd/m', 'm/d'];
+            $shortFormats = ['m d', 'd m', 'M d', 'd M', 'F d', 'd F', 'm/d', 'd/m'];
             foreach ($shortFormats as $fmt) {
                 $dt = \DateTime::createFromFormat($fmt, $raw);
                 if ($dt !== false) {
@@ -410,7 +410,7 @@ class BankStatementExtractor
         ];
         $line = preg_replace($markers, ' ', $line);
 
-        $line = trim($line, " \t\n\r\0\x0B-_.,;:/\\$");
+        $line = trim($line, " \t\n\r\0\x0B-_.,;:/\\$|");
         $line = preg_replace('/\s+/', ' ', $line);
         return strlen($line) >= 2 ? $line : '';
     }
