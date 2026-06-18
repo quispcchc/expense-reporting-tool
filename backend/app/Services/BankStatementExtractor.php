@@ -210,13 +210,13 @@ class BankStatementExtractor
             $upperLine = strtoupper($line);
 
             // Section detection - detect if we entered a specific part of the statement
-            // Only consider it a section header if it doesn't contain a date or amount
+            // Only consider it a section header if it's a relatively short line
             $hasDateInLine = preg_match(self::DATE_REGEX, $line);
             $hasAmountInLine = preg_match(self::AMOUNT_REGEX, $line);
 
-            if (!$hasDateInLine && !$hasAmountInLine) {
-                $hasDebitHeader = preg_match('/\b(DEBITS?|WITHDRAWALS?|PAYMENTS?|OUTGOINGS?|CHARGES?)\b/', $upperLine);
-                $hasCreditHeader = preg_match('/\b(CREDITS?|DEPOSITS?|ADDITIONS?|INCOME?|REFUNDS?|RECEIPTS?)\b/', $upperLine);
+            if (!$hasDateInLine && !$hasAmountInLine && strlen($line) < 50) {
+                $hasDebitHeader = preg_match('/\b(DEBITS?|WITHDRAWALS?|PAYMENTS?|OUTGOINGS?|CHARGES?)\b/i', $upperLine);
+                $hasCreditHeader = preg_match('/\b(CREDITS?|DEPOSITS?|ADDITIONS?|INCOME?|REFUNDS?|RECEIPTS?)\b/i', $upperLine);
                 
                 if ($hasDebitHeader && $hasCreditHeader) {
                     Log::info("[Extractor] Multi-column header found: $line");
@@ -224,11 +224,11 @@ class BankStatementExtractor
                     $lastDate = null;
                     $lastVendor = null;
                     continue;
-                } elseif ($hasDebitHeader && !str_contains($upperLine, 'TOTAL') && !str_contains($upperLine, 'SUMMARY')) {
+                } elseif ($hasDebitHeader && !preg_match('/(?:TOTAL|SUMMARY|BALANCE|PROCESS)/i', $upperLine)) {
                     Log::info("[Extractor] Entered DEBIT section: $line");
                     $currentSection = 'debit';
                     continue;
-                } elseif ($hasCreditHeader && !str_contains($upperLine, 'TOTAL') && !str_contains($upperLine, 'SUMMARY')) {
+                } elseif ($hasCreditHeader && !preg_match('/(?:TOTAL|SUMMARY|BALANCE|PROCESS)/i', $upperLine)) {
                     Log::info("[Extractor] Entered CREDIT section: $line");
                     $currentSection = 'credit';
                     continue;
@@ -258,7 +258,15 @@ class BankStatementExtractor
             // Look for initial balance
             if ($this->runningBalance === null && (str_contains($upperLine, 'BALANCE AS OF') || str_contains($upperLine, 'SUMMARY'))) {
                 if (preg_match_all(self::AMOUNT_REGEX, $line, $summaryMatches)) {
-                    $this->runningBalance = $this->parseAmount(end($summaryMatches[1]));
+                    // Try to find the most likely balance amount in a summary line (usually the last one)
+                    foreach (array_reverse($summaryMatches[1]) as $possibleBalance) {
+                        $parsed = $this->parseAmount($possibleBalance);
+                        if ($parsed !== null && $parsed > 0) {
+                            $this->runningBalance = $parsed;
+                            Log::info("[Extractor] Initial running balance detected: $this->runningBalance");
+                            break;
+                        }
+                    }
                 }
             }
 
@@ -313,9 +321,12 @@ class BankStatementExtractor
                         // Check if this was a credit or debit based on balance change
                         if ($this->runningBalance !== null && $foundBalance !== null) {
                             $diff = $foundBalance - $this->runningBalance;
-                            // If balance increased significantly, it's a credit
-                            if ($diff > 0.01) {
+                            // If balance increased, it's a credit. 
+                            // If it decreased, it's a debit (expense).
+                            if ($diff > 0.0001) {
                                 $isCredit = true;
+                            } else {
+                                $isCredit = false;
                             }
                         }
                         
@@ -324,6 +335,10 @@ class BankStatementExtractor
                     } else {
                         // Single amount - might be just a balance or just a transaction
                         $amount = $this->parseAmount($nonZeroMatches[0][1]);
+                        
+                        // If we have a previous balance, we can check if this single amount 
+                        // explains a change to a future balance, but for single-amount lines 
+                        // we usually rely on markers or keywords.
                     }
 
                     // Check for signs in the raw amount string - plus usually means credit/money in
@@ -501,13 +516,14 @@ class BankStatementExtractor
 
     private function parseAmount(string $text): ?float
     {
-        // Remove spaces inside the amount string (e.g. "1 234.56" -> "1234.56")
-        $text = str_replace(' ', '', $text);
+        // Remove spaces and commas inside the amount string
+        $text = str_replace([' ', ','], '', $text);
         
         $cleaned = preg_replace('/[^\d.]/', '', $text);
         
         // Handle common OCR noise where a comma is read as a dot in thousands (e.g. 1.124 instead of 1124)
-        if (preg_match('/^\d\.\d{3}$/', $cleaned)) {
+        // Check if there is exactly one dot and it is followed by 3 digits
+        if (preg_match('/^\d+\.\d{3}$/', $cleaned)) {
             $cleaned = str_replace('.', '', $cleaned);
         }
         
