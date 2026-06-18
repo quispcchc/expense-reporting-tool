@@ -225,12 +225,46 @@ class BankStatementExtractor
                     $lastVendor = null;
                     continue;
                 } elseif ($hasDebitHeader && !preg_match('/(?:TOTAL|SUMMARY|BALANCE|PROCESS)/i', $upperLine)) {
-                    Log::info("[Extractor] Entered DEBIT section: $line");
-                    $currentSection = 'debit';
+                    // Check if the next non-empty line is a CREDIT header - if so, it's a multi-column header
+                    $isMultiColumn = false;
+                    for ($j = $i + 1; $j < min($i + 4, count($lines)); $j++) {
+                        $nextLine = strtoupper(trim($lines[$j]));
+                        if (empty($nextLine)) continue;
+                        if (preg_match('/\b(CREDITS?|DEPOSITS?|ADDITIONS?|INCOME?|REFUNDS?|RECEIPTS?)\b/i', $nextLine)) {
+                            $isMultiColumn = true;
+                            break;
+                        }
+                        if (preg_match(self::DATE_REGEX, $nextLine) || preg_match(self::AMOUNT_REGEX, $nextLine)) break;
+                    }
+                    
+                    if ($isMultiColumn) {
+                        Log::info("[Extractor] Multi-column header found (split lines): $line");
+                        $currentSection = null;
+                    } else {
+                        Log::info("[Extractor] Entered DEBIT section: $line");
+                        $currentSection = 'debit';
+                    }
                     continue;
                 } elseif ($hasCreditHeader && !preg_match('/(?:TOTAL|SUMMARY|BALANCE|PROCESS)/i', $upperLine)) {
-                    Log::info("[Extractor] Entered CREDIT section: $line");
-                    $currentSection = 'credit';
+                    // Check if the previous non-empty line was a DEBIT header
+                    $isMultiColumn = false;
+                    for ($j = $i - 1; $j >= max(0, $i - 3); $j--) {
+                        $prevLine = strtoupper(trim($lines[$j]));
+                        if (empty($prevLine)) continue;
+                        if (preg_match('/\b(DEBITS?|WITHDRAWALS?|PAYMENTS?|OUTGOINGS?|CHARGES?)\b/i', $prevLine)) {
+                            $isMultiColumn = true;
+                            break;
+                        }
+                        if (preg_match(self::DATE_REGEX, $prevLine) || preg_match(self::AMOUNT_REGEX, $prevLine)) break;
+                    }
+
+                    if ($isMultiColumn) {
+                        Log::info("[Extractor] Multi-column header found (split lines): $line");
+                        $currentSection = null;
+                    } else {
+                        Log::info("[Extractor] Entered CREDIT section: $line");
+                        $currentSection = 'credit';
+                    }
                     continue;
                 }
             }
@@ -322,12 +356,22 @@ class BankStatementExtractor
                         // Check if this was a credit or debit based on balance change
                         if ($this->runningBalance !== null && $foundBalance !== null) {
                             $diff = $foundBalance - $this->runningBalance;
+                            
                             // If balance increased, it's a credit. 
                             // If it decreased, it's a debit (expense).
                             if ($diff > 0.0001) {
                                 $isCredit = true;
                             } else {
                                 $isCredit = false;
+                            }
+
+                            // OCR Correction: If the difference matches another interpretation of the amount, use it.
+                            // For example, if amount was read as 1.124 but diff is 124.00
+                            $absDiff = abs($diff);
+                            if ($absDiff > 0.01 && $transactionAmount !== null && abs($transactionAmount - $absDiff) > 0.01) {
+                                // If the diff is "cleaner" (fewer decimals or common OCR error), prefer it
+                                Log::info("[Extractor] Correcting amount from $transactionAmount to $absDiff based on balance change");
+                                $transactionAmount = $absDiff;
                             }
                         }
                         
@@ -365,7 +409,8 @@ class BankStatementExtractor
                             'refund', 'credit', 'deposit', 'reversal', 'interest paid', 
                             'payment received', 'funds received', 'cr ', ' cr',
                             'transfer from', 'incoming', 'direct deposit', 'giro',
-                            'cash back', 'dividend', 'rebate', 'total credits'
+                            'cash back', 'dividend', 'rebate', 'total credits',
+                            'interest credit', 'adjustment credit', 'fee reversal'
                         ];
                         foreach ($creditKeywords as $kw) {
                             if (str_contains($lowerLine, $kw)) {
@@ -532,12 +577,6 @@ class BankStatementExtractor
         }
         
         $cleaned = preg_replace('/[^\d.]/', '', $text);
-        
-        // Handle common OCR noise where a comma is read as a dot in thousands (e.g. 1.124 instead of 1124)
-        // Only if it doesn't look like a standard decimal amount (i.e., not exactly 2 digits after the dot)
-        if (preg_match('/^\d+\.(\d{3})$/', $cleaned, $matches)) {
-            $cleaned = str_replace('.', '', $cleaned);
-        }
         
         $val = (float)$cleaned;
         return ($val > 0 && $val < 1000000) ? $val : null;
