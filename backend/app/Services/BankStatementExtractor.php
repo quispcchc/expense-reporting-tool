@@ -256,14 +256,15 @@ class BankStatementExtractor
             $upperLine = strtoupper($line);
 
             // Look for initial balance
-            if ($this->runningBalance === null && (str_contains($upperLine, 'BALANCE AS OF') || str_contains($upperLine, 'SUMMARY'))) {
+            if ($this->runningBalance === null && (preg_match('/(?:BALANCE AS OF|SUMMARY|BEGINNING|PREVIOUS|OPENING|BALANCE\s+FORWARD)/i', $upperLine))) {
                 if (preg_match_all(self::AMOUNT_REGEX, $line, $summaryMatches)) {
-                    // Try to find the most likely balance amount in a summary line (usually the last one)
-                    foreach (array_reverse($summaryMatches[1]) as $possibleBalance) {
+                    // Try to find the first likely balance amount in a summary line
+                    foreach ($summaryMatches[1] as $possibleBalance) {
                         $parsed = $this->parseAmount($possibleBalance);
-                        if ($parsed !== null && $parsed > 0) {
+                        // A balance is usually a significant number
+                        if ($parsed !== null && $parsed > 0.01) {
                             $this->runningBalance = $parsed;
-                            Log::info("[Extractor] Initial running balance detected: $this->runningBalance");
+                            Log::info("[Extractor] Initial running balance detected: $this->runningBalance from line: $line");
                             break;
                         }
                     }
@@ -452,11 +453,14 @@ class BankStatementExtractor
 
     private function isLikelyTransaction(string $vendor, float $amount): bool
     {
+        $vendor = trim($vendor);
+        if (empty($vendor)) return false;
+
         // Avoid things that look like version numbers or dates in the vendor field
-        if (preg_match('/^\d+(\.\d+)+$/', $vendor)) return false;
+        if (preg_match('/^\d+[\.\/]\d+[\.\/]\d+$/', $vendor)) return false;
         
         // Avoid too short vendors
-        if (strlen($vendor) < 3) return false;
+        if (strlen($vendor) < 2) return false;
 
         // Common non-vendor words in long strings
         $noise = ['PROCESSING', 'TRANSACTIONS', 'PENDING', 'ORDER', 'BEGAN', 'BALANCE', 'SUMMARY', 'STATEMENT', 'CONTINUED', 'IMPORTANT', 'INFORMATION', 'DESCRIPTION'];
@@ -471,7 +475,8 @@ class BankStatementExtractor
             if (str_contains($upperVendor, $word)) $noiseCount++;
         }
         
-        if ($noiseCount >= 2) return false;
+        // Only reject if multiple noise words are present (likely a header paragraph)
+        if ($noiseCount >= 3) return false;
 
         return true;
     }
@@ -519,11 +524,18 @@ class BankStatementExtractor
         // Remove spaces and commas inside the amount string
         $text = str_replace([' ', ','], '', $text);
         
+        // If there are multiple dots, it's likely noise or thousand separators. 
+        // Keep only the last one as the decimal point.
+        if (substr_count($text, '.') > 1) {
+            $lastDotPos = strrpos($text, '.');
+            $text = str_replace('.', '', substr($text, 0, $lastDotPos)) . substr($text, $lastDotPos);
+        }
+        
         $cleaned = preg_replace('/[^\d.]/', '', $text);
         
         // Handle common OCR noise where a comma is read as a dot in thousands (e.g. 1.124 instead of 1124)
-        // Check if there is exactly one dot and it is followed by 3 digits
-        if (preg_match('/^\d+\.\d{3}$/', $cleaned)) {
+        // Only if it doesn't look like a standard decimal amount (i.e., not exactly 2 digits after the dot)
+        if (preg_match('/^\d+\.(\d{3})$/', $cleaned, $matches)) {
             $cleaned = str_replace('.', '', $cleaned);
         }
         
