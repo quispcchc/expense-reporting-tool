@@ -19,7 +19,7 @@ use PhpOffice\PhpWord\IOFactory;
 class BankStatementExtractor
 {
     private $runningBalance = null;
-    private const DATE_REGEX = '/\b(\d{1,2}[\/\-\.]\d{1,2}(?:[\/\-\.]\d{2,4})?|\d{4}[\/\-]\d{2}[\/\-]\d{2}|\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*(?:\s+\d{4})?|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2}(?:,?\s+\d{4})?)\b/i';
+    private const DATE_REGEX = '/\b(\d{1,2}[\/\-\.]\d{1,2}(?:[\/\-\.]\d{2,4})?(?!\d)|\d{4}[\/\-]\d{2}[\/\-]\d{2}|\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*(?:\s+\d{4})?|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2}(?:,?\s+\d{4})?)\b/i';
     private const AMOUNT_REGEX = '/(?<![0-9,.\/])\$?\s*([+-]?\s*(?:\d{1,3}(?:,\d{3})*(?:\.\d{1,3})?|\d+\.\d{1,3}))\s*(DR|CR)?(?![0-9,.\/])/i';
     private const YEAR_REGEX = '/\b(20\d{2})\b/';
     private const ACCOUNT_REGEX = '/(?:Account|Acc|Acct|A\/c)(?:\s*(?:Number|#|No\.?))?\s*[:|-]?\s*([\d-]+)/i';
@@ -307,7 +307,13 @@ class BankStatementExtractor
 
             $isBlacklisted = false;
             foreach (self::BLACKLIST_KEYWORDS as $keyword) {
-                if (str_contains($upperLine, $keyword)) {
+                // For 'DATE' and 'DESCRIPTION', be more specific to avoid blacklisting vendors or lines with data
+                if ($keyword === 'DATE' || $keyword === 'DESCRIPTION') {
+                    if (preg_match('/\b' . $keyword . '\b/i', $upperLine) && strlen($line) < 30) {
+                        $isBlacklisted = true;
+                        break;
+                    }
+                } elseif (str_contains($upperLine, $keyword)) {
                     $isBlacklisted = true;
                     break;
                 }
@@ -402,9 +408,12 @@ class BankStatementExtractor
                         }
                     }
 
-                    // Check for credit keywords in the entire line if still not identified as credit
+            // Check for credit keywords in the entire line if still not identified as credit
                     if (!$isCredit) {
                         $lowerLine = strtolower($line);
+                        if (!empty($vendorToUse)) {
+                            $lowerLine .= ' ' . strtolower($vendorToUse);
+                        }
                         $creditKeywords = [
                             'refund', 'credit', 'deposit', 'reversal', 'interest paid', 
                             'payment received', 'funds received', 'cr ', ' cr',
@@ -432,6 +441,8 @@ class BankStatementExtractor
                         if (empty($vendorInLine) && $lastVendor) {
                             $vendorToUse = $lastVendor;
                         }
+
+                        Log::debug("[Extractor] Line check: date=$dateToUse, amount=$amount, vendor=$vendorToUse, credit=" . ($isCredit ? 'Y' : 'N'));
 
                         if ($dateToUse && $amount && !empty($vendorToUse) && $this->isLikelyTransaction($vendorToUse, $amount)) {
                             // If it's a credit, skip (only expenses wanted)
@@ -501,11 +512,15 @@ class BankStatementExtractor
         $vendor = trim($vendor);
         if (empty($vendor)) return false;
 
-        // Avoid things that look like version numbers or dates in the vendor field
-        if (preg_match('/^\d+[\.\/]\d+[\.\/]\d+$/', $vendor)) return false;
+        // Avoid things that look like common date formats (e.g. 11/10/2019)
+        if (preg_match('/^\d{1,2}[\.\/]\d{1,2}[\.\/]\d{2,4}$/', $vendor)) return false;
         
         // Avoid too short vendors
         if (strlen($vendor) < 2) return false;
+
+        // If it's just numbers, it might be a reference number or a misread vendor
+        // Only allow it if it's reasonably long (likely a ref number we can use as vendor)
+        if (preg_match('/^\d+$/', $vendor) && strlen($vendor) < 3) return false;
 
         // Common non-vendor words in long strings
         $noise = ['PROCESSING', 'TRANSACTIONS', 'PENDING', 'ORDER', 'BEGAN', 'BALANCE', 'SUMMARY', 'STATEMENT', 'CONTINUED', 'IMPORTANT', 'INFORMATION', 'DESCRIPTION'];
