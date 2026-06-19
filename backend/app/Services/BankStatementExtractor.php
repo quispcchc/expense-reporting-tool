@@ -22,16 +22,20 @@ class BankStatementExtractor
     private $runningBalance = null;
     private $isCreditCardStyle = false; // True if balance increases on spend (Credit Card), False if balance decreases (Bank Account)
     
-    private const DATE_REGEX = '/\b(\d{1,2}\s*[\/\-\.]\s*\d{1,2}(?:\s*[\/\-\.]\s*\d{2,4})?(?!\d)|\d{4}\s*[\/\-]\s*\d{2}\s*[\/\-]\s*\d{2}|\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*(?:\s+\d{4})?|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2}(?:,?\s+\d{4})?)\b/i';
-    private const FALLBACK_DATE_REGEX = '/\b(\d{3,4})\b/'; // Matches 1116 as Nov 16
+    private const DATE_REGEX = '/\b(\d{1,2}\s*[\/\-\.]\s*\d{1,2}(?:\s*[\/\-\.]\s*\d{2,4})?(?!\d)|\d{4}\s*[\/\-]\s*\d{2}\s*[\/\-]\s*\d{2}|\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*(?:\s+\d{4})?|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s*\d{1,2}(?:,?\s+\d{4})?)\b/i';
+    private const FALLBACK_DATE_REGEX = '/^(?:\s*)(\d{3,4})(?:\s*)$/'; // Only match if it's the entire line or clearly isolated
     private const AMOUNT_REGEX = '/(?<![0-9,.\/])\$?\s*([+-]?\s*(?:\d{1,3}(?:,\d{3})*(?:\.\d{1,3})?|\d+\.\d{1,3}|\d{1,6}))\s*(DR|CR)?(?![0-9,.\/])/i';
     private const YEAR_REGEX = '/\b(20\d{2})\b/';
-    private const ACCOUNT_REGEX = '/(?:Account|Acc|Acct|A\/c)(?:\s*(?:Number|#|No\.?))?\s*[:|-]?\s*([\d-]+)/i';
+    private const ACCOUNT_REGEX = '/(?:Account|Acc|Acct|A\/c)(?:\s*(?:Number|#|No\.?))?\s*[:|-]?\s*([\d-]{3,})/i';
     
     private const BLACKLIST_KEYWORDS = [
         'BALANCE', 'SUMMARY', 'STATEMENT', 'PAGE', 'DATE', 'DESCRIPTION', 
         'CLOSING', 'OPENING', 'PREVIOUS', 'MINIMUM', 
-        'ANNUAL', 'PERCENTAGE', 'BEGAN PROCESSING'
+        'ANNUAL', 'PERCENTAGE', 'BEGAN PROCESSING',
+        'POINTS', 'REWARD', 'AEROPLAN', 'BONUS', 'EARNED',
+        'CUSTOMER SERVICE', 'TTY', 'INQUIRIES', 'WEBSITE',
+        'P.O. BOX', 'AGINCOURT', 'ONTARIO', 'M1S 517',
+        'TD CANADA TRUST', 'TD MESSAGE CENTRE', 'AIR CANADA', 'CONTACT INFORMATION'
     ];
     
     public function extract(string $filePath, string $mimeType, int $claimTypeId = 0): array
@@ -229,7 +233,7 @@ class BankStatementExtractor
             $upperLine = strtoupper($line);
             
             // Clean noise words that often appear in footers or headers but contain numbers
-            if (preg_match('/(?:Call|Phone|www\.|http|Fax|Tel|Address|Member|FDIC|Equal Housing)/i', $line)) {
+            if (preg_match('/(?:Call|Phone|www\.|http|Fax|Tel|Address|Member|FDIC|Equal Housing|P\.O\.\s*BOX|Service|Inquiries|TTY|Points|Reward|Earned|Bonus|Number)/i', $line)) {
                 Log::debug("[Extractor] Skipping noise line: $line");
                 continue;
             }
@@ -324,10 +328,11 @@ class BankStatementExtractor
 
             // Look for initial balance
             if ($this->runningBalance === null && (preg_match('/(?:BALANCE AS OF|SUMMARY|BEGINNING|PREVIOUS|OPENING|BALANCE\s+FORWARD)/i', $upperLine))) {
-                if (preg_match_all(self::AMOUNT_REGEX, $line, $summaryMatches)) {
+                if (preg_match_all(self::AMOUNT_REGEX, $line, $summaryMatches, PREG_SET_ORDER)) {
                     // Try to find the first likely balance amount in a summary line
-                    foreach ($summaryMatches[1] as $possibleBalance) {
-                        $parsed = $this->parseAmount($possibleBalance);
+                    foreach ($summaryMatches as $m) {
+                        $hasSign = str_contains($m[0], '$');
+                        $parsed = $this->parseAmount($m[1], $hasSign);
                         // A balance is usually a significant number
                         if ($parsed !== null && $parsed > 0.01) {
                             $this->runningBalance = $parsed;
@@ -379,7 +384,8 @@ class BankStatementExtractor
 
             if (preg_match_all(self::AMOUNT_REGEX, $line, $amountMatches, PREG_SET_ORDER)) {
                 $nonZeroMatches = array_filter($amountMatches, function($m) {
-                    $val = $this->parseAmount($m[1]);
+                    $hasSign = str_contains($m[0], '$');
+                    $val = $this->parseAmount($m[1], $hasSign);
                     return $val !== null && $val > 0.01;
                 });
                 $nonZeroMatches = array_values($nonZeroMatches);
@@ -395,8 +401,12 @@ class BankStatementExtractor
 
                     if (count($nonZeroMatches) >= 2) {
                         // Usually: [Transaction Amount, Running Balance]
-                        $transactionAmount = $this->parseAmount($nonZeroMatches[0][1]);
-                        $foundBalance = $this->parseAmount($nonZeroMatches[count($nonZeroMatches)-1][1]);
+                        $hasSign0 = str_contains($nonZeroMatches[0][0], '$');
+                        $transactionAmount = $this->parseAmount($nonZeroMatches[0][1], $hasSign0);
+                        
+                        $lastIdx = count($nonZeroMatches) - 1;
+                        $hasSignLast = str_contains($nonZeroMatches[$lastIdx][0], '$');
+                        $foundBalance = $this->parseAmount($nonZeroMatches[$lastIdx][1], $hasSignLast);
                         
                         // Check if this was a credit or debit based on balance change
                         if ($this->runningBalance !== null && $foundBalance !== null) {
@@ -450,7 +460,8 @@ class BankStatementExtractor
                         $amount = $transactionAmount;
                     } else {
                         // Single amount - might be just a balance or just a transaction
-                        $amount = $this->parseAmount($nonZeroMatches[0][1]);
+                        $hasSign0 = str_contains($nonZeroMatches[0][0], '$');
+                        $amount = $this->parseAmount($nonZeroMatches[0][1], $hasSign0);
                         
                         // If we have a previous balance, we can check if this single amount 
                         // explains a change to a future balance, but for single-amount lines 
@@ -622,9 +633,40 @@ class BankStatementExtractor
         // More noise patterns
         if (preg_match('/(?:WWW\.|HTTP|@)/i', $upperVendor)) return false;
 
-        // If it's a credit card, we are less strict about noise keywords as descriptions can be weird
-        if ($this->isCreditCardStyle) {
-            return true;
+        // If it's a credit card, we are slightly less strict about noise keywords 
+        // as descriptions can be weird, but we still filter out common junk.
+        $junkPatterns = [
+            '/STATEMENT\s+DATE/i',
+            '/PAYMENT\s+DUE/i',
+            '/CREDIT\s+LIMIT/i',
+            '/AVAILABLE\s+CREDIT/i',
+            '/ANNUAL\s+INTEREST/i',
+            '/ESTIMATED\s+TIME/i',
+            '/NEW\s+BALANCE/i',
+            '/MINIMUM\s+PAYMENT/i',
+            '/PREVIOUS\s+BALANCE/i',
+            '/PAYMENTS\s+&\s+CREDITS/i',
+            '/PURCHASES\s+&\s+CHARGES/i',
+            '/CASH\s+ADVANCES/i',
+            '/FEES/i',
+            '/INTEREST/i',
+            '/POINTS\s+EARNED/i',
+            '/BONUS\s+POINTS/i',
+            '/TOTAL\s+POINTS/i',
+            '/CUSTOMER\s+SERVICE/i',
+            '/AEROPLAN\s+NUMBER/i',
+            '/NET\s+AMOUNT/i',
+            '/MONTHLY\s+ACTIVITY/i',
+            '/PAYMENT\s+THANK\s+YOU/i'
+        ];
+
+        foreach ($junkPatterns as $pattern) {
+            if (preg_match($pattern, $upperVendor)) return false;
+        }
+
+        // Avoid strings that are mostly numbers and special chars
+        if (preg_match('/^[\d\s\W_]+$/', $vendor) && !preg_match('/[A-Z]{2,}/i', $vendor)) {
+            return false;
         }
 
         $noiseCount = 0;
@@ -691,8 +733,9 @@ class BankStatementExtractor
         return null;
     }
 
-    private function parseAmount(string $text): ?float
+    private function parseAmount(string $text, bool $hasCurrencySign = false): ?float
     {
+        $raw = $text;
         // Remove spaces and commas inside the amount string
         $text = str_replace([' ', ','], '', $text);
         
@@ -708,7 +751,16 @@ class BankStatementExtractor
         
         $cleaned = preg_replace('/[^\d.]/', '', $text);
         
+        if ($cleaned === '') return null;
         $val = (float)$cleaned;
+
+        // Filtering noise:
+        // 1. Single or double digit integers without a decimal point are often not amounts (page nums, dates, etc)
+        // unless they have a $ sign.
+        if (floor($val) == $val && $val < 100 && !str_contains($text, '.')) {
+            if (!$hasCurrencySign && $val < 10) return null; 
+        }
+
         return ($val > 0 && $val < 1000000) ? $val : null;
     }
 
@@ -723,6 +775,9 @@ class BankStatementExtractor
             $line = str_replace($amounts, '', $line);
         }
         
+        // Remove ANY other dates that might be in the line (common in statements with two dates per line)
+        $line = preg_replace(self::DATE_REGEX, ' ', $line);
+
         // Remove common bank markers that clutter the description/vendor name
         $markers = [
             '/\bPURCHASE\b\s*-?\s*/i', 
@@ -735,6 +790,9 @@ class BankStatementExtractor
             '/\bINTERAC\b\s*-?\s*/i', 
             '/\bRETAIL\b\s*/i',
             '/\s\d{4,}(\s|$)/', // Remove isolated long numbers (ref codes)
+            '/\bAEROPLAN\b/i',
+            '/\bINFINITE\b/i',
+            '/\bPRIVILEGE\b/i',
         ];
         $line = preg_replace($markers, ' ', $line);
 
@@ -745,7 +803,8 @@ class BankStatementExtractor
             '/Checking/i',
             '/Account\s*#\s*\d+/i',
             '/Statement\s+Period/i',
-            '/America\'s\s+Most\s+Convenient\s+Bank/i'
+            '/America\'s\s+Most\s+Convenient\s+Bank/i',
+            '/TD\s+CANADA\s+TRUST/i'
         ];
         $line = preg_replace($bankNoise, ' ', $line);
 
