@@ -20,8 +20,11 @@ use PhpOffice\PhpWord\IOFactory;
 class BankStatementExtractor
 {
     private $runningBalance = null;
-    private const DATE_REGEX = '/\b(\d{1,2}[\/\-\.]\d{1,2}(?:[\/\-\.]\d{2,4})?(?!\d)|\d{4}[\/\-]\d{2}[\/\-]\d{2}|\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*(?:\s+\d{4})?|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2}(?:,?\s+\d{4})?)\b/i';
-    private const AMOUNT_REGEX = '/(?<![0-9,.\/])\$?\s*([+-]?\s*(?:\d{1,3}(?:,\d{3})*(?:\.\d{1,3})?|\d+\.\d{1,3}))\s*(DR|CR)?(?![0-9,.\/])/i';
+    private $isCreditCardStyle = false; // True if balance increases on spend (Credit Card), False if balance decreases (Bank Account)
+    
+    private const DATE_REGEX = '/\b(\d{1,2}\s*[\/\-\.]\s*\d{1,2}(?:\s*[\/\-\.]\s*\d{2,4})?(?!\d)|\d{4}\s*[\/\-]\s*\d{2}\s*[\/\-]\s*\d{2}|\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*(?:\s+\d{4})?|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2}(?:,?\s+\d{4})?)\b/i';
+    private const FALLBACK_DATE_REGEX = '/\b(\d{3,4})\b/'; // Matches 1116 as Nov 16
+    private const AMOUNT_REGEX = '/(?<![0-9,.\/])\$?\s*([+-]?\s*(?:\d{1,3}(?:,\d{3})*(?:\.\d{1,3})?|\d+\.\d{1,3}|\d{1,6}))\s*(DR|CR)?(?![0-9,.\/])/i';
     private const YEAR_REGEX = '/\b(20\d{2})\b/';
     private const ACCOUNT_REGEX = '/(?:Account|Acc|Acct|A\/c)(?:\s*(?:Number|#|No\.?))?\s*[:|-]?\s*([\d-]+)/i';
     
@@ -201,7 +204,17 @@ class BankStatementExtractor
         $this->runningBalance = null;
         $isCorporateCard = ($claimTypeId === ClaimType::CORPORATE_CARD);
 
-        Log::info("[Extractor] Starting parse: isCorporateCard=" . ($isCorporateCard ? 'YES' : 'NO') . ", year=" . $statementYear);
+        // Detect if this is a Credit Card style account (balance increases on spend) 
+        // vs a Bank Account style (balance decreases on spend).
+        // Default to the claim type, but override if keywords suggest otherwise.
+        $this->isCreditCardStyle = $isCorporateCard;
+        if (preg_match('/(?:Checking|Savings|Current|Debit|Deposit Account)/i', $text)) {
+            $this->isCreditCardStyle = false;
+        } elseif (preg_match('/(?:Credit Card|Visa|Mastercard|Amex)/i', $text)) {
+            $this->isCreditCardStyle = true;
+        }
+
+        Log::info("[Extractor] Starting parse: isCorporateCard=" . ($isCorporateCard ? 'YES' : 'NO') . ", isCreditCardStyle=" . ($this->isCreditCardStyle ? 'YES' : 'NO') . ", year=" . $statementYear);
 
         $lastDate = null;
         $lastVendor = null;
@@ -354,6 +367,12 @@ class BankStatementExtractor
             $foundDate = null;
             if (preg_match(self::DATE_REGEX, $line, $dateMatches)) {
                 $foundDate = $this->normalizeDate($dateMatches[1], $statementYear);
+            } elseif (preg_match(self::FALLBACK_DATE_REGEX, $line, $dateMatches) && strlen($line) < 30) {
+                // If we find 3-4 digits at the start of a line and it matches MMDD pattern
+                $foundDate = $this->normalizeDate($dateMatches[1], $statementYear);
+                if ($foundDate) {
+                    Log::debug("[Extractor] Found fallback date: $foundDate from $dateMatches[1]");
+                }
             }
 
             if (preg_match_all(self::AMOUNT_REGEX, $line, $amountMatches, PREG_SET_ORDER)) {
@@ -381,8 +400,8 @@ class BankStatementExtractor
                         if ($this->runningBalance !== null && $foundBalance !== null) {
                             $diff = $foundBalance - $this->runningBalance;
                             
-                            if ($isCorporateCard) {
-                                // For Corporate Cards, a balance INCREASE is typically a DEBIT (expense)
+                            if ($this->isCreditCardStyle) {
+                                // For Credit Cards, a balance INCREASE is typically a DEBIT (expense)
                                 // and a balance DECREASE is a CREDIT (payment/refund)
                                 if ($diff > 0.0001) {
                                     $isCredit = false;
@@ -400,12 +419,28 @@ class BankStatementExtractor
                             }
 
                             // OCR Correction: If the difference matches another interpretation of the amount, use it.
-                            // For example, if amount was read as 1.124 but diff is 124.00
+                            // For example, if amount was read as 1124 but diff is 124.00, or 1200 vs 12.00
                             $absDiff = abs($diff);
-                            if ($absDiff > 0.01 && $transactionAmount !== null && abs($transactionAmount - $absDiff) > 0.01) {
-                                // If the diff is "cleaner" (fewer decimals or common OCR error), prefer it
-                                Log::info("[Extractor] Correcting amount from $transactionAmount to $absDiff based on balance change");
-                                $transactionAmount = $absDiff;
+                            if ($absDiff > 0.01 && $transactionAmount !== null) {
+                                // Check if inserting a decimal point into transactionAmount makes it match absDiff
+                                // or if they are just off by a factor of 10/100
+                                $rawNum = (string)$transactionAmount;
+                                $possibleMatches = [
+                                    (float)$rawNum,
+                                    (float)$rawNum / 10,
+                                    (float)$rawNum / 100,
+                                    (float)$rawNum / 1000
+                                ];
+                                
+                                foreach ($possibleMatches as $pm) {
+                                    if (abs($pm - $absDiff) < 0.05) {
+                                        if (abs($transactionAmount - $absDiff) > 0.01) {
+                                            Log::info("[Extractor] Correcting amount from $transactionAmount to $absDiff based on balance change");
+                                            $transactionAmount = $absDiff;
+                                        }
+                                        break;
+                                    }
+                                }
                             }
                         }
                         
@@ -445,9 +480,11 @@ class BankStatementExtractor
                         
                         // If it contains "AMAZON" and we are in corporate card mode, it's very likely a debit (expense)
                         // even if it matches some broad credit keywords by accident.
-                        $isKnownExpenseVendor = $isCorporateCard && preg_match('/AMAZON|UBER|LYFT|STARBUCKS|WALMART|SHELL|PETRO/i', $lowerLine);
+                        $isKnownExpenseVendor = $isCorporateCard && preg_match('/AMAZON|UBER|LYFT|STARBUCKS|WALMART|SHELL|PETRO|APPLE|GOOGLE|MICROSOFT|ADOBE/i', $lowerLine);
 
-                        if (!$isKnownExpenseVendor) {
+                        if ($isKnownExpenseVendor) {
+                            $isCredit = false; // Force debit for known expense vendors on corporate cards
+                        } else {
                             $creditKeywords = [
                                 'refund', 'credit', 'deposit', 'reversal', 'interest paid', 
                                 'payment received', 'funds received', 'cr ', ' cr',
@@ -555,6 +592,13 @@ class BankStatementExtractor
         $vendor = trim($vendor);
         if (empty($vendor)) return false;
 
+        $upperVendor = strtoupper($vendor);
+
+        // Always allow known common expense vendors even if they look like noise or are short
+        if (preg_match('/AMAZON|UBER|LYFT|STARBUCKS|WALMART|SHELL|PETRO|APPLE|GOOGLE|MICROSOFT|ADOBE/i', $upperVendor)) {
+            return true;
+        }
+
         // Avoid things that look like common date formats (e.g. 11/10/2019)
         if (preg_match('/^\d{1,2}[\.\/]\d{1,2}[\.\/]\d{2,4}$/', $vendor)) return false;
         
@@ -567,7 +611,6 @@ class BankStatementExtractor
 
         // Common non-vendor words in long strings
         $noise = ['PROCESSING', 'TRANSACTIONS', 'PENDING', 'ORDER', 'BEGAN', 'BALANCE', 'SUMMARY', 'STATEMENT', 'CONTINUED', 'IMPORTANT', 'INFORMATION', 'DESCRIPTION'];
-        $upperVendor = strtoupper($vendor);
         
         // Avoid single words that are just months (likely part of a header)
         $months = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER', 'JAN', 'FEB', 'MAR', 'APR', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
@@ -598,6 +641,22 @@ class BankStatementExtractor
     private function normalizeDate(string $raw, ?int $statementYear): ?string
     {
         $raw = trim($raw);
+        // Remove extra spaces within the date string (e.g., "06 / 19 / 2026" -> "06/19/2026")
+        $raw = preg_replace('/\s*([\/\-\.])\s*/', '$1', $raw);
+        $raw = preg_replace('/\s+/', ' ', $raw);
+
+        // Handle fallback formats like 1116 (Nov 16)
+        if (preg_match('/^\d{3,4}$/', $raw)) {
+            $m = (int)substr($raw, 0, strlen($raw) - 2);
+            $d = (int)substr($raw, -2);
+            if ($m >= 1 && $m <= 12 && $d >= 1 && $d <= 31) {
+                if ($statementYear) {
+                    return sprintf('%04d-%02d-%02d', $statementYear, $m, $d);
+                }
+                return sprintf('%04d-%02d-%02d', (int)date('Y'), $m, $d);
+            }
+        }
+        
         $formats = [
             'd/m/Y', 'm/d/Y', 'd-m-Y', 'Y-m-d',
             'd M Y', 'd F Y', 'M d, Y', 'F d, Y',
@@ -659,15 +718,15 @@ class BankStatementExtractor
         
         // Remove common bank markers that clutter the description/vendor name
         $markers = [
-            '/PURCHASE\s*-?\s*/i', 
-            '/DEBIT\s*-?\s*/i', 
-            '/CREDIT\s*-?\s*/i',
-            '/CR\s*/i',
-            '/VISA\s*/i', 
-            '/MASTERCARD\s*/i', 
-            '/M\/C\s*/i', 
-            '/INTERAC\s*-?\s*/i', 
-            '/RETAIL\s*/i',
+            '/\bPURCHASE\b\s*-?\s*/i', 
+            '/\bDEBIT\b\s*-?\s*/i', 
+            '/\bCREDIT\b\s*-?\s*/i',
+            '/\bCR\b\s*/i',
+            '/\bVISA\b\s*/i', 
+            '/\bMASTERCARD\b\s*/i', 
+            '/\bM\/C\b\s*/i', 
+            '/\bINTERAC\b\s*-?\s*/i', 
+            '/\bRETAIL\b\s*/i',
             '/\s\d{4,}(\s|$)/', // Remove isolated long numbers (ref codes)
         ];
         $line = preg_replace($markers, ' ', $line);
