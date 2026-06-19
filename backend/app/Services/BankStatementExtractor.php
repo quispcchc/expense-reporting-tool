@@ -201,6 +201,8 @@ class BankStatementExtractor
         $this->runningBalance = null;
         $isCorporateCard = ($claimTypeId === ClaimType::CORPORATE_CARD);
 
+        Log::info("[Extractor] Starting parse: isCorporateCard=" . ($isCorporateCard ? 'YES' : 'NO') . ", year=" . $statementYear);
+
         $lastDate = null;
         $lastVendor = null;
         $currentSection = null; // 'debit' or 'credit'
@@ -210,9 +212,15 @@ class BankStatementExtractor
             if (empty($line)) continue;
 
             $upperLine = strtoupper($line);
+            
+            // Clean noise words that often appear in footers or headers but contain numbers
+            if (preg_match('/(?:Call|Phone|www\.|http|Fax|Tel|Address|Member|FDIC|Equal Housing)/i', $line)) {
+                Log::debug("[Extractor] Skipping noise line: $line");
+                continue;
+            }
 
             // Section detection - detect if we entered a specific part of the statement
-            // Only consider it a section header if it's a relatively short line
+            // ... (rest of the section detection remains same)
             $hasDateInLine = preg_match(self::DATE_REGEX, $line);
             $hasAmountInLine = preg_match(self::AMOUNT_REGEX, $line);
 
@@ -457,7 +465,7 @@ class BankStatementExtractor
                             $vendorToUse = $lastVendor;
                         }
 
-                        Log::debug("[Extractor] Line check: date=$dateToUse, amount=$amount, vendor=$vendorToUse, credit=" . ($isCredit ? 'Y' : 'N'));
+                        Log::debug("[Extractor] Line check: line=$line, date=$dateToUse, amount=$amount, vendor=$vendorToUse, credit=" . ($isCredit ? 'Y' : 'N'));
 
                         if ($dateToUse && $amount && !empty($vendorToUse) && $this->isLikelyTransaction($vendorToUse, $amount)) {
                             // If it's a credit, skip (only expenses wanted)
@@ -545,13 +553,16 @@ class BankStatementExtractor
         $months = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER', 'JAN', 'FEB', 'MAR', 'APR', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
         if (in_array($upperVendor, $months)) return false;
 
+        // More noise patterns
+        if (preg_match('/(?:WWW\.|HTTP|@)/i', $upperVendor)) return false;
+
         $noiseCount = 0;
         foreach ($noise as $word) {
             if (str_contains($upperVendor, $word)) $noiseCount++;
         }
         
         // Only reject if multiple noise words are present (likely a header paragraph)
-        if ($noiseCount >= 3) return false;
+        if ($noiseCount >= 2) return false;
 
         return true;
     }
@@ -599,6 +610,9 @@ class BankStatementExtractor
         // Remove spaces and commas inside the amount string
         $text = str_replace([' ', ','], '', $text);
         
+        // If it's too long, it's probably a phone number or reference code, not an amount
+        if (strlen($text) > 10) return null;
+
         // If there are multiple dots, it's likely noise or thousand separators. 
         // Keep only the last one as the decimal point.
         if (substr_count($text, '.') > 1) {
