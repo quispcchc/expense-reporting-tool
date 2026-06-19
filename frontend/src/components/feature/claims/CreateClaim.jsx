@@ -126,6 +126,9 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
         try {
             const formData = new FormData()
             formData.append('bank_statement', file)
+            if (claimFormData.claimType) {
+                formData.append('claim_type_id', claimFormData.claimType)
+            }
             const response = await api.post('bank-statements/extract', formData)
             const extracted = response.data?.expenses || []
             const refunds = response.data?.refunds || []

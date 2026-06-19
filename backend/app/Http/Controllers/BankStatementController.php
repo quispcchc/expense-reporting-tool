@@ -20,14 +20,16 @@ class BankStatementController extends Controller
     {
         $request->validate([
             'bank_statement' => 'required|file|mimes:pdf,jpg,jpeg,png,gif,webp,doc,docx|max:20480',
+            'claim_type_id' => 'nullable|integer'
         ]);
 
         try {
             $upload = $request->file('bank_statement');
             $filePath = $upload->getRealPath();
             $mimeType = $upload->getClientMimeType();
+            $claimTypeId = $request->input('claim_type_id');
 
-            $result = $this->extractor->extract($filePath, $mimeType);
+            $result = $this->extractor->extract($filePath, $mimeType, (int)$claimTypeId);
 
             if (! empty($result['expenses'])) {
                 Log::info('Bank statement extracted via PHP service', [

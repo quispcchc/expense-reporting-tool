@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\ClaimType;
 use Exception;
 use Illuminate\Support\Facades\Log;
 use Smalot\PdfParser\Parser;
@@ -30,7 +31,7 @@ class BankStatementExtractor
         'ANNUAL', 'PERCENTAGE', 'BEGAN PROCESSING'
     ];
     
-    public function extract(string $filePath, string $mimeType): array
+    public function extract(string $filePath, string $mimeType, int $claimTypeId = 0): array
     {
         $text = $this->extractText($filePath, $mimeType);
         if (empty($text)) {
@@ -41,7 +42,7 @@ class BankStatementExtractor
         // Log a sample of the text to help debug extraction issues
         Log::info('[OCR DEBUG] Extracted text sample: ' . substr(str_replace("\n", " | ", $text), 0, 2000));
         
-        return $this->parseText($text);
+        return $this->parseText($text, $claimTypeId);
     }
 
     private function extractText(string $filePath, string $mimeType): string
@@ -190,7 +191,7 @@ class BankStatementExtractor
         }
     }
 
-    private function parseText(string $text): array
+    private function parseText(string $text, int $claimTypeId = 0): array
     {
         $lines = explode("\n", $text);
         $expenses = [];
@@ -198,6 +199,7 @@ class BankStatementExtractor
         $accountNumber = null;
         $statementYear = $this->extractStatementYear($text);
         $this->runningBalance = null;
+        $isCorporateCard = ($claimTypeId === ClaimType::CORPORATE_CARD);
 
         $lastDate = null;
         $lastVendor = null;
@@ -363,12 +365,22 @@ class BankStatementExtractor
                         if ($this->runningBalance !== null && $foundBalance !== null) {
                             $diff = $foundBalance - $this->runningBalance;
                             
-                            // If balance increased, it's a credit. 
-                            // If it decreased, it's a debit (expense).
-                            if ($diff > 0.0001) {
-                                $isCredit = true;
+                            if ($isCorporateCard) {
+                                // For Corporate Cards, a balance INCREASE is typically a DEBIT (expense)
+                                // and a balance DECREASE is a CREDIT (payment/refund)
+                                if ($diff > 0.0001) {
+                                    $isCredit = false;
+                                } elseif ($diff < -0.0001) {
+                                    $isCredit = true;
+                                }
                             } else {
-                                $isCredit = false;
+                                // For standard Bank Accounts, a balance INCREASE is a CREDIT (money in)
+                                // and a balance DECREASE is a DEBIT (money out)
+                                if ($diff > 0.0001) {
+                                    $isCredit = true;
+                                } elseif ($diff < -0.0001) {
+                                    $isCredit = false;
+                                }
                             }
 
                             // OCR Correction: If the difference matches another interpretation of the amount, use it.
@@ -419,7 +431,10 @@ class BankStatementExtractor
                             'payment received', 'funds received', 'cr ', ' cr',
                             'transfer from', 'incoming', 'direct deposit', 'giro',
                             'cash back', 'dividend', 'rebate', 'total credits',
-                            'interest credit', 'adjustment credit', 'fee reversal'
+                            'interest credit', 'adjustment credit', 'fee reversal',
+                            'payment - thank you', 'payment-thank you', 'auth payment',
+                            'online payment', 'mobile payment', 'cheque deposit',
+                            'atm deposit', 'pre-authorized payment credit'
                         ];
                         foreach ($creditKeywords as $kw) {
                             if (str_contains($lowerLine, $kw)) {
