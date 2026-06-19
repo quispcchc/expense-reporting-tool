@@ -206,11 +206,13 @@ class BankStatementExtractor
 
         // Detect if this is a Credit Card style account (balance increases on spend) 
         // vs a Bank Account style (balance decreases on spend).
-        // Default to the claim type, but override if keywords suggest otherwise.
         $this->isCreditCardStyle = $isCorporateCard;
-        if (preg_match('/(?:Checking|Savings|Current|Debit|Deposit Account)/i', $text)) {
+        if (preg_match('/(?:Checking|Savings|Current|Debit|Deposit Account|Bank Statement)/i', $text)) {
             $this->isCreditCardStyle = false;
-        } elseif (preg_match('/(?:Credit Card|Visa|Mastercard|Amex)/i', $text)) {
+        } 
+        
+        // Explicit Credit Card keywords take precedence
+        if (preg_match('/(?:Credit Card|Visa|Mastercard|Amex|American Express|Discover|Capital One|Chase|Citibank|MBNA|BMO Mastercard|RBC Visa)/i', $text)) {
             $this->isCreditCardStyle = true;
         }
 
@@ -525,15 +527,16 @@ class BankStatementExtractor
                                 continue;
                             }
                             
-                            // If it's a credit, skip (only expenses wanted)
-                            if ($isCredit) {
+                            // For credit card statements, include all transactions as requested by the user.
+                            // For standard bank accounts, only include debits (expenses).
+                            if ($isCredit && !$this->isCreditCardStyle) {
                                 Log::info("[Extractor] Skipping credit transaction: $vendorToUse | $amount (line: $line)");
                                 $lastDate = null;
                                 $lastVendor = null;
                                 continue;
                             }
 
-                            Log::info("[Extractor] Found debit transaction: $vendorToUse | $amount");
+                            Log::info("[Extractor] Found transaction: $vendorToUse | $amount" . ($isCredit ? " (Credit)" : " (Debit)"));
                             $expenses[] = [
                                 'transaction_date' => $dateToUse,
                                 'vendor_name' => $vendorToUse,
@@ -594,37 +597,41 @@ class BankStatementExtractor
 
         $upperVendor = strtoupper($vendor);
 
-        // Always allow known common expense vendors even if they look like noise or are short
-        if (preg_match('/AMAZON|UBER|LYFT|STARBUCKS|WALMART|SHELL|PETRO|APPLE|GOOGLE|MICROSOFT|ADOBE/i', $upperVendor)) {
+        // Always allow known common expense vendors
+        if (preg_match('/AMAZON|UBER|LYFT|STARBUCKS|WALMART|SHELL|PETRO|APPLE|GOOGLE|MICROSOFT|ADOBE|NETFLIX|SPOTIFY|ZOOM|SLACK|FIGMA/i', $upperVendor)) {
             return true;
         }
 
-        // Avoid things that look like common date formats (e.g. 11/10/2019)
+        // Avoid things that look like common date formats
         if (preg_match('/^\d{1,2}[\.\/]\d{1,2}[\.\/]\d{2,4}$/', $vendor)) return false;
         
-        // Avoid too short vendors
-        if (strlen($vendor) < 2) return false;
-
-        // If it's just numbers, it might be a reference number or a misread vendor
-        // Only allow it if it's reasonably long (likely a ref number we can use as vendor)
-        if (preg_match('/^\d+$/', $vendor) && strlen($vendor) < 3) return false;
+        // For credit cards, be more lenient with short vendor names
+        if ($this->isCreditCardStyle) {
+            if (strlen($vendor) < 2) return false;
+        } else {
+            if (strlen($vendor) < 3) return false;
+        }
 
         // Common non-vendor words in long strings
-        $noise = ['PROCESSING', 'TRANSACTIONS', 'PENDING', 'ORDER', 'BEGAN', 'BALANCE', 'SUMMARY', 'STATEMENT', 'CONTINUED', 'IMPORTANT', 'INFORMATION', 'DESCRIPTION'];
+        $noise = ['PROCESSING', 'TRANSACTIONS', 'PENDING', 'ORDER', 'BEGAN', 'BALANCE', 'SUMMARY', 'STATEMENT', 'CONTINUED', 'IMPORTANT', 'INFORMATION'];
         
-        // Avoid single words that are just months (likely part of a header)
+        // Avoid single words that are just months
         $months = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER', 'JAN', 'FEB', 'MAR', 'APR', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
         if (in_array($upperVendor, $months)) return false;
 
         // More noise patterns
         if (preg_match('/(?:WWW\.|HTTP|@)/i', $upperVendor)) return false;
 
+        // If it's a credit card, we are less strict about noise keywords as descriptions can be weird
+        if ($this->isCreditCardStyle) {
+            return true;
+        }
+
         $noiseCount = 0;
         foreach ($noise as $word) {
             if (str_contains($upperVendor, $word)) $noiseCount++;
         }
         
-        // Only reject if multiple noise words are present (likely a header paragraph)
         if ($noiseCount >= 2) return false;
 
         return true;
