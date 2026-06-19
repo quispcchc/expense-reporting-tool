@@ -225,8 +225,16 @@ class BankStatementExtractor
             $hasAmountInLine = preg_match(self::AMOUNT_REGEX, $line);
 
             if (!$hasDateInLine && !$hasAmountInLine && strlen($line) < 50) {
-                $hasDebitHeader = preg_match('/\b(DEBITS?|WITHDRAWALS?|PAYMENTS?|OUTGOINGS?|CHARGES?)\b/i', $upperLine);
+                // For Corporate Cards, "PAYMENTS" are usually CREDITS (money in)
+                // whereas for regular bank accounts they are DEBITS (money out)
+                $hasDebitHeader = preg_match('/\b(DEBITS?|WITHDRAWALS?|OUTGOINGS?|CHARGES?|PURCHASES?)\b/i', $upperLine);
                 $hasCreditHeader = preg_match('/\b(CREDITS?|DEPOSITS?|ADDITIONS?|INCOME?|REFUNDS?|RECEIPTS?)\b/i', $upperLine);
+                
+                if ($isCorporateCard) {
+                    $hasCreditHeader = $hasCreditHeader || preg_match('/\bPAYMENTS?\b/i', $upperLine);
+                } else {
+                    $hasDebitHeader = $hasDebitHeader || preg_match('/\bPAYMENTS?\b/i', $upperLine);
+                }
                 
                 if ($hasDebitHeader && $hasCreditHeader) {
                     Log::info("[Extractor] Multi-column header found: $line");
@@ -428,26 +436,33 @@ class BankStatementExtractor
                         }
                     }
 
-            // Check for credit keywords in the entire line if still not identified as credit
+                    // Check for credit keywords in the entire line if still not identified as credit
                     if (!$isCredit) {
                         $lowerLine = strtolower($line);
                         if (!empty($vendorToUse)) {
                             $lowerLine .= ' ' . strtolower($vendorToUse);
                         }
-                        $creditKeywords = [
-                            'refund', 'credit', 'deposit', 'reversal', 'interest paid', 
-                            'payment received', 'funds received', 'cr ', ' cr',
-                            'transfer from', 'incoming', 'direct deposit', 'giro',
-                            'cash back', 'dividend', 'rebate', 'total credits',
-                            'interest credit', 'adjustment credit', 'fee reversal',
-                            'payment - thank you', 'payment-thank you', 'auth payment',
-                            'online payment', 'mobile payment', 'cheque deposit',
-                            'atm deposit', 'pre-authorized payment credit'
-                        ];
-                        foreach ($creditKeywords as $kw) {
-                            if (str_contains($lowerLine, $kw)) {
-                                $isCredit = true;
-                                break;
+                        
+                        // If it contains "AMAZON" and we are in corporate card mode, it's very likely a debit (expense)
+                        // even if it matches some broad credit keywords by accident.
+                        $isKnownExpenseVendor = $isCorporateCard && preg_match('/AMAZON|UBER|LYFT|STARBUCKS|WALMART|SHELL|PETRO/i', $lowerLine);
+
+                        if (!$isKnownExpenseVendor) {
+                            $creditKeywords = [
+                                'refund', 'credit', 'deposit', 'reversal', 'interest paid', 
+                                'payment received', 'funds received', 'cr ', ' cr',
+                                'transfer from', 'incoming', 'direct deposit', 'giro',
+                                'cash back', 'dividend', 'rebate', 'total credits',
+                                'interest credit', 'adjustment credit', 'fee reversal',
+                                'payment - thank you', 'payment-thank you', 'auth payment',
+                                'online payment', 'mobile payment', 'cheque deposit',
+                                'atm deposit', 'pre-authorized payment credit'
+                            ];
+                            foreach ($creditKeywords as $kw) {
+                                if (str_contains($lowerLine, $kw)) {
+                                    $isCredit = true;
+                                    break;
+                                }
                             }
                         }
                     }
@@ -467,10 +482,15 @@ class BankStatementExtractor
 
                         Log::debug("[Extractor] Line check: line=$line, date=$dateToUse, amount=$amount, vendor=$vendorToUse, credit=" . ($isCredit ? 'Y' : 'N'));
 
-                        if ($dateToUse && $amount && !empty($vendorToUse) && $this->isLikelyTransaction($vendorToUse, $amount)) {
+                        if ($amount && !empty($vendorToUse) && $this->isLikelyTransaction($vendorToUse, $amount)) {
+                            if (!$dateToUse) {
+                                Log::debug("[Extractor] Skipping transaction - no date found: $vendorToUse | $amount");
+                                continue;
+                            }
+                            
                             // If it's a credit, skip (only expenses wanted)
                             if ($isCredit) {
-                                Log::info("[Extractor] Skipping credit transaction: $vendorToUse | $amount");
+                                Log::info("[Extractor] Skipping credit transaction: $vendorToUse | $amount (line: $line)");
                                 $lastDate = null;
                                 $lastVendor = null;
                                 continue;
