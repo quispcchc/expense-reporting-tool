@@ -283,6 +283,35 @@ class BankStatementExtractor
             if ($this->isCreditCardStyle && $transactionTableModeDetected && !$insideTransactionTable) {
                 continue;
             }
+
+            // Dedicated parser for credit-card transaction-table rows.
+            // This handles rows like: OCT29 OCT31 BEST LIVING SCARBOROUGH $42.93
+            // and prevents later statement dates/descriptions from being reused accidentally.
+            if ($this->isCreditCardStyle && $insideTransactionTable) {
+                $creditCardRow = $this->parseCreditCardTransactionTableRow($line, $statementYear);
+                if ($creditCardRow !== null) {
+                    $vendorToUse = $creditCardRow['vendor'];
+                    $amount = $creditCardRow['amount'];
+
+                    if (!empty($vendorToUse) && $amount !== null && $amount > 0.01 && $this->isLikelyTransaction($vendorToUse, $amount, true)) {
+                        $expenses[] = [
+                            'transaction_date' => $creditCardRow['date'],
+                            'vendor_name' => $vendorToUse,
+                            'expense_amount' => number_format($amount, 2, '.', ''),
+                            'buyer_name' => '',
+                            'transaction_desc' => $vendorToUse,
+                            'transaction_notes' => '',
+                            'project_id' => null,
+                            'cost_centre_id' => null,
+                            'account_number_id' => null,
+                        ];
+                    }
+
+                    $lastDate = null;
+                    $lastVendor = null;
+                    continue;
+                }
+            }
             
             // Clean noise words that often appear in footers or headers but contain numbers
             if (!$insideTransactionTable && preg_match('/(?:Call|Phone|www\.|http|Fax|Tel|Address|Member|FDIC|Equal Housing|P\.O\.\s*BOX|Service|Inquiries|TTY|Points|Reward|Earned|Bonus|Number)/i', $line)) {
@@ -645,7 +674,45 @@ class BankStatementExtractor
         ];
     }
 
-    private function isLikelyTransaction(string $vendor, float $amount): bool
+    private function parseCreditCardTransactionTableRow(string $line, ?int $statementYear): ?array
+    {
+        $line = $this->normalizeOcrLine(trim($line));
+        if ($line === '') return null;
+
+        // Skip table-only and summary rows.
+        if ($this->isTransactionTableHeader(strtoupper($line)) || $this->isTransactionTableEnd(strtoupper($line))) {
+            return null;
+        }
+
+        // Match a credit-card row with transaction date + posting date + description + final amount.
+        // Month tokens intentionally allow OCR-normalized compact dates like OCT29 and spaced dates like OCT 29.
+        $dateToken = '(?:\d{1,2}[\/\-\.]\d{1,2}(?:[\/\-\.]\d{2,4})?|(?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC)[A-Z]*\s*\d{1,2})';
+        $amountToken = '([+-]?\s*\$?\s*\d{1,3}(?:,\d{3})*\.\d{2}|[+-]?\s*\$?\s*\d+\.\d{2}|\$[+-]?\s*\d{1,6}(?:,\d{3})?)';
+
+        if (!preg_match('/^\s*(' . $dateToken . ')\s+(' . $dateToken . ')\s+(.+?)\s+' . $amountToken . '\s*(?:DR|CR)?\s*$/i', $line, $m)) {
+            return null;
+        }
+
+        $transactionDate = $this->normalizeDate($m[1], $statementYear);
+        if (!$transactionDate) return null;
+
+        $vendor = trim($m[3]);
+        $vendor = preg_replace('/\s+/', ' ', $vendor);
+        $vendor = trim($vendor, " \t\n\r\0\x0B-_.,;:/\\$|");
+
+        $hasCurrencySign = str_contains($m[4], '$');
+        $amount = $this->parseAmount($m[4], $hasCurrencySign);
+
+        if ($vendor === '' || $amount === null) return null;
+
+        return [
+            'date' => $transactionDate,
+            'vendor' => $vendor,
+            'amount' => $amount,
+        ];
+    }
+
+    private function isLikelyTransaction(string $vendor, float $amount, bool $fromTransactionTable = false): bool
     {
         $vendor = trim($vendor);
         if (empty($vendor)) return false;
@@ -701,7 +768,6 @@ class BankStatementExtractor
             '/AEROPLAN\s+NUMBER/i',
             '/NET\s+AMOUNT/i',
             '/MONTHLY\s+ACTIVITY/i',
-            '/PAYMENT[-\s]+THANK[-\s]+YOU/i'
         ];
 
         foreach ($junkPatterns as $pattern) {
