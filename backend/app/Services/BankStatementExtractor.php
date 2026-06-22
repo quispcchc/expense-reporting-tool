@@ -24,7 +24,7 @@ class BankStatementExtractor
     
     private const DATE_REGEX = '/\b(\d{1,2}\s*[\/\-\.]\s*\d{1,2}(?:\s*[\/\-\.]\s*\d{2,4})?(?!\d)|\d{4}\s*[\/\-]\s*\d{2}\s*[\/\-]\s*\d{2}|\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*(?:\s+\d{4})?|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s*\d{1,2}(?:,?\s+\d{4})?)\b/i';
     private const FALLBACK_DATE_REGEX = '/^(?:\s*)(\d{3,4})(?:\s*)$/'; // Only match if it's the entire line or clearly isolated
-    private const AMOUNT_REGEX = '/(?<![0-9,.\/])\$?\s*([+-]?\s*(?:\d{1,3}(?:,\d{3})*(?:\.\d{1,3})?|\d+\.\d{1,3}|\d{1,6}))\s*(DR|CR)?(?![0-9,.\/])/i';
+    private const AMOUNT_REGEX = '/(?<![0-9,.\/])([+-]?\s*\$?\s*\d{1,3}(?:,\d{3})*\.\d{2}|[+-]?\s*\$?\s*\d+\.\d{2}|\$[+-]?\s*\d{1,6}(?:,\d{3})?)\s*(DR|CR)?(?![0-9,.\/])/i';
     private const YEAR_REGEX = '/\b(20\d{2})\b/';
     private const ACCOUNT_REGEX = '/(?:Account|Acc|Acct|A\/c)(?:\s*(?:Number|#|No\.?))?\s*[:|-]?\s*([\d-]{3,})/i';
     
@@ -35,7 +35,7 @@ class BankStatementExtractor
         'POINTS', 'REWARD', 'AEROPLAN', 'BONUS', 'EARNED',
         'CUSTOMER SERVICE', 'TTY', 'INQUIRIES', 'WEBSITE',
         'P.O. BOX', 'AGINCOURT', 'ONTARIO', 'M1S 517',
-        'TD CANADA TRUST', 'TD MESSAGE CENTRE', 'AIR CANADA', 'CONTACT INFORMATION'
+        'TD CANADA TRUST', 'TD MESSAGE CENTRE', 'AIR CANADA', 'CONTACT INFORMATION', 'TOSTM', 'T0STM'
     ];
     
     public function extract(string $filePath, string $mimeType, int $claimTypeId = 0): array
@@ -198,6 +198,33 @@ class BankStatementExtractor
         }
     }
 
+
+    private function normalizeOcrLine(string $line): string
+    {
+        // Fix common OCR mistakes that break dates and money parsing.
+        $line = preg_replace('/\bOCT3I\b/i', 'OCT31', $line);
+        $line = preg_replace('/\bNOVI\b/i', 'NOV1', $line);
+        $line = preg_replace('/\bDEC\.\s*/i', 'DEC', $line);
+
+        // Some OCR outputs use different dash/currency characters.
+        $line = str_replace(['−', '–', '—'], '-', $line);
+        $line = str_replace(['＄'], '$', $line);
+
+        return $line;
+    }
+
+    private function isTransactionTableHeader(string $upperLine): bool
+    {
+        return (bool) preg_match('/TRANSACTION\s+POSTING\s+ACTIVITY\s+DESCRIPTION\s+AMOUNT/i', $upperLine)
+            || (bool) preg_match('/TRANSACTION\s+DATE.*POSTING\s+DATE.*AMOUNT/i', $upperLine)
+            || (bool) preg_match('/DATE\s+DATE\s+.*AMOUNT/i', $upperLine);
+    }
+
+    private function isTransactionTableEnd(string $upperLine): bool
+    {
+        return (bool) preg_match('/NET\s+AMOUNT|TOTAL\s+NEW\s+BALANCE|TD\s+MESSAGE\s+CENTRE|PAYMENT\s+INFORMATION|CALCULATING\s+YOUR\s+BALANCE|CONTACT\s+INFORMATION|PAYMENT\s+DUE\s+DATE|AMOUNT\s+PAID/i', $upperLine);
+    }
+
     private function parseText(string $text, int $claimTypeId = 0): array
     {
         $lines = explode("\n", $text);
@@ -225,15 +252,40 @@ class BankStatementExtractor
         $lastDate = null;
         $lastVendor = null;
         $currentSection = null; // 'debit' or 'credit'
+        $insideTransactionTable = false;
+        $transactionTableModeDetected = false;
 
         foreach ($lines as $i => $line) {
-            $line = trim($line);
+            $line = $this->normalizeOcrLine(trim($line));
             if (empty($line)) continue;
 
             $upperLine = strtoupper($line);
+
+            // For credit card statements, parse only the transaction table.
+            // This prevents footer/account/payment-summary lines like "MR 4520" or "TOSTM21000" from becoming fake expenses.
+            if ($this->isTransactionTableHeader($upperLine)) {
+                $insideTransactionTable = true;
+                $transactionTableModeDetected = true;
+                $lastDate = null;
+                $lastVendor = null;
+                Log::info("[Extractor] Entered transaction table: $line");
+                continue;
+            }
+
+            if ($insideTransactionTable && $this->isTransactionTableEnd($upperLine)) {
+                $insideTransactionTable = false;
+                $lastDate = null;
+                $lastVendor = null;
+                Log::info("[Extractor] Left transaction table: $line");
+                continue;
+            }
+
+            if ($this->isCreditCardStyle && $transactionTableModeDetected && !$insideTransactionTable) {
+                continue;
+            }
             
             // Clean noise words that often appear in footers or headers but contain numbers
-            if (preg_match('/(?:Call|Phone|www\.|http|Fax|Tel|Address|Member|FDIC|Equal Housing|P\.O\.\s*BOX|Service|Inquiries|TTY|Points|Reward|Earned|Bonus|Number)/i', $line)) {
+            if (!$insideTransactionTable && preg_match('/(?:Call|Phone|www\.|http|Fax|Tel|Address|Member|FDIC|Equal Housing|P\.O\.\s*BOX|Service|Inquiries|TTY|Points|Reward|Earned|Bonus|Number)/i', $line)) {
                 Log::debug("[Extractor] Skipping noise line: $line");
                 continue;
             }
@@ -409,12 +461,19 @@ class BankStatementExtractor
                     $foundBalance = null;
 
                     if (count($nonZeroMatches) >= 2) {
-                        // Score matches to find the most likely transaction amount
-                        $bestAmountIdx = 0;
-                        $bestScore = -1;
-                        $parsedAmounts = [];
+                        // Credit card transaction-table rows normally have the actual transaction amount at the end.
+                        // This avoids choosing store/location numbers or reference numbers as the amount.
+                        if ($this->isCreditCardStyle && $insideTransactionTable) {
+                            $lastAmountMatch = end($nonZeroMatches);
+                            $hasSign = str_contains($lastAmountMatch[0], '$');
+                            $amount = $this->parseAmount($lastAmountMatch[1], $hasSign);
+                        } else {
+                            // Score matches to find the most likely transaction amount
+                            $bestAmountIdx = 0;
+                            $bestScore = -1;
+                            $parsedAmounts = [];
                         
-                        foreach ($nonZeroMatches as $idx => $m) {
+                            foreach ($nonZeroMatches as $idx => $m) {
                             $hasSign = str_contains($m[0], '$');
                             $hasDecimal = str_contains($m[1], '.');
                             $val = $this->parseAmount($m[1], $hasSign);
@@ -464,10 +523,11 @@ class BankStatementExtractor
                             }
                         }
                         
-                        if ($foundBalance !== null) {
-                            $this->runningBalance = $foundBalance;
+                            if ($foundBalance !== null) {
+                                $this->runningBalance = $foundBalance;
+                            }
+                            $amount = $transactionAmount;
                         }
-                        $amount = $transactionAmount;
                     } else {
                         // Single amount
                         $hasSign0 = str_contains($nonZeroMatches[0][0], '$');
@@ -641,7 +701,7 @@ class BankStatementExtractor
             '/AEROPLAN\s+NUMBER/i',
             '/NET\s+AMOUNT/i',
             '/MONTHLY\s+ACTIVITY/i',
-            '/PAYMENT\s+THANK\s+YOU/i'
+            '/PAYMENT[-\s]+THANK[-\s]+YOU/i'
         ];
 
         foreach ($junkPatterns as $pattern) {
