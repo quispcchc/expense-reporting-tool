@@ -287,11 +287,18 @@ class BankStatementExtractor
             // Dedicated parser for credit-card transaction-table rows.
             // This handles rows like: OCT29 OCT31 BEST LIVING SCARBOROUGH $42.93
             // and prevents later statement dates/descriptions from being reused accidentally.
-            if ($this->isCreditCardStyle && $insideTransactionTable) {
+            if ($insideTransactionTable) {
                 $creditCardRow = $this->parseCreditCardTransactionTableRow($line, $statementYear);
                 if ($creditCardRow !== null) {
                     $vendorToUse = $creditCardRow['vendor'];
                     $amount = $creditCardRow['amount'];
+                    $rawAmount = $creditCardRow['raw_amount'] ?? '';
+
+                    if ($this->isCreditCardPaymentOrCreditRow($vendorToUse, $rawAmount)) {
+                        $lastDate = null;
+                        $lastVendor = null;
+                        continue;
+                    }
 
                     if (!empty($vendorToUse) && $amount !== null && $amount > 0.01 && $this->isLikelyTransaction($vendorToUse, $amount, true)) {
                         $expenses[] = [
@@ -311,6 +318,10 @@ class BankStatementExtractor
                     $lastVendor = null;
                     continue;
                 }
+
+                // We are inside a detected transaction table, but this line is not a valid transaction row.
+                // Do not let the generic parser reuse dates/vendors from unrelated statement sections.
+                continue;
             }
             
             // Clean noise words that often appear in footers or headers but contain numbers
@@ -656,8 +667,11 @@ class BankStatementExtractor
             }
         }
 
-        // Deduplicate
-        $expenses = $this->deduplicate($expenses);
+        // Deduplicate regular bank-statement parsing, but keep duplicate credit-card table rows.
+        // Credit-card statements can legitimately have two identical purchases on the same date/vendor/amount.
+        if (!($this->isCreditCardStyle && $transactionTableModeDetected)) {
+            $expenses = $this->deduplicate($expenses);
+        }
 
         // Apply the common account number to all transactions
         if ($accountNumber) {
@@ -672,6 +686,40 @@ class BankStatementExtractor
             'paired' => 0,
             'account_number' => $accountNumber
         ];
+    }
+
+
+    private function isCreditCardPaymentOrCreditRow(string $vendor, string $rawAmount): bool
+    {
+        $upperVendor = strtoupper(trim($vendor));
+        $compactAmount = str_replace([' ', ','], '', $rawAmount);
+
+        // Negative rows on credit-card statements are payments/credits/refunds, not expenses.
+        if (str_contains($compactAmount, '-')) {
+            return true;
+        }
+
+        $paymentKeywords = [
+            'PAYMENT-THANK YOU',
+            'PAYMENT THANK YOU',
+            'PAYMENT RECEIVED',
+            'ONLINE PAYMENT',
+            'MOBILE PAYMENT',
+            'AUTH PAYMENT',
+            'THANK YOU',
+            'REFUND',
+            'REVERSAL',
+            'CREDIT',
+            'ADJUSTMENT'
+        ];
+
+        foreach ($paymentKeywords as $keyword) {
+            if (str_contains($upperVendor, $keyword)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function parseCreditCardTransactionTableRow(string $line, ?int $statementYear): ?array
@@ -709,6 +757,7 @@ class BankStatementExtractor
             'date' => $transactionDate,
             'vendor' => $vendor,
             'amount' => $amount,
+            'raw_amount' => $m[4],
         ];
     }
 
@@ -803,6 +852,23 @@ class BankStatementExtractor
         // Remove extra spaces within the date string (e.g., "06 / 19 / 2026" -> "06/19/2026")
         $raw = preg_replace('/\s*([\/\-\.])\s*/', '$1', $raw);
         $raw = preg_replace('/\s+/', ' ', $raw);
+
+        // Handle compact month formats like OCT29, OCT31, NOV1.
+        // DateTime::createFromFormat can sometimes produce unexpected results when OCR text is messy,
+        // so parse these manually before using generic date formats.
+        if (preg_match('/^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC)[A-Z]*\s*(\d{1,2})$/i', $raw, $monthMatch)) {
+            $monthMap = [
+                'JAN' => 1, 'FEB' => 2, 'MAR' => 3, 'APR' => 4, 'MAY' => 5, 'JUN' => 6,
+                'JUL' => 7, 'AUG' => 8, 'SEP' => 9, 'SEPT' => 9, 'OCT' => 10, 'NOV' => 11, 'DEC' => 12,
+            ];
+            $monKey = strtoupper(substr($monthMatch[1], 0, 4)) === 'SEPT' ? 'SEPT' : strtoupper(substr($monthMatch[1], 0, 3));
+            $month = $monthMap[$monKey] ?? null;
+            $day = (int) $monthMatch[2];
+            $year = $statementYear ?: (int) date('Y');
+            if ($month && checkdate($month, $day, $year)) {
+                return sprintf('%04d-%02d-%02d', $year, $month, $day);
+            }
+        }
 
         // Handle fallback formats like 1116 (Nov 16)
         if (preg_match('/^\d{3,4}$/', $raw)) {
