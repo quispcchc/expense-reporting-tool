@@ -372,13 +372,22 @@ class BankStatementExtractor
             }
 
             $foundDate = null;
-            if (preg_match(self::DATE_REGEX, $line, $dateMatches)) {
-                $foundDate = $this->normalizeDate($dateMatches[1], $statementYear);
-            } elseif (preg_match(self::FALLBACK_DATE_REGEX, $line, $dateMatches) && strlen($line) < 30) {
-                // If we find 3-4 digits at the start of a line and it matches MMDD pattern
+            $allLineDateMatches = [];
+            if (preg_match_all(self::DATE_REGEX, $line, $dateMatches, PREG_SET_ORDER)) {
+                foreach ($dateMatches as $dm) {
+                    $norm = $this->normalizeDate($dm[1], $statementYear);
+                    if ($norm) {
+                        if (!$foundDate) $foundDate = $norm;
+                        $allLineDateMatches[] = ['raw' => $dm[0], 'norm' => $norm];
+                    }
+                }
+            }
+            
+            if (!$foundDate && preg_match(self::FALLBACK_DATE_REGEX, $line, $dateMatches) && strlen($line) < 30) {
                 $foundDate = $this->normalizeDate($dateMatches[1], $statementYear);
                 if ($foundDate) {
                     Log::debug("[Extractor] Found fallback date: $foundDate from $dateMatches[1]");
+                    $allLineDateMatches[] = ['raw' => $dateMatches[0], 'norm' => $foundDate];
                 }
             }
 
@@ -400,72 +409,69 @@ class BankStatementExtractor
                     $foundBalance = null;
 
                     if (count($nonZeroMatches) >= 2) {
-                        // Usually: [Transaction Amount, Running Balance]
-                        $hasSign0 = str_contains($nonZeroMatches[0][0], '$');
-                        $transactionAmount = $this->parseAmount($nonZeroMatches[0][1], $hasSign0);
+                        // Score matches to find the most likely transaction amount
+                        $bestAmountIdx = 0;
+                        $bestScore = -1;
+                        $parsedAmounts = [];
                         
+                        foreach ($nonZeroMatches as $idx => $m) {
+                            $hasSign = str_contains($m[0], '$');
+                            $hasDecimal = str_contains($m[1], '.');
+                            $val = $this->parseAmount($m[1], $hasSign);
+                            $parsedAmounts[$idx] = $val;
+                            
+                            $score = 0;
+                            if ($hasSign) $score += 10;
+                            if ($hasDecimal) $score += 5;
+                            
+                            // Prefer amounts earlier in the line for transaction amount, 
+                            // as balance is usually at the end.
+                            $score -= $idx * 2; 
+
+                            if ($score > $bestScore) {
+                                $bestScore = $score;
+                                $bestAmountIdx = $idx;
+                            }
+                        }
+
+                        $transactionAmount = $parsedAmounts[$bestAmountIdx];
+                        
+                        // Look for a balance (usually the last amount if different from transaction)
                         $lastIdx = count($nonZeroMatches) - 1;
-                        $hasSignLast = str_contains($nonZeroMatches[$lastIdx][0], '$');
-                        $foundBalance = $this->parseAmount($nonZeroMatches[$lastIdx][1], $hasSignLast);
+                        if ($lastIdx !== $bestAmountIdx) {
+                            $foundBalance = $parsedAmounts[$lastIdx];
+                        }
                         
                         // Check if this was a credit or debit based on balance change
                         if ($this->runningBalance !== null && $foundBalance !== null) {
                             $diff = $foundBalance - $this->runningBalance;
                             
                             if ($this->isCreditCardStyle) {
-                                // For Credit Cards, a balance INCREASE is typically a DEBIT (expense)
-                                // and a balance DECREASE is a CREDIT (payment/refund)
-                                if ($diff > 0.0001) {
-                                    $isCredit = false;
-                                } elseif ($diff < -0.0001) {
-                                    $isCredit = true;
-                                }
+                                if ($diff > 0.0001) $isCredit = false;
+                                elseif ($diff < -0.0001) $isCredit = true;
                             } else {
-                                // For standard Bank Accounts, a balance INCREASE is a CREDIT (money in)
-                                // and a balance DECREASE is a DEBIT (money out)
-                                if ($diff > 0.0001) {
-                                    $isCredit = true;
-                                } elseif ($diff < -0.0001) {
-                                    $isCredit = false;
-                                }
+                                if ($diff > 0.0001) $isCredit = true;
+                                elseif ($diff < -0.0001) $isCredit = false;
                             }
 
-                            // OCR Correction: If the difference matches another interpretation of the amount, use it.
-                            // For example, if amount was read as 1124 but diff is 124.00, or 1200 vs 12.00
+                            // Use balance change to correct amount if it matches any of the parsed amounts better
                             $absDiff = abs($diff);
-                            if ($absDiff > 0.01 && $transactionAmount !== null) {
-                                // Check if inserting a decimal point into transactionAmount makes it match absDiff
-                                // or if they are just off by a factor of 10/100
-                                $rawNum = (string)$transactionAmount;
-                                $possibleMatches = [
-                                    (float)$rawNum,
-                                    (float)$rawNum / 10,
-                                    (float)$rawNum / 100,
-                                    (float)$rawNum / 1000
-                                ];
-                                
-                                foreach ($possibleMatches as $pm) {
-                                    if (abs($pm - $absDiff) < 0.05) {
-                                        if (abs($transactionAmount - $absDiff) > 0.01) {
-                                            Log::info("[Extractor] Correcting amount from $transactionAmount to $absDiff based on balance change");
-                                            $transactionAmount = $absDiff;
-                                        }
-                                        break;
-                                    }
+                            foreach ($parsedAmounts as $pa) {
+                                if ($pa !== null && abs($pa - $absDiff) < 0.005) {
+                                    $transactionAmount = $pa;
+                                    break;
                                 }
                             }
                         }
                         
-                        $this->runningBalance = $foundBalance;
+                        if ($foundBalance !== null) {
+                            $this->runningBalance = $foundBalance;
+                        }
                         $amount = $transactionAmount;
                     } else {
-                        // Single amount - might be just a balance or just a transaction
+                        // Single amount
                         $hasSign0 = str_contains($nonZeroMatches[0][0], '$');
                         $amount = $this->parseAmount($nonZeroMatches[0][1], $hasSign0);
-                        
-                        // If we have a previous balance, we can check if this single amount 
-                        // explains a change to a future balance, but for single-amount lines 
-                        // we usually rely on markers or keywords.
                     }
 
                     // Check for signs in the raw amount string - plus usually means credit/money in
@@ -474,80 +480,54 @@ class BankStatementExtractor
                         $isCredit = true;
                     }
 
-                    // Check for explicit CR/DR markers in the amount itself
+                    // Check for explicit CR/DR markers
                     if (!$isCredit && isset($nonZeroMatches[0][2])) {
                         $marker = strtoupper($nonZeroMatches[0][2]);
-                        if ($marker === 'CR') {
-                            $isCredit = true;
-                        } elseif ($marker === 'DR') {
-                            $isCredit = false; // Explicitly a debit
-                        }
+                        if ($marker === 'CR') $isCredit = true;
+                        elseif ($marker === 'DR') $isCredit = false;
                     }
 
-                    // Check for credit keywords in the entire line if still not identified as credit
+                    // Credit keywords
                     if (!$isCredit) {
                         $lowerLine = strtolower($line);
-                        if (!empty($vendorToUse)) {
-                            $lowerLine .= ' ' . strtolower($vendorToUse);
-                        }
-                        
-                        // If it contains "AMAZON" and we are in corporate card mode, it's very likely a debit (expense)
-                        // even if it matches some broad credit keywords by accident.
-                        $isKnownExpenseVendor = $isCorporateCard && preg_match('/AMAZON|UBER|LYFT|STARBUCKS|WALMART|SHELL|PETRO|APPLE|GOOGLE|MICROSOFT|ADOBE/i', $lowerLine);
-
-                        if ($isKnownExpenseVendor) {
-                            $isCredit = false; // Force debit for known expense vendors on corporate cards
-                        } else {
-                            $creditKeywords = [
-                                'refund', 'credit', 'deposit', 'reversal', 'interest paid', 
-                                'payment received', 'funds received', 'cr ', ' cr',
-                                'transfer from', 'incoming', 'direct deposit', 'giro',
-                                'cash back', 'dividend', 'rebate', 'total credits',
-                                'interest credit', 'adjustment credit', 'fee reversal',
-                                'payment - thank you', 'payment-thank you', 'auth payment',
-                                'online payment', 'mobile payment', 'cheque deposit',
-                                'atm deposit', 'pre-authorized payment credit'
-                            ];
-                            foreach ($creditKeywords as $kw) {
-                                if (str_contains($lowerLine, $kw)) {
-                                    $isCredit = true;
-                                    break;
-                                }
+                        $creditKeywords = [
+                            'refund', 'credit', 'deposit', 'reversal', 'interest paid', 
+                            'payment received', 'funds received', 'cr ', ' cr',
+                            'transfer from', 'incoming', 'direct deposit', 'giro',
+                            'cash back', 'dividend', 'rebate', 'total credits',
+                            'interest credit', 'adjustment credit', 'fee reversal',
+                            'payment - thank you', 'payment-thank you', 'auth payment',
+                            'online payment', 'mobile payment', 'cheque deposit',
+                            'atm deposit', 'pre-authorized payment credit'
+                        ];
+                        foreach ($creditKeywords as $kw) {
+                            if (str_contains($lowerLine, $kw)) {
+                                $isCredit = true;
+                                break;
                             }
                         }
                     }
 
                     if ($amount !== null && $amount > 0.01) {
-                        // Use current date or buffered date from previous line
                         $dateToUse = $foundDate ?: $lastDate;
                         
-                        // Extract vendor from this line, or use buffered vendor if this line is just an amount
                         $allAmountsInLine = array_column($amountMatches, 0);
-                        $vendorInLine = $this->extractVendor($line, $foundDate ? $dateMatches[0] : '', $allAmountsInLine);
+                        $dateStrForVendor = !empty($allLineDateMatches) ? $allLineDateMatches[0]['raw'] : '';
+                        $vendorToUse = $this->extractVendor($line, $dateStrForVendor, $allAmountsInLine);
                         
-                        $vendorToUse = $vendorInLine;
-                        if (empty($vendorInLine) && $lastVendor) {
+                        if (empty($vendorToUse) && $lastVendor) {
                             $vendorToUse = $lastVendor;
                         }
 
-                        Log::debug("[Extractor] Line check: line=$line, date=$dateToUse, amount=$amount, vendor=$vendorToUse, credit=" . ($isCredit ? 'Y' : 'N'));
-
                         if ($amount && !empty($vendorToUse) && $this->isLikelyTransaction($vendorToUse, $amount)) {
-                            if (!$dateToUse) {
-                                Log::debug("[Extractor] Skipping transaction - no date found: $vendorToUse | $amount");
-                                continue;
-                            }
+                            if (!$dateToUse) continue;
                             
-                            // For credit card statements, include all transactions as requested by the user.
-                            // For standard bank accounts, only include debits (expenses).
                             if ($isCredit && !$this->isCreditCardStyle) {
-                                Log::info("[Extractor] Skipping credit transaction: $vendorToUse | $amount (line: $line)");
                                 $lastDate = null;
                                 $lastVendor = null;
                                 continue;
                             }
 
-                            Log::info("[Extractor] Found transaction: $vendorToUse | $amount" . ($isCredit ? " (Credit)" : " (Debit)"));
                             $expenses[] = [
                                 'transaction_date' => $dateToUse,
                                 'vendor_name' => $vendorToUse,
@@ -560,7 +540,6 @@ class BankStatementExtractor
                                 'account_number_id' => null,
                             ];
                             
-                            // Clear buffer after successful extraction
                             $lastDate = null;
                             $lastVendor = null;
                             continue;
@@ -569,14 +548,19 @@ class BankStatementExtractor
                 }
             }
 
-            // If we found a date but no transaction on this line, buffer it for the next line
             if ($foundDate) {
-                $lastDate = $foundDate;
-                // If there's extra text on the date line, it might be the vendor start
-                $vendorStart = trim(str_replace($dateMatches[0], '', $line));
-                $lastVendor = $this->isLikelyTransaction($vendorStart, 1.0) ? $vendorStart : null;
+                // Buffer the date. For statements with two dates (Transaction & Posting), 
+                // the first one seen is usually the transaction date.
+                if (!$lastDate) {
+                    $lastDate = $foundDate;
+                }
+                
+                $dateStrForVendor = !empty($allLineDateMatches) ? $allLineDateMatches[0]['raw'] : '';
+                $vendorStart = trim(str_replace($dateStrForVendor, '', $line));
+                if (!empty($vendorStart) && $this->isLikelyTransaction($vendorStart, 1.0)) {
+                    $lastVendor = $vendorStart;
+                }
             } elseif (!empty($line) && !$foundDate && !$lastVendor) {
-                // If it's just a text line, it might be a vendor name between a date line and an amount line
                 if ($this->isLikelyTransaction($line, 1.0)) {
                     $lastVendor = $line;
                 }
@@ -720,7 +704,10 @@ class BankStatementExtractor
         }
 
         if ($statementYear) {
-            $shortFormats = ['m d', 'd m', 'M d', 'd M', 'F d', 'd F', 'm/d', 'd/m'];
+            $shortFormats = [
+                'm d', 'd m', 'M d', 'd M', 'F d', 'd F', 'm/d', 'd/m',
+                'Md', 'dM', 'Fd', 'dF', 'md'
+            ];
             foreach ($shortFormats as $fmt) {
                 $dt = \DateTime::createFromFormat($fmt, $raw);
                 if ($dt !== false) {
