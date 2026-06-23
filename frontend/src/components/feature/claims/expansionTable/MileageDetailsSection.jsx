@@ -11,10 +11,6 @@ function MileageDetailsSection({ mileage, isEditing, rowData, handleInputChange 
     const totalKm = mileage.transactions.reduce((s, tx) => s + (parseFloat(tx.distance_km) || 0), 0)
     const rate = mileage.transactions[0]?.mileage_rate
 
-    const updateMileageHeader = (field, value) => {
-        handleInputChange(rowData.transactionId, 'mileage', { ...mileage, [field]: value })
-    }
-
     const updateMileageTransaction = (txIndex, field, value) => {
         const updatedTransactions = mileage.transactions.map((tx, i) => {
             if (i !== txIndex) return tx

@@ -2,6 +2,17 @@ import React, { useEffect, useState } from 'react'
 import { getFileIcon } from '../../../../utils/getFileIcon.jsx'
 
 function FilePreview({ selectedFile, showRemoveButton = true, handleRemoveFile }) {
+    const [objectUrl, setObjectUrl] = useState(null)
+    const [showPreview, setShowPreview] = useState(false)
+
+    useEffect(() => {
+        if (selectedFile?.file) {
+            const url = URL.createObjectURL(selectedFile.file)
+            setObjectUrl(url)
+            return () => URL.revokeObjectURL(url)
+        }
+    }, [selectedFile?.file])
+
     if (!selectedFile || (!selectedFile.file && !selectedFile.url && !selectedFile.path)) return null
 
     const fileName = selectedFile.file ? selectedFile.file.name : (selectedFile.name || 'Attachment')
@@ -14,17 +25,6 @@ function FilePreview({ selectedFile, showRemoveButton = true, handleRemoveFile }
     }
 
     const fileType = selectedFile.file ? selectedFile.file.type : getTypeFromName(fileName)
-
-    const [objectUrl, setObjectUrl] = useState(null)
-    const [showPreview, setShowPreview] = useState(false)
-
-    useEffect(() => {
-        if (selectedFile.file) {
-            const url = URL.createObjectURL(selectedFile.file)
-            setObjectUrl(url)
-            return () => URL.revokeObjectURL(url)
-        }
-    }, [selectedFile.file])
 
     const previewUrl = selectedFile.file ? objectUrl : backendUrl
 

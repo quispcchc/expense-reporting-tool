@@ -25,6 +25,7 @@ import { useMobileExpenseEdit } from '../../../../hooks/useMobileExpenseEdit.js'
 import { expenseTextEditor, accountNumEditor, costCentreEditor, currencyInputEditor, dateInputEditor } from '../../../../utils/expenseEditors.jsx'
 import { useAuth } from '../../../../contexts/AuthContext.jsx'
 import { ROLE_NAME, VIEW_MODE } from '../../../../config/constants.js'
+import TransactionEditDialog from './TransactionEditDialog.jsx'
 
 function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toastRef, onClaimUpdated }) {
     const { t } = useTranslation()
@@ -608,6 +609,54 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
     // Track which expenses are currently being processed (approve/reject in flight)
     const [processingExpenses, setProcessingExpenses] = useState(new Set())
 
+    const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false)
+    const [currentTransactionIndex, setCurrentTransactionIndex] = useState(-1)
+
+    const openTransactionDialog = (index) => {
+        setCurrentTransactionIndex(index)
+        setIsTransactionDialogOpen(true)
+    }
+
+    const handleDialogSave = async (updatedTransaction) => {
+        // Find index of transaction in expenseItems
+        const index = expenseItems.findIndex(item => item.transactionId === updatedTransaction.transactionId)
+        if (index === -1) return
+
+        // We can simulate an editEvent to reuse handleRowSaveComplete
+        const editEvent = {
+            index,
+            newData: updatedTransaction
+        }
+
+        await handleRowSaveComplete(editEvent)
+    }
+
+    const handleDialogNext = () => {
+        if (currentTransactionIndex < expenseItems.length - 1) {
+            setCurrentTransactionIndex(prev => prev + 1)
+        }
+    }
+
+    const handleDialogPrev = () => {
+        if (currentTransactionIndex > 0) {
+            setCurrentTransactionIndex(prev => prev - 1)
+        }
+    }
+
+    const handleDialogApprove = async (expenseId) => {
+        await approveExpense(expenseId)
+        if (currentTransactionIndex < expenseItems.length - 1) {
+            handleDialogNext()
+        }
+    }
+
+    const handleDialogReject = async (expenseId) => {
+        await rejectExpense(expenseId)
+        if (currentTransactionIndex < expenseItems.length - 1) {
+            handleDialogNext()
+        }
+    }
+
     // Approve and Reject a single expense item
     async function approveExpense(expenseId) {
         setProcessingExpenses(prev => new Set(prev).add(expenseId))
@@ -724,11 +773,21 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
 
         return (
             <div className="flex gap-2">
-                <Button label={t('claims.approve')} outlined className={BUTTON_STYLE.success} icon="pi pi-check" iconPos="right"
-                    onClick={() => approveExpense(rowData.transactionId)} disabled={isProcessed || isProcessing}
-                    loading={isProcessing} type="button" />
-                <Button label={t('claims.reject')} outlined className={BUTTON_STYLE.danger} icon="pi pi-times" iconPos="right"
-                    onClick={() => rejectExpense(rowData.transactionId)} disabled={isProcessed || isProcessing} type="button" />
+                <Button icon="pi pi-pencil" outlined className="p-button-info"
+                    onClick={() => {
+                        const idx = expenseItems.findIndex(item => item.transactionId === rowData.transactionId)
+                        openTransactionDialog(idx)
+                    }}
+                    tooltip={t('common.edit')} type="button" />
+                {isAdminOrApprover && mode === VIEW_MODE.EDIT && (
+                    <>
+                        <Button label={t('claims.approve')} outlined className={BUTTON_STYLE.success} icon="pi pi-check" iconPos="right"
+                            onClick={() => approveExpense(rowData.transactionId)} disabled={isProcessed || isProcessing}
+                            loading={isProcessing} type="button" />
+                        <Button label={t('claims.reject')} outlined className={BUTTON_STYLE.danger} icon="pi pi-times" iconPos="right"
+                            onClick={() => rejectExpense(rowData.transactionId)} disabled={isProcessed || isProcessing} type="button" />
+                    </>
+                )}
             </div>
         )
     }
@@ -1101,15 +1160,29 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                     />
                     }
 
-                    {mode === VIEW_MODE.EDIT && (
+                    {(mode === VIEW_MODE.EDIT || mode === VIEW_MODE.VIEW) && (
                         <Column
                             body={renderActionsButton}
                             header={t('common.actions')}
                         />
                     )}
                 </DataTable>
-            )
-            }
+            )}
+
+            <TransactionEditDialog
+                visible={isTransactionDialogOpen}
+                onHide={() => setIsTransactionDialogOpen(false)}
+                transaction={expenseItems[currentTransactionIndex]}
+                onSave={handleDialogSave}
+                onApprove={handleDialogApprove}
+                onReject={handleDialogReject}
+                onNext={handleDialogNext}
+                onPrev={handleDialogPrev}
+                hasNext={currentTransactionIndex < expenseItems.length - 1}
+                hasPrev={currentTransactionIndex > 0}
+                lookups={lookups}
+                processing={expenseItems[currentTransactionIndex] && processingExpenses.has(expenseItems[currentTransactionIndex].transactionId)}
+            />
 
             {/* Mobile Edit Dialog */}
             <Dialog

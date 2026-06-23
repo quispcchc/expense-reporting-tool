@@ -6,9 +6,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act, waitFor } from '@testing-library/react'
-import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Routes, Route } from 'react-router-dom'
+import { MemoryRouter } from 'react-router-dom'
 import { AuthProvider, useAuth } from '../../src/contexts/AuthContext.jsx'
 import Cookies from 'js-cookie'
 import { server } from '../mocks/server.js'
