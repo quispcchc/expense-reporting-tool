@@ -2,7 +2,6 @@ import React, { useEffect, useState, useRef } from 'react'
 import { DataTable } from 'primereact/datatable'
 import { Column } from 'primereact/column'
 import { InputNumber } from 'primereact/inputnumber'
-import ClaimRowExpansion from './ClaimRowExpansion.jsx'
 import { Button } from 'primereact/button'
 import StatusTab from '../../../common/ui/StatusTab.jsx'
 import { useLookups } from '../../../../contexts/LookupContext.jsx'
@@ -34,11 +33,9 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
     const [expenseItems, setExpenseItems] = useState(() => mapExpenseData(data, mode))
     const [mobileExpandedId, setMobileExpandedId] = useState(null)
 
-    const [expandedRows, setExpandedRows] = useState(null)
-
     const [currentlyEditingRowId, setCurrentlyEditingRowId] = useState(null)
 
-    const [originalExpenseData, setOriginalExpenseData] = useState({})
+    const [originalExpenseData] = useState({})
 
     const [unsavedExpansionChanges, setUnsavedExpansionChanges] = useState({})
 
@@ -127,19 +124,6 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
         }
     }
 
-    const renderExpansionContent = (rowData) => {
-        return (
-            <ClaimRowExpansion
-                rowData={rowData}
-                editingRowId={currentlyEditingRowId}
-                claimItems={expenseItems}
-                expandedRowData={unsavedExpansionChanges}
-                handleInputChange={handleExpansionFieldChange}
-                mode={mode}
-            />
-        )
-    }
-
     // Mobile: confirm before editing an approved/rejected expense
     const handleMobileEditStart = (item) => {
         if (mode !== VIEW_MODE.CREATE && item.status !== APPROVAL_STATUS.PENDING) {
@@ -157,87 +141,6 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
             return
         }
         startMobileEdit(item)
-    }
-
-    // Handle starting to edit a row
-    const handleRowEditStart = (editEvent) => { // Was: onRowEditInit
-
-        // Only show warning if NOT in create mode AND status is not pending (1)
-        if (mode !== VIEW_MODE.CREATE && editEvent.data.status !== APPROVAL_STATUS.PENDING) {
-            confirmDialog({
-                message: t('expenses.editApprovedRejectedMessage', 'Do you want to edit an expense which has already been approved or rejected?'),
-                header: t('expenses.editExpense', 'Edit Expense'),
-                icon: 'pi pi-info-circle',
-                defaultFocus: 'reject',
-                rejectClassName: 'p-button-danger',
-                accept: () => {
-                    setCurrentlyEditingRowId(editEvent.data.transactionId)
-                    // Save original data when starting edit
-                    const expenseIndex = expenseItems.findIndex(e => e.transactionId === editEvent.data.transactionId)
-                    if (expenseIndex >= 0) {
-                        setOriginalExpenseData(prev => ({
-                            ...prev,
-                            [editEvent.data.transactionId]: { ...expenseItems[expenseIndex] }
-                        }))
-                    }
-                    // Clear any existing unsaved changes for this row when starting fresh
-                    setUnsavedExpansionChanges(previousChanges => {
-                        const cleanedChanges = { ...previousChanges }
-                        delete cleanedChanges[editEvent.data.transactionId]
-                        return cleanedChanges
-                    })
-                },
-                reject: () => {
-                    showToast(toastRef, { severity: 'info', summary: t('toast.info'), detail: t('expenses.editCancelled', 'Edit cancelled') })
-                },
-            })
-
-        }
-        //
-        setCurrentlyEditingRowId(editEvent.data.transactionId)
-
-        // Save original data when starting edit
-        const expenseIndex = expenseItems.findIndex(e => e.transactionId === editEvent.data.transactionId)
-        if (expenseIndex >= 0) {
-            setOriginalExpenseData(prev => ({
-                ...prev,
-                [editEvent.data.transactionId]: { ...expenseItems[expenseIndex] }
-            }))
-        }
-
-        // Clear any existing unsaved changes for this row when starting fresh
-        setUnsavedExpansionChanges(previousChanges => {
-            const cleanedChanges = { ...previousChanges }
-            delete cleanedChanges[editEvent.data.transactionId]
-            unsavedExpansionChangesRef.current = cleanedChanges
-            return cleanedChanges
-        })
-    }
-
-    // Handle canceling row edit
-    const handleRowEditCancel = (editEvent) => {
-        const expenseId = editEvent.data.transactionId
-        setCurrentlyEditingRowId(null)
-
-        // Restore the original data for this row
-        setExpenseItems(previousItems => {
-            const restoredItems = [...previousItems]
-            const originalExpense = expenseItems.find(expense => expense.transactionId === expenseId)
-            if (originalExpense) {
-                restoredItems[editEvent.index] = { ...originalExpense }
-            }
-            return restoredItems
-        })
-
-        // Clear any unsaved expansion changes for this row
-        setUnsavedExpansionChanges(previousChanges => {
-            const cleanedChanges = { ...previousChanges }
-            delete cleanedChanges[expenseId]
-            unsavedExpansionChangesRef.current = cleanedChanges
-            return cleanedChanges
-        })
-
-        showToast(toastRef, { severity: 'info', summary: t('toast.info'), detail: t('claims.editCancelled') })
     }
 
     // Handle saving row edit
@@ -773,12 +676,6 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
 
         return (
             <div className="flex gap-2">
-                <Button icon="pi pi-pencil" outlined className="p-button-info"
-                    onClick={() => {
-                        const idx = expenseItems.findIndex(item => item.transactionId === rowData.transactionId)
-                        openTransactionDialog(idx)
-                    }}
-                    tooltip={t('common.edit')} type="button" />
                 {isAdminOrApprover && mode === VIEW_MODE.EDIT && (
                     <>
                         <Button label={t('claims.approve')} outlined className={BUTTON_STYLE.success} icon="pi pi-check" iconPos="right"
@@ -789,6 +686,22 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                     </>
                 )}
             </div>
+        )
+    }
+
+    const renderEditButton = (rowData) => {
+        return (
+            <Button
+                icon="pi pi-pencil"
+                rounded
+                text
+                severity="info"
+                onClick={() => {
+                    const idx = expenseItems.findIndex(item => item.transactionId === rowData.transactionId)
+                    openTransactionDialog(idx)
+                }}
+                type="button"
+            />
         )
     }
 
@@ -1067,17 +980,6 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                     value={expenseItems}
                     dataKey="transactionId"
 
-                    // Row editing event handlers
-                    editMode="row"
-                    onRowEditInit={handleRowEditStart}
-                    onRowEditCancel={handleRowEditCancel}
-                    onRowEditComplete={handleRowSaveComplete}
-
-                    // Row Expansion
-                    expandedRows={expandedRows}
-                    onRowToggle={(e) => setExpandedRows(e.data)}
-                    rowExpansionTemplate={renderExpansionContent}
-
                     // Pagination
                     paginator
                     rows={5}
@@ -1091,7 +993,6 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                     size="small"
                     scrollable
                 >
-                    <Column expander />
                     <Column
                         field="transactionId"
                         header={t('common.id', 'ID')}
@@ -1149,7 +1050,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
 
                     {mode !== VIEW_MODE.VIEW &&
                         <Column
-                            rowEditor={true}
+                            body={renderEditButton}
                             header={t('common.edit')}
                         />
                     }
@@ -1182,6 +1083,10 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                 hasPrev={currentTransactionIndex > 0}
                 lookups={lookups}
                 processing={expenseItems[currentTransactionIndex] && processingExpenses.has(expenseItems[currentTransactionIndex].transactionId)}
+                currentIndex={currentTransactionIndex}
+                totalCount={expenseItems.length}
+                isAdminOrApprover={isAdminOrApprover}
+                mode={mode}
             />
 
             {/* Mobile Edit Dialog */}
