@@ -1,7 +1,7 @@
 import React from 'react'
 import FilePreview from './FilePreview.jsx'
 
-function AttachmentList({ files, onRemoveFile, showRemoveButton = true }) {
+function AttachmentList({ files, onRemoveFile, showRemoveButton = true, hidePreviewButton = false }) {
     if (!files || files.length === 0) return null
 
     return (
@@ -12,6 +12,7 @@ function AttachmentList({ files, onRemoveFile, showRemoveButton = true }) {
                     selectedFile={file}
                     handleRemoveFile={() => onRemoveFile(index)}
                     showRemoveButton={showRemoveButton}
+                    hidePreviewButton={hidePreviewButton}
                 />
             ))}
         </div>

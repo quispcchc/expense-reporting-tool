@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState } from 'react'
 import { DataTable } from 'primereact/datatable'
 import { Column } from 'primereact/column'
 import { InputNumber } from 'primereact/inputnumber'
@@ -16,11 +16,8 @@ import { useTranslation } from 'react-i18next'
 import { useIsMobile } from '../../../../hooks/useIsMobile.js'
 import { validateForm } from '../../../../utils/validation/validator.js'
 import { validationSchemas } from '../../../../utils/validation/schemas.js'
-import Input from '../../../common/ui/Input.jsx'
-import Select from '../../../common/ui/Select.jsx'
 import { formatCurrency } from '../../../../utils/formatters.js'
 import mapExpenseData from '../../../../utils/mapExpenseData.js'
-import { useMobileExpenseEdit } from '../../../../hooks/useMobileExpenseEdit.js'
 import { expenseTextEditor, accountNumEditor, costCentreEditor, currencyInputEditor, dateInputEditor } from '../../../../utils/expenseEditors.jsx'
 import { useAuth } from '../../../../contexts/AuthContext.jsx'
 import { ROLE_NAME, VIEW_MODE } from '../../../../config/constants.js'
@@ -31,87 +28,27 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
     const isMobile = useIsMobile()
     const { authUser } = useAuth()
     const [expenseItems, setExpenseItems] = useState(() => mapExpenseData(data, mode))
-    const [mobileExpandedId, setMobileExpandedId] = useState(null)
 
     const [currentlyEditingRowId, setCurrentlyEditingRowId] = useState(null)
-
     const [originalExpenseData] = useState({})
-
-    const [unsavedExpansionChanges, setUnsavedExpansionChanges] = useState({})
-
-    // Use ref to always have access to the latest unsavedExpansionChanges value
-    // This is needed because handleRowSaveComplete may be called before React state updates
-    const unsavedExpansionChangesRef = useRef({})
-
-
 
     const [pendingDeletions, setPendingDeletions] = useState([]) // Store items waiting to be permanently deleted
 
     const { lookups, lookups: { accountNums, costCentres } } = useLookups()
 
-    // Ref for handleRowSaveComplete — allows the mobile edit hook to
-    // always access the latest version without circular dependency
-    const handleRowSaveCompleteRef = useRef(null)
+    const [processingExpenses, setProcessingExpenses] = useState(new Set())
+    const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false)
+    const [currentTransactionIndex, setCurrentTransactionIndex] = useState(-1)
 
-    const {
-        mobileEditData, mobileEditErrors,
-        startMobileEdit, cancelMobileEdit, saveMobileEdit,
-        updateMobileField, updateMobileMileageTx,
-    } = useMobileExpenseEdit({ expenseItems, handleRowSaveCompleteRef })
+    const openTransactionDialog = (index) => {
+        setCurrentTransactionIndex(index)
+        setIsTransactionDialogOpen(true)
+    }
 
     useEffect(() => {
         if (!data) return
         setExpenseItems(mapExpenseData(data, mode))
     }, [data, mode])
-
-    const handleExpansionFieldChange = (expenseId, fieldName, newValue) => {
-        // For tags, handle both string (from text input) and array (from MultiSelect)
-        let processedValue = newValue;
-        if (fieldName === 'tags') {
-            if (Array.isArray(newValue)) {
-                processedValue = newValue;
-            } else if (typeof newValue === 'string') {
-                processedValue = newValue.split(',').map(tag => tag.trim());
-            }
-        }
-
-        // For deletedReceiptIds, accumulate values across multiple deletions
-        if (fieldName === 'deletedReceiptIds') {
-            const existing = unsavedExpansionChanges[expenseId]?.deletedReceiptIds || []
-            const incoming = Array.isArray(newValue) ? newValue : [newValue]
-            processedValue = [...existing, ...incoming]
-        }
-
-
-        // Update the local expense items immediately for UI responsiveness
-        // EXCEPT for attachment - that's handled only via unsavedExpansionChanges to prevent duplication
-        if (fieldName !== 'attachment' && fieldName !== 'deletedReceiptIds') {
-            setExpenseItems(previousItems =>
-                previousItems.map(expense =>
-                    expense.transactionId === expenseId
-                        ? {
-                            ...expense,
-                            [fieldName]: processedValue,
-                        }
-                        : expense,
-                ),
-            )
-        }
-
-        // Store the changes temporarily until the row edit is completed
-        setUnsavedExpansionChanges(previousChanges => {
-            const updated = {
-                ...previousChanges,
-                [expenseId]: {
-                    ...previousChanges[expenseId],
-                    [fieldName]: processedValue,
-                },
-            }
-            // Keep ref in sync with state
-            unsavedExpansionChangesRef.current = updated
-            return updated
-        })
-    }
 
     const saveExpenseItemsToParent = (updatedExpenseItems) => {
         // Update local state first
@@ -124,54 +61,25 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
         }
     }
 
-    // Mobile: confirm before editing an approved/rejected expense
-    const handleMobileEditStart = (item) => {
-        if (mode !== VIEW_MODE.CREATE && item.status !== APPROVAL_STATUS.PENDING) {
-            confirmDialog({
-                message: t('expenses.editApprovedRejectedMessage', 'Do you want to edit an expense which has already been approved or rejected?'),
-                header: t('expenses.editExpense', 'Edit Expense'),
-                icon: 'pi pi-info-circle',
-                defaultFocus: 'reject',
-                rejectClassName: 'p-button-danger',
-                accept: () => startMobileEdit(item),
-                reject: () => {
-                    showToast(toastRef, { severity: 'info', summary: t('toast.info'), detail: t('expenses.editCancelled', 'Edit cancelled') })
-                },
-            })
-            return
-        }
-        startMobileEdit(item)
-    }
-
     // Handle saving row edit
     const handleRowSaveComplete = async (editEvent) => {
         const updatedExpenseItems = [...expenseItems]
         const expenseId = editEvent.newData.transactionId
-        // Use ref to get the latest changes (React state may not be updated yet)
-        const changesFromExpansion = unsavedExpansionChangesRef.current[expenseId] || {}
 
-
-        // Merge the row edits with any expansion area changes
+        // Merge the row edits
         const updated = updatedExpenseItems[editEvent.index] = {
             ...expenseItems[editEvent.index],
             ...editEvent.newData,
-            ...changesFromExpansion,
         }
 
         setCurrentlyEditingRowId(null)
 
-        // Restore original row data and clear expansion changes on validation failure
+        // Restore original row data on validation failure
         const restoreOriginalRow = () => {
             const original = originalExpenseData[expenseId]
             if (original) {
                 setExpenseItems(prev => prev.map(e => e.transactionId === expenseId ? { ...original } : e))
             }
-            setUnsavedExpansionChanges(prev => {
-                const cleaned = { ...prev }
-                delete cleaned[expenseId]
-                unsavedExpansionChangesRef.current = cleaned
-                return cleaned
-            })
         }
 
         // Validate expense fields
@@ -206,15 +114,6 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
         // In CREATE mode: only update local state, don't send to server
         // The data will be sent when the claim is submitted
         if (mode === VIEW_MODE.CREATE) {
-
-            // Clear the temporary expansion changes for this row
-            setUnsavedExpansionChanges(previousChanges => {
-                const cleanedChanges = { ...previousChanges }
-                delete cleanedChanges[expenseId]
-                unsavedExpansionChangesRef.current = cleanedChanges
-                return cleanedChanges
-            })
-
             // Save all changes to parent
             saveExpenseItemsToParent(updatedExpenseItems)
             showToast(toastRef, { severity: 'success', summary: t('common.success'), detail: t('claims.expenseUpdatedLocally') })
@@ -258,7 +157,6 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
         const deletedReceiptIds = updated.deletedReceiptIds || []
         const newAttachments = updated.attachment || []
 
-
         // Append new files
         newAttachments.forEach((att, index) => {
             if (att?.file instanceof File) {
@@ -268,7 +166,6 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
 
         // Append deleted receipt IDs (supports array, string, or single number)
         if (Array.isArray(deletedReceiptIds) && deletedReceiptIds.length > 0) {
-            // Append both array form and comma string for maximum compatibility
             deletedReceiptIds.forEach(id => formData.append('deleteReceiptIds[]', String(id)))
             const receiptIdsStr = deletedReceiptIds.join(',')
             formData.append('deleteReceiptIds', receiptIdsStr)
@@ -279,24 +176,8 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
             }
         }
 
-        // If attachments were explicitly cleared in expansion area, signal full deletion
-        const hasAttachmentChange = Object.prototype.hasOwnProperty.call(changesFromExpansion, 'attachment')
-        const deleteAll = hasAttachmentChange && newAttachments.length === 0 && deletedReceiptIds.length === 0
-        if (deleteAll) {
-            formData.append('deleteAttachment', 'true')
-        }
-
         // Laravel PUT workaround: add _method field to make POST work as PUT
         formData.append('_method', 'PUT')
-
-        // Debug: log FormData contents to verify payload
-        try {
-            for (const _entry of formData.entries()) {
-                // intentionally empty
-            }
-        } catch {
-            // intentionally empty
-        }
 
         const response = await api.post(`expenses/${expenseId}`, formData)
 
@@ -330,17 +211,8 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
             };
         }
 
-        // Clear the temporary expansion changes for this row
-        setUnsavedExpansionChanges(previousChanges => {
-            const cleanedChanges = { ...previousChanges }
-            delete cleanedChanges[expenseId]
-            unsavedExpansionChangesRef.current = cleanedChanges
-            return cleanedChanges
-        })
-
         // Save mileage header + transactions if mileage was edited
-        // Check expansion changes (desktop) or newData.mileage (mobile dialog)
-        if (changesFromExpansion.mileage || editEvent.newData?.mileage) {
+        if (editEvent.newData?.mileage) {
             const mileage = updated.mileage
             const mileageId = mileage?.mileage_id
             if (mileageId) {
@@ -360,7 +232,6 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                     const hasFileChanges = newFiles.length > 0 || txDeletedIds.length > 0
 
                     if (hasFileChanges) {
-                        // Use FormData when there are receipt changes
                         const mileageFormData = new FormData()
                         mileageFormData.append('_method', 'PUT')
                         mileageFormData.append('travel_from', tx.travel_from ?? '')
@@ -395,8 +266,6 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
         saveExpenseItemsToParent(updatedExpenseItems)
         showToast(toastRef, { severity: 'success', summary: t('common.success'), detail: t('claims.updatedSuccessfully') })
     }
-    // Keep ref in sync for mobile edit hook
-    handleRowSaveCompleteRef.current = handleRowSaveComplete
 
     // Delete an expense item (Soft Delete)
     const deleteExpenseItem = (transactionId) => {
@@ -510,15 +379,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
     }
 
     // Track which expenses are currently being processed (approve/reject in flight)
-    const [processingExpenses, setProcessingExpenses] = useState(new Set())
-
-    const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false)
-    const [currentTransactionIndex, setCurrentTransactionIndex] = useState(-1)
-
-    const openTransactionDialog = (index) => {
-        setCurrentTransactionIndex(index)
-        setIsTransactionDialogOpen(true)
-    }
+    // (processingExpenses state moved to top)
 
     const handleDialogSave = async (updatedTransaction) => {
         // Find index of transaction in expenseItems
@@ -622,7 +483,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
 
     const isPending = curClaim?.claim_status_id === APPROVAL_STATUS.PENDING
     const isAdminOrApprover = authUser?.role_name === ROLE_NAME.SUPER_ADMIN || authUser?.role_name === ROLE_NAME.ADMIN || authUser?.role_name === ROLE_NAME.APPROVER
-    const showClaimApprovalButtons = mode === VIEW_MODE.EDIT && isPending && isAdminOrApprover
+    const showClaimApprovalButtons = (mode === VIEW_MODE.EDIT || mode === VIEW_MODE.VIEW) && isPending && isAdminOrApprover
 
     const handleApproveClaim = () => {
         confirmDialog({
@@ -718,18 +579,13 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
         costCentres.map(opt => [opt.cost_centre_id, `${opt.cost_centre_code} - ${opt.description}`]),
     )
 
-    // Get selected expense detail for mobile full-screen view
-    const selectedExpense = mobileExpandedId
-        ? expenseItems.find(item => item.transactionId === mobileExpandedId)
-        : null
-
     // Mobile expense card (summary only, tappable) — plain render function to avoid remount
     const renderMobileExpenseCard = (item) => {
         const _isProcessed = item.status === APPROVAL_STATUS.APPROVED || item.status === APPROVAL_STATUS.REJECTED
         return (
             <div
                 className="admin-card cursor-pointer"
-                onClick={() => setMobileExpandedId(item.transactionId)}
+                onClick={() => openTransactionDialog(expenseItems.indexOf(item))}
             >
                 <div className="admin-card-header">
                     <div className="flex-1 min-w-0">
@@ -745,141 +601,15 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                     </div>
                     <div className="flex items-center gap-2">
                         {mode !== VIEW_MODE.CREATE && <StatusTab status={item.status} />}
-                        <i className="pi pi-chevron-right text-gray-400 text-xs" />
+                        <i className="pi pi-pencil text-gray-400 text-xs" />
                     </div>
                 </div>
             </div>
         )
     }
 
-    // Mobile full-screen detail view — plain render function to avoid remount
-    const renderMobileDetailView = (item) => {
-        const isProcessed = item.status === APPROVAL_STATUS.APPROVED || item.status === APPROVAL_STATUS.REJECTED
-        return (
-            <div className="mobile-expense-detail">
-                {/* Header with back button */}
-                <div className="mobile-expense-detail-header">
-                    <Button
-                        icon="pi pi-arrow-left"
-                        text
-                        rounded
-                        severity="secondary"
-                        onClick={() => setMobileExpandedId(null)}
-                        className="!p-1"
-                        type="button"
-                    />
-                    <h4 className="text-base font-semibold flex-1">
-                        {t('expenses.title')} #{item.transactionId}
-                    </h4>
-                    {mode !== VIEW_MODE.CREATE && <StatusTab status={item.status} />}
-                    {mode !== VIEW_MODE.VIEW && (
-                        <div className="flex items-center gap-1">
-                            <Button
-                                icon="pi pi-pencil"
-                                text
-                                rounded
-                                severity="info"
-                                onClick={() => handleMobileEditStart(item)}
-                                className="!p-1"
-                                type="button"
-                            />
-                            <Button
-                                icon="pi pi-trash"
-                                text
-                                rounded
-                                severity="danger"
-                                onClick={() => {
-                                    deleteExpenseItem(item.transactionId)
-                                    setMobileExpandedId(null)
-                                }}
-                                className="!p-1"
-                                type="button"
-                            />
-                        </div>
-                    )}
-                </div>
-
-                {/* Detail fields (read-only) */}
-                <div className="mobile-expense-detail-body">
-                    <div className="mobile-detail-row">
-                        <span className="mobile-detail-label">{t('expenses.amount')}</span>
-                        <span className="mobile-detail-value font-semibold">{formatCurrency(item.amount)}</span>
-                    </div>
-                    <div className="mobile-detail-row">
-                        <span className="mobile-detail-label">{t('expenses.transactionDate')}</span>
-                        <span className="mobile-detail-value">{item.transactionDate || '—'}</span>
-                    </div>
-                    <div className="mobile-detail-row">
-                        <span className="mobile-detail-label">{t('expenses.vendor')}</span>
-                        <span className="mobile-detail-value">{item.vendor || '—'}</span>
-                    </div>
-                    <div className="mobile-detail-row">
-                        <span className="mobile-detail-label">{t('expenses.buyer')}</span>
-                        <span className="mobile-detail-value">{item.buyer || '—'}</span>
-                    </div>
-                    <div className="mobile-detail-row">
-                        <span className="mobile-detail-label">{t('expenses.accountNumber')}</span>
-                        <span className="mobile-detail-value text-sm">{accountNumMap[item.accountNum] || '—'}</span>
-                    </div>
-                    <div className="mobile-detail-row">
-                        <span className="mobile-detail-label">{t('expenses.costCentre')}</span>
-                        <span className="mobile-detail-value text-sm">{costCentreMap[item.costCentre] || '—'}</span>
-                    </div>
-                    {item.description && (
-                        <div className="mobile-detail-row-stacked">
-                            <span className="mobile-detail-label">{t('expenses.description')}</span>
-                            <p className="mobile-detail-text">{item.description}</p>
-                        </div>
-                    )}
-                </div>
-
-                {/* Expansion content (program, tags, notes, attachments) */}
-                <div className="mobile-expense-detail-expansion">
-                    <ClaimRowExpansion
-                        rowData={item}
-                        editingRowId={currentlyEditingRowId}
-                        claimItems={expenseItems}
-                        expandedRowData={unsavedExpansionChanges}
-                        handleInputChange={handleExpansionFieldChange}
-                        mode={mode}
-                    />
-                </div>
-
-                {/* Action buttons */}
-                {mode === VIEW_MODE.EDIT && (
-                    <div className="mobile-expense-detail-actions">
-                        <Button
-                            icon="pi pi-check"
-                            size="small"
-                            outlined
-                            severity="success"
-                            label={t('claims.approve', 'Approve')}
-                            onClick={() => approveExpense(item.transactionId)}
-                            disabled={isProcessed || processingExpenses.has(item.transactionId)}
-                            loading={processingExpenses.has(item.transactionId)}
-                            type="button"
-                        />
-                        <Button
-                            icon="pi pi-times"
-                            size="small"
-                            outlined
-                            severity="danger"
-                            label={t('claims.reject', 'Reject')}
-                            onClick={() => rejectExpense(item.transactionId)}
-                            disabled={isProcessed || processingExpenses.has(item.transactionId)}
-                            type="button"
-                        />
-                    </div>
-                )}
-            </div>
-        )
-    }
-
-    // Mobile view: show list or detail — plain render function to avoid remount
+    // Mobile view: show list — plain render function to avoid remount
     const renderMobileView = () => {
-        if (selectedExpense) {
-            return renderMobileDetailView(selectedExpense)
-        }
         return (
             <div className="admin-mobile-list">
                 {expenseItems.map(item => (
@@ -1088,184 +818,6 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                 isAdminOrApprover={isAdminOrApprover}
                 mode={mode}
             />
-
-            {/* Mobile Edit Dialog */}
-            <Dialog
-                header={t('expenses.editExpense', 'Edit Expense')}
-                visible={!!mobileEditData}
-                style={{ width: '90vw', maxWidth: '450px' }}
-                onHide={() => cancelMobileEdit()}
-                className="mobile-edit-dialog"
-                footer={
-                    <div className="flex justify-end gap-2">
-                        <Button label={t('common.cancel', 'Cancel')} icon="pi pi-times" outlined onClick={() => cancelMobileEdit()} type="button" />
-                        <Button label={t('common.save', 'Save')} icon="pi pi-check" onClick={saveMobileEdit} type="button" />
-                    </div>
-                }
-            >
-                {mobileEditData && (
-                    <div className="flex flex-col gap-4">
-                        <div className="relative">
-                            <div className="flex items-center gap-2 mb-2">
-                                <label className="block text-sm font-medium">{t('expenses.amount')}*</label>
-                                {mobileEditErrors.amount && <span className="text-status-danger text-xs">({t(mobileEditErrors.amount)})</span>}
-                            </div>
-                            <InputNumber
-                                value={mobileEditData.amount}
-                                onValueChange={(e) => updateMobileField('amount', e.value)}
-                                mode="currency"
-                                currency={APP_SETTINGS.currency.code}
-                                locale={APP_SETTINGS.currency.locale}
-                                className="w-full"
-                                inputClassName="text-right"
-                            />
-                        </div>
-                        <Input
-                            name="transactionDate"
-                            label={t('expenses.transactionDate') + '*'}
-                            type="date"
-                            value={mobileEditData.transactionDate || ''}
-                            onChange={(e) => updateMobileField('transactionDate', e.target.value)}
-                            errors={mobileEditErrors}
-                        />
-                        <Input
-                            name="vendor"
-                            label={t('expenses.vendor') + '*'}
-                            value={mobileEditData.vendor || ''}
-                            onChange={(e) => updateMobileField('vendor', e.target.value)}
-                            errors={mobileEditErrors}
-                        />
-                        <Input
-                            name="buyer"
-                            label={t('expenses.buyer') + '*'}
-                            value={mobileEditData.buyer || ''}
-                            onChange={(e) => updateMobileField('buyer', e.target.value)}
-                            errors={mobileEditErrors}
-                        />
-                        <Select
-                            name="accountNum"
-                            label={t('expenses.accountNumber') + '*'}
-                            value={mobileEditData.accountNum}
-                            onChange={(e) => updateMobileField('accountNum', e.target.value)}
-                            options={accountNums.map(opt => ({
-                                label: `${opt.account_number} - ${opt.description}`,
-                                value: opt.account_number_id,
-                            }))}
-                            placeholder={t('expenses.selectAccountNumber', 'Select account')}
-                            errors={mobileEditErrors}
-                        />
-                        <Select
-                            name="costCentre"
-                            label={t('expenses.costCentre') + '*'}
-                            value={mobileEditData.costCentre}
-                            onChange={(e) => updateMobileField('costCentre', e.target.value)}
-                            options={costCentres.map(opt => ({
-                                label: `${opt.cost_centre_code} - ${opt.description}`,
-                                value: opt.cost_centre_id,
-                            }))}
-                            placeholder={t('expenses.selectCostCentre', 'Select cost centre')}
-                            errors={mobileEditErrors}
-                        />
-
-                        {/* Mileage Transactions */}
-                        {mobileEditData.mileage?.transactions?.length > 0 && (
-                            <div className="border-t pt-4 mt-2">
-                                <h5 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                                    <i className="pi pi-car text-blue-500" />
-                                    {t('mileage.title', 'Mileage')}
-                                </h5>
-                                {mobileEditData.mileage.transactions.map((tx, idx) => {
-                                    const txErrs = mobileEditErrors.mileageTx?.[idx] || {}
-                                    const mappedErrors = {}
-                                    Object.entries(txErrs).forEach(([field, msgKey]) => {
-                                        const nameMap = {
-                                            transaction_date: `tx_date_${idx}`,
-                                            travel_from: `tx_travel_from_${idx}`,
-                                            travel_to: `tx_travel_to_${idx}`,
-                                            distance_km: `tx_distance_${idx}`,
-                                            meter_km: `tx_meter_${idx}`,
-                                            parking_amount: `tx_parking_${idx}`,
-                                            buyer: `tx_buyer_${idx}`,
-                                        }
-                                        mappedErrors[nameMap[field] || field] = msgKey
-                                    })
-                                    return (
-                                    <div key={idx} className="border border-gray-200 rounded-lg p-3 mb-3">
-                                        <p className="text-xs font-semibold text-gray-500 mb-2">
-                                            {t('mileage.transaction', 'Transaction')} #{idx + 1}
-                                        </p>
-                                        <div className="flex flex-col gap-3">
-                                            <Input
-                                                name={`tx_date_${idx}`}
-                                                label={t('mileage.transactionDate', 'Date') + '*'}
-                                                type="date"
-                                                value={tx.transaction_date?.substring(0, 10) || ''}
-                                                onChange={(e) => updateMobileMileageTx(idx, 'transaction_date', e.target.value)}
-                                                errors={mappedErrors}
-                                            />
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <Input
-                                                    name={`tx_travel_from_${idx}`}
-                                                    label={t('mileage.travelFrom', 'Travel From') + '*'}
-                                                    value={tx.travel_from || ''}
-                                                    onChange={(e) => updateMobileMileageTx(idx, 'travel_from', e.target.value)}
-                                                    errors={mappedErrors}
-                                                />
-                                                <Input
-                                                    name={`tx_travel_to_${idx}`}
-                                                    label={t('mileage.travelTo', 'Travel To') + '*'}
-                                                    value={tx.travel_to || ''}
-                                                    onChange={(e) => updateMobileMileageTx(idx, 'travel_to', e.target.value)}
-                                                    errors={mappedErrors}
-                                                />
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <Input
-                                                    name={`tx_distance_${idx}`}
-                                                    label={t('mileage.distance', 'Distance (km)')}
-                                                    inputMode="decimal"
-                                                    value={tx.distance_km ?? ''}
-                                                    onChange={(e) => updateMobileMileageTx(idx, 'distance_km', e.target.value)}
-                                                    errors={mappedErrors}
-                                                />
-                                                <Input
-                                                    name={`tx_buyer_${idx}`}
-                                                    label={t('mileage.buyer', 'Buyer') + '*'}
-                                                    value={tx.buyer || ''}
-                                                    onChange={(e) => updateMobileMileageTx(idx, 'buyer', e.target.value)}
-                                                    errors={mappedErrors}
-                                                />
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <Input
-                                                    name={`tx_meter_${idx}`}
-                                                    label={t('mileage.meter', 'Meter (Max. $5)')}
-                                                    inputMode="decimal"
-                                                    value={tx.meter_km ?? ''}
-                                                    onChange={(e) => updateMobileMileageTx(idx, 'meter_km', e.target.value)}
-                                                    errors={mappedErrors}
-                                                />
-                                                <Input
-                                                    name={`tx_parking_${idx}`}
-                                                    label={t('mileage.parking', 'Parking ($)')}
-                                                    inputMode="decimal"
-                                                    value={tx.parking_amount ?? ''}
-                                                    onChange={(e) => updateMobileMileageTx(idx, 'parking_amount', e.target.value)}
-                                                    errors={mappedErrors}
-                                                />
-                                            </div>
-                                            <div className="text-right text-sm font-semibold text-blue-700">
-                                                {t('common.total', 'Total')}: {formatCurrency(tx.total_amount)}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    )
-                                })}
-                            </div>
-                        )}
-                    </div>
-                )}
-            </Dialog>
         </div>
     )
 

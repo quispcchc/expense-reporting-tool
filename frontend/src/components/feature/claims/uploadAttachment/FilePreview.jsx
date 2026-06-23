@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { getFileIcon } from '../../../../utils/getFileIcon.jsx'
 
-function FilePreview({ selectedFile, showRemoveButton = true, handleRemoveFile }) {
+function FilePreview({ selectedFile, showRemoveButton = true, handleRemoveFile, hidePreviewButton = false }) {
     const [objectUrl, setObjectUrl] = useState(null)
     const [showPreview, setShowPreview] = useState(false)
 
@@ -49,7 +49,7 @@ function FilePreview({ selectedFile, showRemoveButton = true, handleRemoveFile }
                 >
                     {fileName}
                 </a>
-                {canPreview && (
+                {canPreview && !hidePreviewButton && (
                     <button
                         type="button"
                         onClick={() => setShowPreview(v => !v)}

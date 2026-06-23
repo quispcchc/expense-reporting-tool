@@ -4,7 +4,7 @@ import AttachmentList from '../uploadAttachment/AttachmentList.jsx'
 import { useTranslation } from 'react-i18next'
 
 // Customized expanded row: attachment editing dropdown in datatable
-function ClaimExpansionAttachmentRow({ label, file, isEditing, rowData, handleInputChange }) {
+function ClaimExpansionAttachmentRow({ label, file, isEditing, rowData, handleInputChange, hideUploadButton = false, hideFileList = false, hidePreviewButton = false }) {
     const { t } = useTranslation()
 
     // Handle new files selected by user (supports multiple files)
@@ -63,6 +63,8 @@ function ClaimExpansionAttachmentRow({ label, file, isEditing, rowData, handleIn
 
     // Render the list of attachments or show message if none exist
     const renderAttachment = (file, showRemoveButton) => {
+        if (hideFileList) return null;
+        
         const attachments = Array.isArray(file) ? file : (file ? [file] : []);
 
         if (attachments.length === 0) {
@@ -74,21 +76,24 @@ function ClaimExpansionAttachmentRow({ label, file, isEditing, rowData, handleIn
                 files={attachments}
                 onRemoveFile={handleRemoveFile}
                 showRemoveButton={showRemoveButton}
+                hidePreviewButton={hidePreviewButton}
             />
         );
     }
 
     return (
         <div className="flex items-start gap-4">
-            <label className="text-sm font-semibold text-gray-700 min-w-[150px] pt-2">
-                {label}
-            </label>
+            {label && (
+                <label className="text-sm font-semibold text-gray-700 min-w-[150px] pt-2">
+                    {label}
+                </label>
+            )}
             <div className="flex-1">
 
                 {isEditing ? (
                     <>
                         {/* Show upload button and allow removal if editing */}
-                        <Upload handleFileSelect={handleFileSelect} />
+                        {!hideUploadButton && <Upload handleFileSelect={handleFileSelect} />}
                         {renderAttachment(file, true)}
                     </>
                 ) : (
