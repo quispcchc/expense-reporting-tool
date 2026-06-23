@@ -186,7 +186,7 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
         if (serverExpense) {
             const mappedReceipts = Array.isArray(serverExpense.receipts)
                 ? serverExpense.receipts.map(r => ({
-                    url: `${API_BASE_URL}/storage/${r.receipt_path}`,
+                    url: `${API_BASE_URL}/api/storage/${r.receipt_path}`,
                     name: r.receipt_name,
                     receipt_id: r.receipt_id,
                 }))
@@ -532,7 +532,8 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
     }
 
     const renderActionsButton = (rowData) => {
-        const isProcessed = rowData.status === APPROVAL_STATUS.APPROVED || rowData.status === APPROVAL_STATUS.REJECTED
+        const rowStatus = Number(rowData.status)
+        const isProcessed = rowStatus === APPROVAL_STATUS.APPROVED || rowStatus === APPROVAL_STATUS.REJECTED
         const isProcessing = processingExpenses.has(rowData.transactionId)
 
         return (

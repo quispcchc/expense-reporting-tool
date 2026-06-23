@@ -11,6 +11,7 @@ import { BUTTON_STYLE } from '../../../../utils/customizeStyle.js';
 import TagMultiSelect from '../TagMultiSelect.jsx';
 import ClaimExpansionAttachmentRow from './ClaimExpansionAttachmentRow.jsx';
 import { APPROVAL_STATUS } from '../../../../config/constants.js';
+import { API_BASE_URL } from '../../../../api/api.js';
 
 function TransactionEditDialog({
     visible,
@@ -76,15 +77,15 @@ function TransactionEditDialog({
         }
     };
 
-    const isProcessed = formData.status === APPROVAL_STATUS.APPROVED || formData.status === APPROVAL_STATUS.REJECTED;
+    const isProcessed = Number(formData.status) === APPROVAL_STATUS.APPROVED || Number(formData.status) === APPROVAL_STATUS.REJECTED;
 
     const header = (
-        <div className="flex flex-col sm:flex-row justify-between items-center w-full gap-4 pr-10 py-1">
-            <div className="flex items-center gap-4">
-                <span className="text-xl font-extrabold text-gray-800 shrink-0">
-                    {t('expenses.editExpense', 'Edit Expense')} #{formData.transactionId}
+        <div className="flex flex-col lg:flex-row justify-between items-center w-full gap-4 pr-10 lg:pr-12 py-1">
+            <div className="flex items-center gap-3 w-full lg:w-auto overflow-hidden">
+                <span className="text-lg lg:text-xl font-extrabold text-gray-800 shrink-0 truncate">
+                    {t('expenses.editExpense', 'Edit')} #{formData.transactionId}
                 </span>
-                <div className="flex items-center bg-gray-100 rounded-full px-2 py-1 border border-gray-200">
+                <div className="flex items-center bg-gray-100 rounded-full px-1 py-1 border border-gray-200 shrink-0 scale-90 lg:scale-100 origin-left">
                     <Button
                         icon="pi pi-chevron-left"
                         onClick={onPrev}
@@ -106,7 +107,7 @@ function TransactionEditDialog({
             </div>
 
             {isAdminOrApprover && mode !== 'VIEW' && (
-                <div className="flex gap-3">
+                <div className="flex gap-2 w-full lg:w-auto justify-end">
                     <Button
                         label={t('claims.reject', 'Reject')}
                         icon="pi pi-times"
@@ -116,7 +117,7 @@ function TransactionEditDialog({
                         disabled={isProcessed || processing}
                         loading={processing}
                         type="button"
-                        className="p-button-sm font-bold"
+                        className="p-button-sm font-bold flex-1 lg:flex-none"
                     />
                     <Button
                         label={t('claims.approve', 'Approve')}
@@ -127,7 +128,7 @@ function TransactionEditDialog({
                         disabled={isProcessed || processing}
                         loading={processing}
                         type="button"
-                        className="p-button-sm font-bold"
+                        className="p-button-sm font-bold flex-1 lg:flex-none"
                     />
                 </div>
             )}
@@ -292,7 +293,7 @@ function TransactionEditDialog({
                             <div className="space-y-8">
                                 {attachments.map((file, index) => {
                                     const fileName = file.file ? file.file.name : (file.name || 'Attachment');
-                                    const url = file.url || (file.path ? `${APP_SETTINGS.apiBaseUrl}/storage/${file.path}` : null);
+                                    const url = file.url || (file.receipt_path ? `${API_BASE_URL}/api/storage/${file.receipt_path}` : null);
                                     const ext = fileName.split('.').pop().toLowerCase();
                                     const isImage = ['png', 'jpg', 'jpeg', 'gif'].includes(ext);
                                     const isPdf = ext === 'pdf';
