@@ -168,12 +168,12 @@ function TransactionEditDialog({
             modal
             className="transaction-edit-dialog"
             contentClassName="!p-0"
-            contentStyle={{ height: 'calc(95vh - 220px)', minHeight: '300px', overflowY: 'hidden' }}
+            contentStyle={{ height: 'calc(95vh - 250px)', minHeight: '300px', overflowY: 'hidden' }}
         >
             <div className="flex flex-col lg:flex-row h-full overflow-hidden">
                 {/* Left Side: Editable Details with own scroll */}
-                <div className="flex-1 overflow-y-auto p-6 border-b lg:border-b-0 lg:border-r bg-gray-50/20">
-                    <div className="max-w-3xl mx-auto space-y-6 pb-10">
+                <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 border-b lg:border-b-0 lg:border-r bg-gray-50/20">
+                    <div className="max-w-3xl mx-auto space-y-6 pb-32">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <div className="flex flex-col gap-2">
                                 <label className="text-sm font-semibold text-gray-700">{t('expenses.transactionDate')}</label>
@@ -262,8 +262,8 @@ function TransactionEditDialog({
                 </div>
 
                 {/* Right Side: Attachments with own scroll */}
-                <div className="flex-1 overflow-y-auto p-6 bg-white">
-                    <div className="max-w-3xl mx-auto pb-10">
+                <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 bg-white">
+                    <div className="max-w-3xl mx-auto pb-32">
                         <div className="flex items-center justify-between mb-6">
                             <h3 className="text-lg font-bold text-gray-800">{t('expenses.attachments', 'Attachments')}</h3>
                             <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
