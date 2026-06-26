@@ -62,7 +62,7 @@ function ClaimForm({ claimFormData, onFieldChange, errors, includeMileage, onMil
                         {t('claimForm.bankStatementDescription')}
                     </p>
                     <div className="flex justify-center items-center border border-gray-300 border-dashed rounded-md p-5 bg-gray-50 hover:bg-gray-100 transition-colors">
-                        <label className={`p-button p-component p-button-outlined p-2 cursor-pointer flex items-center gap-2 ${isExtracting ? 'opacity-50 pointer-events-none' : ''}`}>
+                        <label className={`p-button p-component p-button-outlined p-2 cursor-pointer flex items-center gap-2 ${isExtracting ? 'p-disabled opacity-50' : ''}`}>
                             {isExtracting
                                 ? t('claimForm.extracting')
                                 : t('claimForm.uploadBankStatement')}

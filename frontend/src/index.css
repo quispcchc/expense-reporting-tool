@@ -5,6 +5,15 @@
 @import 'primereact/resources/primereact.min.css';
 @import 'primeicons/primeicons.css';
 
+/* Global cursor for disabled elements */
+button:disabled,
+.p-button:disabled,
+.p-disabled,
+[disabled] {
+    cursor: not-allowed !important;
+    pointer-events: auto !important;
+}
+
 /* ============================================
    CSS Custom Properties (Theme Variables)
    ============================================ */
