@@ -4,8 +4,8 @@ import TagMultiSelect from '../TagMultiSelect.jsx'
 // Consistent multi-select row for tags, matching ClaimExpansionInputRow style
 function ClaimExpansionTagRow({ label, field, value, isEditing, rowData, handleInputChange }) {
     return (
-        <div className="flex items-center gap-4">
-            <label className="text-sm font-semibold min-w-[150px]">
+        <div className="flex items-start gap-4">
+            <label className="text-sm font-semibold min-w-[150px] pt-2">
                 {label}
             </label>
             <div className="flex-1">

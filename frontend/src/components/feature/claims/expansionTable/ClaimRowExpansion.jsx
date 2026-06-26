@@ -34,67 +34,76 @@ function ClaimRowExpansion({
     return (
         <div
             key={`expansion-${displayData.transactionId}`}
-            className="px-18"
+            className="px-18 py-4"
         >
-            <div className="grid grid-cols-1 gap-4">
-                <ClaimExpansionDropdownRow
-                    label={t('expenses.program')}
-                    field="program"
-                    placeholder={t('expenses.selectProgram', 'Please select the program')}
-                    options={projects.map(
-                        opt => ({ label: `${opt.project_name} - ${opt.project_desc}`, value: opt.project_id }))}
-                    isEditing={isEditing}
-                    rowData={rowData}
-                    value={displayData.program || ''}
-                    handleInputChange={handleInputChange}
-                />
-
-                <ClaimExpansionMultiSelectRow
-                    label={t('expenses.tags', 'Tags')}
-                    field="tags"
-                    isEditing={isEditing}
-                    rowData={rowData}
-                    value={Array.isArray(displayData.tags)
-                        ? displayData.tags
-                        : (displayData.tags ? [displayData.tags] : [])}
-                    handleInputChange={handleInputChange}
-                />
-
-                <ClaimExpansionInputRow
-                    label={t('expenses.description')}
-                    field="description"
-                    isEditing={isEditing}
-                    rowData={rowData}
-                    value={displayData.description || ''}
-                    handleInputChange={handleInputChange}
-                />
-
-                <ClaimExpansionInputRow
-                    label={t('expenses.notes')}
-                    field="notes"
-                    isEditing={isEditing}
-                    rowData={rowData}
-                    value={displayData.notes || ''}
-                    handleInputChange={handleInputChange}
-                />
-
-                <ClaimExpansionAttachmentRow
-                    label={t('expenses.attachments')}
-                    isEditing={isEditing}
-                    file={displayData.attachment || null}
-                    rowData={rowData}
-                    handleInputChange={handleInputChange}
-                    mode={mode}
-                />
-
-                {displayData.mileage?.transactions?.length > 0 && (
-                    <MileageDetailsSection
-                        mileage={displayData.mileage}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
+                {/* Left Column */}
+                <div className="space-y-4">
+                    <ClaimExpansionDropdownRow
+                        label={t('expenses.program')}
+                        field="program"
+                        placeholder={t('expenses.selectProgram', 'Please select the program')}
+                        options={projects.map(
+                            opt => ({ label: `${opt.project_name} - ${opt.project_desc}`, value: opt.project_id }))}
                         isEditing={isEditing}
                         rowData={rowData}
+                        value={displayData.program || ''}
                         handleInputChange={handleInputChange}
                     />
-                )}
+
+                    <ClaimExpansionInputRow
+                        label={t('expenses.description')}
+                        field="description"
+                        isEditing={isEditing}
+                        rowData={rowData}
+                        value={displayData.description || ''}
+                        handleInputChange={handleInputChange}
+                    />
+
+                    <ClaimExpansionInputRow
+                        label={t('expenses.notes')}
+                        field="notes"
+                        isEditing={isEditing}
+                        rowData={rowData}
+                        value={displayData.notes || ''}
+                        handleInputChange={handleInputChange}
+                        type="textarea"
+                    />
+                </div>
+
+                {/* Right Column */}
+                <div className="space-y-4">
+                    <ClaimExpansionMultiSelectRow
+                        label={t('expenses.tags', 'Tags')}
+                        field="tags"
+                        isEditing={isEditing}
+                        rowData={rowData}
+                        value={Array.isArray(displayData.tags)
+                            ? displayData.tags
+                            : (displayData.tags ? [displayData.tags] : [])}
+                        handleInputChange={handleInputChange}
+                    />
+
+                    <ClaimExpansionAttachmentRow
+                        label={t('expenses.attachments')}
+                        isEditing={isEditing}
+                        file={displayData.attachment || null}
+                        rowData={rowData}
+                        handleInputChange={handleInputChange}
+                        mode={mode}
+                    />
+
+                    {displayData.mileage?.transactions?.length > 0 && (
+                        <div className="mt-4">
+                            <MileageDetailsSection
+                                mileage={displayData.mileage}
+                                isEditing={isEditing}
+                                rowData={rowData}
+                                handleInputChange={handleInputChange}
+                            />
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     )

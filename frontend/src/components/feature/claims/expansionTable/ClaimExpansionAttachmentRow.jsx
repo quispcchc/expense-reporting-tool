@@ -4,8 +4,11 @@ import AttachmentList from '../uploadAttachment/AttachmentList.jsx'
 import { useTranslation } from 'react-i18next'
 
 // Customized expanded row: attachment editing dropdown in datatable
-function ClaimExpansionAttachmentRow({ label, file, isEditing, rowData, handleInputChange, hideUploadButton = false, hideFileList = false, hidePreviewButton = false }) {
+function ClaimExpansionAttachmentRow({ label, file, isEditing, rowData, handleInputChange, mode, hideUploadButton = false, hideFileList = false, hidePreviewButton = false }) {
     const { t } = useTranslation()
+
+    // Can only edit (upload/remove) if in create mode or explicitly told we are editing
+    const canEdit = isEditing && (mode === 'create' || !mode);
 
     // Handle new files selected by user (supports multiple files)
     const handleFileSelect = (e) => {
@@ -90,7 +93,7 @@ function ClaimExpansionAttachmentRow({ label, file, isEditing, rowData, handleIn
             )}
             <div className="flex-1">
 
-                {isEditing ? (
+                {canEdit ? (
                     <>
                         {/* Show upload button and allow removal if editing */}
                         {!hideUploadButton && <Upload handleFileSelect={handleFileSelect} />}

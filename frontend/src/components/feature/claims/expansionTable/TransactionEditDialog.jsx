@@ -244,17 +244,17 @@ function TransactionEditDialog({
                         </div>
 
                         <Input
-                            label={t('expenses.description')}
-                            value={formData.description || ''}
-                            onChange={(e) => handleInputChange('description', e.target.value)}
+                            label={t('expenses.notes')}
+                            value={formData.notes || ''}
+                            onChange={(e) => handleInputChange('notes', e.target.value)}
                             textarea
                             rows={3}
                         />
 
                         <Input
-                            label={t('expenses.notes')}
-                            value={formData.notes || ''}
-                            onChange={(e) => handleInputChange('notes', e.target.value)}
+                            label={t('expenses.description')}
+                            value={formData.description || ''}
+                            onChange={(e) => handleInputChange('description', e.target.value)}
                             textarea
                             rows={3}
                         />
@@ -314,14 +314,24 @@ function TransactionEditDialog({
                                                     >
                                                         <i className="pi pi-external-link text-sm"></i>
                                                     </a>
-                                                    <button 
-                                                        onClick={() => handleRemoveFile(index)}
-                                                        className="text-red-500 hover:text-red-700 p-1"
-                                                        title={t('common.remove', 'Remove')}
-                                                        type="button"
+                                                    <a 
+                                                        href={url} 
+                                                        download={fileName}
+                                                        className="text-green-600 hover:text-green-800 p-1"
+                                                        title={t('common.download', 'Download')}
                                                     >
-                                                        <i className="pi pi-trash text-sm"></i>
-                                                    </button>
+                                                        <i className="pi pi-download text-sm"></i>
+                                                    </a>
+                                                    {mode === 'create' && (
+                                                        <button 
+                                                            onClick={() => handleRemoveFile(index)}
+                                                            className="text-red-500 hover:text-red-700 p-1"
+                                                            title={t('common.remove', 'Remove')}
+                                                            type="button"
+                                                        >
+                                                            <i className="pi pi-trash text-sm"></i>
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </div>
                                             <div className="p-2">

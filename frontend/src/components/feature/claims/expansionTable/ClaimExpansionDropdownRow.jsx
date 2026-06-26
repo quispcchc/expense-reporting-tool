@@ -4,8 +4,8 @@ import { Dropdown } from 'primereact/dropdown'
 // Customized expanded row: dropdown editing in datatable
 function ClaimExpansionDropdownRow({ label, field, value, options, placeholder, isEditing, rowData, handleInputChange }) {
     return (
-        <div className="flex items-center gap-4">
-            <label className="text-sm font-semibold text-gray-700 min-w-[150px]">
+        <div className="flex items-start gap-4">
+            <label className="text-sm font-semibold text-gray-700 min-w-[150px] pt-2">
                 {label}
             </label>
             <div className="flex-1">

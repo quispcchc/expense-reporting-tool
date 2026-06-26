@@ -34,8 +34,8 @@ function ClaimExpansionMultiSelectRow({ label, field, value, isEditing, rowData,
         return tag ? tag.tag_name : val;
     };
     return (
-        <div className="flex items-center gap-4">
-            <label className="text-sm font-semibold min-w-[150px]">
+        <div className="flex items-start gap-4">
+            <label className="text-sm font-semibold min-w-[150px] pt-2">
                 {label}
             </label>
             <div className="flex-1">

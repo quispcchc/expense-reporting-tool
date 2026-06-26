@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { getFileIcon } from '../../../../utils/getFileIcon.jsx'
 
 function FilePreview({ selectedFile, showRemoveButton = true, handleRemoveFile, hidePreviewButton = false }) {
+    const { t } = useTranslation()
     const [objectUrl, setObjectUrl] = useState(null)
     const [showPreview, setShowPreview] = useState(false)
 
