@@ -234,7 +234,10 @@ class BankStatementExtractor
 
     private function isTransactionTableEnd(string $upperLine): bool
     {
-        return (bool) preg_match('/NET\s+AMOUNT|TOTAL\s+NEW\s+BALANCE|TD\s+MESSAGE\s+CENTRE|PAYMENT\s+INFORMATION|CALCULATING\s+YOUR\s+BALANCE|CONTACT\s+INFORMATION|PAYMENT\s+DUE\s+DATE|AMOUNT\s+PAID|PREVIOUS\s+BALANCE/i', $upperLine);
+        return (bool) preg_match(
+            '/NET\s+AMOUNT\s+OF\s+MONTHLY|TOTAL\s+NEW\s+BALANCE|TD\s+MESSAGE\s+CENTRE/i',
+            $upperLine
+        );
     }
 
     private function isSideInfo(string $upperLine): bool
@@ -298,13 +301,13 @@ class BankStatementExtractor
                 continue;
             }
 
-            if ($this->isCreditCardStyle && $transactionTableModeDetected && !$insideTransactionTable) {
-                continue;
-            }
-
             if ($this->isSideInfo($upperLine)) {
                 $lastDate = null;
                 $lastVendor = null;
+                continue;
+            }
+
+            if ($this->isCreditCardStyle && $transactionTableModeDetected && !$insideTransactionTable) {
                 continue;
             }
 
@@ -756,6 +759,10 @@ class BankStatementExtractor
             return null;
         }
 
+        if (preg_match('/PREVIOUS\s+STATEMENT\s+BALANCE/i', $line)) {
+            return null;
+        }
+
         // Match a credit-card row with transaction date + posting date + description + final amount.
         // Month tokens intentionally allow OCR-normalized compact dates like OCT29 and spaced dates like OCT 29.
         $dateToken = '(?:\d{1,2}[\/\-\.]\d{1,2}(?:[\/\-\.]\d{2,4})?|(?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC)[A-Z]*\s*\d{1,2})';
@@ -785,7 +792,7 @@ class BankStatementExtractor
             'date' => $transactionDate,
             'vendor' => $vendor,
             'amount' => $amount,
-            'raw_amount' => $m[4],
+            'raw_amount' => $m[3],
         ];
     }
 
@@ -824,6 +831,8 @@ class BankStatementExtractor
         // If it's a credit card, we are slightly less strict about noise keywords 
         // as descriptions can be weird, but we still filter out common junk.
         $junkPatterns = [
+            '/YEAR\(S\)/i',
+            '/MONTH\(S\)/i',
             '/STATEMENT\s+DATE/i',
             '/PAYMENT\s+DUE/i',
             '/CREDIT\s+LIMIT/i',
