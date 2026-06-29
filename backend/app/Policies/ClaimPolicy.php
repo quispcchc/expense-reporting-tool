@@ -116,17 +116,11 @@ class ClaimPolicy
 
     public function markPaid(User $user, Claim $claim)
     {
-        $role_level = $user->role->role_level;
         $role_name = $user->role->role_name;
 
-        // Super Admin can mark any claim as paid
-        if ($role_level === RoleLevel::SUPER_ADMIN) {
-            return true;
-        }
-
-        // Finance User can mark claims as paid if they are in the same department
+        // Only Finance User can mark claims as paid (across all departments)
         if ($role_name === RoleName::FINANCE_USER) {
-            return $user->department_id === $claim->department_id;
+            return true;
         }
 
         return false;
