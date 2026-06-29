@@ -18,7 +18,7 @@ import { confirmDialog } from 'primereact/confirmdialog'
 import { useIsMobile } from '../../../hooks/useIsMobile.js'
 import { useTranslation } from 'react-i18next'
 import { formatDate } from '../../../utils/formatters.js'
-import { USER_TYPE } from '../../../config/constants.js'
+import { USER_TYPE, APPROVAL_STATUS } from '../../../config/constants.js'
 import { useClaimListFilters } from '../../../hooks/useClaimListFilters.js'
 import ClaimListFilterPanel from './ClaimListFilterPanel.jsx'
 import MobileClaimCard from './MobileClaimCard.jsx'
@@ -98,6 +98,17 @@ function ClaimListDataTable({ user, path, toastRef }) {
     const capitalize = s => s.charAt(0).toUpperCase() + s.slice(1)
 
     function executeBulkAction(action) {
+        // Validation: Only pending claims can be approved/rejected
+        const nonPendingClaims = selectedClaims.filter(claim => claim.claim_status_id !== APPROVAL_STATUS.PENDING)
+        if (nonPendingClaims.length > 0) {
+            showToast(toastRef, {
+                severity: 'warn',
+                summary: t('toast.warning', 'Warning'),
+                detail: action === 'approve' ? t('claims.onlyPendingApprove') : t('claims.onlyPendingReject')
+            })
+            return
+        }
+
         const claimIds = selectedClaims.map(claim => claim.claim_id)
 
         confirmDialog({

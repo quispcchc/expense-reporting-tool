@@ -114,6 +114,8 @@
         "bulkRejectHeader": "Bulk Reject Confirmation",
         "bulkRejectSuccess": "Selected claims has been rejected successfully!",
         "bulkRejectCancelled": "Bulk Reject Cancelled",
+        "onlyPendingApprove": "Only pending claims can be approved",
+        "onlyPendingReject": "Only pending claims can be rejected",
         "claimNumber": "Claim",
         "notes": "Notes",
         "notesDescription": "Review notes and comments for this claim.",

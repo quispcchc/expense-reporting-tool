@@ -150,38 +150,50 @@ class ClaimController extends Controller
 
     public function bulkApproveClaim(Request $request)
     {
-        $user = $request->user();
-        $claimIds = $request->claimIds;
+        try {
+            $user = $request->user();
+            $claimIds = $request->claimIds;
 
-        $claims = Claim::whereIn('claim_id', $claimIds)->get();
+            $claims = Claim::whereIn('claim_id', $claimIds)->get();
 
-        foreach ($claims as $claim) {
-            if ($user->cannot('approve', $claim)) {
-                return $this->errorResponse(trans('messages.not_authorized_approve', ['id' => $claim->claim_id]), 403);
+            foreach ($claims as $claim) {
+                if ($user->cannot('approve', $claim)) {
+                    return $this->errorResponse(trans('messages.not_authorized_approve', ['id' => $claim->claim_id]), 403);
+                }
             }
+
+            $this->claimService->bulkApproveClaim($claimIds, $user);
+
+            return $this->successResponse(['message' => trans('messages.claims_approved')]);
+        } catch (Throwable $e) {
+            Log::error('Bulk Approve Error: '.$e->getMessage());
+
+            return $this->errorResponse($e->getMessage(), 400);
         }
-
-        $this->claimService->bulkApproveClaim($claimIds, $user);
-
-        return $this->successResponse(['message' => trans('messages.claims_approved')]);
     }
 
     public function bulkRejectClaim(Request $request)
     {
-        $user = $request->user();
-        $claimIds = $request->claimIds;
+        try {
+            $user = $request->user();
+            $claimIds = $request->claimIds;
 
-        $claims = Claim::whereIn('claim_id', $claimIds)->get();
+            $claims = Claim::whereIn('claim_id', $claimIds)->get();
 
-        foreach ($claims as $claim) {
-            if ($user->cannot('reject', $claim)) {
-                return $this->errorResponse(trans('messages.not_authorized_reject', ['id' => $claim->claim_id]), 403);
+            foreach ($claims as $claim) {
+                if ($user->cannot('reject', $claim)) {
+                    return $this->errorResponse(trans('messages.not_authorized_reject', ['id' => $claim->claim_id]), 403);
+                }
             }
+
+            $this->claimService->bulkRejectClaim($claimIds, $user);
+
+            return $this->successResponse(['message' => trans('messages.claims_rejected')]);
+        } catch (Throwable $e) {
+            Log::error('Bulk Reject Error: '.$e->getMessage());
+
+            return $this->errorResponse($e->getMessage(), 400);
         }
-
-        $this->claimService->bulkRejectClaim($claimIds, $user);
-
-        return $this->successResponse(['message' => trans('messages.claims_rejected')]);
     }
 
     /**

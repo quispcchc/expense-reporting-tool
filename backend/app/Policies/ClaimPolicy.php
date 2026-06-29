@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\ClaimStatus;
 use App\Enums\ClaimType;
 use App\Enums\RoleLevel;
 use App\Enums\RoleName;
@@ -12,6 +13,11 @@ class ClaimPolicy
 {
     public function update(User $user, Claim $claim)
     {
+        // Only allow update if claim is pending
+        if ($claim->claim_status_id !== ClaimStatus::PENDING) {
+            return false;
+        }
+
         $role_level = $user->role->role_level;
 
         if ($role_level === RoleLevel::SUPER_ADMIN) {
@@ -34,6 +40,11 @@ class ClaimPolicy
 
     public function approve(User $user, Claim $claim)
     {
+        // Only allow approve if claim is pending
+        if ($claim->claim_status_id !== ClaimStatus::PENDING) {
+            return false;
+        }
+
         $role_level = $user->role->role_level;
         $role_name = $user->role->role_name;
 
@@ -75,6 +86,11 @@ class ClaimPolicy
 
     public function reject(User $user, Claim $claim)
     {
+        // Only allow reject if claim is pending
+        if ($claim->claim_status_id !== ClaimStatus::PENDING) {
+            return false;
+        }
+
         $role_level = $user->role->role_level;
         $role_name = $user->role->role_name;
 

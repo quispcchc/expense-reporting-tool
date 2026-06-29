@@ -112,6 +112,8 @@
         "bulkRejectHeader": "Confirmation de rejet en masse",
         "bulkRejectSuccess": "Les réclamations sélectionnées ont été rejetées avec succès!",
         "bulkRejectCancelled": "Rejet en masse annulé",
+        "onlyPendingApprove": "Seules les réclamations en attente peuvent être approuvées",
+        "onlyPendingReject": "Seules les réclamations en attente peuvent être rejetées",
         "claimNumber": "Réclamation",
         "notes": "Notes",
         "notesDescription": "Consulter les notes et commentaires pour cette réclamation.",
