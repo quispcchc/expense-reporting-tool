@@ -202,8 +202,18 @@ class BankStatementExtractor
     private function normalizeOcrLine(string $line): string
     {
         // Fix common OCR mistakes that break dates and money parsing.
-        $line = preg_replace('/\bOCT3I\b/i', 'OCT31', $line);
-        $line = preg_replace('/\bNOVI\b/i', 'NOV1', $line);
+        // Replace 'I', '|', 'l' with '1' in compact/spaced date formats at the end of a month token
+        // Handles: OCT3I -> OCT31, OCT 3I -> OCT 31, NOV I -> NOV 1, etc.
+        $line = preg_replace('/\b(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC)\s*([0-3]?)[I|l|\|]\b/i', '${1} ${2}1', $line);
+        
+        // Handle common month OCR errors
+        $line = preg_replace('/\b0CT\b/i', 'OCT', $line);
+        $line = preg_replace('/\bN0V\b/i', 'NOV', $line);
+        $line = preg_replace('/\bDBC\b/i', 'DEC', $line);
+        
+        // Handle S instead of 5 in dates (e.g. OCT 2S -> OCT 25)
+        $line = preg_replace('/\b(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC)\s*([0-3]?)S\b/i', '${1} ${2}5', $line);
+
         $line = preg_replace('/\bDEC\.\s*/i', 'DEC', $line);
 
         // Some OCR outputs use different dash/currency characters.
@@ -217,12 +227,20 @@ class BankStatementExtractor
     {
         return (bool) preg_match('/TRANSACTION\s+POSTING\s+ACTIVITY\s+DESCRIPTION\s+AMOUNT/i', $upperLine)
             || (bool) preg_match('/TRANSACTION\s+DATE.*POSTING\s+DATE.*AMOUNT/i', $upperLine)
-            || (bool) preg_match('/DATE\s+DATE\s+.*AMOUNT/i', $upperLine);
+            || (bool) preg_match('/DATE\s+DATE\s+.*AMOUNT/i', $upperLine)
+            || (bool) preg_match('/DATE\s+DATE\s+DESCRIPTION\s+AMOUNT/i', $upperLine)
+            || (bool) preg_match('/ACTIVITY\s+DESCRIPTION.*AMOUNT/i', $upperLine);
     }
 
     private function isTransactionTableEnd(string $upperLine): bool
     {
-        return (bool) preg_match('/NET\s+AMOUNT|TOTAL\s+NEW\s+BALANCE|TD\s+MESSAGE\s+CENTRE|PAYMENT\s+INFORMATION|CALCULATING\s+YOUR\s+BALANCE|CONTACT\s+INFORMATION|PAYMENT\s+DUE\s+DATE|AMOUNT\s+PAID/i', $upperLine);
+        return (bool) preg_match('/NET\s+AMOUNT|TOTAL\s+NEW\s+BALANCE|TD\s+MESSAGE\s+CENTRE|PAYMENT\s+INFORMATION|CALCULATING\s+YOUR\s+BALANCE|CONTACT\s+INFORMATION|PAYMENT\s+DUE\s+DATE|AMOUNT\s+PAID|PREVIOUS\s+BALANCE/i', $upperLine);
+    }
+
+    private function isSideInfo(string $upperLine): bool
+    {
+        // Detect side panel info or non-transactional noise that should clear buffers
+        return (bool) preg_match('/\bYEAR\(S\)\b|\bMONTH\(S\)\b|\bSTATEMENT\s+PERIOD\b|\bACCOUNT\s+SUMMARY\b|\bCREDIT\s+LIMIT\b|\bAVAILABLE\s+CREDIT\b/i', $upperLine);
     }
 
     private function parseText(string $text, int $claimTypeId = 0): array
@@ -281,6 +299,12 @@ class BankStatementExtractor
             }
 
             if ($this->isCreditCardStyle && $transactionTableModeDetected && !$insideTransactionTable) {
+                continue;
+            }
+
+            if ($this->isSideInfo($upperLine)) {
+                $lastDate = null;
+                $lastVendor = null;
                 continue;
             }
 
@@ -737,19 +761,23 @@ class BankStatementExtractor
         $dateToken = '(?:\d{1,2}[\/\-\.]\d{1,2}(?:[\/\-\.]\d{2,4})?|(?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC)[A-Z]*\s*\d{1,2})';
         $amountToken = '([+-]?\s*\$?\s*\d{1,3}(?:,\d{3})*\.\d{2}|[+-]?\s*\$?\s*\d+\.\d{2}|\$[+-]?\s*\d{1,6}(?:,\d{3})?)';
 
-        if (!preg_match('/^\s*(' . $dateToken . ')\s+(' . $dateToken . ')\s+(.+?)\s+' . $amountToken . '\s*(?:DR|CR)?\s*$/i', $line, $m)) {
+        // More robust match for credit card row:
+        // Supports one or two dates at start, followed by description and amount.
+        // We use \s+ between tokens. The description is non-greedy.
+        // We allow optional DR/CR or symbols after the amount.
+        if (!preg_match('/^\s*(' . $dateToken . ')\s*(?:' . $dateToken . ')?\s+(.+?)\s+' . $amountToken . '\s*(?:DR|CR|[\W_])?\s*$/i', $line, $m)) {
             return null;
         }
 
         $transactionDate = $this->normalizeDate($m[1], $statementYear);
         if (!$transactionDate) return null;
 
-        $vendor = trim($m[3]);
+        $vendor = trim($m[2]);
         $vendor = preg_replace('/\s+/', ' ', $vendor);
         $vendor = trim($vendor, " \t\n\r\0\x0B-_.,;:/\\$|");
 
-        $hasCurrencySign = str_contains($m[4], '$');
-        $amount = $this->parseAmount($m[4], $hasCurrencySign);
+        $hasCurrencySign = str_contains($m[3], '$');
+        $amount = $this->parseAmount($m[3], $hasCurrencySign);
 
         if ($vendor === '' || $amount === null) return null;
 
@@ -791,7 +819,7 @@ class BankStatementExtractor
         if (in_array($upperVendor, $months)) return false;
 
         // More noise patterns
-        if (preg_match('/(?:WWW\.|HTTP|@)/i', $upperVendor)) return false;
+        if (preg_match('/(?:WWW\.|HTTP|@|\bYEAR\(S\)\b|\bMONTH\(S\)\b)/i', $upperVendor)) return false;
 
         // If it's a credit card, we are slightly less strict about noise keywords 
         // as descriptions can be weird, but we still filter out common junk.
