@@ -225,11 +225,11 @@ class BankStatementExtractor
 
     private function isTransactionTableHeader(string $upperLine): bool
     {
-        return (bool) preg_match('/TRANSACTION\s+POSTING\s+ACTIVITY\s+DESCRIPTION\s+AMOUNT/i', $upperLine)
-            || (bool) preg_match('/TRANSACTION\s+DATE.*POSTING\s+DATE.*AMOUNT/i', $upperLine)
+        return (bool) preg_match('/TRANSACT[I01]ON\s+POST[I01]NG\s+ACT[I01]V[I01]TY\s+DESCR[I01]PT[I01]ON\s+AMOUNT/i', $upperLine)
+            || (bool) preg_match('/TRANSACT[I01]ON\s+DATE.*POST[I01]NG\s+DATE.*AMOUNT/i', $upperLine)
             || (bool) preg_match('/DATE\s+DATE\s+.*AMOUNT/i', $upperLine)
-            || (bool) preg_match('/DATE\s+DATE\s+DESCRIPTION\s+AMOUNT/i', $upperLine)
-            || (bool) preg_match('/ACTIVITY\s+DESCRIPTION.*AMOUNT/i', $upperLine);
+            || (bool) preg_match('/DATE\s+DATE\s+DESCR[I01]PT[I01]ON\s+AMOUNT/i', $upperLine)
+            || (bool) preg_match('/ACT[I01]V[I01]TY\s+DESCR[I01]PT[I01]ON.*AMOUNT/i', $upperLine);
     }
 
     private function isTransactionTableEnd(string $upperLine): bool
@@ -243,7 +243,8 @@ class BankStatementExtractor
     private function isSideInfo(string $upperLine): bool
     {
         // Detect side panel info or non-transactional noise that should clear buffers
-        return (bool) preg_match('/\bYEAR\(S\)\b|\bMONTH\(S\)\b|\bSTATEMENT\s+PERIOD\b|\bACCOUNT\s+SUMMARY\b|\bCREDIT\s+LIMIT\b|\bAVAILABLE\s+CREDIT\b/i', $upperLine);
+        return (bool) preg_match('/\bYEAR\(S\)\b|\bMONTH\(S\)\b|\bSTATEMENT\s+PERIOD\b|\bACCOUNT\s+SUMMARY\b|\bCREDIT\s+LIMIT\b|\bAVAILABLE\s+CREDIT\b|\bSTATEMENT\b/i', $upperLine)
+            || (bool) preg_match('/^[A-Z]{3}\s+\d{1,2},\s+20\d{2}$/i', $upperLine); // e.g. DEC 15, 2022
     }
 
     private function parseText(string $text, int $claimTypeId = 0): array
@@ -302,12 +303,15 @@ class BankStatementExtractor
             }
 
             if ($this->isSideInfo($upperLine)) {
+                Log::info("[Extractor] Side info detected, clearing buffers: $line");
                 $lastDate = null;
                 $lastVendor = null;
                 continue;
             }
 
             if ($this->isCreditCardStyle && $transactionTableModeDetected && !$insideTransactionTable) {
+                // Once we have entered and left a transaction table in CC mode, 
+                // do not process anything else with the generic parser to avoid side-panel noise.
                 continue;
             }
 
@@ -322,6 +326,7 @@ class BankStatementExtractor
                     $rawAmount = $creditCardRow['raw_amount'] ?? '';
 
                     if ($this->isCreditCardPaymentOrCreditRow($vendorToUse, $rawAmount)) {
+                        Log::info("[Extractor] Skipping CC payment/credit row: $vendorToUse");
                         $lastDate = null;
                         $lastVendor = null;
                         continue;
@@ -339,6 +344,8 @@ class BankStatementExtractor
                             'cost_centre_id' => null,
                             'account_number_id' => null,
                         ];
+                    } else {
+                        Log::info("[Extractor] CC row failed isLikelyTransaction or amount check: vendor=$vendorToUse, amount=$amount");
                     }
 
                     $lastDate = null;
@@ -348,6 +355,7 @@ class BankStatementExtractor
 
                 // We are inside a detected transaction table, but this line is not a valid transaction row.
                 // Do not let the generic parser reuse dates/vendors from unrelated statement sections.
+                Log::debug("[Extractor] Skipping non-transaction line inside table: $line");
                 continue;
             }
             
@@ -760,6 +768,7 @@ class BankStatementExtractor
         }
 
         if (preg_match('/PREVIOUS\s+STATEMENT\s+BALANCE/i', $line)) {
+            Log::info("[Extractor] Skipping previous statement balance row: $line");
             return null;
         }
 
@@ -768,16 +777,17 @@ class BankStatementExtractor
         $dateToken = '(?:\d{1,2}[\/\-\.]\d{1,2}(?:[\/\-\.]\d{2,4})?|(?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC)[A-Z]*\s*\d{1,2})';
         $amountToken = '([+-]?\s*\$?\s*\d{1,3}(?:,\d{3})*\.\d{2}|[+-]?\s*\$?\s*\d+\.\d{2}|\$[+-]?\s*\d{1,6}(?:,\d{3})?)';
 
-        // More robust match for credit card row:
-        // Supports one or two dates at start, followed by description and amount.
-        // We use \s+ between tokens. The description is non-greedy.
-        // We allow optional DR/CR or symbols after the amount.
-        if (!preg_match('/^\s*(' . $dateToken . ')\s*(?:' . $dateToken . ')?\s+(.+?)\s+' . $amountToken . '\s*(?:DR|CR|[\W_])?\s*$/i', $line, $m)) {
+        $pattern = '/^\s*(' . $dateToken . ')\s*(?:' . $dateToken . ')?\s+(.+?)\s+' . $amountToken . '\s*(?:DR|CR|[\W_])?\s*$/i';
+        if (!preg_match($pattern, $line, $m)) {
+            Log::debug("[Extractor] Row did not match CC transaction pattern: $line");
             return null;
         }
 
         $transactionDate = $this->normalizeDate($m[1], $statementYear);
-        if (!$transactionDate) return null;
+        if (!$transactionDate) {
+            Log::warning("[Extractor] Failed to normalize date '{$m[1]}' from row: $line");
+            return null;
+        }
 
         $vendor = trim($m[2]);
         $vendor = preg_replace('/\s+/', ' ', $vendor);
@@ -785,6 +795,8 @@ class BankStatementExtractor
 
         $hasCurrencySign = str_contains($m[3], '$');
         $amount = $this->parseAmount($m[3], $hasCurrencySign);
+
+        Log::info("[Extractor] Parsed CC row: date=$transactionDate, vendor=$vendor, amount=$amount");
 
         if ($vendor === '' || $amount === null) return null;
 
