@@ -225,11 +225,11 @@ class BankStatementExtractor
 
     private function isTransactionTableHeader(string $upperLine): bool
     {
-        return (bool) preg_match('/TRANSACT[I01]ON\s+POST[I01]NG/i', $upperLine)
-            || (bool) preg_match('/ACT[I01]V[I01]TY\s+DESCR[I01]PT[I01]ON/i', $upperLine)
-            || (bool) preg_match('/TRANSACT[I01]ON\s+DATE.*POST[I01]NG\s+DATE/i', $upperLine)
+        return (bool) preg_match('/TRANSACT[I01]ON\s+POST[I01]NG\s+ACT[I01]V[I01]TY\s+DESCR[I01]PT[I01]ON\s+AMOUNT/i', $upperLine)
+            || (bool) preg_match('/TRANSACT[I01]ON\s+DATE.*POST[I01]NG\s+DATE.*AMOUNT/i', $upperLine)
             || (bool) preg_match('/DATE\s+DATE\s+.*AMOUNT/i', $upperLine)
-            || (bool) preg_match('/DATE\s+DATE\s+DESCR[I01]PT[I01]ON\s+AMOUNT/i', $upperLine);
+            || (bool) preg_match('/DATE\s+DATE\s+DESCR[I01]PT[I01]ON\s+AMOUNT/i', $upperLine)
+            || (bool) preg_match('/ACT[I01]V[I01]TY\s+DESCR[I01]PT[I01]ON.*AMOUNT/i', $upperLine);
     }
 
     private function isTransactionTableEnd(string $upperLine): bool
@@ -300,45 +300,6 @@ class BankStatementExtractor
                 $lastVendor = null;
                 Log::info("[Extractor] Left transaction table: $line");
                 continue;
-            }
-
-            // Try credit-card transaction rows even when the OCR did not detect the table header.
-            // This is important for scanned statements where the header may be split across lines.
-            if ($this->isCreditCardStyle) {
-                $creditCardRow = $this->parseCreditCardTransactionTableRow($line, $statementYear);
-
-                if ($creditCardRow !== null) {
-                    $transactionTableModeDetected = true;
-
-                    $vendorToUse = $creditCardRow['vendor'];
-                    $amount = $creditCardRow['amount'];
-                    $rawAmount = $creditCardRow['raw_amount'] ?? '';
-
-                    if ($this->isCreditCardPaymentOrCreditRow($vendorToUse, $rawAmount)) {
-                        Log::info("[Extractor] Skipping CC payment/credit row: $vendorToUse");
-                        $lastDate = null;
-                        $lastVendor = null;
-                        continue;
-                    }
-
-                    if (!empty($vendorToUse) && $amount !== null && $amount > 0.01 && $this->isLikelyTransaction($vendorToUse, $amount, true)) {
-                        $expenses[] = [
-                            'transaction_date' => $creditCardRow['date'],
-                            'vendor_name' => $vendorToUse,
-                            'expense_amount' => number_format($amount, 2, '.', ''),
-                            'buyer_name' => '',
-                            'transaction_desc' => $vendorToUse,
-                            'transaction_notes' => '',
-                            'project_id' => null,
-                            'cost_centre_id' => null,
-                            'account_number_id' => null,
-                        ];
-                    }
-
-                    $lastDate = null;
-                    $lastVendor = null;
-                    continue;
-                }
             }
 
             if ($this->isSideInfo($upperLine)) {
