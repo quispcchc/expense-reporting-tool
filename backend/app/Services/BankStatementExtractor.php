@@ -276,6 +276,8 @@ class BankStatementExtractor
         $currentSection = null; // 'debit' or 'credit'
         $insideTransactionTable = false;
         $transactionTableModeDetected = false;
+        $ccPendingTransactionDate = null;
+        $ccPendingVendor = null;
 
         foreach ($lines as $i => $line) {
             $line = $this->normalizeOcrLine(trim($line));
@@ -316,8 +318,7 @@ class BankStatementExtractor
             }
 
             // Dedicated parser for credit-card transaction-table rows.
-            // This handles rows like: OCT29 OCT31 BEST LIVING SCARBOROUGH $42.93
-            // and prevents later statement dates/descriptions from being reused accidentally.
+            // Supports both normal OCR rows and Google Vision column-style OCR where each cell appears on its own line.
             if ($insideTransactionTable) {
                 $creditCardRow = $this->parseCreditCardTransactionTableRow($line, $statementYear);
                 if ($creditCardRow !== null) {
@@ -325,36 +326,70 @@ class BankStatementExtractor
                     $amount = $creditCardRow['amount'];
                     $rawAmount = $creditCardRow['raw_amount'] ?? '';
 
-                    if ($this->isCreditCardPaymentOrCreditRow($vendorToUse, $rawAmount)) {
-                        Log::info("[Extractor] Skipping CC payment/credit row: $vendorToUse");
-                        $lastDate = null;
-                        $lastVendor = null;
-                        continue;
+                    if (!$this->isCreditCardPaymentOrCreditRow($vendorToUse, $rawAmount)
+                        && !empty($vendorToUse)
+                        && $amount !== null
+                        && $amount > 0.01
+                        && $this->isLikelyTransaction($vendorToUse, $amount, true)) {
+                        $expenses[] = $this->makeExpense($creditCardRow['date'], $vendorToUse, $amount);
                     }
 
-                    if (!empty($vendorToUse) && $amount !== null && $amount > 0.01 && $this->isLikelyTransaction($vendorToUse, $amount, true)) {
-                        $expenses[] = [
-                            'transaction_date' => $creditCardRow['date'],
-                            'vendor_name' => $vendorToUse,
-                            'expense_amount' => number_format($amount, 2, '.', ''),
-                            'buyer_name' => '',
-                            'transaction_desc' => $vendorToUse,
-                            'transaction_notes' => '',
-                            'project_id' => null,
-                            'cost_centre_id' => null,
-                            'account_number_id' => null,
-                        ];
+                    $lastDate = null;
+                    $lastVendor = null;
+                    $ccPendingTransactionDate = null;
+                    $ccPendingVendor = null;
+                    continue;
+                }
+
+                // Google Vision often extracts this TD table by columns/cells:
+                // OCT 28 / OCT 31 / FIORIO YORKVILLE TORONTO / $46.33
+                // This block buffers those cell lines and emits one transaction when the amount is reached.
+                if ($this->isCcDateOnlyLine($line)) {
+                    if ($ccPendingTransactionDate === null || $ccPendingVendor !== null) {
+                        $ccPendingTransactionDate = $this->normalizeDate($line, $statementYear);
+                        $ccPendingVendor = null;
+                    }
+                    // If this is the posting-date cell, ignore it. We keep the first date as transaction date.
+                    continue;
+                }
+
+                if ($this->isCcAmountOnlyLine($line)) {
+                    $rawAmount = $line;
+                    $hasCurrencySign = str_contains($rawAmount, '$');
+                    $amount = $this->parseAmount($rawAmount, $hasCurrencySign);
+                    $vendorToUse = trim((string) $ccPendingVendor);
+
+                    if ($ccPendingTransactionDate
+                        && $vendorToUse !== ''
+                        && $amount !== null
+                        && $amount > 0.01
+                        && !$this->isCreditCardPaymentOrCreditRow($vendorToUse, $rawAmount)
+                        && $this->isLikelyTransaction($vendorToUse, $amount, true)) {
+                        $expenses[] = $this->makeExpense($ccPendingTransactionDate, $vendorToUse, $amount);
+                        Log::info("[Extractor] Parsed split CC row: date=$ccPendingTransactionDate, vendor=$vendorToUse, amount=$amount");
                     } else {
-                        Log::info("[Extractor] CC row failed isLikelyTransaction or amount check: vendor=$vendorToUse, amount=$amount");
+                        Log::debug("[Extractor] Split CC amount ignored: date=$ccPendingTransactionDate, vendor=$vendorToUse, amount=$amount, raw=$rawAmount");
                     }
 
+                    $ccPendingTransactionDate = null;
+                    $ccPendingVendor = null;
                     $lastDate = null;
                     $lastVendor = null;
                     continue;
                 }
 
-                // We are inside a detected transaction table, but this line is not a valid transaction row.
-                // Do not let the generic parser reuse dates/vendors from unrelated statement sections.
+                if (preg_match('/PREVIOUS\s+STATEMENT\s+BALANCE/i', $line)) {
+                    $ccPendingTransactionDate = null;
+                    $ccPendingVendor = null;
+                    continue;
+                }
+
+                // Vendor cell. Keep appending only until amount appears.
+                if ($ccPendingTransactionDate !== null && !preg_match(self::AMOUNT_REGEX, $line) && $this->isLikelyTransaction($line, 1.0, true)) {
+                    $ccPendingVendor = trim(trim((string) $ccPendingVendor . ' ' . $line));
+                    continue;
+                }
+
                 Log::debug("[Extractor] Skipping non-transaction line inside table: $line");
                 continue;
             }
@@ -723,6 +758,36 @@ class BankStatementExtractor
         ];
     }
 
+
+
+    private function makeExpense(string $date, string $vendor, float $amount): array
+    {
+        return [
+            'transaction_date' => $date,
+            'vendor_name' => $vendor,
+            'expense_amount' => number_format($amount, 2, '.', ''),
+            'buyer_name' => '',
+            'transaction_desc' => $vendor,
+            'transaction_notes' => '',
+            'project_id' => null,
+            'cost_centre_id' => null,
+            'account_number_id' => null,
+        ];
+    }
+
+    private function isCcDateOnlyLine(string $line): bool
+    {
+        $line = trim($this->normalizeOcrLine($line));
+        return (bool) preg_match('/^(?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC)[A-Z]*\s*\d{1,2}$/i', $line)
+            || (bool) preg_match('/^\d{1,2}[\/\-\.]\d{1,2}(?:[\/\-\.]\d{2,4})?$/', $line);
+    }
+
+    private function isCcAmountOnlyLine(string $line): bool
+    {
+        $line = trim($line);
+        return (bool) preg_match('/^[+-]?\s*\$?\s*\d{1,3}(?:,\d{3})*\.\d{2}\s*(?:DR|CR)?$/i', $line)
+            || (bool) preg_match('/^\$\s*[+-]?\s*\d{1,6}(?:,\d{3})?\.\d{2}\s*(?:DR|CR)?$/i', $line);
+    }
 
     private function isCreditCardPaymentOrCreditRow(string $vendor, string $rawAmount): bool
     {
