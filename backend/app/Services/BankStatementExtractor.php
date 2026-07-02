@@ -225,10 +225,11 @@ class BankStatementExtractor
 
     private function isTransactionTableHeader(string $upperLine): bool
     {
-        return (bool) preg_match('/TRANSACT[I01]ON\s+POST[I01]NG/i', $upperLine)
-            || (bool) preg_match('/ACT[I01]V[I01]TY\s+DESCR[I01]PT[I01]ON/i', $upperLine)
-            || (bool) preg_match('/TRANSACT[I01]ON\s+DATE.*POST[I01]NG\s+DATE/i', $upperLine)
-            || (bool) preg_match('/DATE\s+DATE\s+.*AMOUNT/i', $upperLine);
+        return (bool) preg_match('/TRANSACT[I01]ON\s+POST[I01]NG\s+ACT[I01]V[I01]TY\s+DESCR[I01]PT[I01]ON\s+AMOUNT/i', $upperLine)
+            || (bool) preg_match('/TRANSACT[I01]ON\s+DATE.*POST[I01]NG\s+DATE.*AMOUNT/i', $upperLine)
+            || (bool) preg_match('/DATE\s+DATE\s+.*AMOUNT/i', $upperLine)
+            || (bool) preg_match('/DATE\s+DATE\s+DESCR[I01]PT[I01]ON\s+AMOUNT/i', $upperLine)
+            || (bool) preg_match('/ACT[I01]V[I01]TY\s+DESCR[I01]PT[I01]ON.*AMOUNT/i', $upperLine);
     }
 
     private function isTransactionTableEnd(string $upperLine): bool
@@ -275,6 +276,8 @@ class BankStatementExtractor
         $currentSection = null; // 'debit' or 'credit'
         $insideTransactionTable = false;
         $transactionTableModeDetected = false;
+        $ccPendingTransactionDate = null;
+        $ccPendingVendor = null;
 
         foreach ($lines as $i => $line) {
             $line = $this->normalizeOcrLine(trim($line));
@@ -315,8 +318,7 @@ class BankStatementExtractor
             }
 
             // Dedicated parser for credit-card transaction-table rows.
-            // This handles rows like: OCT29 OCT31 BEST LIVING SCARBOROUGH $42.93
-            // and prevents later statement dates/descriptions from being reused accidentally.
+            // Supports both normal OCR rows and Google Vision column-style OCR where each cell appears on its own line.
             if ($insideTransactionTable) {
                 $creditCardRow = $this->parseCreditCardTransactionTableRow($line, $statementYear);
                 if ($creditCardRow !== null) {
@@ -324,36 +326,70 @@ class BankStatementExtractor
                     $amount = $creditCardRow['amount'];
                     $rawAmount = $creditCardRow['raw_amount'] ?? '';
 
-                    if ($this->isCreditCardPaymentOrCreditRow($vendorToUse, $rawAmount)) {
-                        Log::info("[Extractor] Skipping CC payment/credit row: $vendorToUse");
-                        $lastDate = null;
-                        $lastVendor = null;
-                        continue;
+                    if (!$this->isCreditCardPaymentOrCreditRow($vendorToUse, $rawAmount)
+                        && !empty($vendorToUse)
+                        && $amount !== null
+                        && $amount > 0.01
+                        && $this->isLikelyTransaction($vendorToUse, $amount, true)) {
+                        $expenses[] = $this->makeExpense($creditCardRow['date'], $vendorToUse, $amount);
                     }
 
-                    if (!empty($vendorToUse) && $amount !== null && $amount > 0.01 && $this->isLikelyTransaction($vendorToUse, $amount, true)) {
-                        $expenses[] = [
-                            'transaction_date' => $creditCardRow['date'],
-                            'vendor_name' => $vendorToUse,
-                            'expense_amount' => number_format($amount, 2, '.', ''),
-                            'buyer_name' => '',
-                            'transaction_desc' => $vendorToUse,
-                            'transaction_notes' => '',
-                            'project_id' => null,
-                            'cost_centre_id' => null,
-                            'account_number_id' => null,
-                        ];
+                    $lastDate = null;
+                    $lastVendor = null;
+                    $ccPendingTransactionDate = null;
+                    $ccPendingVendor = null;
+                    continue;
+                }
+
+                // Google Vision often extracts this TD table by columns/cells:
+                // OCT 28 / OCT 31 / FIORIO YORKVILLE TORONTO / $46.33
+                // This block buffers those cell lines and emits one transaction when the amount is reached.
+                if ($this->isCcDateOnlyLine($line)) {
+                    if ($ccPendingTransactionDate === null || $ccPendingVendor !== null) {
+                        $ccPendingTransactionDate = $this->normalizeDate($line, $statementYear);
+                        $ccPendingVendor = null;
+                    }
+                    // If this is the posting-date cell, ignore it. We keep the first date as transaction date.
+                    continue;
+                }
+
+                if ($this->isCcAmountOnlyLine($line)) {
+                    $rawAmount = $line;
+                    $hasCurrencySign = str_contains($rawAmount, '$');
+                    $amount = $this->parseAmount($rawAmount, $hasCurrencySign);
+                    $vendorToUse = trim((string) $ccPendingVendor);
+
+                    if ($ccPendingTransactionDate
+                        && $vendorToUse !== ''
+                        && $amount !== null
+                        && $amount > 0.01
+                        && !$this->isCreditCardPaymentOrCreditRow($vendorToUse, $rawAmount)
+                        && $this->isLikelyTransaction($vendorToUse, $amount, true)) {
+                        $expenses[] = $this->makeExpense($ccPendingTransactionDate, $vendorToUse, $amount);
+                        Log::info("[Extractor] Parsed split CC row: date=$ccPendingTransactionDate, vendor=$vendorToUse, amount=$amount");
                     } else {
-                        Log::info("[Extractor] CC row failed isLikelyTransaction or amount check: vendor=$vendorToUse, amount=$amount");
+                        Log::debug("[Extractor] Split CC amount ignored: date=$ccPendingTransactionDate, vendor=$vendorToUse, amount=$amount, raw=$rawAmount");
                     }
 
+                    $ccPendingTransactionDate = null;
+                    $ccPendingVendor = null;
                     $lastDate = null;
                     $lastVendor = null;
                     continue;
                 }
 
-                // We are inside a detected transaction table, but this line is not a valid transaction row.
-                // Do not let the generic parser reuse dates/vendors from unrelated statement sections.
+                if (preg_match('/PREVIOUS\s+STATEMENT\s+BALANCE/i', $line)) {
+                    $ccPendingTransactionDate = null;
+                    $ccPendingVendor = null;
+                    continue;
+                }
+
+                // Vendor cell. Keep appending only until amount appears.
+                if ($ccPendingTransactionDate !== null && !preg_match(self::AMOUNT_REGEX, $line) && $this->isLikelyTransaction($line, 1.0, true)) {
+                    $ccPendingVendor = trim(trim((string) $ccPendingVendor . ' ' . $line));
+                    continue;
+                }
+
                 Log::debug("[Extractor] Skipping non-transaction line inside table: $line");
                 continue;
             }
@@ -701,25 +737,6 @@ class BankStatementExtractor
             }
         }
 
-
-        // TD Aeroplan / TD Visa OCR fallback.
-        // Google Vision sometimes returns the transaction table as separate cells:
-        // OCT 28 / OCT 31 / FIORIO YORKVILLE TORONTO / $46.33
-        // The generic parser can then reuse side-panel dates like Dec 15, 2022.
-        // If the generic credit-card extraction found too few rows, rebuild the table by columns/cells.
-        if ($this->isCreditCardStyle && count($expenses) < 5) {
-            $tdExpenses = $this->extractTdAeroplanTransactions($lines, $statementYear);
-
-            if (count($tdExpenses) > count($expenses)) {
-                Log::info('[Extractor] Replaced generic CC expenses with TD Aeroplan fallback rows', [
-                    'generic_count' => count($expenses),
-                    'td_count' => count($tdExpenses),
-                ]);
-                $expenses = $tdExpenses;
-                $transactionTableModeDetected = true;
-            }
-        }
-
         // Deduplicate regular bank-statement parsing, but keep duplicate credit-card table rows.
         // Credit-card statements can legitimately have two identical purchases on the same date/vendor/amount.
         if (!($this->isCreditCardStyle && $transactionTableModeDetected)) {
@@ -742,163 +759,9 @@ class BankStatementExtractor
     }
 
 
-    private function extractTdAeroplanTransactions(array $lines, ?int $statementYear): array
-    {
-        $inTable = false;
-        $tableLines = [];
-
-        foreach ($lines as $line) {
-            $line = $this->normalizeOcrLine(trim((string) $line));
-            if ($line === '') {
-                continue;
-            }
-
-            $upper = strtoupper($line);
-
-            // Start after the table's previous-balance row. Do not include the previous-balance amount.
-            if (!$inTable && preg_match('/PREVIOUS\s+STATEMENT\s+BALANCE/i', $upper)) {
-                $inTable = true;
-                continue;
-            }
-
-            // Safety: some OCR output may miss the previous balance row but detect the first transaction date.
-            if (!$inTable && preg_match('/^(OCT|NOV|DEC|JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT)[A-Z]*\s*\d{1,2}$/i', $line)) {
-                $inTable = true;
-            }
-
-            if ($inTable && preg_match('/NET\s+AMOUNT\s+OF\s+MONTHLY|TOTAL\s+NEW\s+BALANCE|TD\s+MESSAGE\s+CENTRE|CALCULATING\s+YOUR\s+BALANCE|PAYMENT\s+INFORMATION/i', $upper)) {
-                break;
-            }
-
-            if ($inTable) {
-                $tableLines[] = $line;
-            }
-        }
-
-        $dates = [];
-        $vendors = [];
-        $amounts = [];
-        $seenVendor = false;
-
-        foreach ($tableLines as $line) {
-            $line = $this->normalizeOcrLine(trim($line));
-            if ($line === '') {
-                continue;
-            }
-
-            $upper = strtoupper($line);
-
-            if (preg_match('/^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC)[A-Z]*\s*\d{1,2}$/i', $line)) {
-                $date = $this->normalizeDate($line, $statementYear);
-                if ($date) {
-                    $dates[] = $date;
-                }
-                continue;
-            }
-
-            if (preg_match('/^-?\$?\d{1,3}(?:,\d{3})*\.\d{2}$/', $line)) {
-                // Ignore previous-balance/new-balance amounts that may appear before any vendor cell.
-                if (!$seenVendor) {
-                    continue;
-                }
-
-                $amounts[] = [
-                    'raw' => $line,
-                    'amount' => $this->parseAmount($line, str_contains($line, '$')),
-                ];
-                continue;
-            }
-
-            if (
-                preg_match('/[A-Z]/i', $line)
-                && !preg_match('/BALANCE|AMOUNT|DATE|DESCRIPTION|ACTIVITY|TRANSACTION|POSTING|PAYMENT\s+INFORMATION|CONTACT\s+INFORMATION|CALCULATING|POINTS|AEROPLAN\s+NUMBER|CREDIT\s+LIMIT|AVAILABLE\s+CREDIT|ANNUAL\s+INTEREST|CUSTOMER\s+SERVICE|WEBSITE|TTY|TD\s+CANADA\s+TRUST/i', $upper)
-                && !preg_match('/^\d+$/', $line)
-                && !preg_match('/^TDSTM|^TOSTM|P\.O\.\s*BOX|AGINCOURT|ONTARIO/i', $upper)
-            ) {
-                $vendor = preg_replace('/\s+/', ' ', trim($line));
-                $vendor = trim($vendor, " \t\n\r\0\x0B-_.,;:/\\$|");
-
-                if ($vendor !== '') {
-                    $vendors[] = $vendor;
-                    $seenVendor = true;
-                }
-            }
-        }
-
-        $rowCount = min(count($vendors), count($amounts));
-        if ($rowCount === 0) {
-            Log::warning('[Extractor] TD Aeroplan fallback found no rows', [
-                'dates' => count($dates),
-                'vendors' => count($vendors),
-                'amounts' => count($amounts),
-            ]);
-            return [];
-        }
-
-        $transactionDates = [];
-
-        if (count($dates) >= ($rowCount * 2)) {
-            // Two possible OCR orders:
-            // 1) Row order: transaction date, posting date, vendor, amount, ... => use every 2nd date.
-            // 2) Column order: all transaction dates, all posting dates, all vendors, all amounts => use first N dates.
-            $firstSet = array_slice($dates, 0, $rowCount);
-            $isColumnOrder = true;
-
-            for ($i = 1; $i < count($firstSet); $i++) {
-                if ($firstSet[$i] < $firstSet[$i - 1]) {
-                    $isColumnOrder = false;
-                    break;
-                }
-            }
-
-            if ($isColumnOrder) {
-                $transactionDates = $firstSet;
-            } else {
-                for ($i = 0; $i < count($dates); $i += 2) {
-                    $transactionDates[] = $dates[$i];
-                }
-            }
-        } else {
-            $transactionDates = array_slice($dates, 0, $rowCount);
-        }
-
-        $expenses = [];
-
-        for ($i = 0; $i < $rowCount; $i++) {
-            $date = $transactionDates[$i] ?? null;
-            $vendor = $vendors[$i] ?? '';
-            $amount = $amounts[$i]['amount'] ?? null;
-            $rawAmount = $amounts[$i]['raw'] ?? '';
-
-            if (!$date || !$amount || $amount <= 0.01) {
-                continue;
-            }
-
-            if ($this->isCreditCardPaymentOrCreditRow($vendor, $rawAmount)) {
-                continue;
-            }
-
-            if (!$this->isLikelyTransaction($vendor, $amount, true)) {
-                continue;
-            }
-
-            $expenses[] = $this->makeExpense($date, $vendor, $amount);
-        }
-
-        Log::info('[Extractor] TD Aeroplan fallback result', [
-            'dates' => count($dates),
-            'vendors' => count($vendors),
-            'amounts' => count($amounts),
-            'expenses' => count($expenses),
-        ]);
-
-        return $expenses;
-    }
 
     private function makeExpense(string $date, string $vendor, float $amount): array
     {
-        $vendor = preg_replace('/\s+/', ' ', trim($vendor));
-
         return [
             'transaction_date' => $date,
             'vendor_name' => $vendor,
@@ -912,6 +775,19 @@ class BankStatementExtractor
         ];
     }
 
+    private function isCcDateOnlyLine(string $line): bool
+    {
+        $line = trim($this->normalizeOcrLine($line));
+        return (bool) preg_match('/^(?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC)[A-Z]*\s*\d{1,2}$/i', $line)
+            || (bool) preg_match('/^\d{1,2}[\/\-\.]\d{1,2}(?:[\/\-\.]\d{2,4})?$/', $line);
+    }
+
+    private function isCcAmountOnlyLine(string $line): bool
+    {
+        $line = trim($line);
+        return (bool) preg_match('/^[+-]?\s*\$?\s*\d{1,3}(?:,\d{3})*\.\d{2}\s*(?:DR|CR)?$/i', $line)
+            || (bool) preg_match('/^\$\s*[+-]?\s*\d{1,6}(?:,\d{3})?\.\d{2}\s*(?:DR|CR)?$/i', $line);
+    }
 
     private function isCreditCardPaymentOrCreditRow(string $vendor, string $rawAmount): bool
     {
