@@ -799,9 +799,13 @@ class BankStatementExtractor
 
     private function makeExpense(string $date, string $vendor, float $amount): array
     {
+        // Truncate vendor name to avoid database truncation errors. 
+        // Migration has been updated to 255 characters.
+        $truncatedVendor = mb_substr($vendor, 0, 250);
+
         return [
             'transaction_date' => $date,
-            'vendor_name' => $vendor,
+            'vendor_name' => $truncatedVendor,
             'expense_amount' => number_format($amount, 2, '.', ''),
             'buyer_name' => '',
             'transaction_desc' => $vendor,
@@ -910,8 +914,11 @@ class BankStatementExtractor
                 $newVendor = trim($currentVendor . ' ' . $line);
                 $newVendor = preg_replace('/\s+/', ' ', $newVendor);
 
-                $expenses[$pendingExpenseIndex]['vendor_name'] = $newVendor;
-                $expenses[$pendingExpenseIndex]['transaction_desc'] = $newVendor;
+                // Truncate if continuation makes it too long
+                $truncatedVendor = mb_substr($newVendor, 0, 250);
+
+                $expenses[$pendingExpenseIndex]['vendor_name'] = $truncatedVendor;
+                $expenses[$pendingExpenseIndex]['transaction_desc'] = $newVendor; // Keep full in desc
                 continue;
             }
 
@@ -992,7 +999,8 @@ class BankStatementExtractor
         $vendor = trim(preg_replace('/\s+/', ' ', $m[3]));
         $vendor = trim($vendor, " \t\n\r\0\x0B-_.,;:/\\$|");
 
-        if ($vendor === '' || $this->isInvalidTdVendor($vendor)) {
+        // Limit vendor length to prevent capturing large blocks of noise as a single vendor.
+        if ($vendor === '' || strlen($vendor) > 200 || $this->isInvalidTdVendor($vendor)) {
             return null;
         }
 
@@ -1065,7 +1073,7 @@ class BankStatementExtractor
                 return true;
             }
 
-            if (!preg_match(self::AMOUNT_REGEX, $line) && preg_match('/[A-Z]{2,}/i', $line)) {
+            if (!preg_match(self::AMOUNT_REGEX, $line) && preg_match('/[A-Z]{2,}/i', $line) && strlen($line) < 100) {
                 return true;
             }
         }
@@ -1089,6 +1097,9 @@ class BankStatementExtractor
             || (bool) preg_match('/^CONTINUED$/i', $upperLine)
             || (bool) preg_match('/FOREIGN\s+CURRENCY/i', $upperLine)
             || (bool) preg_match('/EXCHANGE\s+RATE/i', $upperLine)
+            || (bool) preg_match('/EASYLINE|EASYWEB|GREEN\s+MACHINE|TD\s+CANADA\s+TRUST|AGINCOURT|ONTARIO|M1S\s+5J7/i', $upperLine)
+            || (bool) preg_match('/CHEQUES\s+PAYABLE|GRACE\s+PERIOD|INTEREST|CARDHOLDER\s+AGREEMENT/i', $upperLine)
+            || (bool) preg_match('/FSC\s*WWW\.FSC\.ORG|RESPONSIBLE\s+SOURCES/i', $upperLine)
             || (bool) preg_match('/^\.?$/', $upperLine);
     }
 
@@ -1117,6 +1128,9 @@ class BankStatementExtractor
             '/PURCHASES\s+&\s+OTHER\s+CHARGES/',
             '/CASH\s+ADVANCES/',
             '/SUB-TOTAL/',
+            '/EASYLINE|EASYWEB|GREEN\s+MACHINE|TD\s+CANADA\s+TRUST|AGINCOURT|ONTARIO|M1S\s+5J7/',
+            '/CHEQUES\s+PAYABLE|GRACE\s+PERIOD|INTEREST|CARDHOLDER\s+AGREEMENT/',
+            '/FSC\s*WWW\.FSC\.ORG|RESPONSIBLE\s+SOURCES/',
         ];
 
         foreach ($invalidPatterns as $pattern) {
