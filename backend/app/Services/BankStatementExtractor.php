@@ -129,6 +129,8 @@ class BankStatementExtractor
                 }
             }
 
+            Log::info('[VISION DEBUG] Extracted text length=' . strlen($text) . ' sample=' . substr(str_replace("\n", ' | ', $text), 0, 3000));
+
             $imageAnnotator->close();
             return $text;
         } catch (Exception $e) {
@@ -863,7 +865,7 @@ class BankStatementExtractor
         $refunds = [];
 
         $pendingExpenseIndex = null;
-        $insideTransactionTable = false;
+        $insideTransactionTable = true; // TD OCR can split/miss the table header, so scan all lines and only accept strict TD rows.
         $rowBuffer = '';
 
         $lines = array_values(array_filter(array_map(function ($line) {
@@ -882,12 +884,10 @@ class BankStatementExtractor
                 continue;
             }
 
-            if (!$insideTransactionTable) {
-                continue;
-            }
-
+            // For TD statements, do not require a table header. Vision OCR can split the header
+            // across multiple lines. We safely scan all lines because parseTdBusinessTravelVisaRow()
+            // only accepts rows with two TD-style dates + vendor + final CAD amount.
             if ($this->isTdTransactionTableEnd($upperLine)) {
-                $insideTransactionTable = false;
                 $pendingExpenseIndex = null;
                 $rowBuffer = '';
                 continue;
