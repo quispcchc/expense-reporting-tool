@@ -22,7 +22,7 @@ class BankStatementExtractor
     private $runningBalance = null;
     private $isCreditCardStyle = false; // True if balance increases on spend (Credit Card), False if balance decreases (Bank Account)
     
-    private const DATE_REGEX = '/\b(\d{1,2}\s*[\/\-\.]\s*\d{1,2}(?:\s*[\/\-\.]\s*\d{2,4})?(?!\d)|\d{4}\s*[\/\-]\s*\d{2}\s*[\/\-]\s*\d{2}|\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*(?:\s+\d{4})?|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s*\d{1,2}(?:,?\s+\d{4})?)\b/i';
+    private const DATE_REGEX = '/\b(\d{1,2}\s*[\/\-\.]\s*\d{1,2}(?:\s*[\/\-\.]\s*\d{2,4})?(?!\d)|\d{4}\s*[\/\-]\s*\d{2}\s*[\/\-]\s*\d{2}|\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*(?:\s+\d{4})?|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s*\d{1,2}(?:\s*[,.]?\s*\d{4})?)(?=\b|\s|$)/i';
     private const FALLBACK_DATE_REGEX = '/^(?:\s*)(\d{3,4})(?:\s*)$/'; // Only match if it's the entire line or clearly isolated
     private const AMOUNT_REGEX = '/(?<![0-9,.\/])([+-]?\s*\$?\s*\d{1,3}(?:,\d{3})*\.\d{2}|[+-]?\s*\$?\s*\d+\.\d{2}|\$[+-]?\s*\d{1,6}(?:,\d{3})?)\s*(DR|CR)?(?![0-9,.\/])/i';
     private const YEAR_REGEX = '/\b(20\d{2})\b/';
@@ -35,7 +35,8 @@ class BankStatementExtractor
         'POINTS', 'REWARD', 'AEROPLAN', 'BONUS', 'EARNED',
         'CUSTOMER SERVICE', 'TTY', 'INQUIRIES', 'WEBSITE',
         'P.O. BOX', 'AGINCOURT', 'ONTARIO', 'M1S 517',
-        'TD CANADA TRUST', 'TD MESSAGE CENTRE', 'AIR CANADA', 'CONTACT INFORMATION', 'TOSTM', 'T0STM'
+        'TD CANADA TRUST', 'TD MESSAGE CENTRE', 'AIR CANADA', 'CONTACT INFORMATION', 'TOSTM', 'T0STM',
+        'PAYMENT DUE', 'PAYMENT INFO', 'CREDIT LIMIT', 'AVAILABLE CREDIT', 'INTEREST RATE', 'ESTIMATED TIME'
     ];
     
     public function extract(string $filePath, string $mimeType, int $claimTypeId = 0): array
@@ -229,13 +230,15 @@ class BankStatementExtractor
             || (bool) preg_match('/TRANSACT[I01]ON\s+DATE.*POST[I01]NG\s+DATE.*AMOUNT/i', $upperLine)
             || (bool) preg_match('/DATE\s+DATE\s+.*AMOUNT/i', $upperLine)
             || (bool) preg_match('/DATE\s+DATE\s+DESCR[I01]PT[I01]ON\s+AMOUNT/i', $upperLine)
-            || (bool) preg_match('/ACT[I01]V[I01]TY\s+DESCR[I01]PT[I01]ON.*AMOUNT/i', $upperLine);
+            || (bool) preg_match('/ACT[I01]V[I01]TY\s+DESCR[I01]PT[I01]ON.*AMOUNT/i', $upperLine)
+            || (bool) preg_match('/TRANSACT[I01]ON.*POST[I01]NG.*DESCR[I01]PT[I01]ON.*AMOUNT/i', $upperLine)
+            || (bool) preg_match('/DESCRIPTION\s+AMOUNT/i', $upperLine);
     }
 
     private function isTransactionTableEnd(string $upperLine): bool
     {
         return (bool) preg_match(
-            '/NET\s+AMOUNT\s+OF\s+MONTHLY|TOTAL\s+NEW\s+BALANCE|TD\s+MESSAGE\s+CENTRE/i',
+            '/NET\s+AMOUNT\s+OF\s+MONTHLY|TOTAL\s+NEW\s+BALANCE|TD\s+MESSAGE\s+CENTRE|CALCULATING\s+YOUR\s+BALANCE|PAYMENT\s+DUE\s+DATE|CONTACT\s+INFORMATION|TD\s+CANADA\s+TRUST/i',
             $upperLine
         );
     }
@@ -243,7 +246,7 @@ class BankStatementExtractor
     private function isSideInfo(string $upperLine): bool
     {
         // Detect side panel info or non-transactional noise that should clear buffers
-        return (bool) preg_match('/\bYEAR\(S\)\b|\bMONTH\(S\)\b|\bSTATEMENT\s+PERIOD\b|\bACCOUNT\s+SUMMARY\b|\bCREDIT\s+LIMIT\b|\bAVAILABLE\s+CREDIT\b|\bSTATEMENT\b/i', $upperLine)
+        return (bool) preg_match('/\bYEAR\(S\)\b|\bMONTH\(S\)\b|\bSTATEMENT\s+PERIOD\b|\bACCOUNT\s+SUMMARY\b|\bCREDIT\s+LIMIT\b|\bAVAILABLE\s+CREDIT\b|\bSTATEMENT\b|\bPAYMENT\s+INFO|\bPAYMENT\s+DUE/i', $upperLine)
             || (bool) preg_match('/^[A-Z]{3}\s+\d{1,2},\s+20\d{2}$/i', $upperLine); // e.g. DEC 15, 2022
     }
 
@@ -255,17 +258,32 @@ class BankStatementExtractor
         $accountNumber = null;
         $statementYear = $this->extractStatementYear($text);
         $this->runningBalance = null;
+
+        // TD Business Travel Visa has a fixed table layout, but OCR/PDF text often mixes
+        // the right-side payment/rewards panels into the transaction lines. Use a strict
+        // TD-only parser so side-panel text like "Promotions & Adjustments",
+        // "Payment Due Date", marketing copy, and foreign-currency note lines are not
+        // treated as vendors.
+        if (preg_match('/TD\s+BUSINESS\s+TRAVEL\s+VISA\s+CARD/i', $text)) {
+            return $this->parseTdBusinessTravelVisa($text, $statementYear);
+        }
+
         $isCorporateCard = ($claimTypeId === ClaimType::CORPORATE_CARD);
 
         // Detect if this is a Credit Card style account (balance increases on spend) 
         // vs a Bank Account style (balance decreases on spend).
         $this->isCreditCardStyle = $isCorporateCard;
-        if (preg_match('/(?:Checking|Savings|Current|Debit|Deposit Account|Bank Statement)/i', $text)) {
+        if (preg_match('/(?:Checking|Savings|Current|Debit|Deposit Account|Bank Statement|Bank Account)/i', $text)) {
             $this->isCreditCardStyle = false;
         } 
         
         // Explicit Credit Card keywords take precedence
-        if (preg_match('/(?:Credit Card|Visa|Mastercard|Amex|American Express|Discover|Capital One|Chase|Citibank|MBNA|BMO Mastercard|RBC Visa)/i', $text)) {
+        if (preg_match('/(?:Credit Card|Visa|Mastercard|Amex|American Express|Discover|Capital One|Chase|Citibank|MBNA|BMO Mastercard|RBC Visa|AEROPLAN)/i', $text)) {
+            $this->isCreditCardStyle = true;
+        }
+
+        // Specifically for TD, "Visa" or "Infinite" or "Privilege" usually means Credit Card
+        if (preg_match('/(?:Infinite|Privilege|Gold|Platinum|Emerald)/i', $text) && str_contains(strtoupper($text), 'TD')) {
             $this->isCreditCardStyle = true;
         }
 
@@ -308,18 +326,32 @@ class BankStatementExtractor
                 Log::info("[Extractor] Side info detected, clearing buffers: $line");
                 $lastDate = null;
                 $lastVendor = null;
+                $ccPendingTransactionDate = null;
+                $ccPendingVendor = null;
                 continue;
             }
 
             if ($this->isCreditCardStyle && $transactionTableModeDetected && !$insideTransactionTable) {
                 // Once we have entered and left a transaction table in CC mode, 
-                // do not process anything else with the generic parser to avoid side-panel noise.
+                // do not process anything else to avoid side-panel/bottom-panel noise.
+                continue;
+            }
+
+            if ($this->isCreditCardStyle && !$transactionTableModeDetected && !$insideTransactionTable) {
+                // For credit card statements, skip everything until we find the transaction table header.
+                // This prevents side-panel summaries or interest rates from being mis-parsed as expenses.
                 continue;
             }
 
             // Dedicated parser for credit-card transaction-table rows.
             // Supports both normal OCR rows and Google Vision column-style OCR where each cell appears on its own line.
             if ($insideTransactionTable) {
+                // Remove some noise from the line before parsing if it's clearly a noise row
+                if ($this->isSideInfo($upperLine)) {
+                    Log::info("[Extractor] Side info detected inside table, skipping line: $line");
+                    continue;
+                }
+
                 $creditCardRow = $this->parseCreditCardTransactionTableRow($line, $statementYear);
                 if ($creditCardRow !== null) {
                     $vendorToUse = $creditCardRow['vendor'];
@@ -329,9 +361,12 @@ class BankStatementExtractor
                     if (!$this->isCreditCardPaymentOrCreditRow($vendorToUse, $rawAmount)
                         && !empty($vendorToUse)
                         && $amount !== null
-                        && $amount > 0.01
+                        && $amount > 0.001 // More lenient for small amounts
                         && $this->isLikelyTransaction($vendorToUse, $amount, true)) {
                         $expenses[] = $this->makeExpense($creditCardRow['date'], $vendorToUse, $amount);
+                    } elseif ($this->isCreditCardPaymentOrCreditRow($vendorToUse, $rawAmount)) {
+                        // Optionally track refunds/payments from the table
+                        $refunds[] = $this->makeExpense($creditCardRow['date'], $vendorToUse, $amount);
                     }
 
                     $lastDate = null;
@@ -822,6 +857,327 @@ class BankStatementExtractor
         return false;
     }
 
+    private function parseTdBusinessTravelVisa(string $text, ?int $statementYear): array
+    {
+        $expenses = [];
+        $refunds = [];
+
+        $pendingExpenseIndex = null;
+        $insideTransactionTable = false;
+        $rowBuffer = '';
+
+        $lines = array_values(array_filter(array_map(function ($line) {
+            return $this->normalizeOcrLine(trim($line));
+        }, explode("\n", $text)), function ($line) {
+            return $line !== '';
+        }));
+
+        foreach ($lines as $line) {
+            $upperLine = strtoupper($line);
+
+            if ($this->isTransactionTableHeader($upperLine)) {
+                $insideTransactionTable = true;
+                $pendingExpenseIndex = null;
+                $rowBuffer = '';
+                continue;
+            }
+
+            if (!$insideTransactionTable) {
+                continue;
+            }
+
+            if ($this->isTdTransactionTableEnd($upperLine)) {
+                $insideTransactionTable = false;
+                $pendingExpenseIndex = null;
+                $rowBuffer = '';
+                continue;
+            }
+
+            if ($this->isTdTransactionNoiseLine($upperLine)) {
+                // Do not let side-panel / foreign-currency note lines pollute the next transaction.
+                if ($this->shouldResetTdBufferForNoise($upperLine)) {
+                    $rowBuffer = '';
+                    $pendingExpenseIndex = null;
+                }
+                continue;
+            }
+
+            // Handle vendor continuation lines after a completed row, for example:
+            // WAL-MART SUPERCENTER#1118 / STITTSVILLE
+            // GOOGLE*CLOUD WD55WJ CC / GOOGLE.CO
+            if ($rowBuffer === '' && $pendingExpenseIndex !== null && $this->isValidTdContinuationLine($line)) {
+                $currentVendor = $expenses[$pendingExpenseIndex]['vendor_name'];
+                $newVendor = trim($currentVendor . ' ' . $line);
+                $newVendor = preg_replace('/\s+/', ' ', $newVendor);
+
+                $expenses[$pendingExpenseIndex]['vendor_name'] = $newVendor;
+                $expenses[$pendingExpenseIndex]['transaction_desc'] = $newVendor;
+                continue;
+            }
+
+            // If a new transaction date starts while the previous buffer never became a valid row,
+            // discard the stale buffer. This prevents marketing/side-panel text from joining a real row.
+            if ($rowBuffer !== '' && $this->tdLineStartsWithDate($line) && !$this->tdBufferLooksIncompleteDateOnly($rowBuffer)) {
+                $rowBuffer = '';
+            }
+
+            // Build rows from either normal one-line PDF text:
+            // OCT 8 OCT 9 DOLLARAMA # 784 STITTSVILLE $43.79
+            // or cell-by-cell / broken month text:
+            // NOV / 1 NOV / 3 GOOGLE *CLOUD ... $53.62
+            $candidate = trim($rowBuffer . ' ' . $line);
+            $candidate = preg_replace('/\s+/', ' ', $candidate);
+            $row = $this->parseTdBusinessTravelVisaRow($candidate, $statementYear);
+
+            if ($row !== null) {
+                if ($this->isCreditCardPaymentOrCreditRow($row['vendor'], $row['raw_amount'])) {
+                    $refunds[] = $this->makeExpense($row['date'], $row['vendor'], $row['amount']);
+                    $pendingExpenseIndex = null;
+                } else {
+                    $expenses[] = $this->makeExpense($row['date'], $row['vendor'], $row['amount']);
+                    $pendingExpenseIndex = array_key_last($expenses);
+                }
+
+                $rowBuffer = '';
+                continue;
+            }
+
+            // Keep buffering only if the line can reasonably be part of a TD transaction row.
+            if ($this->isPotentialTdRowPiece($line, $rowBuffer)) {
+                $rowBuffer = $candidate;
+            } else {
+                $rowBuffer = '';
+            }
+        }
+
+        // Do NOT deduplicate TD card expenses. Same vendor/date/amount can be valid separate purchases.
+        $refunds = $this->deduplicate($refunds);
+
+        return [
+            'expenses' => $expenses,
+            'refunds' => $refunds,
+            'count' => count($expenses),
+            'paired' => 0,
+            'account_number' => $this->extractTdAccountNumber($text),
+        ];
+    }
+
+    private function parseTdBusinessTravelVisaRow(string $line, ?int $statementYear): ?array
+    {
+        $line = $this->normalizeOcrLine(trim($line));
+        $line = preg_replace('/\s+/', ' ', $line);
+
+        if ($line === '') {
+            return null;
+        }
+
+        $monthToken = '(?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC)';
+        $dateToken = $monthToken . '\s*\d{1,2}';
+        $amountToken = '(-?\$?\s*\d{1,3}(?:,\d{3})*\.\d{2}|-?\$?\s*\d+\.\d{2})';
+
+        // Strict TD row: transaction date + posting date + vendor + final CAD amount.
+        // Requiring two dates is what prevents side-panel rows like "Nov. 26, 2025 $325.22"
+        // or rewards rows like "Promotions & Adjustments" from becoming transactions.
+        $pattern = '/^\s*(' . $dateToken . ')\s+(' . $dateToken . ')\s+(.+?)\s+' . $amountToken . '\s*$/i';
+
+        if (!preg_match($pattern, $line, $m)) {
+            return null;
+        }
+
+        $transactionDate = $this->normalizeDate($m[1], $statementYear);
+        if (!$transactionDate) {
+            return null;
+        }
+
+        $vendor = trim(preg_replace('/\s+/', ' ', $m[3]));
+        $vendor = trim($vendor, " \t\n\r\0\x0B-_.,;:/\\$|");
+
+        if ($vendor === '' || $this->isInvalidTdVendor($vendor)) {
+            return null;
+        }
+
+        $rawAmount = $m[4];
+        $hasCurrencySign = str_contains($rawAmount, '$');
+        $amount = $this->parseAmount($rawAmount, $hasCurrencySign);
+
+        if ($amount === null || $amount <= 0.01) {
+            return null;
+        }
+
+        return [
+            'date' => $transactionDate,
+            'vendor' => $vendor,
+            'amount' => $amount,
+            'raw_amount' => $rawAmount,
+        ];
+    }
+
+    private function tdLineStartsWithDate(string $line): bool
+    {
+        return (bool) preg_match('/^\s*(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC)\s*\d{1,2}\b/i', $line);
+    }
+
+    private function tdBufferLooksIncompleteDateOnly(string $buffer): bool
+    {
+        $buffer = trim(preg_replace('/\s+/', ' ', $buffer));
+
+        // Examples that should continue buffering:
+        // "NOV"
+        // "NOV 1"
+        // "NOV 1 NOV"
+        // "OCT 8 OCT 9"
+        return (bool) preg_match('/^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC)(\s+\d{1,2})?(\s+(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC))?(\s+\d{1,2})?$/i', $buffer);
+    }
+
+    private function isPotentialTdRowPiece(string $line, string $currentBuffer = ''): bool
+    {
+        $line = trim($this->normalizeOcrLine($line));
+        $upperLine = strtoupper($line);
+
+        if ($line === '') {
+            return false;
+        }
+
+        if ($this->isTdTransactionNoiseLine($upperLine) || $this->isInvalidTdVendor($line)) {
+            return false;
+        }
+
+        if (preg_match('/TRANSACTION|POSTING|ACTIVITY|DESCRIPTION|STATEMENT|ACCOUNT\s+NUMBER|PAYMENT\s+DUE|BALANCE|CONTACT|INFORMATION|INSURANCE|VISIT\s+WWW|TERMS\s+APPLY/i', $upperLine)) {
+            return false;
+        }
+
+        // Month-only and date cells are valid pieces in Vision/Smalot broken layouts.
+        if (preg_match('/^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC)$/i', $line)) {
+            return true;
+        }
+
+        if (preg_match('/^\d{1,2}\s+(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC)$/i', $line)) {
+            return true;
+        }
+
+        if ($this->tdLineStartsWithDate($line)) {
+            return true;
+        }
+
+        // Vendor or amount can be part of a row only after we already captured a date piece.
+        if ($currentBuffer !== '' && preg_match('/(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC)/i', $currentBuffer)) {
+            if ($this->isCcAmountOnlyLine($line)) {
+                return true;
+            }
+
+            if (!preg_match(self::AMOUNT_REGEX, $line) && preg_match('/[A-Z]{2,}/i', $line)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function shouldResetTdBufferForNoise(string $upperLine): bool
+    {
+        return (bool) preg_match('/PROMOTIONS\s+&\s+ADJUSTMENTS|PAYMENT\s+DUE|MINIMUM\s+PAYMENT|CREDIT\s+LIMIT|AVAILABLE\s+CREDIT|CALCULATING\s+YOUR\s+BALANCE|TOTAL\s+TD\s+REWARDS|PREVIOUS\s+TD\s+REWARDS|EARNED\s+THIS\s+STATEMENT/i', $upperLine);
+    }
+
+    private function isTdTransactionTableEnd(string $upperLine): bool
+    {
+        return (bool) preg_match('/^TOTAL\s+NEW\s+BALANCE\b|^TD\s+MESSAGE\s+CENTRE\b/i', $upperLine);
+    }
+
+    private function isTdTransactionNoiseLine(string $upperLine): bool
+    {
+        return (bool) preg_match('/PREVIOUS\s+STATEMENT\s+BALANCE/i', $upperLine)
+            || (bool) preg_match('/^CONTINUED$/i', $upperLine)
+            || (bool) preg_match('/FOREIGN\s+CURRENCY/i', $upperLine)
+            || (bool) preg_match('/EXCHANGE\s+RATE/i', $upperLine)
+            || (bool) preg_match('/^\.?$/', $upperLine);
+    }
+
+    private function isInvalidTdVendor(string $vendor): bool
+    {
+        $upperVendor = strtoupper(trim($vendor));
+
+        $invalidPatterns = [
+            '/PROMOTIONS\s+&\s+ADJUSTMENTS/',
+            '/PAYMENT\s+DUE\s+DATE/',
+            '/MINIMUM\s+PAYMENT/',
+            '/CREDIT\s+LIMIT/',
+            '/AVAILABLE\s+CREDIT/',
+            '/ANNUAL\s+INTEREST/',
+            '/CALCULATING\s+YOUR\s+BALANCE/',
+            '/AMOUNT\(S\)/',
+            '/WAIT\.\s+PLAN/',
+            '/FOR\s+THE\s+FUTURE/',
+            '/LIFE\s+DOESN/',
+            '/TD\s+REWARDS/',
+            '/CUSTOMER\s+SERVICE/',
+            '/CONTACT\s+INFORMATION/',
+            '/NEW\s+BALANCE/',
+            '/PREVIOUS\s+BALANCE/',
+            '/PAYMENTS\s+&\s+CREDITS/',
+            '/PURCHASES\s+&\s+OTHER\s+CHARGES/',
+            '/CASH\s+ADVANCES/',
+            '/SUB-TOTAL/',
+        ];
+
+        foreach ($invalidPatterns as $pattern) {
+            if (preg_match($pattern, $upperVendor)) {
+                return true;
+            }
+        }
+
+        // Vendor cannot be only a date like "Nov. 26, 2025".
+        if (preg_match('/^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC)[A-Z]*\.?\s+\d{1,2},?\s+20\d{2}$/i', $vendor)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private function isValidTdContinuationLine(string $line): bool
+    {
+        $line = trim($this->normalizeOcrLine($line));
+        $upperLine = strtoupper($line);
+
+        if ($line === '') {
+            return false;
+        }
+
+        if (strlen($line) > 45) {
+            return false;
+        }
+
+        if (preg_match('/^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC)\b/i', $line)) {
+            return false;
+        }
+
+        if (preg_match(self::AMOUNT_REGEX, $line)) {
+            return false;
+        }
+
+        if ($this->isTdTransactionNoiseLine($upperLine) || $this->isInvalidTdVendor($line)) {
+            return false;
+        }
+
+        if (preg_match('/TRANSACTION|POSTING|ACTIVITY|DESCRIPTION|STATEMENT|ACCOUNT\s+NUMBER|PAYMENT|BALANCE|CONTACT|INFORMATION|INSURANCE|VISIT\s+WWW|SAVE\s+WITH|TERMS\s+APPLY/i', $upperLine)) {
+            return false;
+        }
+
+        return (bool) preg_match('/[A-Z]{2,}/i', $line);
+    }
+
+    private function extractTdAccountNumber(string $text): ?string
+    {
+        if (preg_match('/Account Number:\s*([0-9Xx\s]+\d{4})/i', $text, $m)) {
+            return trim(preg_replace('/\s+/', ' ', $m[1]));
+        }
+
+        if (preg_match('/TD\s+BUSINESS\s+TRAVEL\s+VISA\s+CARD\s*\n?\s*Account Number:\s*([0-9Xx\s]+\d{4})/i', $text, $m)) {
+            return trim(preg_replace('/\s+/', ' ', $m[1]));
+        }
+
+        return null;
+    }
+
     private function parseCreditCardTransactionTableRow(string $line, ?int $statementYear): ?array
     {
         $line = $this->normalizeOcrLine(trim($line));
@@ -839,10 +1195,12 @@ class BankStatementExtractor
 
         // Match a credit-card row with transaction date + posting date + description + final amount.
         // Month tokens intentionally allow OCR-normalized compact dates like OCT29 and spaced dates like OCT 29.
-        $dateToken = '(?:\d{1,2}[\/\-\.]\d{1,2}(?:[\/\-\.]\d{2,4})?|(?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC)[A-Z]*\s*\d{1,2})';
-        $amountToken = '([+-]?\s*\$?\s*\d{1,3}(?:,\d{3})*\.\d{2}|[+-]?\s*\$?\s*\d+\.\d{2}|\$[+-]?\s*\d{1,6}(?:,\d{3})?)';
+        $monthToken = '(?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC)[A-Z]*';
+        $dateToken = '(?:\d{1,2}[\/\-\.]\d{1,2}(?:[\/\-\.]\d{2,4})?|' . $monthToken . '\s*\d{1,2})';
+        $amountToken = '([+-]?\s*\$?\s*\d{1,3}(?:,\d{3})*\.\d{2}|[+-]?\s*\$?\s*\d+\.\d{2}|\$[+-]?\s*\d{1,6}(?:,\d{3})?[\.\,]\d{2})';
 
-        $pattern = '/^\s*(' . $dateToken . ')\s*(?:' . $dateToken . ')?\s+(.+?)\s+' . $amountToken . '\s*(?:DR|CR|[\W_])?\s*$/i';
+        // More flexible pattern to handle varying number of spaces and optional posting date
+        $pattern = '/^\s*(' . $dateToken . ')\s+(?:' . $dateToken . '\s+)?(.+?)\s+' . $amountToken . '\s*(?:DR|CR|[\W_])?\s*$/i';
         if (!preg_match($pattern, $line, $m)) {
             Log::debug("[Extractor] Row did not match CC transaction pattern: $line");
             return null;
