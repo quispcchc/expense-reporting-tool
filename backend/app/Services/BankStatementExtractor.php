@@ -1072,107 +1072,220 @@ class BankStatementExtractor
         $expenses = [];
         $refunds = [];
 
-        $pendingExpenseIndex = null;
-        $continuationCount = 0;
-        $rowBuffer = '';
+        /*
+         * TD PDF text can arrive in two different orders:
+         *
+         * 1. Normal row order:
+         *    MAY 8 MAY 11 RCSS #1009 OTTAWA $92.44
+         *
+         * 2. Column/cell order:
+         *    MAY 8 MAY 11 RCSS #1009 OTTAWA
+         *    MAY 11 MAY 12 CLAUDE.AI SUBSCRIPTION
+         *    $92.44
+         *    $158.20
+         *
+         * The old parser kept only one row buffer. When the second dated row
+         * arrived, it discarded the first row and assigned $92.44 to CLAUDE.
+         * Keep a FIFO queue of incomplete dated rows instead.
+         */
+        $pendingRows = [];
+        $lastCompletedExpenseIndex = null;
+        $lastPendingIndex = null;
 
         $lines = array_values(array_filter(array_map(function ($line) {
-            return $this->normalizeOcrLine(trim($line));
-        }, explode("\n", $text)), function ($line) {
+            $line = $this->normalizeOcrLine(trim($line));
+            return preg_replace('/\s+/', ' ', $line);
+        }, explode("\n", $text)), static function ($line) {
             return $line !== '';
         }));
 
-        foreach ($lines as $line) {
+        foreach ($lines as $lineNumber => $line) {
             $upperLine = strtoupper($line);
 
             if ($this->isTransactionTableHeader($upperLine)) {
-                $pendingExpenseIndex = null;
-                $continuationCount = 0;
-                $rowBuffer = '';
+                $lastCompletedExpenseIndex = null;
+                $lastPendingIndex = null;
                 continue;
             }
 
-            // Vision and embedded PDF text can split the table header, so the parser
-            // scans all lines. The strict row parser still requires two TD dates,
-            // a vendor, and a final CAD amount.
             if ($this->isTdTransactionTableEnd($upperLine)) {
-                $pendingExpenseIndex = null;
-                $continuationCount = 0;
-                $rowBuffer = '';
+                $pendingRows = [];
+                $lastCompletedExpenseIndex = null;
+                $lastPendingIndex = null;
                 continue;
             }
 
             if ($this->isTdTransactionNoiseLine($upperLine)) {
+                /*
+                 * Foreign-currency and exchange-rate lines belong to the
+                 * preceding merchant but are not part of its vendor name.
+                 * Strong section/header noise clears all incomplete rows.
+                 */
                 if ($this->shouldResetTdBufferForNoise($upperLine)) {
-                    $rowBuffer = '';
-                    $pendingExpenseIndex = null;
-                    $continuationCount = 0;
+                    $pendingRows = [];
+                    $lastPendingIndex = null;
+                    $lastCompletedExpenseIndex = null;
                 }
                 continue;
             }
 
-            // Append only a small number of immediate, merchant-like continuation
-            // lines after a completed transaction, such as VANCOUVER or GOOGLE.CO.
+            /*
+             * First prefer a complete TD row containing two dates, vendor and
+             * amount on the same line.
+             */
+            $completeRow = $this->parseTdBusinessTravelVisaRow(
+                $line,
+                $statementYear
+            );
+
+            if ($completeRow !== null) {
+                $this->appendTdParsedRow(
+                    $completeRow,
+                    $expenses,
+                    $refunds
+                );
+
+                $lastCompletedExpenseIndex = empty($expenses)
+                    ? null
+                    : array_key_last($expenses);
+                $lastPendingIndex = null;
+                continue;
+            }
+
+            /*
+             * Capture a dated row that has no amount yet. Multiple incomplete
+             * rows may be waiting before Vision/Smalot emits their amounts.
+             */
+            $partialRow = $this->parseTdBusinessTravelVisaPartialRow(
+                $line,
+                $statementYear
+            );
+
+            if ($partialRow !== null) {
+                $pendingRows[] = $partialRow;
+                $lastPendingIndex = array_key_last($pendingRows);
+                $lastCompletedExpenseIndex = null;
+
+                Log::debug('[TD PARSER] Queued incomplete row', [
+                    'line_number' => $lineNumber,
+                    'date' => $partialRow['date'],
+                    'vendor' => $partialRow['vendor'],
+                    'pending_count' => count($pendingRows),
+                ]);
+                continue;
+            }
+
+            /*
+             * Amount-only lines are assigned to the oldest incomplete row.
+             * FIFO is essential because OCR can emit several vendor rows first
+             * and their amounts afterwards in the same visual order.
+             */
+            if ($this->isCcAmountOnlyLine($line) && !empty($pendingRows)) {
+                $pending = array_shift($pendingRows);
+                $rawAmount = $line;
+                $amount = $this->parseAmount(
+                    $rawAmount,
+                    str_contains($rawAmount, '$')
+                );
+
+                if ($amount !== null && $amount > 0.01) {
+                    $pending['amount'] = $amount;
+                    $pending['raw_amount'] = $rawAmount;
+
+                    $this->appendTdParsedRow(
+                        $pending,
+                        $expenses,
+                        $refunds
+                    );
+
+                    $lastCompletedExpenseIndex = empty($expenses)
+                        ? null
+                        : array_key_last($expenses);
+
+                    Log::info('[TD PARSER] Matched delayed amount to queued row', [
+                        'line_number' => $lineNumber,
+                        'date' => $pending['date'],
+                        'vendor' => $pending['vendor'],
+                        'amount' => $amount,
+                        'remaining_pending' => count($pendingRows),
+                    ]);
+                }
+
+                $lastPendingIndex = empty($pendingRows)
+                    ? null
+                    : array_key_last($pendingRows);
+                continue;
+            }
+
+            /*
+             * A merchant continuation immediately after an incomplete row is
+             * appended to that queued row. This handles:
+             *   SURVEYMONKEY EUROPE UC
+             *   VANCOUVER
+             */
             if (
-                $rowBuffer === ''
-                && $pendingExpenseIndex !== null
-                && $continuationCount < 2
+                $lastPendingIndex !== null
+                && isset($pendingRows[$lastPendingIndex])
                 && $this->isValidTdContinuationLine($line)
             ) {
-                $currentVendor = $expenses[$pendingExpenseIndex]['vendor_name'];
-                $newVendor = trim($currentVendor . ' ' . $line);
-                $newVendor = preg_replace('/\s+/', ' ', $newVendor);
-
-                $expenses[$pendingExpenseIndex]['vendor_name'] = mb_substr($newVendor, 0, 250);
-                $expenses[$pendingExpenseIndex]['transaction_desc'] = $newVendor;
-                $continuationCount++;
+                $vendor = trim(
+                    $pendingRows[$lastPendingIndex]['vendor'] . ' ' . $line
+                );
+                $pendingRows[$lastPendingIndex]['vendor'] = preg_replace(
+                    '/\s+/',
+                    ' ',
+                    $vendor
+                );
                 continue;
             }
 
-            // A new date means the previous transaction's continuation window is over.
-            if ($this->tdLineStartsWithDate($line)) {
-                $pendingExpenseIndex = null;
-                $continuationCount = 0;
-            }
-
-            // If a new transaction starts while the previous buffer never became a
-            // valid row, discard stale content before starting the new row.
+            /*
+             * A merchant continuation after a completed row is safe only when
+             * no incomplete row is waiting. This prevents page/footer text from
+             * being attached to an earlier transaction.
+             */
             if (
-                $rowBuffer !== ''
-                && $this->tdLineStartsWithDate($line)
-                && !$this->tdBufferLooksIncompleteDateOnly($rowBuffer)
+                empty($pendingRows)
+                && $lastCompletedExpenseIndex !== null
+                && isset($expenses[$lastCompletedExpenseIndex])
+                && $this->isValidTdContinuationLine($line)
             ) {
-                $rowBuffer = '';
-            }
+                $vendor = trim(
+                    $expenses[$lastCompletedExpenseIndex]['vendor_name']
+                    . ' '
+                    . $line
+                );
+                $vendor = preg_replace('/\s+/', ' ', $vendor);
 
-            $candidate = trim($rowBuffer . ' ' . $line);
-            $candidate = preg_replace('/\s+/', ' ', $candidate);
-            $row = $this->parseTdBusinessTravelVisaRow($candidate, $statementYear);
-
-            if ($row !== null) {
-                if ($this->isCreditCardPaymentOrCreditRow($row['vendor'], $row['raw_amount'])) {
-                    $refunds[] = $this->makeExpense($row['date'], $row['vendor'], $row['amount']);
-                    $pendingExpenseIndex = null;
-                } else {
-                    $expenses[] = $this->makeExpense($row['date'], $row['vendor'], $row['amount']);
-                    $pendingExpenseIndex = array_key_last($expenses);
-                }
-
-                $continuationCount = 0;
-                $rowBuffer = '';
+                $expenses[$lastCompletedExpenseIndex]['vendor_name'] =
+                    mb_substr($vendor, 0, 250);
+                $expenses[$lastCompletedExpenseIndex]['transaction_desc'] =
+                    $vendor;
                 continue;
             }
 
-            if ($this->isPotentialTdRowPiece($line, $rowBuffer)) {
-                $rowBuffer = $candidate;
-            } else {
-                $rowBuffer = '';
-                $pendingExpenseIndex = null;
-                $continuationCount = 0;
-            }
+            /*
+             * Any unrelated line closes the completed-row continuation window,
+             * but do not discard pending rows. Their amounts may still appear
+             * later in OCR column order.
+             */
+            $lastCompletedExpenseIndex = null;
+            $lastPendingIndex = null;
         }
 
-        // Same vendor/date/amount can be legitimate duplicate card purchases.
+        if (!empty($pendingRows)) {
+            Log::warning('[TD PARSER] Unmatched incomplete rows remained', [
+                'count' => count($pendingRows),
+                'rows' => array_map(static function (array $row): array {
+                    return [
+                        'date' => $row['date'] ?? null,
+                        'vendor' => $row['vendor'] ?? null,
+                    ];
+                }, $pendingRows),
+            ]);
+        }
+
+        // Duplicate purchases can be legitimate. Only deduplicate credits.
         $refunds = $this->deduplicate($refunds);
 
         Log::info('[TD RECONCILIATION]', [
@@ -1188,6 +1301,85 @@ class BankStatementExtractor
             'count' => count($expenses),
             'paired' => 0,
             'account_number' => $this->extractTdAccountNumber($text),
+        ];
+    }
+
+    private function appendTdParsedRow(
+        array $row,
+        array &$expenses,
+        array &$refunds
+    ): void {
+        if (
+            $this->isCreditCardPaymentOrCreditRow(
+                $row['vendor'],
+                $row['raw_amount']
+            )
+        ) {
+            $refunds[] = $this->makeExpense(
+                $row['date'],
+                $row['vendor'],
+                $row['amount']
+            );
+            return;
+        }
+
+        $expenses[] = $this->makeExpense(
+            $row['date'],
+            $row['vendor'],
+            $row['amount']
+        );
+    }
+
+    private function parseTdBusinessTravelVisaPartialRow(
+        string $line,
+        ?int $statementYear
+    ): ?array {
+        $line = $this->normalizeOcrLine(trim($line));
+        $line = preg_replace('/\s+/', ' ', $line);
+
+        if ($line === '' || preg_match(self::AMOUNT_REGEX, $line)) {
+            return null;
+        }
+
+        $monthToken =
+            '(?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC)';
+        $dateToken = $monthToken . '\s*\d{1,2}';
+
+        $pattern =
+            '/^\s*(' . $dateToken . ')\s+'
+            . '(' . $dateToken . ')\s+(.+?)\s*$/i';
+
+        if (!preg_match($pattern, $line, $matches)) {
+            return null;
+        }
+
+        $transactionDate = $this->normalizeDate(
+            $matches[1],
+            $statementYear
+        );
+
+        if (!$transactionDate) {
+            return null;
+        }
+
+        $vendor = trim(
+            preg_replace('/\s+/', ' ', $matches[3]),
+            " \t\n\r\0\x0B-_.,;:/\\$|"
+        );
+
+        if (
+            $vendor === ''
+            || strlen($vendor) > 200
+            || $this->isInvalidTdVendor($vendor)
+        ) {
+            return null;
+        }
+
+        return [
+            'date' => $transactionDate,
+            'vendor' => $vendor,
+            'amount' => null,
+            'raw_amount' => '',
         ];
     }
 
