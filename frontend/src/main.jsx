@@ -9,6 +9,8 @@ import { ClaimProvider } from './contexts/ClaimContext.jsx'
 import { PrimeReactProvider } from 'primereact/api'
 import { LookupProvider } from './contexts/LookupContext.jsx'
 import { ThemeProvider } from './contexts/ThemeContext.jsx'
+import { LoadingProvider } from './contexts/LoadingContext.jsx'
+import { LoadingInterceptor } from './contexts/LoadingInterceptor.jsx'
 
 // Keyed wrapper: when authUser changes (login/logout), ClaimProvider
 // remounts with fresh state — no stale cache across user sessions.
@@ -26,13 +28,17 @@ function AppProviders({ children }) {
 createRoot(document.getElementById('root')).render(
     <StrictMode>
         <ThemeProvider>
-            <PrimeReactProvider>
-                <AuthProvider>
-                    <AppProviders>
-                        <App />
-                    </AppProviders>
-                </AuthProvider>
-            </PrimeReactProvider>
+            <LoadingProvider>
+                <LoadingInterceptor>
+                    <PrimeReactProvider>
+                        <AuthProvider>
+                            <AppProviders>
+                                <App />
+                            </AppProviders>
+                        </AuthProvider>
+                    </PrimeReactProvider>
+                </LoadingInterceptor>
+            </LoadingProvider>
         </ThemeProvider>
     </StrictMode>,
 )
