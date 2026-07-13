@@ -77,9 +77,25 @@ class BankStatementExtractor
         try {
             $parser = new Parser();
             $pdf = $parser->parseFile($filePath);
-            $smalotText = $pdf->getText();
+            $smalotText = trim($pdf->getText());
 
             if (preg_match('/TD\s+BUSINESS\s+TRAVEL\s+VISA\s+CARD/i', $smalotText)) {
+                // Text-based TD PDFs normally preserve transaction row order better
+                // than Vision OCR. Prefer embedded PDF text when it contains reliable rows.
+                if ($this->hasReliableTdTransactionRows($smalotText)) {
+                    Log::info('[Extractor] Using embedded PDF text for TD statement', [
+                        'text_length' => strlen($smalotText),
+                        'page_count' => count($pdf->getPages()),
+                    ]);
+
+                    return $smalotText;
+                }
+
+                Log::warning('[Extractor] Embedded TD text was not reliable; attempting Vision OCR', [
+                    'text_length' => strlen($smalotText),
+                    'page_count' => count($pdf->getPages()),
+                ]);
+
                 try {
                     $pageCount = max(1, count($pdf->getPages()));
                     $visionText = $this->extractPdfPagesViaVisionInChunks(
@@ -87,8 +103,8 @@ class BankStatementExtractor
                         $pageCount
                     );
 
-                    if ($this->hasTdTransactions($visionText)) {
-                        Log::info('[Extractor] Using Vision OCR for TD Business Travel Visa', [
+                    if ($this->hasReliableTdTransactionRows($visionText)) {
+                        Log::info('[Extractor] Using Vision OCR for TD statement', [
                             'page_count' => $pageCount,
                             'smalot_length' => strlen($smalotText),
                             'vision_length' => strlen($visionText),
@@ -97,19 +113,27 @@ class BankStatementExtractor
                         return $visionText;
                     }
 
-                    Log::warning('[Extractor] Vision text did not contain enough TD transaction data; using Smalot', [
-                        'page_count' => $pageCount,
+                    Log::warning('[Extractor] Vision TD text failed reliability validation', [
                         'vision_length' => strlen($visionText),
                     ]);
                 } catch (Throwable $e) {
-                    Log::warning('[Extractor] TD Vision extraction failed; using Smalot text', [
+                    Log::warning('[Extractor] TD Vision extraction failed', [
                         'error' => $e->getMessage(),
                     ]);
                 }
+
+                // Prefer the non-empty embedded text even when validation is inconclusive.
+                // It is safer than returning OCR text whose table columns may be reordered.
+                if ($smalotText !== '') {
+                    return $smalotText;
+                }
             }
 
-            if (strlen(trim($smalotText)) < 50) {
-                return $this->extractFromFileViaVision($filePath, 'application/pdf');
+            if (strlen($smalotText) < 50) {
+                return $this->extractFromFileViaVision(
+                    $filePath,
+                    'application/pdf'
+                );
             }
 
             return $smalotText;
@@ -118,7 +142,10 @@ class BankStatementExtractor
                 'error' => $e->getMessage(),
             ]);
 
-            return $this->extractFromFileViaVision($filePath, 'application/pdf');
+            return $this->extractFromFileViaVision(
+                $filePath,
+                'application/pdf'
+            );
         }
     }
 
@@ -976,6 +1003,40 @@ class BankStatementExtractor
         return false;
     }
 
+    private function hasReliableTdTransactionRows(string $text): bool
+    {
+        if (trim($text) === '') {
+            return false;
+        }
+
+        $month = '(?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC)';
+        $date = $month . '\s*\d{1,2}';
+
+        $rowPattern =
+            '/^\s*' .
+            $date .
+            '\s+' .
+            $date .
+            '\s+.+?' .
+            '\s+-?\$?\s*\d{1,3}(?:,\d{3})*\.\d{2}\s*$/im';
+
+        $rowCount = preg_match_all($rowPattern, $text);
+
+        if ($rowCount >= 3) {
+            return true;
+        }
+
+        // Support short statements with one or two transactions, while still
+        // requiring a recognizable TD transaction-table header.
+        $normalizedText = preg_replace('/\s+/', ' ', $text);
+        $hasHeader = preg_match(
+            '/TRANSACTION\s+POSTING\s+DATE\s+DATE\s+ACTIVITY\s+DESCRIPTION\s+AMOUNT/i',
+            $normalizedText
+        );
+
+        return (bool) ($hasHeader && $rowCount >= 1);
+    }
+
     private function hasTdTransactions(string $text): bool
     {
         if (trim($text) === '') {
@@ -1012,6 +1073,7 @@ class BankStatementExtractor
         $refunds = [];
 
         $pendingExpenseIndex = null;
+        $continuationCount = 0;
         $rowBuffer = '';
 
         $lines = array_values(array_filter(array_map(function ($line) {
@@ -1025,54 +1087,64 @@ class BankStatementExtractor
 
             if ($this->isTransactionTableHeader($upperLine)) {
                 $pendingExpenseIndex = null;
+                $continuationCount = 0;
                 $rowBuffer = '';
                 continue;
             }
 
-            // For TD statements, do not require a table header. Vision OCR can split the header
-            // across multiple lines. We safely scan all lines because parseTdBusinessTravelVisaRow()
-            // only accepts rows with two TD-style dates + vendor + final CAD amount.
+            // Vision and embedded PDF text can split the table header, so the parser
+            // scans all lines. The strict row parser still requires two TD dates,
+            // a vendor, and a final CAD amount.
             if ($this->isTdTransactionTableEnd($upperLine)) {
                 $pendingExpenseIndex = null;
+                $continuationCount = 0;
                 $rowBuffer = '';
                 continue;
             }
 
             if ($this->isTdTransactionNoiseLine($upperLine)) {
-                // Do not let side-panel / foreign-currency note lines pollute the next transaction.
                 if ($this->shouldResetTdBufferForNoise($upperLine)) {
                     $rowBuffer = '';
                     $pendingExpenseIndex = null;
+                    $continuationCount = 0;
                 }
                 continue;
             }
 
-            // Handle vendor continuation lines after a completed row, for example:
-            // WAL-MART SUPERCENTER#1118 / STITTSVILLE
-            // GOOGLE*CLOUD WD55WJ CC / GOOGLE.CO
-            if ($rowBuffer === '' && $pendingExpenseIndex !== null && $this->isValidTdContinuationLine($line)) {
+            // Append only a small number of immediate, merchant-like continuation
+            // lines after a completed transaction, such as VANCOUVER or GOOGLE.CO.
+            if (
+                $rowBuffer === ''
+                && $pendingExpenseIndex !== null
+                && $continuationCount < 2
+                && $this->isValidTdContinuationLine($line)
+            ) {
                 $currentVendor = $expenses[$pendingExpenseIndex]['vendor_name'];
                 $newVendor = trim($currentVendor . ' ' . $line);
                 $newVendor = preg_replace('/\s+/', ' ', $newVendor);
 
-                // Truncate if continuation makes it too long
-                $truncatedVendor = mb_substr($newVendor, 0, 250);
-
-                $expenses[$pendingExpenseIndex]['vendor_name'] = $truncatedVendor;
-                $expenses[$pendingExpenseIndex]['transaction_desc'] = $newVendor; // Keep full in desc
+                $expenses[$pendingExpenseIndex]['vendor_name'] = mb_substr($newVendor, 0, 250);
+                $expenses[$pendingExpenseIndex]['transaction_desc'] = $newVendor;
+                $continuationCount++;
                 continue;
             }
 
-            // If a new transaction date starts while the previous buffer never became a valid row,
-            // discard the stale buffer. This prevents marketing/side-panel text from joining a real row.
-            if ($rowBuffer !== '' && $this->tdLineStartsWithDate($line) && !$this->tdBufferLooksIncompleteDateOnly($rowBuffer)) {
+            // A new date means the previous transaction's continuation window is over.
+            if ($this->tdLineStartsWithDate($line)) {
+                $pendingExpenseIndex = null;
+                $continuationCount = 0;
+            }
+
+            // If a new transaction starts while the previous buffer never became a
+            // valid row, discard stale content before starting the new row.
+            if (
+                $rowBuffer !== ''
+                && $this->tdLineStartsWithDate($line)
+                && !$this->tdBufferLooksIncompleteDateOnly($rowBuffer)
+            ) {
                 $rowBuffer = '';
             }
 
-            // Build rows from either normal one-line PDF text:
-            // OCT 8 OCT 9 DOLLARAMA # 784 STITTSVILLE $43.79
-            // or cell-by-cell / broken month text:
-            // NOV / 1 NOV / 3 GOOGLE *CLOUD ... $53.62
             $candidate = trim($rowBuffer . ' ' . $line);
             $candidate = preg_replace('/\s+/', ' ', $candidate);
             $row = $this->parseTdBusinessTravelVisaRow($candidate, $statementYear);
@@ -1086,19 +1158,21 @@ class BankStatementExtractor
                     $pendingExpenseIndex = array_key_last($expenses);
                 }
 
+                $continuationCount = 0;
                 $rowBuffer = '';
                 continue;
             }
 
-            // Keep buffering only if the line can reasonably be part of a TD transaction row.
             if ($this->isPotentialTdRowPiece($line, $rowBuffer)) {
                 $rowBuffer = $candidate;
             } else {
                 $rowBuffer = '';
+                $pendingExpenseIndex = null;
+                $continuationCount = 0;
             }
         }
 
-        // Do NOT deduplicate TD card expenses. Same vendor/date/amount can be valid separate purchases.
+        // Same vendor/date/amount can be legitimate duplicate card purchases.
         $refunds = $this->deduplicate($refunds);
 
         Log::info('[TD RECONCILIATION]', [
@@ -1314,15 +1388,11 @@ class BankStatementExtractor
         $line = trim($this->normalizeOcrLine($line));
         $upperLine = strtoupper($line);
 
-        if ($line === '') {
+        if ($line === '' || strlen($line) > 45) {
             return false;
         }
 
-        if (strlen($line) > 45) {
-            return false;
-        }
-
-        if (preg_match('/^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC)\b/i', $line)) {
+        if ($this->tdLineStartsWithDate($line)) {
             return false;
         }
 
@@ -1334,14 +1404,12 @@ class BankStatementExtractor
             return false;
         }
 
-        if (preg_match('/TRANSACTION|POSTING|ACTIVITY|DESCRIPTION|STATEMENT|ACCOUNT\s+NUMBER|PAYMENT|BALANCE|CONTACT|INFORMATION|INSURANCE|VISIT\s+WWW|SAVE\s+WITH|TERMS\s+APPLY/i', $upperLine)) {
-            return false;
-        }
-
-        // Reject statement/footer text that can follow a transaction at a page boundary.
         if (preg_match(
-            '/\b(?:OF|STATEMENTS?|INTEREST|GRACE|CARDHOLDER|CUSTOMER|AMOUNT\s+PAID|TDSTM|HRI|CARLINGTON|AHMET\s+KAPICI)\b/i',
-            $line
+            '/TRANSACTION|POSTING|ACTIVITY|DESCRIPTION|STATEMENT|' .
+            'ACCOUNT|PAYMENT|BALANCE|CONTACT|INFORMATION|INSURANCE|' .
+            'FEES?|CREDITS?|PURCHASES?|INTEREST|GRACE|CARDHOLDER|' .
+            'VISIT|TERMS|TDSTM|PAGE|CONTINUED|SPECIAL\s+OFFERS/i',
+            $upperLine
         )) {
             return false;
         }
@@ -1350,12 +1418,11 @@ class BankStatementExtractor
             return false;
         }
 
-        // Continuations are normally short merchant/location fragments, not prose.
-        if (preg_match('/[.!?].*\s+[A-Za-z]{3,}/', $line)) {
-            return false;
-        }
-
-        return (bool) preg_match('/[A-Z]{2,}/i', $line);
+        // Valid examples: VANCOUVER, ANTHROPIC.CO, GOOGLE.CO, MID-
+        return (bool) preg_match(
+            '/^(?:[A-Z][A-Z .&\'\-]{1,30}|[A-Z0-9*.-]+\.(?:COM|CO|CA|NET|ORG)|MID-?)$/i',
+            $line
+        );
     }
 
     private function extractTdAccountNumber(string $text): ?string
