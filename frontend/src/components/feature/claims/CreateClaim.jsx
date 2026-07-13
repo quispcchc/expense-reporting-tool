@@ -163,25 +163,6 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
                 detail,
                 life: 6000,
             })
-
-            // Surface unmatched refunds separately so the user can manually
-            // reconcile them against their previous claims.
-            if (refunds.length > 0) {
-                const refundList = refunds
-                    .map(r => `${r.transaction_date} ${r.vendor_name} ${r.expense_amount}`)
-                    .join(' · ')
-                showToast(toastRef, {
-                    severity: 'warn',
-                    summary: t('claimForm.unmatchedRefunds', 'Unmatched refunds'),
-                    detail: t(
-                        'claimForm.unmatchedRefundsDetail',
-                        `${refunds.length} refund(s) on this statement could not be matched to a purchase. Please verify: ${refundList}`,
-                        { count: refunds.length, list: refundList },
-                    ),
-                    life: 12000,
-                    sticky: true,
-                })
-            }
         } catch (err) {
             // 422 indicates the file was accepted but can't be auto-extracted
             // (e.g. image upload). The file is still kept and will be saved

@@ -309,8 +309,6 @@
         "uploadBankStatement": "Upload Bank Statement",
         "extractionSuccess": "Extracted {{count}} expense(s) from bank statement",
         "extractionError": "Failed to extract expenses from bank statement. Please try again.",
-        "unmatchedRefunds": "Unmatched refunds",
-        "unmatchedRefundsDetail": "{{count}} refund(s) on this statement could not be matched to a purchase. Please verify: {{list}}",
         "cardDefaults": "Default values for all expense rows"
     },
     "toast": {

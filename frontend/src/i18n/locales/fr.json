@@ -293,8 +293,6 @@
         "uploadBankStatement": "Télécharger le relevé bancaire",
         "extractionSuccess": "{{count}} dépense(s) extraite(s) du relevé bancaire",
         "extractionError": "Échec de l'extraction des dépenses du relevé bancaire. Veuillez réessayer.",
-        "unmatchedRefunds": "Remboursements non appariés",
-        "unmatchedRefundsDetail": "{{count}} remboursement(s) sur ce relevé n'ont pas pu être appariés à un achat. Veuillez vérifier : {{list}}",
         "cardDefaults": "Valeurs par défaut pour toutes les lignes de dépenses"
     },
     "toast": {
