@@ -59,6 +59,21 @@ export const validationSchemas = {
         ],
     },
 
+    corporateCardDefaults: {
+        program: [
+            { rule: 'required', messageKey: 'validation.programRequired' },
+        ],
+        costCentre: [
+            { rule: 'required', messageKey: 'validation.costCentreRequired' },
+        ],
+        accountNum: [
+            { rule: 'required', messageKey: 'validation.accountNumRequired' },
+        ],
+        buyer: [
+            { rule: 'required', messageKey: 'validation.buyerRequired' },
+        ],
+    },
+
     expense: {
         program: [
             { rule: 'required', messageKey: 'validation.programRequired' },

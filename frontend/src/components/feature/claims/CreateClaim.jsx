@@ -54,6 +54,7 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
 
     const [expenseErrors, setExpenseErrors] = useState([])
     const [claimErrors, setClaimErrors] = useState()
+    const [cardDefaultErrors, setCardDefaultErrors] = useState({})
     const [mileageHeaderErrors, setMileageHeaderErrors] = useState({})
     const [validationDialog, setValidationDialog] = useState({ visible: false, header: '', message: '' })
     const [isSubmitting, setIsSubmitting] = useState(false)
@@ -112,6 +113,7 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
     const handleCardDefaultChange = (e) => {
         const { name, value } = e.target
         setCardDefaults(prev => ({ ...prev, [name]: value }))
+        setCardDefaultErrors(prev => ({ ...prev, [name]: undefined }))
         setClaimFormData(prev => ({
             ...prev,
             claimItems: prev.claimItems.map(item => ({ ...item, [name]: value })),
@@ -308,6 +310,27 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
         const validation = validateForm(claimFormData, claimSchema)
         setClaimErrors(validation.errors)
 
+        if (isCorporateCard) {
+            const cardDefaultsSchema = validationSchemas.corporateCardDefaults
+            const cardValidation = validateForm(cardDefaults, cardDefaultsSchema)
+            setCardDefaultErrors(cardValidation.errors)
+
+            if (!cardValidation.isValid) {
+                const missingFields = []
+                if (cardValidation.errors.accountNum) missingFields.push(t('expenses.accountNumber'))
+                if (cardValidation.errors.buyer) missingFields.push(t('expenses.buyer'))
+                if (cardValidation.errors.costCentre) missingFields.push(t('expenses.costCentre'))
+                if (cardValidation.errors.program) missingFields.push(t('expenses.program'))
+
+                setValidationDialog({
+                    visible: true,
+                    header: t('validation.error', 'Validation Error'),
+                    message: `${t('validation.fillRequired', 'Please fill in all required fields!')} (${missingFields.join(', ')})`
+                })
+                return
+            }
+        }
+
         const hasExpenses = claimFormData.claimItems.length > 0
         const hasUnboundMileage = includeMileage && (mileageData.transactions || []).length > 0
 
@@ -478,6 +501,7 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
                             onChange={handleCardDefaultChange}
                             options={projects.map(p => ({ label: `${p.project_name} - ${p.project_desc}`, value: p.project_id }))}
                             placeholder={t('expenses.selectProgram', 'Select program')}
+                            errors={cardDefaultErrors}
                         />
                         <Select
                             name="costCentre"
@@ -486,6 +510,7 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
                             onChange={handleCardDefaultChange}
                             options={costCentres.map(c => ({ label: `${c.cost_centre_code} - ${c.description}`, value: c.cost_centre_id }))}
                             placeholder={t('expenses.selectCostCentre', 'Select cost centre')}
+                            errors={cardDefaultErrors}
                         />
                         <Select
                             name="accountNum"
@@ -494,6 +519,7 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
                             onChange={handleCardDefaultChange}
                             options={accountNums.map(a => ({ label: `${a.account_number} - ${a.description}`, value: a.account_number_id }))}
                             placeholder={t('expenses.selectAccountNumber', 'Select account number')}
+                            errors={cardDefaultErrors}
                         />
                         <Input
                             name="buyer"
@@ -501,6 +527,7 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
                             value={cardDefaults.buyer}
                             onChange={handleCardDefaultChange}
                             placeholder={t('expenses.buyerPlaceholder', 'Enter buyer name')}
+                            errors={cardDefaultErrors}
                         />
                     </div>
                 </div>
