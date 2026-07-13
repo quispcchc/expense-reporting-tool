@@ -74,6 +74,7 @@ function TransactionEditDialog({
 
     const handleSave = () => {
         onSave(formData);
+        onHide();
     };
 
     const handleRemoveFile = (indexToRemove) => {
@@ -287,7 +288,8 @@ function TransactionEditDialog({
                             </span>
                         </div>
                         
-                        {attachments.length === 0 && (
+                        {/* Only show upload row if no individual attachments AND no bank statement fallback */}
+                        {attachments.length === 0 && !(isCorporateCard && bankStatementUrl) && (
                             <div className="bg-gray-50 rounded-xl p-4 mb-6 border border-dashed border-gray-300">
                                 <ClaimExpansionAttachmentRow
                                     label={null}
