@@ -347,7 +347,7 @@ function TransactionEditDialog({
                                                     );
                                                 } else if (isPdf) {
                                                     return (
-                                                        <iframe src={bankStatementUrl} title="Bank Statement" className="w-full h-[500px] rounded-lg border" />
+                                                        <iframe src={`${bankStatementUrl}#toolbar=0`} title="Bank Statement" className="w-full h-[500px] rounded-lg border" />
                                                     );
                                                 } else {
                                                     return (
@@ -424,7 +424,7 @@ function TransactionEditDialog({
                                                     </div>
                                                 )}
                                                 {isPdf && (
-                                                    <iframe src={url} title={fileName} className="w-full h-[500px] rounded-lg border" />
+                                                    <iframe src={`${url}#toolbar=0`} title={fileName} className="w-full h-[500px] rounded-lg border" />
                                                 )}
                                                 {!isImage && !isPdf && (
                                                     <div className="flex flex-col items-center justify-center py-10 text-gray-500">
