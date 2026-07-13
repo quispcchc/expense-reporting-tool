@@ -36,12 +36,25 @@ function TransactionEditDialog({
 }) {
     const { t } = useTranslation();
     const [formData, setFormData] = useState(null);
+    const [bankStatementUrl, setBankStatementUrl] = useState(null);
 
     useEffect(() => {
         if (transaction) {
             setFormData({ ...transaction });
         }
     }, [transaction]);
+
+    useEffect(() => {
+        if (bankStatement instanceof File) {
+            const url = URL.createObjectURL(bankStatement);
+            setBankStatementUrl(url);
+            return () => URL.revokeObjectURL(url);
+        } else if (typeof bankStatement === 'string') {
+            setBankStatementUrl(`${API_BASE_URL}/api/storage/${bankStatement}`);
+        } else {
+            setBankStatementUrl(null);
+        }
+    }, [bankStatement]);
 
     if (!formData) return null;
 
@@ -288,20 +301,69 @@ function TransactionEditDialog({
                         )}
                         
                         {attachments.length === 0 ? (
-                            isCorporateCard && bankStatement ? (
-                                <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
-                                    <div className="flex items-center gap-2 mb-4 text-gray-700">
-                                        <i className="pi pi-file-pdf text-xl text-red-500"></i>
-                                        <span className="font-bold">{t('claimForm.bankStatement', 'Bank Statement')}</span>
-                                    </div>
-                                    <BankStatementAttachment 
-                                        bankStatementPath={typeof bankStatement === 'string' ? bankStatement : null}
-                                        file={bankStatement instanceof File ? bankStatement : null}
-                                    />
-                                    <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
-                                        <p className="text-xs text-blue-700 leading-relaxed">
-                                            {t('expenses.bankStatementNotice', 'This expense was generated from a bank statement. No individual receipt was attached.')}
-                                        </p>
+                            isCorporateCard && bankStatementUrl ? (
+                                <div className="space-y-8">
+                                    <div className="group border rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow bg-white">
+                                        <div className="bg-gray-50 px-4 py-2 border-b flex justify-between items-center">
+                                            <div className="flex items-center gap-2 truncate max-w-[70%]">
+                                                <i className="pi pi-file-pdf text-red-500"></i>
+                                                <span className="text-sm font-bold text-gray-700 truncate">
+                                                    {bankStatement instanceof File ? bankStatement.name : t('claimForm.bankStatement', 'Bank Statement')}
+                                                </span>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <a 
+                                                    href={bankStatementUrl} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    className="text-blue-600 hover:text-blue-800 p-1"
+                                                    title={t('common.open', 'Open')}
+                                                >
+                                                    <i className="pi pi-external-link text-sm"></i>
+                                                </a>
+                                                <a 
+                                                    href={bankStatementUrl} 
+                                                    download={bankStatement instanceof File ? bankStatement.name : 'BankStatement.pdf'}
+                                                    className="text-green-600 hover:text-green-800 p-1"
+                                                    title={t('common.download', 'Download')}
+                                                >
+                                                    <i className="pi pi-download text-sm"></i>
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <div className="p-2">
+                                            {/* Preview: check if it's image or pdf */}
+                                            {(() => {
+                                                const fileName = bankStatement instanceof File ? bankStatement.name : (typeof bankStatement === 'string' ? bankStatement : '');
+                                                const ext = fileName.split('.').pop().toLowerCase();
+                                                const isImage = ['png', 'jpg', 'jpeg', 'gif'].includes(ext);
+                                                const isPdf = ext === 'pdf' || !ext; // Fallback to PDF if no extension for bank statement
+
+                                                if (isImage) {
+                                                    return (
+                                                        <div className="flex justify-center bg-gray-100 rounded-lg overflow-hidden min-h-[200px]">
+                                                            <img src={bankStatementUrl} alt="Bank Statement" className="max-w-full h-auto object-contain" />
+                                                        </div>
+                                                    );
+                                                } else if (isPdf) {
+                                                    return (
+                                                        <iframe src={bankStatementUrl} title="Bank Statement" className="w-full h-[500px] rounded-lg border" />
+                                                    );
+                                                } else {
+                                                    return (
+                                                        <div className="flex flex-col items-center justify-center py-10 text-gray-500">
+                                                            <i className="pi pi-file text-4xl mb-2"></i>
+                                                            <p className="text-xs">{t('upload.previewNotAvailable', 'Preview not available')}</p>
+                                                        </div>
+                                                    );
+                                                }
+                                            })()}
+                                        </div>
+                                        <div className="bg-blue-50 p-3 border-t border-blue-100">
+                                            <p className="text-xs text-blue-700 leading-relaxed italic">
+                                                {t('expenses.bankStatementNotice', 'This expense was generated from a bank statement. No individual receipt was attached.')}
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
                             ) : (
