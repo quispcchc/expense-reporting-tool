@@ -131,7 +131,6 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
             }
             const response = await api.post('bank-statements/extract', formData)
             const extracted = response.data?.expenses || []
-            const refunds = response.data?.refunds || []
             const paired = response.data?.paired || 0
             const claimItems = extracted.map(exp => ({
                 program: cardDefaults.program || exp.project_id || '',

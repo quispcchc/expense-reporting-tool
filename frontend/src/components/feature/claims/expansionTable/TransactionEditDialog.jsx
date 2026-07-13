@@ -56,11 +56,24 @@ function TransactionEditDialog({
         }
     }, [bankStatement]);
 
+    const parseDate = (dateStr) => {
+        if (!dateStr) return null;
+        if (dateStr instanceof Date) return dateStr;
+        const [year, month, day] = dateStr.split('-').map(Number);
+        return new Date(year, month - 1, day);
+    };
+
     if (!formData) return null;
 
     const handleInputChange = (field, value) => {
         let processedValue = value;
-        if (field === 'deletedReceiptIds') {
+        if (field === 'transactionDate' && value instanceof Date) {
+            // Format to YYYY-MM-DD in local time
+            const year = value.getFullYear();
+            const month = String(value.getMonth() + 1).padStart(2, '0');
+            const day = String(value.getDate()).padStart(2, '0');
+            processedValue = `${year}-${month}-${day}`;
+        } else if (field === 'deletedReceiptIds') {
             const existing = formData.deletedReceiptIds || [];
             const incoming = Array.isArray(value) ? value : [value];
             processedValue = [...existing, ...incoming];
@@ -195,8 +208,8 @@ function TransactionEditDialog({
                             <div className="flex flex-col gap-2">
                                 <label className="text-sm font-semibold text-gray-700">{t('expenses.transactionDate')}</label>
                                 <Calendar
-                                    value={formData.transactionDate ? new Date(formData.transactionDate) : null}
-                                    onChange={(e) => handleInputChange('transactionDate', e.value ? e.value.toISOString().split('T')[0] : null)}
+                                    value={formData.transactionDate ? parseDate(formData.transactionDate) : null}
+                                    onChange={(e) => handleInputChange('transactionDate', e.value)}
                                     dateFormat="yy-mm-dd"
                                     showIcon
                                     className="w-full"
