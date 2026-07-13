@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\ClaimType;
 use Exception;
+use Throwable;
 use Illuminate\Support\Facades\Log;
 use Smalot\PdfParser\Parser;
 use Google\Cloud\Vision\V1\Client\ImageAnnotatorClient;
@@ -76,66 +77,148 @@ class BankStatementExtractor
         try {
             $parser = new Parser();
             $pdf = $parser->parseFile($filePath);
-            $text = $pdf->getText();
-            
-            // If text is very short, it might be an image-based PDF. Try Vision API if available.
-            if (strlen(trim($text)) < 50) {
+            $smalotText = $pdf->getText();
+
+            /*
+             * TD statements use positioned text columns. Smalot may extract all
+             * characters but return them in the wrong reading order, causing an
+             * amount to be attached to the next vendor. Prefer Vision OCR for
+             * TD Business Travel Visa statements.
+             */
+            if (preg_match('/TD\s+BUSINESS\s+TRAVEL\s+VISA\s+CARD/i', $smalotText)) {
+                try {
+                    // In this TD PDF, physical pages 1 and 3 contain the transaction tables.
+                    // Google Vision uses one-based page numbers.
+                    $visionText = $this->extractFromFileViaVision(
+                        $filePath,
+                        'application/pdf',
+                        [1, 3]
+                    );
+
+                    if ($this->hasTdTransactions($visionText)) {
+                        Log::info('[Extractor] Using Vision OCR for TD Business Travel Visa', [
+                            'smalot_length' => strlen($smalotText),
+                            'vision_length' => strlen($visionText),
+                        ]);
+
+                        return $visionText;
+                    }
+
+                    Log::warning(
+                        '[Extractor] Vision did not return recognizable TD transactions; using Smalot text'
+                    );
+                } catch (Throwable $e) {
+                    Log::warning('[Extractor] TD Vision extraction failed; using Smalot text', [
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            // A very short result usually means the PDF is image-based.
+            if (strlen(trim($smalotText)) < 50) {
                 return $this->extractFromFileViaVision($filePath, 'application/pdf');
             }
-            
-            return $text;
-        } catch (Exception $e) {
-            Log::warning('Smalot PDF parser failed, falling back to Vision API', ['error' => $e->getMessage()]);
+
+            return $smalotText;
+        } catch (Throwable $e) {
+            Log::warning('Smalot PDF parser failed, falling back to Vision API', [
+                'error' => $e->getMessage(),
+            ]);
+
             return $this->extractFromFileViaVision($filePath, 'application/pdf');
         }
     }
 
-    private function extractFromFileViaVision(string $filePath, string $mimeType): string
-    {
+    private function extractFromFileViaVision(
+        string $filePath,
+        string $mimeType,
+        array $pages = []
+    ): string {
+        $imageAnnotator = null;
+
         try {
             $imageAnnotator = new ImageAnnotatorClient();
+
             $content = file_get_contents($filePath);
-            
+            if ($content === false) {
+                throw new Exception('Unable to read the uploaded bank statement.');
+            }
+
             $inputConfig = new InputConfig();
             $inputConfig->setContent($content);
             $inputConfig->setMimeType($mimeType);
-            
+
             $feature = new Feature();
             $feature->setType(Type::DOCUMENT_TEXT_DETECTION);
-            
+
             $request = new AnnotateFileRequest();
             $request->setInputConfig($inputConfig);
             $request->setFeatures([$feature]);
-            
+
+            // Synchronous Vision PDF processing supports up to five selected pages.
+            if (!empty($pages)) {
+                $request->setPages(array_values($pages));
+            }
+
             $batchRequest = new BatchAnnotateFilesRequest();
             $batchRequest->setRequests([$request]);
-            
+
             $response = $imageAnnotator->batchAnnotateFiles($batchRequest);
-            $responses = $response->getResponses();
-            
-            $text = '';
-            foreach ($responses as $res) {
-                if ($res->getError()) {
-                    Log::error('Vision API individual file error', ['error' => $res->getError()->getMessage()]);
+            $textParts = [];
+
+            foreach ($response->getResponses() as $fileResponse) {
+                $fileError = $fileResponse->getError();
+
+                if ($fileError && $fileError->getCode() !== 0) {
+                    Log::error('Vision API file error', [
+                        'code' => $fileError->getCode(),
+                        'message' => $fileError->getMessage(),
+                    ]);
                     continue;
                 }
-                
-                $responsesList = $res->getResponses();
-                foreach ($responsesList as $pageRes) {
-                    $annotation = $pageRes->getFullTextAnnotation();
-                    if ($annotation) {
-                        $text .= $annotation->getText();
+
+                foreach ($fileResponse->getResponses() as $pageResponse) {
+                    $pageError = $pageResponse->getError();
+
+                    if ($pageError && $pageError->getCode() !== 0) {
+                        Log::error('Vision API page error', [
+                            'code' => $pageError->getCode(),
+                            'message' => $pageError->getMessage(),
+                        ]);
+                        continue;
+                    }
+
+                    $annotation = $pageResponse->getFullTextAnnotation();
+                    if ($annotation && trim($annotation->getText()) !== '') {
+                        $textParts[] = trim($annotation->getText());
                     }
                 }
             }
 
-            Log::info('[VISION DEBUG] Extracted text length=' . strlen($text) . ' sample=' . substr(str_replace("\n", ' | ', $text), 0, 3000));
+            $text = implode("\n\n", $textParts);
 
-            $imageAnnotator->close();
+            Log::info('[VISION DEBUG]', [
+                'pages' => $pages,
+                'text_length' => strlen($text),
+                'sample' => substr(str_replace("\n", ' | ', $text), 0, 3000),
+            ]);
+
             return $text;
-        } catch (Exception $e) {
-            Log::error('Google Cloud Vision File API failed', ['error' => $e->getMessage()]);
-            throw $e;
+        } catch (Throwable $e) {
+            Log::error('Google Cloud Vision File API failed', [
+                'error' => $e->getMessage(),
+                'pages' => $pages,
+            ]);
+
+            throw new Exception(
+                'Google Cloud Vision could not process the bank statement.',
+                0,
+                $e
+            );
+        } finally {
+            if ($imageAnnotator !== null) {
+                $imageAnnotator->close();
+            }
         }
     }
 
@@ -863,6 +946,28 @@ class BankStatementExtractor
         return false;
     }
 
+    private function hasTdTransactions(string $text): bool
+    {
+        if (trim($text) === '') {
+            return false;
+        }
+
+        $pattern = '/\b(?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC)'
+            . '\s*\d{1,2}\s+'
+            . '(?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC)'
+            . '\s*\d{1,2}\b/i';
+
+        return preg_match_all($pattern, $text) >= 2;
+    }
+
+    private function calculateExpenseTotal(array $expenses): float
+    {
+        return round(array_sum(array_map(
+            static fn (array $expense): float => (float) ($expense['expense_amount'] ?? 0),
+            $expenses
+        )), 2);
+    }
+
     private function parseTdBusinessTravelVisa(string $text, ?int $statementYear): array
     {
         $expenses = [];
@@ -959,6 +1064,13 @@ class BankStatementExtractor
 
         // Do NOT deduplicate TD card expenses. Same vendor/date/amount can be valid separate purchases.
         $refunds = $this->deduplicate($refunds);
+
+        Log::info('[TD RECONCILIATION]', [
+            'expense_count' => count($expenses),
+            'expense_total' => $this->calculateExpenseTotal($expenses),
+            'refund_count' => count($refunds),
+            'refund_total' => $this->calculateExpenseTotal($refunds),
+        ]);
 
         return [
             'expenses' => $expenses,
@@ -1173,6 +1285,23 @@ class BankStatementExtractor
         }
 
         if (preg_match('/TRANSACTION|POSTING|ACTIVITY|DESCRIPTION|STATEMENT|ACCOUNT\s+NUMBER|PAYMENT|BALANCE|CONTACT|INFORMATION|INSURANCE|VISIT\s+WWW|SAVE\s+WITH|TERMS\s+APPLY/i', $upperLine)) {
+            return false;
+        }
+
+        // Reject statement/footer text that can follow a transaction at a page boundary.
+        if (preg_match(
+            '/\b(?:OF|STATEMENTS?|INTEREST|GRACE|CARDHOLDER|CUSTOMER|AMOUNT\s+PAID|TDSTM|HRI|CARLINGTON|AHMET\s+KAPICI)\b/i',
+            $line
+        )) {
+            return false;
+        }
+
+        if (preg_match('/\b\d+\s+OF\s+\d+\b/i', $line)) {
+            return false;
+        }
+
+        // Continuations are normally short merchant/location fragments, not prose.
+        if (preg_match('/[.!?].*\s+[A-Za-z]{3,}/', $line)) {
             return false;
         }
 
