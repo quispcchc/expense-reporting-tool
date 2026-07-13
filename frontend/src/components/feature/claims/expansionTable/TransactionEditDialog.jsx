@@ -10,6 +10,7 @@ import { APP_SETTINGS } from '../../../../config/settings.js';
 import { BUTTON_STYLE } from '../../../../utils/customizeStyle.js';
 import TagMultiSelect from '../TagMultiSelect.jsx';
 import ClaimExpansionAttachmentRow from './ClaimExpansionAttachmentRow.jsx';
+import BankStatementAttachment from '../BankStatementAttachment.jsx';
 import { APPROVAL_STATUS } from '../../../../config/constants.js';
 import { API_BASE_URL } from '../../../../api/api.js';
 
@@ -29,7 +30,9 @@ function TransactionEditDialog({
     currentIndex,
     totalCount,
     isAdminOrApprover,
-    mode
+    mode,
+    isCorporateCard,
+    bankStatement
 }) {
     const { t } = useTranslation();
     const [formData, setFormData] = useState(null);
@@ -267,7 +270,7 @@ function TransactionEditDialog({
                         <div className="flex items-center justify-between mb-6">
                             <h3 className="text-lg font-bold text-gray-800">{t('expenses.attachments', 'Attachments')}</h3>
                             <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                                {attachments.length} {t('common.files', 'Files')}
+                                {attachments.length > 0 ? attachments.length : (isCorporateCard && bankStatement ? 1 : 0)} {t('common.files', 'Files')}
                             </span>
                         </div>
                         
@@ -285,10 +288,28 @@ function TransactionEditDialog({
                         )}
                         
                         {attachments.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-20 text-gray-400 bg-gray-50 rounded-xl border border-gray-100">
-                                <i className="pi pi-file-excel text-5xl mb-4 opacity-20"></i>
-                                <p className="text-sm font-medium">{t('upload.noAttachmentFound', 'No attachment found')}</p>
-                            </div>
+                            isCorporateCard && bankStatement ? (
+                                <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
+                                    <div className="flex items-center gap-2 mb-4 text-gray-700">
+                                        <i className="pi pi-file-pdf text-xl text-red-500"></i>
+                                        <span className="font-bold">{t('claimForm.bankStatement', 'Bank Statement')}</span>
+                                    </div>
+                                    <BankStatementAttachment 
+                                        bankStatementPath={typeof bankStatement === 'string' ? bankStatement : null}
+                                        file={bankStatement instanceof File ? bankStatement : null}
+                                    />
+                                    <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                                        <p className="text-xs text-blue-700 leading-relaxed">
+                                            {t('expenses.bankStatementNotice', 'This expense was generated from a bank statement. No individual receipt was attached.')}
+                                        </p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-20 text-gray-400 bg-gray-50 rounded-xl border border-gray-100">
+                                    <i className="pi pi-file-excel text-5xl mb-4 opacity-20"></i>
+                                    <p className="text-sm font-medium">{t('upload.noAttachmentFound', 'No attachment found')}</p>
+                                </div>
+                            )
                         ) : (
                             <div className="space-y-8">
                                 {attachments.map((file, index) => {

@@ -20,13 +20,30 @@ import { formatCurrency } from '../../../../utils/formatters.js'
 import mapExpenseData from '../../../../utils/mapExpenseData.js'
 import { expenseTextEditor, accountNumEditor, costCentreEditor, currencyInputEditor, dateInputEditor } from '../../../../utils/expenseEditors.jsx'
 import { useAuth } from '../../../../contexts/AuthContext.jsx'
-import { ROLE_NAME, VIEW_MODE } from '../../../../config/constants.js'
+import { ROLE_NAME, VIEW_MODE, CLAIM_TYPE } from '../../../../config/constants.js'
 import TransactionEditDialog from './TransactionEditDialog.jsx'
 
-function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toastRef, onClaimUpdated }) {
+function EditableExpansionTable({ 
+    data, 
+    curClaim, 
+    mode, 
+    onClaimItemsUpdate, 
+    toastRef, 
+    onClaimUpdated,
+    isCorporateCard: isCorporateCardProp,
+    bankStatementFile 
+}) {
     const { t } = useTranslation()
     const isMobile = useIsMobile()
     const { authUser } = useAuth()
+    
+    // Determine if it's a corporate card claim
+    const isCorporateCard = isCorporateCardProp || 
+        (curClaim && (Number(curClaim.claim_type_id) === CLAIM_TYPE.CORPORATE_CARD || 
+                     Number(curClaim.claim_type?.claim_type_id) === CLAIM_TYPE.CORPORATE_CARD));
+    
+    // Determine the bank statement (either a File object or a backend path)
+    const bankStatement = bankStatementFile || (curClaim && curClaim.bank_statement_path);
     const [expenseItems, setExpenseItems] = useState(() => mapExpenseData(data, mode))
 
     const [currentlyEditingRowId, setCurrentlyEditingRowId] = useState(null)
@@ -818,6 +835,8 @@ function EditableExpansionTable({ data, curClaim, mode, onClaimItemsUpdate, toas
                 totalCount={expenseItems.length}
                 isAdminOrApprover={isAdminOrApprover}
                 mode={mode}
+                isCorporateCard={isCorporateCard}
+                bankStatement={bankStatement}
             />
         </div>
     )

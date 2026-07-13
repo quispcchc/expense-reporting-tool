@@ -25,6 +25,7 @@ function AddExpenseForm({
     includeMileage,
     mileageData,
     isCorporateCard,
+    bankStatementFile,
 }) {
     const { t } = useTranslation()
     const { lookups: { costCentres, projects, accountNums} } = useLookups()
@@ -193,7 +194,10 @@ function AddExpenseForm({
 
             {/* Expansion table showing claim items in create mode */}
             <EditableExpansionTable data={claimFormData.claimItems} onClaimItemsUpdate={onClaimItemsUpdate}
-                mode={VIEW_MODE.CREATE} toastRef={toastRef} />
+                mode={VIEW_MODE.CREATE} toastRef={toastRef} 
+                isCorporateCard={isCorporateCard}
+                bankStatementFile={bankStatementFile}
+            />
 
         </div>
     )
