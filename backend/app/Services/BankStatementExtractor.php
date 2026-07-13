@@ -79,24 +79,17 @@ class BankStatementExtractor
             $pdf = $parser->parseFile($filePath);
             $smalotText = $pdf->getText();
 
-            /*
-             * TD statements use positioned text columns. Smalot may extract all
-             * characters but return them in the wrong reading order, causing an
-             * amount to be attached to the next vendor. Prefer Vision OCR for
-             * TD Business Travel Visa statements.
-             */
             if (preg_match('/TD\s+BUSINESS\s+TRAVEL\s+VISA\s+CARD/i', $smalotText)) {
                 try {
-                    // In this TD PDF, physical pages 1 and 3 contain the transaction tables.
-                    // Google Vision uses one-based page numbers.
-                    $visionText = $this->extractFromFileViaVision(
+                    $pageCount = max(1, count($pdf->getPages()));
+                    $visionText = $this->extractPdfPagesViaVisionInChunks(
                         $filePath,
-                        'application/pdf',
-                        [1, 3]
+                        $pageCount
                     );
 
                     if ($this->hasTdTransactions($visionText)) {
                         Log::info('[Extractor] Using Vision OCR for TD Business Travel Visa', [
+                            'page_count' => $pageCount,
                             'smalot_length' => strlen($smalotText),
                             'vision_length' => strlen($visionText),
                         ]);
@@ -104,9 +97,10 @@ class BankStatementExtractor
                         return $visionText;
                     }
 
-                    Log::warning(
-                        '[Extractor] Vision did not return recognizable TD transactions; using Smalot text'
-                    );
+                    Log::warning('[Extractor] Vision text did not contain enough TD transaction data; using Smalot', [
+                        'page_count' => $pageCount,
+                        'vision_length' => strlen($visionText),
+                    ]);
                 } catch (Throwable $e) {
                     Log::warning('[Extractor] TD Vision extraction failed; using Smalot text', [
                         'error' => $e->getMessage(),
@@ -114,7 +108,6 @@ class BankStatementExtractor
                 }
             }
 
-            // A very short result usually means the PDF is image-based.
             if (strlen(trim($smalotText)) < 50) {
                 return $this->extractFromFileViaVision($filePath, 'application/pdf');
             }
@@ -127,6 +120,40 @@ class BankStatementExtractor
 
             return $this->extractFromFileViaVision($filePath, 'application/pdf');
         }
+    }
+
+    private function extractPdfPagesViaVisionInChunks(
+        string $filePath,
+        int $pageCount
+    ): string {
+        $textParts = [];
+
+        foreach (array_chunk(range(1, $pageCount), 5) as $pages) {
+            try {
+                $chunkText = $this->extractFromFileViaVision(
+                    $filePath,
+                    'application/pdf',
+                    $pages
+                );
+
+                if (trim($chunkText) !== '') {
+                    $textParts[] = trim($chunkText);
+                }
+            } catch (Throwable $e) {
+                Log::warning('[Extractor] Vision PDF chunk failed', [
+                    'pages' => $pages,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        $text = implode("\n\n", $textParts);
+
+        if (trim($text) === '') {
+            throw new Exception('Google Vision returned no readable PDF text.');
+        }
+
+        return $text;
     }
 
     private function extractFromFileViaVision(
@@ -196,6 +223,10 @@ class BankStatementExtractor
             }
 
             $text = implode("\n\n", $textParts);
+
+            if (trim($text) === '') {
+                throw new Exception('Google Vision returned no readable text for the requested pages.');
+            }
 
             Log::info('[VISION DEBUG]', [
                 'pages' => $pages,
@@ -391,7 +422,6 @@ class BankStatementExtractor
             // For credit card statements, parse only the transaction table.
             // This prevents footer/account/payment-summary lines like "MR 4520" or "TOSTM21000" from becoming fake expenses.
             if ($this->isTransactionTableHeader($upperLine)) {
-                $insideTransactionTable = true;
                 $transactionTableModeDetected = true;
                 $lastDate = null;
                 $lastVendor = null;
@@ -952,12 +982,20 @@ class BankStatementExtractor
             return false;
         }
 
-        $pattern = '/\b(?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC)'
-            . '\s*\d{1,2}\s+'
-            . '(?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC)'
-            . '\s*\d{1,2}\b/i';
+        $month = '(?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC)';
 
-        return preg_match_all($pattern, $text) >= 2;
+        // Allow Vision to place the month and day on separate lines.
+        $dateCount = preg_match_all(
+            '/\b' . $month . '\s*\d{1,2}\b/i',
+            $text
+        );
+
+        $amountCount = preg_match_all(
+            '/-?\s*\$?\s*\d{1,3}(?:,\d{3})*\.\d{2}/',
+            $text
+        );
+
+        return $dateCount >= 4 && $amountCount >= 2;
     }
 
     private function calculateExpenseTotal(array $expenses): float
@@ -974,7 +1012,6 @@ class BankStatementExtractor
         $refunds = [];
 
         $pendingExpenseIndex = null;
-        $insideTransactionTable = true; // TD OCR can split/miss the table header, so scan all lines and only accept strict TD rows.
         $rowBuffer = '';
 
         $lines = array_values(array_filter(array_map(function ($line) {
@@ -987,7 +1024,6 @@ class BankStatementExtractor
             $upperLine = strtoupper($line);
 
             if ($this->isTransactionTableHeader($upperLine)) {
-                $insideTransactionTable = true;
                 $pendingExpenseIndex = null;
                 $rowBuffer = '';
                 continue;
@@ -1168,6 +1204,20 @@ class BankStatementExtractor
 
         // Month-only and date cells are valid pieces in Vision/Smalot broken layouts.
         if (preg_match('/^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC)$/i', $line)) {
+            return true;
+        }
+
+        // Vision can output a date as separate month and day lines:
+        // JUN
+        // 1
+        if (
+            $currentBuffer !== ''
+            && preg_match(
+                '/(?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC)\s*$/i',
+                trim($currentBuffer)
+            )
+            && preg_match('/^(?:[1-9]|[12]\d|3[01])$/', $line)
+        ) {
             return true;
         }
 
