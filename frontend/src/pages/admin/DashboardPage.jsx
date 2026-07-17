@@ -271,13 +271,6 @@ function DashboardPage() {
         return <StatusTab status={statusName} />
     }
 
-    // Amount body template
-    const amountBodyTemplate = (rowData) => {
-        const amount = rowData['Claim Total']
-        if (!amount || amount === 'N/A') return null
-        return <>${parseFloat(amount).toFixed(2)}</>
-    }
-
     return (
         <>
             <Toast ref={toast} />
@@ -563,9 +556,6 @@ function DashboardPage() {
                             style={{ minWidth: '7rem' }} />
                         <Column field="Claim Date" header={t('dashboard.results.submittedDate', 'Submitted')}
                             style={{ minWidth: '7rem' }} />
-                        <Column field="Claim Total" header={t('dashboard.results.totalAmount', 'Amount')}
-                            body={amountBodyTemplate}
-                            style={{ minWidth: '6rem' }} />
                         <Column field="Claim Status" header={t('dashboard.results.status', 'Status')}
                             body={statusBodyTemplate}
                             style={{ minWidth: '6rem' }} />
