@@ -7,6 +7,7 @@ use App\Models\CostCentre;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class CostCentreController extends Controller
@@ -141,19 +142,30 @@ class CostCentreController extends Controller
      */
     public function destroy(Request $request, $id): \Illuminate\Http\JsonResponse
     {
-        $costCentre = CostCentre::findOrFail($id);
+        try {
+            $costCentre = CostCentre::findOrFail($id);
 
-        $this->authorize('delete', $costCentre);
+            $this->authorize('delete', $costCentre);
 
-        $costCentre->delete();
+            DB::beginTransaction();
+            $costCentre->delete();
 
-        // Clear all cost centre caches
-        $this->clearCostCentreCaches();
+            // Clear all cost centre caches
+            $this->clearCostCentreCaches();
+            DB::commit();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Cost Centre deleted successfully.',
-        ]);
+            return response()->json([
+                'success' => true,
+                'message' => 'Cost Centre deleted successfully.',
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Error deleting cost centre: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete cost centre. ' . (config('app.debug') ? $e->getMessage() : 'An unexpected error occurred.'),
+            ], 500);
+        }
     }
 
     /**

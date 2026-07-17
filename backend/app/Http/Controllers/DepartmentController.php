@@ -6,6 +6,7 @@ use App\Models\Department;
 use App\Models\Team;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class DepartmentController extends Controller
@@ -116,21 +117,47 @@ class DepartmentController extends Controller
      */
     public function destroy($id)
     {
-        $department = Department::findOrFail($id);
+        try {
+            $department = Department::findOrFail($id);
 
-        $this->authorize('delete', $department);
+            $this->authorize('delete', $department);
 
-        // Check if department has teams
-        if ($department->teams()->count() > 0) {
-            return $this->errorResponse('Cannot delete department with existing teams.', 422);
+            // Check if department has teams
+            if ($department->teams()->count() > 0) {
+                return $this->errorResponse('Cannot delete department with existing teams.', 422);
+            }
+
+            // Check if department has cost centres
+            if ($department->costCentres()->count() > 0) {
+                return $this->errorResponse('Cannot delete department with existing cost centres.', 422);
+            }
+
+            // Check if department has projects
+            if ($department->projects()->count() > 0) {
+                return $this->errorResponse('Cannot delete department with existing projects.', 422);
+            }
+
+            // Check if department has users
+            if ($department->users()->count() > 0) {
+                return $this->errorResponse('Cannot delete department with existing users.', 422);
+            }
+
+            DB::beginTransaction();
+            $department->delete();
+
+            // Clear all related caches
+            $this->clearDepartmentCaches();
+            DB::commit();
+
+            return $this->successResponse(null, 'Department deleted successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Error deleting department: ' . $e->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed to delete department. ' . (config('app.debug') ? $e->getMessage() : 'An unexpected error occurred.'),
+            ], 500);
         }
-
-        $department->delete();
-
-        // Clear all related caches
-        $this->clearDepartmentCaches();
-
-        return $this->successResponse(null, 'Department deleted successfully.');
     }
 
     /**

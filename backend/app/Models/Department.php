@@ -30,4 +30,14 @@ class Department extends Model
     {
         return $this->hasMany(CostCentre::class, 'department_id', 'department_id');
     }
+
+    public function projects()
+    {
+        return $this->hasMany(Project::class, 'department_id', 'department_id');
+    }
+
+    public function users()
+    {
+        return $this->hasMany(User::class, 'department_id', 'department_id');
+    }
 }

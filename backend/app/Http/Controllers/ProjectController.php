@@ -50,26 +50,23 @@ class ProjectController extends Controller
 
     public function destroy($id)
     {
-        $project = Project::findOrFail($id);
-
-        $this->authorize('delete', $project);
-
         try {
+            $project = Project::findOrFail($id);
+            $this->authorize('delete', $project);
+
+            DB::beginTransaction();
             $project->delete();
 
-            return response()->json(null, 204);
-        } catch (\Illuminate\Database\QueryException $e) {
-            // Check for foreign key constraint violation (SQLSTATE 23000 or 1451 for MySQL)
-            if (in_array($e->getCode(), ['23000', '23503', '1451'])) {
-                return response()->json([
-                    'message' => 'Cannot delete project: it is referenced by other records (e.g., expenses). Please remove related records first.',
-                ], 409);
-            }
+            // Clear lookup cache since it includes projects
+            LookupController::clearCache();
+            DB::commit();
 
-            // Other DB errors
+            return response()->json(null, 204);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Error deleting project: ' . $e->getMessage());
             return response()->json([
-                'message' => 'Failed to delete project.',
-                'error' => $e->getMessage(),
+                'message' => 'Failed to delete project. ' . (config('app.debug') ? $e->getMessage() : 'An unexpected error occurred.'),
             ], 500);
         }
     }

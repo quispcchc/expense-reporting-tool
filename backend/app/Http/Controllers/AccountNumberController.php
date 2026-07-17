@@ -6,6 +6,7 @@ use App\Models\AccountNumber;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class AccountNumberController extends Controller
@@ -114,19 +115,30 @@ class AccountNumberController extends Controller
      */
     public function destroy(Request $request, $id): \Illuminate\Http\JsonResponse
     {
-        $accountNumber = AccountNumber::findOrFail($id);
+        try {
+            $accountNumber = AccountNumber::findOrFail($id);
 
-        $this->authorize('delete', $accountNumber);
+            $this->authorize('delete', $accountNumber);
 
-        $accountNumber->delete();
+            DB::beginTransaction();
+            $accountNumber->delete();
 
-        // Clear all account number caches
-        $this->clearAccountNumberCaches();
+            // Clear all account number caches
+            $this->clearAccountNumberCaches();
+            DB::commit();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Account Number deleted successfully.',
-        ]);
+            return response()->json([
+                'success' => true,
+                'message' => 'Account Number deleted successfully.',
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Error deleting account number: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete account number. ' . (config('app.debug') ? $e->getMessage() : 'An unexpected error occurred.'),
+            ], 500);
+        }
     }
 
     /**

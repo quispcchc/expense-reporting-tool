@@ -26,7 +26,39 @@ class Expense extends Model
         'project_id',
         'cost_centre_id',
         'account_number_id',
+        'cost_centre_code_snapshot',
+        'cost_centre_description_snapshot',
+        'account_number_snapshot',
+        'project_name_snapshot',
     ];
+
+    protected $appends = [
+        'cost_centre_code',
+        'cost_centre_description',
+        'account_number_display',
+        'project_name_display',
+    ];
+
+    // Accessors to handle snapshots (fallback if master data is deleted)
+    public function getCostCentreCodeAttribute()
+    {
+        return $this->cost_centre_code_snapshot ?? $this->costCentre?->cost_centre_code;
+    }
+
+    public function getCostCentreDescriptionAttribute()
+    {
+        return $this->cost_centre_description_snapshot ?? $this->costCentre?->description;
+    }
+
+    public function getAccountNumberDisplayAttribute()
+    {
+        return $this->account_number_snapshot ?? $this->accountNumber?->account_number;
+    }
+
+    public function getProjectNameDisplayAttribute()
+    {
+        return $this->project_name_snapshot ?? $this->project?->project_name;
+    }
 
     // Relationships
     public function mileage()

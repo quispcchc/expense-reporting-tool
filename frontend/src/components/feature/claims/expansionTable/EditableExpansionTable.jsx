@@ -762,7 +762,7 @@ function EditableExpansionTable({
                         field="accountNum"
                         header={t('expenses.accountNumber')}
                         editor={accountNumEditor(accountNums)}
-                        body={(rowData) => accountNumMap[rowData.accountNum] || ''}
+                        body={(rowData) => rowData.accountNumberDisplay || accountNumMap[rowData.accountNum] || ''}
                         style={{ minWidth: '200px' }}
                     />
 
@@ -770,7 +770,12 @@ function EditableExpansionTable({
                         field="costCentre"
                         header={t('expenses.costCentre')}
                         editor={costCentreEditor(costCentres)}
-                        body={(rowData) => costCentreMap[rowData.costCentre] || ''}
+                        body={(rowData) => {
+                            if (rowData.costCentreCode && rowData.costCentreDescription) {
+                                return `${rowData.costCentreCode} - ${rowData.costCentreDescription}`
+                            }
+                            return costCentreMap[rowData.costCentre] || ''
+                        }}
                         style={{ minWidth: '200px' }}
                     />
                     <Column

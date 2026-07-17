@@ -6,13 +6,16 @@ use App\Enums\ClaimStatus;
 use App\Enums\ClaimType;
 use App\Enums\RoleLevel;
 use App\Enums\RoleName;
+use App\Models\AccountNumber;
 use App\Models\AppSetting;
 use App\Models\Claim;
 use App\Models\ClaimNote;
+use App\Models\CostCentre;
 use App\Models\Expense;
 use App\Models\Mileage;
 use App\Models\MileageReceipt;
 use App\Models\MileageTransaction;
+use App\Models\Project;
 use App\Models\Receipt;
 use App\Models\Tag;
 use App\Models\User;
@@ -185,6 +188,29 @@ class ClaimService
         foreach ($expenses as $index => $expenseData) {
             $expenseData['claim_id'] = $claim->claim_id;
             $expenseData['approval_status_id'] = ClaimStatus::PENDING;
+
+            // Snapshot Cost Centre, Account Number and Project details for historical integrity
+            if (! empty($expenseData['cost_centre_id'])) {
+                $costCentre = CostCentre::find($expenseData['cost_centre_id']);
+                if ($costCentre) {
+                    $expenseData['cost_centre_code_snapshot'] = $costCentre->cost_centre_code;
+                    $expenseData['cost_centre_description_snapshot'] = $costCentre->description;
+                }
+            }
+
+            if (! empty($expenseData['account_number_id'])) {
+                $accountNumber = AccountNumber::find($expenseData['account_number_id']);
+                if ($accountNumber) {
+                    $expenseData['account_number_snapshot'] = $accountNumber->account_number;
+                }
+            }
+
+            if (! empty($expenseData['project_id'])) {
+                $project = Project::find($expenseData['project_id']);
+                if ($project) {
+                    $expenseData['project_name_snapshot'] = $project->project_name;
+                }
+            }
 
             // Extract files and mileage before creating the expense record
             $files = $expenseData['file'] ?? [];

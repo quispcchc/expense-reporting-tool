@@ -6,6 +6,7 @@ use App\Enums\RoleLevel;
 use App\Models\Team;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class TeamController extends Controller
@@ -119,14 +120,34 @@ class TeamController extends Controller
      */
     public function destroy($id)
     {
-        $team = Team::findOrFail($id);
-        $this->authorize('delete', $team);
-        $team->delete();
+        try {
+            $team = Team::findOrFail($id);
+            $this->authorize('delete', $team);
 
-        // Clear all team caches
-        $this->clearTeamCaches();
+            // Check if there are any associated users
+            if ($team->users()->count() > 0) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Cannot delete team because it has associated users.',
+                ], 422);
+            }
 
-        return $this->successResponse(null, 'Team deleted successfully.');
+            DB::beginTransaction();
+            $team->delete();
+
+            // Clear all team caches
+            $this->clearTeamCaches();
+            DB::commit();
+
+            return $this->successResponse(null, 'Team deleted successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Error deleting team: ' . $e->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed to delete team. ' . (config('app.debug') ? $e->getMessage() : 'An unexpected error occurred.'),
+            ], 500);
+        }
     }
 
     /**

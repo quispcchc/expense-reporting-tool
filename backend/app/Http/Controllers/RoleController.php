@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Role;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class RoleController extends Controller
 {
@@ -50,9 +51,32 @@ class RoleController extends Controller
     // Delete a role
     public function destroy($id)
     {
-        $role = Role::findOrFail($id);
-        $role->delete();
+        try {
+            $role = Role::findOrFail($id);
 
-        return response()->json(['message' => 'Role deleted']);
+            // Check if there are any associated users
+            if ($role->users()->count() > 0) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Cannot delete role because it has associated users.',
+                ], 422);
+            }
+
+            DB::beginTransaction();
+            $role->delete();
+
+            // Clear lookup cache since it includes roles
+            LookupController::clearCache();
+            DB::commit();
+
+            return response()->json(['message' => 'Role deleted']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Error deleting role: ' . $e->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed to delete role. ' . (config('app.debug') ? $e->getMessage() : 'An unexpected error occurred.'),
+            ], 500);
+        }
     }
 }
