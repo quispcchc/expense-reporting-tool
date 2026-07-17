@@ -13,44 +13,52 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('expenses', function (Blueprint $table) {
-            // Add snapshot columns for historical data integrity
-            $table->string('cost_centre_code_snapshot')->nullable()->after('cost_centre_id');
-            $table->string('cost_centre_description_snapshot')->nullable()->after('cost_centre_code_snapshot');
-            
-            // Adding for completeness as it's common for these to be needed too
-            $table->string('account_number_snapshot')->nullable()->after('account_number_id');
-            $table->string('project_name_snapshot')->nullable()->after('project_id');
+            // Add snapshot columns for historical data integrity if they don't exist
+            if (!Schema::hasColumn('expenses', 'cost_centre_code_snapshot')) {
+                $table->string('cost_centre_code_snapshot')->nullable()->after('cost_centre_id');
+            }
+            if (!Schema::hasColumn('expenses', 'cost_centre_description_snapshot')) {
+                $table->string('cost_centre_description_snapshot')->nullable()->after('cost_centre_code_snapshot');
+            }
+            if (!Schema::hasColumn('expenses', 'account_number_snapshot')) {
+                $table->string('account_number_snapshot')->nullable()->after('account_number_id');
+            }
+            if (!Schema::hasColumn('expenses', 'project_name_snapshot')) {
+                $table->string('project_name_snapshot')->nullable()->after('project_id');
+            }
 
-            // Drop existing foreign keys to update them to 'set null'
-            $table->dropForeign(['cost_centre_id']);
-            $table->dropForeign(['account_number_id']);
-            $table->dropForeign(['project_id']);
+            // Update foreign keys to 'set null' on delete
+            // Note: We use raw SQL or check if foreign keys exist if we want to be extremely safe,
+            // but usually in a failed migration that rolls back, these would be reverted.
+            try {
+                $table->dropForeign(['cost_centre_id']);
+                $table->dropForeign(['account_number_id']);
+                $table->dropForeign(['project_id']);
+            } catch (\Exception $e) {
+                // Ignore if foreign keys were already dropped
+            }
 
-            // Re-add foreign keys with 'set null' on delete
             $table->foreignId('cost_centre_id')->nullable()->change()->constrained('cost_centres', 'cost_centre_id')->onDelete('set null');
             $table->foreignId('account_number_id')->nullable()->change()->constrained('account_numbers', 'account_number_id')->onDelete('set null');
             $table->foreignId('project_id')->nullable()->change()->constrained('projects', 'project_id')->onDelete('set null');
         });
 
-        // Optional: Populate snapshot columns for existing data
-        DB::table('expenses')
-            ->join('cost_centres', 'expenses.cost_centre_id', '=', 'cost_centres.cost_centre_id')
-            ->update([
-                'expenses.cost_centre_code_snapshot' => DB::raw('cost_centres.cost_centre_code'),
-                'expenses.cost_centre_description_snapshot' => DB::raw('cost_centres.description'),
-            ]);
+        // Use PostgreSQL compatible raw SQL for updates with joins
+        DB::statement('UPDATE expenses SET 
+            cost_centre_code_snapshot = cost_centres.cost_centre_code, 
+            cost_centre_description_snapshot = cost_centres.description 
+            FROM cost_centres 
+            WHERE expenses.cost_centre_id = cost_centres.cost_centre_id');
 
-        DB::table('expenses')
-            ->join('account_numbers', 'expenses.account_number_id', '=', 'account_numbers.account_number_id')
-            ->update([
-                'expenses.account_number_snapshot' => DB::raw('account_numbers.account_number'),
-            ]);
+        DB::statement('UPDATE expenses SET 
+            account_number_snapshot = account_numbers.account_number 
+            FROM account_numbers 
+            WHERE expenses.account_number_id = account_numbers.account_number_id');
 
-        DB::table('expenses')
-            ->join('projects', 'expenses.project_id', '=', 'projects.project_id')
-            ->update([
-                'expenses.project_name_snapshot' => DB::raw('projects.project_name'),
-            ]);
+        DB::statement('UPDATE expenses SET 
+            project_name_snapshot = projects.project_name 
+            FROM projects 
+            WHERE expenses.project_id = projects.project_id');
     }
 
     /**
@@ -59,9 +67,11 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('expenses', function (Blueprint $table) {
-            $table->dropForeign(['cost_centre_id']);
-            $table->dropForeign(['account_number_id']);
-            $table->dropForeign(['project_id']);
+            try {
+                $table->dropForeign(['cost_centre_id']);
+                $table->dropForeign(['account_number_id']);
+                $table->dropForeign(['project_id']);
+            } catch (\Exception $e) {}
 
             $table->foreignId('cost_centre_id')->nullable(false)->change()->constrained('cost_centres', 'cost_centre_id')->onDelete('no action');
             $table->foreignId('account_number_id')->nullable(false)->change()->constrained('account_numbers', 'account_number_id')->onDelete('no action');
