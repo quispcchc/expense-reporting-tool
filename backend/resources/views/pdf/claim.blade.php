@@ -385,8 +385,8 @@
                         <td>{{ $na(optional($expense)->transaction_date) }}</td>
                         <td>{{ $na(optional($expense)->vendor_name) }}</td>
                         <td>{{ $na(Str::limit(optional($expense)->transaction_desc, 20)) }}</td>
-                        <td>{{ $na(optional($expense->accountNumber)->account_number) }}</td>
-                        <td>{{ $na(optional($expense->costCentre)->cost_centre_code) }}</td>
+                        <td>{{ $na($expense->account_number_display) }}</td>
+                        <td>{{ $na($expense->cost_centre_code) }}</td>
                         <td class="amount">{{ optional($expense)->expense_amount !== null && optional($expense)->expense_amount !== '' ? '$' . number_format(optional($expense)->expense_amount, 2) : 'N/A' }}</td>
                         <td>
                             @php

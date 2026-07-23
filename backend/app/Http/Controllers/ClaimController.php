@@ -287,15 +287,15 @@ class ClaimController extends Controller
                     $claimBase = [
                         self::na($claim->claim_id),
                         self::na($claim->claim_submitted),
-                        self::na($claim->claimType->claim_type_name),
-                        self::na($claim->status->claim_status_name),
+                        self::na($claim->claimType?->claim_type_name),
+                        self::na($claim->status?->claim_status_name),
                         self::na($reviewedBy),
                         self::na($reviewDate),
                         self::na($claim->total_amount),
                         self::na($submitter),
-                        self::na($claim->department->department_name),
-                        self::na($claim->team->team_name),
-                        self::na($claim->position->position_name),
+                        self::na($claim->department?->department_name),
+                        self::na($claim->team?->team_name),
+                        self::na($claim->position?->position_name),
                     ];
 
                     if ($claim->expenses->isEmpty()) {
@@ -318,10 +318,10 @@ class ClaimController extends Controller
                             self::na($expense->expense_amount),
                             self::na($expense->transaction_desc),
                             self::na($expense->transaction_notes),
-                            self::na($expense->approvalStatus->approval_status_name),
-                            self::na($expense->project->project_name),
-                            self::na($expense->costCentre->cost_centre_code),
-                            self::na($expense->accountNumber->account_number),
+                            self::na($expense->approvalStatus?->approval_status_name),
+                            self::na($expense->project_name_display),
+                            self::na($expense->cost_centre_code),
+                            self::na($expense->account_number_display),
                             self::na($tags),
                             self::na($claimNotes),
                         ];
