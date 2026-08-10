@@ -21,6 +21,8 @@ export const accountNumEditor = (accountNums) => (editorOptions) => (
             label: `${opt.account_number} - ${opt.description}`,
             value: opt.account_number_id,
         }))}
+        filter
+        className="w-full"
     />
 )
 
@@ -32,6 +34,8 @@ export const costCentreEditor = (costCentres) => (editorOptions) => (
             label: `${opt.cost_centre_code} - ${opt.description}`,
             value: opt.cost_centre_id,
         }))}
+        filter
+        className="w-full"
     />
 )
 

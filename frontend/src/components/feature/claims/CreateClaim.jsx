@@ -501,6 +501,7 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
                             onChange={handleCardDefaultChange}
                             options={projects.map(p => ({ label: `${p.project_name} - ${p.project_desc}`, value: p.project_id }))}
                             placeholder={t('expenses.selectProgram', 'Select program')}
+                            filter
                             errors={cardDefaultErrors}
                         />
                         <Select
@@ -510,6 +511,7 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
                             onChange={handleCardDefaultChange}
                             options={costCentres.map(c => ({ label: `${c.cost_centre_code} - ${c.description}`, value: c.cost_centre_id }))}
                             placeholder={t('expenses.selectCostCentre', 'Select cost centre')}
+                            filter
                             errors={cardDefaultErrors}
                         />
                         <Select
@@ -519,6 +521,7 @@ function CreateClaim({ navigateTo, homePath, toastRef }) {
                             onChange={handleCardDefaultChange}
                             options={accountNums.map(a => ({ label: `${a.account_number} - ${a.description}`, value: a.account_number_id }))}
                             placeholder={t('expenses.selectAccountNumber', 'Select account number')}
+                            filter
                             errors={cardDefaultErrors}
                         />
                         <Input

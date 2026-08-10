@@ -249,12 +249,14 @@ function TransactionEditDialog({
                                 value={formData.accountNum}
                                 options={lookups.accountNums.map(opt => ({ label: `${opt.account_number} - ${opt.description}`, value: opt.account_number_id }))}
                                 onChange={(e) => handleInputChange('accountNum', e.target.value)}
+                                filter
                             />
                             <Select
                                 label={t('expenses.costCentre')}
                                 value={formData.costCentre}
                                 options={lookups.costCentres.map(opt => ({ label: `${opt.cost_centre_code} - ${opt.description}`, value: opt.cost_centre_id }))}
                                 onChange={(e) => handleInputChange('costCentre', e.target.value)}
+                                filter
                             />
                         </div>
 
@@ -263,6 +265,7 @@ function TransactionEditDialog({
                             value={formData.program}
                             options={lookups.projects.map(opt => ({ label: `${opt.project_name} - ${opt.project_desc}`, value: opt.project_id }))}
                             onChange={(e) => handleInputChange('program', e.target.value)}
+                            filter
                         />
 
                         <div className="flex flex-col gap-2">

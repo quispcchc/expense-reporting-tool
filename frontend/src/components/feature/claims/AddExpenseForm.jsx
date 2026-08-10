@@ -90,6 +90,7 @@ function AddExpenseForm({
                                 value: opt.project_id,
                             }))}
                             placeholder={t('expenses.selectProgram', 'Select a program')}
+                            filter
                             errors={errors} />
 
                         {/* Transaction date input */}
@@ -108,6 +109,7 @@ function AddExpenseForm({
                                 value: opt.cost_centre_id,
                             }))}
                             placeholder={t('expenses.selectCostCentre', 'Select a cost centre')}
+                            filter
                             errors={errors} />
 
                         {/* Vendor / Service Provider input */}
@@ -126,6 +128,7 @@ function AddExpenseForm({
                                 value: opt.account_number_id,
                             }))}
                             placeholder={t('expenses.selectAccountNumber', 'Select an Account Number')}
+                            filter
                             errors={errors} />
 
                         {/* Amount and Buyer inputs side by side */}
