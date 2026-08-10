@@ -19,6 +19,8 @@ function ClaimDetailRow({ title, value, isEdit, options, onChange }) {
                         optionValue="value"
                         onChange={(e) => onChange?.(e.value)}
                         placeholder={t('filter.select')}
+                        filter
+                        filterInputAutoFocus
                         className="w-full"
                     />
                 ) : (

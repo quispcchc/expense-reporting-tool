@@ -22,6 +22,7 @@ export const accountNumEditor = (accountNums) => (editorOptions) => (
             value: opt.account_number_id,
         }))}
         filter
+        filterInputAutoFocus
         className="w-full"
     />
 )
@@ -35,6 +36,7 @@ export const costCentreEditor = (costCentres) => (editorOptions) => (
             value: opt.cost_centre_id,
         }))}
         filter
+        filterInputAutoFocus
         className="w-full"
     />
 )

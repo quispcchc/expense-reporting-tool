@@ -51,6 +51,8 @@ function TeamsPage() {
             options={statusOptions}
             optionLabel="label"
             optionValue="value"
+            filter
+            filterInputAutoFocus
         />
     )
 

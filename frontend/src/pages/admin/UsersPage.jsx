@@ -189,6 +189,7 @@ function UsersPage() {
                 placeholder={departmentId ? t('users.selectTeam', 'Select team') : t('users.selectDepartmentFirst', 'Select department first')}
                 disabled={!departmentId}
                 className="w-full"
+                filter
             />
         );
     }, [lookups.teams, t, updateTeamsMap])
@@ -201,6 +202,8 @@ function UsersPage() {
             options={roleOptions}
             optionLabel="label"
             optionValue="value"
+            filter
+            filterInputAutoFocus
         />
     ), [roleOptions])
 
@@ -225,6 +228,8 @@ function UsersPage() {
             options={departmentOptions}
             optionLabel="label"
             optionValue="value"
+            filter
+            filterInputAutoFocus
         />
     ), [departmentOptions, updateDepartmentMap, updateTeamsMap])
 
@@ -234,6 +239,8 @@ function UsersPage() {
             value={editorOptions.value}
             onChange={(e) => editorOptions.editorCallback(e.target.value)}
             options={statusOptions}
+            filter
+            filterInputAutoFocus
         />
     )
 
@@ -520,6 +527,7 @@ function UsersPage() {
                                 className="w-full"
                                 placeholder={editData.department_id ? t('users.selectTeam', 'Select team') : t('users.selectDepartmentFirst', 'Select department first')}
                                 disabled={!editData.department_id}
+                                filter
                             />
                         </div>
                         <Select name="role_id" label={t('users.role')} value={editData.role_id} options={roleOptions} optionValue="value" errors={editErrors}

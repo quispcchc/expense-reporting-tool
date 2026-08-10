@@ -64,6 +64,8 @@ export default function AddProject({ onSave, onCancel, initialProject, departmen
                 placeholder={t('projects.select_department')}
                 optionLabel="label"
                 optionValue="value"
+                filter
+                filterInputAutoFocus
                 className={error && !project.department_id ? 'p-invalid' : ''}
             />
         

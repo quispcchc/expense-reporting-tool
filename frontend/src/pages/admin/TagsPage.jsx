@@ -218,6 +218,8 @@ function TagsPage() {
             value={editorOptions.value}
             onChange={(e) => editorOptions.editorCallback(e.target.value)}
             options={statusOptions}
+            filter
+            filterInputAutoFocus
         />
     )
 
@@ -425,6 +427,8 @@ function TagsPage() {
                                                     placeholder={t('projects.select_department')}
                                                     optionLabel="label"
                                                     optionValue="value"
+                                                    filter
+                                                    filterInputAutoFocus
                                                 />
                                             )}
                                             body={rowData => {
@@ -508,6 +512,8 @@ function TagsPage() {
                                 options={departmentOptions}
                                 optionLabel="label"
                                 optionValue="value"
+                                filter
+                                filterInputAutoFocus
                             />
                         </div>
                         <div className="edit-field">
@@ -518,6 +524,8 @@ function TagsPage() {
                                 options={statusOptions}
                                 optionLabel="label"
                                 optionValue="value"
+                                filter
+                                filterInputAutoFocus
                             />
                         </div>
                     </>

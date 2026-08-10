@@ -13,7 +13,7 @@ function Select(props) {
                 </label>
                 {errors[name] && <span className="text-status-danger text-xs">({t(errors[name])})</span>}
             </div>
-            <Dropdown {...props} className='w-full' optionLabel="label" />
+            <Dropdown {...props} className='w-full' optionLabel="label" filter filterInputAutoFocus emptyFilterMessage={t('common.noResultsFound', 'No results found')} />
         </div>
     )
 }

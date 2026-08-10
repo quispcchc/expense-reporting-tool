@@ -73,6 +73,8 @@ function ClaimListFilterPanel({
                             onChange={(e) => updateFilter('type', e.value)}
                             placeholder={t('filter.allTypes', 'All Types')}
                             showClear
+                            filter
+                            filterPlaceholder={t('filter.searchType', 'Search type...')}
                             className="w-full"
                         />
                     </div>
@@ -131,6 +133,8 @@ function ClaimListFilterPanel({
                             onChange={(e) => updateFilter('status', e.value)}
                             placeholder={t('filter.allStatuses', 'All Statuses')}
                             showClear
+                            filter
+                            filterPlaceholder={t('filter.searchStatus', 'Search status...')}
                             className="w-full"
                         />
                     </div>

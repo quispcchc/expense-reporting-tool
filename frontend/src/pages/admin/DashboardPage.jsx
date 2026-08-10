@@ -329,6 +329,8 @@ function DashboardPage() {
                             onChange={e => updateFilter('claim_type_id', e.value)}
                             placeholder={t('dashboard.filters.selectAll', 'All')}
                             showClear
+                            filter
+                            filterInputAutoFocus
                             className="w-full"
                         />
                     </div>
@@ -345,6 +347,8 @@ function DashboardPage() {
                             onChange={e => updateFilter('claim_status_id', e.value)}
                             placeholder={t('dashboard.filters.selectAll', 'All')}
                             showClear
+                            filter
+                            filterInputAutoFocus
                             className="w-full"
                         />
                     </div>
@@ -367,6 +371,8 @@ function DashboardPage() {
                             }}
                             placeholder={t('dashboard.filters.selectAll', 'All')}
                             showClear
+                            filter
+                            filterInputAutoFocus
                             className="w-full"
                         />
                     </div>
@@ -387,6 +393,8 @@ function DashboardPage() {
                                     : t('dashboard.filters.selectDepartmentFirst', 'Select department first')
                             }
                             showClear
+                            filter
+                            filterInputAutoFocus
                             disabled={!filters.department_id}
                             className="w-full"
                         />
@@ -404,6 +412,8 @@ function DashboardPage() {
                             onChange={e => updateFilter('project_id', e.value)}
                             placeholder={t('dashboard.filters.selectAll', 'All')}
                             showClear
+                            filter
+                            filterInputAutoFocus
                             className="w-full"
                         />
                     </div>
@@ -420,6 +430,8 @@ function DashboardPage() {
                             onChange={e => updateFilter('cost_centre_id', e.value)}
                             placeholder={t('dashboard.filters.selectAll', 'All')}
                             showClear
+                            filter
+                            filterInputAutoFocus
                             className="w-full"
                         />
                     </div>
@@ -450,6 +462,7 @@ function DashboardPage() {
                             onChange={e => updateFilter('tag_ids', e.value)}
                             placeholder={t('dashboard.filters.selectTags', 'Select tags')}
                             display="chip"
+                            filter
                             className="w-full"
                         />
                     </div>

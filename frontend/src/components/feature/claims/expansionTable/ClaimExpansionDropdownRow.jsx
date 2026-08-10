@@ -19,6 +19,8 @@ function ClaimExpansionDropdownRow({ label, field, value, options, placeholder, 
                         className="w-80"
                         placeholder={placeholder}
                         showClear
+                        filter
+                        filterInputAutoFocus
                         disabled={!isEditing}
                     />
                 ) : (

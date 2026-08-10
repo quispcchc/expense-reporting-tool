@@ -100,6 +100,8 @@ function DepartmentTeamsPage() {
             optionLabel="label"
             optionValue="value"
             placeholder={t('filter.selectOne')}
+            filter
+            filterInputAutoFocus
         />
     )
 

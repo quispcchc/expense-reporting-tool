@@ -58,6 +58,8 @@ function DepartmentsPage() {
             optionLabel="label"
             optionValue="value"
             placeholder={t('filter.selectOne')}
+            filter
+            filterInputAutoFocus
         />
     )
 

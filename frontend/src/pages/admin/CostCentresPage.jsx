@@ -56,6 +56,8 @@ function CostCentresPage() {
             value={editorOptions.value}
             onChange={(e) => editorOptions.editorCallback(e.value)}
             options={departmentOptions}
+            filter
+            filterInputAutoFocus
         />
     )
 
@@ -64,6 +66,8 @@ function CostCentresPage() {
             value={editorOptions.value}
             onChange={(e) => { editorOptions.editorCallback(e.value) }}
             options={statusOptions}
+            filter
+            filterInputAutoFocus
         />
     )
 

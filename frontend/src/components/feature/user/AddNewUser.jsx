@@ -230,6 +230,7 @@ function AddNewUser() {
                                 placeholder={userFormData.department ? t('users.selectTeam') : t('users.selectDepartmentFirst')}
                                 className="w-full"
                                 disabled={isLoading || !userFormData.department}
+                                filter
                             />
                         </div>
 
