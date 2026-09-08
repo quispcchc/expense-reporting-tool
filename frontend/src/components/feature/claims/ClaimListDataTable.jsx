@@ -4,7 +4,7 @@ import Loader from '../../common/ui/Loader.jsx'
 import { DataTable } from 'primereact/datatable'
 import { Column } from 'primereact/column'
 import StatusTab from '../../common/ui/StatusTab.jsx'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { InputText } from 'primereact/inputtext'
 import { IconField } from 'primereact/iconfield'
 import { InputIcon } from 'primereact/inputicon'
@@ -26,6 +26,7 @@ import MobileClaimListHeader from './MobileClaimListHeader.jsx'
 
 function ClaimListDataTable({ user, path, toastRef }) {
     const { t } = useTranslation()
+    const navigate = useNavigate()
     const { claims: allClaims, myClaims, fetchClaims, fetchMyClaims } = useClaims()
     const claims = user === USER_TYPE.ADMIN ? allClaims : myClaims
     const isMobile = useIsMobile()
@@ -79,6 +80,10 @@ function ClaimListDataTable({ user, path, toastRef }) {
 
     const totalAmountBodyTemplate = (rowData) => (
         <>${Number(rowData.total_amount ?? 0).toFixed(2)}</>
+    )
+
+    const employeeBodyTemplate = (rowData) => (
+        <>{rowData.user?.full_name || t('common.unknown', 'Unknown')}</>
     )
 
     const actionBodyTemplate = (rowData) => (
@@ -342,6 +347,18 @@ function ClaimListDataTable({ user, path, toastRef }) {
     // ============================================
     // DESKTOP TABLE VIEW
     // ============================================
+    const handleRowClick = (event) => {
+        // Don't navigate if clicking selection checkbox or action buttons
+        if (event.originalEvent.target.closest('.checkbox-cell') ||
+            event.originalEvent.target.closest('button') ||
+            event.originalEvent.target.closest('a')) {
+            return
+        }
+        const claimId = event.data.claim_id
+        const targetPath = user === USER_TYPE.ADMIN ? `${claimId}/edit-claim` : `${claimId}/view-claim`
+        navigate(targetPath)
+    }
+
     const desktopTableView = (
         <>
             <ClaimListFilterPanel
@@ -363,6 +380,7 @@ function ClaimListDataTable({ user, path, toastRef }) {
                     filters={filters}
                     globalFilterFields={[
                         'claim_id',
+                        'user.full_name',
                         'claim_type.claim_type_name',
                         'total_amount',
                         'claim_submitted',
@@ -374,13 +392,16 @@ function ClaimListDataTable({ user, path, toastRef }) {
                     tableStyle={{ minWidth: '50rem' }}
                     className="claims-datatable"
                     removableSort
+                    onRowClick={handleRowClick}
+                    rowClassName={() => 'cursor-pointer hover:bg-gray-50 transition-colors'}
                 >
                     <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}
                         headerClassName="checkbox-header" bodyClassName="checkbox-cell text-center"></Column>
-                    <Column field="claim_id" header={t('claims.requestNumber', 'Request #')} sortable style={{ minWidth: '4rem' }} headerStyle={{ textAlign: 'center' }} bodyClassName="text-center"></Column>
-                    <Column field="claim_type.claim_type_name" header={t('claims.claimType')} sortable style={{ minWidth: '8rem' }} headerStyle={{ textAlign: 'center' }} bodyClassName="text-center"></Column>
-                    <Column field="total_amount" header={t('claims.totalAmount')} body={totalAmountBodyTemplate} sortable style={{ minWidth: '8rem' }} headerStyle={{ textAlign: 'center' }} bodyClassName="text-center"></Column>
-                    <Column field="claim_submitted" header={t('claims.submittedAt', 'Submitted At')} sortable style={{ minWidth: '11rem' }} headerStyle={{ textAlign: 'center' }} bodyClassName="text-center" body={(rowData) => formatDate(rowData.claim_submitted)}></Column>
+                    <Column field="claim_id" header={t('claims.requestNumber', 'ID')} sortable style={{ minWidth: '4rem' }} headerStyle={{ textAlign: 'center' }} bodyClassName="text-center font-medium text-blue-600"></Column>
+                    <Column field="user.full_name" header={t('claims.employee')} body={employeeBodyTemplate} sortable style={{ minWidth: '10rem' }} headerStyle={{ textAlign: 'center' }} bodyClassName="text-center"></Column>
+                    <Column field="claim_type.claim_type_name" header={t('claims.claimType', 'Type')} sortable style={{ minWidth: '8rem' }} headerStyle={{ textAlign: 'center' }} bodyClassName="text-center"></Column>
+                    <Column field="total_amount" header={t('claims.totalAmount', 'Amount')} body={totalAmountBodyTemplate} sortable style={{ minWidth: '8rem' }} headerStyle={{ textAlign: 'center' }} bodyClassName="text-center"></Column>
+                    <Column field="claim_submitted" header={t('claims.submittedAt', 'Date')} sortable style={{ minWidth: '11rem' }} headerStyle={{ textAlign: 'center' }} bodyClassName="text-center" body={(rowData) => formatDate(rowData.claim_submitted)}></Column>
                     <Column field="status.claim_status_name" header={t('common.status')} body={statusBodyTemplate} sortable style={{ minWidth: '8rem' }} headerStyle={{ textAlign: 'center' }} bodyClassName="text-center"></Column>
                     <Column header={t('common.actions')} body={actionBodyTemplate} style={{ minWidth: '4rem' }} headerStyle={{ textAlign: 'center' }} bodyClassName="text-center"></Column>
                 </DataTable>

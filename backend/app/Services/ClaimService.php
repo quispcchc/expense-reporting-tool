@@ -35,7 +35,7 @@ class ClaimService
         $role_level = $user->role->role_level;
         $role_name = $user->role->role_name;
 
-        $query = Claim::with(['expenses.receipts', 'expenses.mileage.transactions.receipts', 'claimType', 'department', 'team', 'status']);
+        $query = Claim::with(['expenses.receipts', 'expenses.mileage.transactions.receipts', 'claimType', 'department', 'team', 'status', 'user']);
 
         if ($role_name === RoleName::FINANCE_USER) {
             // Finance user sees all claims (like super admin)
@@ -124,7 +124,7 @@ class ClaimService
 
     public function getClaimsByUserId(User $user)
     {
-        return Claim::with(['expenses.receipts', 'expenses.mileage.transactions.receipts', 'claimType', 'department', 'team', 'status'])
+        return Claim::with(['expenses.receipts', 'expenses.mileage.transactions.receipts', 'claimType', 'department', 'team', 'status', 'user'])
             ->where('user_id', $user->user_id)
             ->orderBy('claim_id')
             ->get();
