@@ -417,8 +417,14 @@ class ClaimService
                 ]);
             }
 
-            // Record who approved/rejected
+            // Requirement 1: Note: super admin log should be there when they are approving other department claims
             if ($approver) {
+                if ($approver->role && $approver->role->role_name === RoleName::SUPER_ADMIN && $approver->department_id !== $claim->department_id) {
+                    $action = $newStatusId === ClaimStatus::APPROVED ? 'Approved' : 'Rejected';
+                    $fullName = trim("{$approver->first_name} {$approver->last_name}");
+                    $this->addNote($claim, $approver, "{$fullName} {$action} the claim");
+                }
+
                 \App\Models\ClaimApproval::create([
                     'claim_id' => $claim->claim_id,
                     'approved_by' => $approver->user_id,

@@ -34,7 +34,7 @@ class ClaimPolicy
             return in_array($claim->team_id, $teamIds);
         }
 
-        return false;
+        return $claim->user_id === $user->user_id;
 
     }
 
@@ -48,9 +48,9 @@ class ClaimPolicy
         $role_level = $user->role->role_level;
         $role_name = $user->role->role_name;
 
-        // Block self-approval unless Super Admin or SLT members (Admins) with can_self_approve on Corporate Card claims
+        // Block self-approval unless Super Admin or Admins (Level 2) with can_self_approve on Corporate Card claims
         if ($claim->user_id === $user->user_id && $role_level !== RoleLevel::SUPER_ADMIN) {
-            if (! ($user->can_self_approve && $claim->claim_type_id === ClaimType::CORPORATE_CARD)) {
+            if (! ($role_level === RoleLevel::DEPARTMENT_MANAGER && $user->can_self_approve && $claim->claim_type_id === ClaimType::CORPORATE_CARD)) {
                 return false;
             }
         }
