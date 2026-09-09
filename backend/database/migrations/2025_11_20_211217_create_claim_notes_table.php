@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('claim_notes', function (Blueprint $table) {
             $table->id('claim_note_id');
             $table->text('claim_note_text');
-            $table->foreignId('user_id')->constrained('users', 'user_id');
+            $table->foreignId('user_id')->nullable()->constrained('users', 'user_id')->onDelete('set null');
 
             $table->foreignId('claim_id')
                 ->constrained('claims', 'claim_id')

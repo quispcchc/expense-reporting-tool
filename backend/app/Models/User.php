@@ -75,18 +75,30 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->position?->position_name;
     }
 
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+        'can_self_approve' => 'boolean',
+    ];
+
     /**
-     * Get the attributes that should be cast.
+     * The "booted" method of the model.
      *
-     * @return array<string, string>
+     * @return void
      */
-    protected function casts(): array
+    protected static function booted()
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-            'can_self_approve' => 'boolean',
-        ];
+        static::deleting(function ($user) {
+            // Nullify user references instead of cascading delete to preserve historical data
+            $user->claims()->update(['user_id' => null]);
+            $user->approvedClaims()->update(['approved_by' => null]);
+            
+            // For claim notes, we might want to keep the text but lose the author info
+            ClaimNote::where('user_id', $user->user_id)->update(['user_id' => null]);
+            
+            // Detach from teams (pivot table usually has cascade delete but being explicit is safer)
+            $user->teams()->detach();
+        });
     }
 
     // Define relationships with other models

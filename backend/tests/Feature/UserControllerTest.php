@@ -201,7 +201,11 @@ class UserControllerTest extends TestCase
         $response = $this->deleteJson("/api/admin/users/{$user->user_id}");
 
         $response->assertStatus(200);
-        $this->assertDatabaseMissing('users', ['user_id' => $user->user_id]);
+        // Assert user is deactivated (soft delete) instead of missing
+        $this->assertDatabaseHas('users', [
+            'user_id' => $user->user_id,
+            'active_status_id' => \App\Enums\ActiveStatus::INACTIVE,
+        ]);
     }
 
     public function test_super_admin_cannot_delete_self(): void
@@ -224,7 +228,11 @@ class UserControllerTest extends TestCase
         $response = $this->deleteJson("/api/admin/users/{$user->user_id}");
 
         $response->assertStatus(200);
-        $this->assertDatabaseMissing('users', ['user_id' => $user->user_id]);
+        // Assert user is deactivated (soft delete) instead of missing
+        $this->assertDatabaseHas('users', [
+            'user_id' => $user->user_id,
+            'active_status_id' => \App\Enums\ActiveStatus::INACTIVE,
+        ]);
     }
 
     public function test_admin_cannot_delete_other_department_user(): void

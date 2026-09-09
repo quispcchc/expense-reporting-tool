@@ -99,7 +99,9 @@ trait SeedsLookups
 
         foreach ($sequences as $table => $column) {
             $max = DB::table($table)->max($column) ?? 0;
-            DB::statement("SELECT setval(pg_get_serial_sequence('{$table}', '{$column}'), {$max})");
+            if (DB::getDriverName() === 'pgsql') {
+                DB::statement("SELECT setval(pg_get_serial_sequence('{$table}', '{$column}'), {$max})");
+            }
         }
     }
 

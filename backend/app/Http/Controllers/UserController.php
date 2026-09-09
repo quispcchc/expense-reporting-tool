@@ -86,9 +86,11 @@ class UserController extends Controller
             return $authError;
         }
 
-        $user->delete();
+        // Soft delete: change status to inactive instead of hard deleting
+        $user->active_status_id = \App\Enums\ActiveStatus::INACTIVE;
+        $user->save();
 
-        return response()->json(['message' => 'User deleted successfully']);
+        return response()->json(['message' => 'User deactivated successfully']);
     }
 
     /**

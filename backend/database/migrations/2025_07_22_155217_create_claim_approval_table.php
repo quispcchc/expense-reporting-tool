@@ -17,7 +17,7 @@ return new class extends Migration
             $table->integer('claim_id');
             $table->string('claim_approval_details', 500);
             $table->integer('approval_status_id');
-            $table->integer('approved_by');
+            $table->integer('approved_by')->nullable();
         });
     }
 

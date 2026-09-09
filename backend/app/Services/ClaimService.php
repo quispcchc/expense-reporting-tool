@@ -132,13 +132,19 @@ class ClaimService
 
     public function getClaimById(int $claimId)
     {
-        return Claim::with(['expenses.tags', 'expenses.receipts', 'expenses.mileage.transactions.receipts', 'claimType', 'status', 'position', 'user', 'department', 'team', 'claimNotes.user', 'claimApprovals.approvedByUser'])
+        $claim = Claim::with(['expenses.tags', 'expenses.receipts', 'expenses.mileage.transactions.receipts', 'claimType', 'status', 'position', 'user', 'department', 'team', 'claimNotes.user', 'claimApprovals.approvedByUser'])
             ->where('claim_id', $claimId)
             ->first();
+
+        return $claim ? $claim->toArray() : null;
     }
 
     public function createClaim(array $data, $user): Claim
     {
+        if ($user->active_status_id === \App\Enums\ActiveStatus::INACTIVE) {
+            throw new Exception('Your account is inactive. You cannot create claims.', 403);
+        }
+
         return DB::transaction(function () use ($data, $user) {
 
             // Store the bank statement PDF if provided (corporate card claims)

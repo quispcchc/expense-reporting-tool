@@ -16,4 +16,5 @@
 /public/build
 /public/hot
 app.yaml
+expense_db_test
 

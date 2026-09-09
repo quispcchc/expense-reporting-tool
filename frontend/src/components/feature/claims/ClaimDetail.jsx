@@ -53,7 +53,7 @@ function ClaimDetail({ curClaim, toastRef, onClaimRefetch }) {
     // Safe getter for claimType with null checks
     const claimTypeName = curClaim?.claim_type?.claim_type_name || curClaim?.claimType?.claim_type_name
     const position = curClaim?.user?.position?.position_name || curClaim?.position?.position_name
-    const department = curClaim?.user?.department?.dept_name || curClaim?.department?.department_name
+    const department = curClaim?.user?.department?.department_name || curClaim?.department?.department_name
     const teamName = curClaim?.user?.team?.team_name || curClaim?.team?.team_name
     const fullName = curClaim?.user?.user_full_name || curClaim?.user?.full_name
     const submittedDate = curClaim?.date_submitted || curClaim?.claim_submitted

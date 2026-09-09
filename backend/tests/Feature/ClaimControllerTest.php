@@ -45,6 +45,35 @@ class ClaimControllerTest extends TestCase
         $this->assertDatabaseHas('claims', ['user_id' => $user->user_id, 'claim_status_id' => ClaimStatus::PENDING]);
     }
 
+    public function test_inactive_user_cannot_create_claim()
+    {
+        $this->seedLookups();
+        $user = $this->createAuthenticatedUser(RoleLevel::USER, [
+            'active_status_id' => \App\Enums\ActiveStatus::INACTIVE
+        ]);
+        $this->attachUserToTeam($user, 1);
+
+        $response = $this->postJson('/api/claims', [
+            'position_id' => 1,
+            'claim_type_id' => ClaimType::REIMBURSEMENT,
+            'department_id' => 1,
+            'team_id' => 1,
+            'total_amount' => 100.00,
+            'expenses' => [[
+                'transaction_date' => '2026-01-15',
+                'account_number_id' => 1,
+                'buyer_name' => 'John Doe',
+                'vendor_name' => 'Vendor Inc',
+                'expense_amount' => 100.00,
+                'project_id' => 1,
+                'cost_centre_id' => 1,
+            ]],
+        ]);
+
+        $response->assertStatus(500); // Service throws Exception which becomes 500 in Controller catch
+        $this->assertDatabaseMissing('claims', ['user_id' => $user->user_id]);
+    }
+
     public function test_create_claim_with_multiple_expenses()
     {
         $this->seedLookups();
