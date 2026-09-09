@@ -577,50 +577,76 @@ class BankStatementExtractor
 
     private function extractTdPurchasesTotal(string $text): ?float
     {
+        $lines = preg_split('/\R/u', $text) ?: [];
+
         /*
-        * OCR frequently inserts newlines / multiple spaces between words.
-        * Normalize the entire document to one searchable line.
+        * First try line-by-line. Layout-aware Vision should produce something
+        * approximately like:
+        *
+        * Purchases & Other Charges $1,436.96
+        */
+        foreach ($lines as $line) {
+            $line = preg_replace('/\s+/', ' ', trim($line));
+
+            if (
+                preg_match(
+                    '/PURCHASES\s*(?:&|AND)\s*OTHER\s*CHARGES/i',
+                    $line
+                )
+            ) {
+                if (
+                    preg_match(
+                        '/\$?\s*([\d,]+\.\d{2})/',
+                        $line,
+                        $matches
+                    )
+                ) {
+                    $amount = (float) str_replace(
+                        ',',
+                        '',
+                        $matches[1]
+                    );
+
+                    Log::info(
+                        '[TD RECONCILIATION] Purchases total detected',
+                        [
+                            'amount' => $amount,
+                            'line' => $line,
+                        ]
+                    );
+
+                    return $amount;
+                }
+            }
+        }
+
+        /*
+        * Second fallback: normalized document.
         */
         $normalized = strtoupper($text);
+        $normalized = preg_replace('/\s+/', ' ', $normalized);
 
-        $normalized = str_replace(
-            ["\r", "\n", "\t"],
-            ' ',
-            $normalized
-        );
+        if (
+            preg_match(
+                '/PURCHASES\s*(?:&|AND)\s*OTHER\s*CHARGES.{0,150}?\$?\s*([\d,]+\.\d{2})/i',
+                $normalized,
+                $matches
+            )
+        ) {
+            $amount = (float) str_replace(
+                ',',
+                '',
+                $matches[1]
+            );
 
-        $normalized = preg_replace(
-            '/\s+/',
-            ' ',
-            $normalized
-        );
-
-        /*
-        * Standard TD summary:
-        * PURCHASES & OTHER CHARGES $1,436.96
-        */
-        $patterns = [
-            '/PURCHASES\s*&\s*OTHER\s*CHARGES\s*\$?\s*([\d,]+\.\d{2})/i',
-
-            '/PURCHASES\s*(?:&|AND)\s*OTHER\s*CHARGES\s*\$?\s*([\d,]+\.\d{2})/i',
-
-            '/PURCHASES\s*&\s*OTHER\s*CHARGES[^0-9]{0,30}([\d,]+\.\d{2})/i',
-        ];
-
-        foreach ($patterns as $pattern) {
-            if (preg_match($pattern, $normalized, $matches)) {
-                $amount = (float) str_replace(
-                    ',',
-                    '',
-                    $matches[1]
-                );
-
-                Log::info('[TD RECONCILIATION] Purchases total detected', [
+            Log::info(
+                '[TD RECONCILIATION] Purchases total detected from normalized text',
+                [
                     'amount' => $amount,
-                ]);
+                ]
+            );
 
-                return $amount;
-            }
+            return $amount;
         }
 
         Log::warning(
@@ -860,8 +886,39 @@ class BankStatementExtractor
                     }
 
                     $annotation = $pageResponse->getFullTextAnnotation();
-                    if ($annotation && trim($annotation->getText()) !== '') {
-                        $textParts[] = trim($annotation->getText());
+
+                    if ($annotation) {
+                        /*
+                        * IMPORTANT:
+                        * Do not rely only on annotation->getText().
+                        *
+                        * For bank statements we rebuild the text using Vision's
+                        * bounding-box coordinates so table rows stay together.
+                        */
+                        $layoutText = $this->buildVisionLayoutText(
+                            $annotation
+                        );
+
+                        if (trim($layoutText) !== '') {
+                            $textParts[] = trim($layoutText);
+
+                            Log::info('[VISION LAYOUT DEBUG]', [
+                                'pages_requested' => $pages,
+                                'text_length' => strlen($layoutText),
+                                'sample' => substr(
+                                    str_replace("\n", ' | ', $layoutText),
+                                    0,
+                                    5000
+                                ),
+                            ]);
+                        } elseif (trim($annotation->getText()) !== '') {
+                            /*
+                            * Safety fallback.
+                            */
+                            $textParts[] = trim(
+                                $annotation->getText()
+                            );
+                        }
                     }
                 }
             }
@@ -2350,6 +2407,140 @@ class BankStatementExtractor
             || (bool) preg_match('/CHEQUES\s+PAYABLE|GRACE\s+PERIOD|INTEREST|CARDHOLDER\s+AGREEMENT/i', $upperLine)
             || (bool) preg_match('/FSC\s*WWW\.FSC\.ORG|RESPONSIBLE\s+SOURCES/i', $upperLine)
             || (bool) preg_match('/^\.?$/', $upperLine);
+    }
+
+    private function buildVisionLayoutText($annotation): string
+    {
+        if (!$annotation) {
+            return '';
+        }
+
+        $allLines = [];
+
+        foreach ($annotation->getPages() as $page) {
+            $words = [];
+
+            foreach ($page->getBlocks() as $block) {
+                foreach ($block->getParagraphs() as $paragraph) {
+                    foreach ($paragraph->getWords() as $word) {
+                        $text = '';
+
+                        foreach ($word->getSymbols() as $symbol) {
+                            $text .= $symbol->getText();
+                        }
+
+                        $text = trim($text);
+
+                        if ($text === '') {
+                            continue;
+                        }
+
+                        $box = $word->getBoundingBox();
+                        $vertices = $box ? $box->getVertices() : [];
+
+                        if (count($vertices) < 2) {
+                            continue;
+                        }
+
+                        $xs = [];
+                        $ys = [];
+
+                        foreach ($vertices as $vertex) {
+                            $xs[] = (int) $vertex->getX();
+                            $ys[] = (int) $vertex->getY();
+                        }
+
+                        $x = min($xs);
+                        $y = min($ys);
+                        $height = max($ys) - min($ys);
+
+                        $words[] = [
+                            'text' => $text,
+                            'x' => $x,
+                            'y' => $y,
+                            'height' => max(1, $height),
+                        ];
+                    }
+                }
+            }
+
+            /*
+            * Sort the words top-to-bottom first.
+            */
+            usort($words, static function ($a, $b) {
+                if (abs($a['y'] - $b['y']) <= 3) {
+                    return $a['x'] <=> $b['x'];
+                }
+
+                return $a['y'] <=> $b['y'];
+            });
+
+            /*
+            * Group words that physically belong to the same visual row.
+            */
+            $rows = [];
+
+            foreach ($words as $word) {
+                $matchedRow = null;
+
+                foreach ($rows as $index => $row) {
+                    $tolerance = max(
+                        4,
+                        (int) round(
+                            max($row['height'], $word['height']) * 0.60
+                        )
+                    );
+
+                    if (abs($word['y'] - $row['y']) <= $tolerance) {
+                        $matchedRow = $index;
+                        break;
+                    }
+                }
+
+                if ($matchedRow === null) {
+                    $rows[] = [
+                        'y' => $word['y'],
+                        'height' => $word['height'],
+                        'words' => [$word],
+                    ];
+                } else {
+                    $rows[$matchedRow]['words'][] = $word;
+                }
+            }
+
+            usort(
+                $rows,
+                static fn ($a, $b) => $a['y'] <=> $b['y']
+            );
+
+            foreach ($rows as $row) {
+                usort(
+                    $row['words'],
+                    static fn ($a, $b) => $a['x'] <=> $b['x']
+                );
+
+                $line = implode(
+                    ' ',
+                    array_column($row['words'], 'text')
+                );
+
+                $line = preg_replace('/\s+/', ' ', $line);
+                $line = trim($line);
+
+                if ($line !== '') {
+                    $allLines[] = $line;
+                }
+            }
+
+            /*
+            * Page separator. Helps prevent two pages from joining.
+            */
+            $allLines[] = '';
+        }
+
+        return trim(
+            implode("\n", $allLines)
+        );
     }
 
     private function isInvalidTdVendor(string $vendor): bool
