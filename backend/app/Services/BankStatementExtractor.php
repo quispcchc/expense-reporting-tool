@@ -39,19 +39,266 @@ class BankStatementExtractor
         'TD CANADA TRUST', 'TD MESSAGE CENTRE', 'AIR CANADA', 'CONTACT INFORMATION', 'TOSTM', 'T0STM',
         'PAYMENT DUE', 'PAYMENT INFO', 'CREDIT LIMIT', 'AVAILABLE CREDIT', 'INTEREST RATE', 'ESTIMATED TIME'
     ];
-    
-    public function extract(string $filePath, string $mimeType, int $claimTypeId = 0): array
-    {
-        $text = $this->extractText($filePath, $mimeType);
-        if (empty($text)) {
-            Log::warning('Extractor: No text extracted from file');
-            return ['expenses' => [], 'refunds' => [], 'paired' => 0];
+
+    public function extract(
+    string $filePath,
+    string $mimeType,
+    int $claimTypeId = 0
+    ): array {
+        if (str_contains(strtolower($mimeType), 'pdf')) {
+            return $this->extractPdfRobustly(
+                $filePath,
+                $claimTypeId
+            );
         }
 
-        // Log a sample of the text to help debug extraction issues
-        Log::info('[OCR DEBUG] Extracted text sample: ' . substr(str_replace("\n", " | ", $text), 0, 2000));
-        
+        $text = $this->extractText($filePath, $mimeType);
+
+        if (trim($text) === '') {
+            Log::warning('Extractor: No text extracted from file');
+
+            return [
+                'expenses' => [],
+                'refunds' => [],
+                'paired' => 0,
+                'account_number' => null,
+            ];
+        }
+
         return $this->parseText($text, $claimTypeId);
+    }
+
+    private function extractPdfRobustly(
+    string $filePath,
+    int $claimTypeId
+    ): array {
+        $parser = new Parser();
+        $pdf = $parser->parseFile($filePath);
+
+        $embeddedText = trim($pdf->getText());
+
+        if ($embeddedText === '') {
+            $visionText = $this->extractFromFileViaVision(
+                $filePath,
+                'application/pdf'
+            );
+
+            return $this->parseText(
+                $visionText,
+                $claimTypeId
+            );
+        }
+
+        /*
+        * First candidate: embedded PDF text.
+        */
+        $embeddedResult = $this->parseText(
+            $embeddedText,
+            $claimTypeId
+        );
+
+        /*
+        * For TD Business Travel Visa statements, reconcile against the
+        * "Purchases & Other Charges" total printed on the statement.
+        */
+        if (preg_match(
+            '/TD\s+BUSINESS\s+TRAVEL\s+VISA\s+CARD/i',
+            $embeddedText
+        )) {
+            $expectedPurchases = $this->extractTdPurchasesTotal(
+                $embeddedText
+            );
+
+            if ($expectedPurchases !== null) {
+                $embeddedTotal = $this->calculateExpenseTotal(
+                    $embeddedResult['expenses'] ?? []
+                );
+
+                Log::info('[TD RECONCILIATION] Embedded PDF result', [
+                    'expected' => $expectedPurchases,
+                    'actual' => $embeddedTotal,
+                    'difference' => round(
+                        $expectedPurchases - $embeddedTotal,
+                        2
+                    ),
+                    'count' => count(
+                        $embeddedResult['expenses'] ?? []
+                    ),
+                ]);
+
+                /*
+                * Exact/near exact match: no reason to OCR.
+                */
+                // if (abs($expectedPurchases - $embeddedTotal) <= 0.02) {
+                //     return $embeddedResult;
+                // }
+
+                if (abs($expectedPurchases - $embeddedTotal) <= 0.02) {
+                    $embeddedResult['expected_total'] = number_format(
+                        $expectedPurchases,
+                        2,
+                        '.',
+                        ''
+                    );
+
+                    $embeddedResult['extracted_total'] = number_format(
+                        $embeddedTotal,
+                        2,
+                        '.',
+                        ''
+                    );
+
+                    $embeddedResult['reconciled'] = true;
+
+                    Log::info('[TD RECONCILIATION] Statement successfully reconciled', [
+                        'expected_total' => $expectedPurchases,
+                        'extracted_total' => $embeddedTotal,
+                        'count' => count(
+                            $embeddedResult['expenses'] ?? []
+                        ),
+                    ]);
+
+                    return $embeddedResult;
+                }
+
+                /*
+                * Embedded parsing did not reconcile. Try Vision as a
+                * completely independent extraction source.
+                */
+                try {
+                    $pageCount = max(
+                        1,
+                        count($pdf->getPages())
+                    );
+
+                    $visionText = $this->extractPdfPagesViaVisionInChunks(
+                        $filePath,
+                        $pageCount
+                    );
+
+                    $visionResult = $this->parseText(
+                        $visionText,
+                        $claimTypeId
+                    );
+
+                    $visionTotal = $this->calculateExpenseTotal(
+                        $visionResult['expenses'] ?? []
+                    );
+
+                    Log::info('[TD RECONCILIATION] Vision result', [
+                        'expected' => $expectedPurchases,
+                        'actual' => $visionTotal,
+                        'difference' => round(
+                            $expectedPurchases - $visionTotal,
+                            2
+                        ),
+                        'count' => count(
+                            $visionResult['expenses'] ?? []
+                        ),
+                    ]);
+
+                    // return $this->chooseBestExtractionResult(
+                    //     $embeddedResult,
+                    //     $visionResult,
+                    //     $expectedPurchases
+                    // );
+                    $bestResult = $this->chooseBestExtractionResult(
+                        $embeddedResult,
+                        $visionResult,
+                        $expectedPurchases
+                    );
+
+                    $bestTotal = $this->calculateExpenseTotal(
+                        $bestResult['expenses'] ?? []
+                    );
+
+                    $bestResult['expected_total'] = number_format(
+                        $expectedPurchases,
+                        2,
+                        '.',
+                        ''
+                    );
+
+                    $bestResult['extracted_total'] = number_format(
+                        $bestTotal,
+                        2,
+                        '.',
+                        ''
+                    );
+
+                    $bestResult['reconciled'] =
+                        abs($expectedPurchases - $bestTotal) <= 0.02;
+
+                    return $bestResult;
+                } catch (Throwable $e) {
+                    Log::warning(
+                        '[TD RECONCILIATION] Vision retry failed',
+                        [
+                            'error' => $e->getMessage(),
+                        ]
+                    );
+                }
+            }
+        }
+
+        return $embeddedResult;
+    }
+
+    private function extractTdPurchasesTotal(string $text): ?float
+    {
+        $patterns = [
+            '/Purchases\s*&\s*Other\s*Charges\s+\$?\s*([\d,]+\.\d{2})/i',
+            '/Purchases\s*&\s*Other\s*Charges[^\d$]*\$?\s*([\d,]+\.\d{2})/i',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $text, $m)) {
+                return (float) str_replace(',', '', $m[1]);
+            }
+        }
+
+        return null;
+    }
+
+    private function chooseBestExtractionResult(
+    array $first,
+    array $second,
+    float $expectedTotal
+    ): array {
+        $firstTotal = $this->calculateExpenseTotal(
+            $first['expenses'] ?? []
+        );
+
+        $secondTotal = $this->calculateExpenseTotal(
+            $second['expenses'] ?? []
+        );
+
+        $firstDiff = abs($expectedTotal - $firstTotal);
+        $secondDiff = abs($expectedTotal - $secondTotal);
+
+        if ($secondDiff < $firstDiff) {
+            Log::info(
+                '[Extractor] Selected Vision extraction',
+                [
+                    'expected' => $expectedTotal,
+                    'embedded_total' => $firstTotal,
+                    'vision_total' => $secondTotal,
+                ]
+            );
+
+            return $second;
+        }
+
+        Log::info(
+            '[Extractor] Selected embedded PDF extraction',
+            [
+                'expected' => $expectedTotal,
+                'embedded_total' => $firstTotal,
+                'vision_total' => $secondTotal,
+            ]
+        );
+
+        return $first;
     }
 
     private function extractText(string $filePath, string $mimeType): string

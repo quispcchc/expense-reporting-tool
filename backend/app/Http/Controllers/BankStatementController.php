@@ -38,12 +38,24 @@ class BankStatementController extends Controller
                     'paired' => $result['paired'],
                 ]);
 
+                // return $this->successResponse([
+                //     'expenses' => $result['expenses'],
+                //     'refunds'  => $result['refunds'],
+                //     'count'    => count($result['expenses']),
+                //     'paired'   => $result['paired'],
+                //     'account_number' => $result['account_number'],
+                // ]);
+
                 return $this->successResponse([
                     'expenses' => $result['expenses'],
-                    'refunds'  => $result['refunds'],
+                    'refunds'  => $result['refunds'] ?? [],
                     'count'    => count($result['expenses']),
-                    'paired'   => $result['paired'],
-                    'account_number' => $result['account_number'],
+                    'paired'   => $result['paired'] ?? 0,
+                    'account_number' => $result['account_number'] ?? null,
+
+                    'expected_total' => $result['expected_total'] ?? null,
+                    'extracted_total' => $result['extracted_total'] ?? null,
+                    'reconciled' => $result['reconciled'] ?? null,
                 ]);
             }
 
