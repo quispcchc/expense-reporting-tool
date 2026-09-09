@@ -3,13 +3,14 @@ import { Dialog } from 'primereact/dialog'
 import { Button } from 'primereact/button'
 import { useTranslation } from 'react-i18next'
 
-function MobileEditDialog({ visible, header, onHide, onSave, children }) {
+function MobileEditDialog({ visible, header, onHide, onSave, style, children }) {
     const { t } = useTranslation()
+    const defaultStyle = { width: '90vw', maxWidth: '450px' }
     return (
         <Dialog
             header={header}
             visible={visible}
-            style={{ width: '90vw', maxWidth: '450px' }}
+            style={style || defaultStyle}
             onHide={onHide}
             className="mobile-edit-dialog"
             footer={

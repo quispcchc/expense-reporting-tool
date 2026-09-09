@@ -305,7 +305,13 @@ function UsersPage() {
             {isMobile ? mobileCardView : desktopTableView}
 
             {/* User Edit Modal */}
-            <MobileEditDialog visible={editDialog} header={t('users.editUser', 'Edit User')} onHide={closeDialog} onSave={handleMobileEditSave}>
+            <MobileEditDialog 
+                visible={editDialog} 
+                header={t('users.editUser', 'Edit User')} 
+                onHide={closeDialog} 
+                onSave={handleMobileEditSave}
+                style={{ width: '90vw', maxWidth: '600px' }}
+            >
                 {editData && (
                     <div className="flex flex-col gap-4">
                         <Input name="first_name" label={t('users.firstName')} value={editData.first_name || ''} errors={editErrors}
