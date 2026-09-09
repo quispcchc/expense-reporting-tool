@@ -355,18 +355,277 @@ class BankStatementExtractor
         return $embeddedResult;
     }
 
+    private function parseTdCompleteTransactionRows(
+        string $text,
+        ?int $statementYear
+    ): array {
+        $expenses = [];
+        $refunds = [];
+
+        /*
+        * Vision may split:
+        *
+        * OCT 8
+        * OCT 10
+        * MOUNTAIN ORCHARDS MOUNTAIN
+        * $325.22
+        *
+        * Converting whitespace/newlines to spaces allows the same strict
+        * transaction regex to detect those rows.
+        */
+        $normalizedText = $this->normalizeOcrLine($text);
+
+        $normalizedText = preg_replace(
+            '/\s+/',
+            ' ',
+            $normalizedText
+        );
+
+        $month =
+            '(?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC)';
+
+        $date =
+            $month . '\s*\d{1,2}';
+
+        $amount =
+            '-?\s*\$?\s*\d{1,3}(?:,\d{3})*\.\d{2}';
+
+        /*
+        * Transaction date
+        * Posting date
+        * Merchant
+        * Amount
+        *
+        * Merchant is limited so we do not consume huge statement sections.
+        */
+        $pattern =
+            '/(' . $date . ')\s+'
+            . '(' . $date . ')\s+'
+            . '(.{2,180}?)\s+'
+            . '(' . $amount . ')'
+            . '(?=\s+(?:' . $date . '|TOTAL\s+NEW\s+BALANCE|FOREIGN\s+CURRENCY|@?\s*EXCHANGE\s+RATE)|$)/i';
+
+        if (!preg_match_all(
+            $pattern,
+            $normalizedText,
+            $matches,
+            PREG_SET_ORDER
+        )) {
+            Log::warning(
+                '[TD DIRECT PARSER] No normalized transaction rows detected'
+            );
+
+            return [
+                'expenses' => [],
+                'refunds' => [],
+            ];
+        }
+
+        foreach ($matches as $match) {
+            $date = $this->normalizeDate(
+                $match[1],
+                $statementYear
+            );
+
+            if (!$date) {
+                continue;
+            }
+
+            $vendor = trim(
+                preg_replace('/\s+/', ' ', $match[3])
+            );
+
+            $vendor = trim(
+                $vendor,
+                " \t\n\r\0\x0B-_.,;:/\\$|"
+            );
+
+            /*
+            * Avoid summary/marketing text accidentally becoming a vendor.
+            */
+            if (
+                $vendor === ''
+                || strlen($vendor) > 180
+                || $this->isInvalidTdVendor($vendor)
+            ) {
+                continue;
+            }
+
+            $rawAmount = trim($match[4]);
+
+            $amountValue = $this->parseAmount(
+                $rawAmount,
+                str_contains($rawAmount, '$')
+            );
+
+            if ($amountValue === null || $amountValue <= 0.01) {
+                continue;
+            }
+
+            /*
+            * Payment of the credit-card balance is neither expense nor refund.
+            */
+            if (preg_match(
+                '/PREAUTHORIZED\s+PAYMENT|PAYMENT[\s-]*THANK\s+YOU|PAYMENT\s+RECEIVED/i',
+                $vendor
+            )) {
+                continue;
+            }
+
+            if (
+                $this->isCreditCardPaymentOrCreditRow(
+                    $vendor,
+                    $rawAmount
+                )
+            ) {
+                $refunds[] = $this->makeExpense(
+                    $date,
+                    $vendor,
+                    $amountValue
+                );
+
+                continue;
+            }
+
+            $expenses[] = $this->makeExpense(
+                $date,
+                $vendor,
+                $amountValue
+            );
+
+            Log::info('[TD DIRECT PARSER] Transaction extracted', [
+                'date' => $date,
+                'vendor' => $vendor,
+                'amount' => $amountValue,
+            ]);
+        }
+
+        Log::info('[TD DIRECT PARSER] Normalized scan complete', [
+            'expense_count' => count($expenses),
+            'expense_total' => $this->calculateExpenseTotal($expenses),
+            'refund_count' => count($refunds),
+        ]);
+
+        return [
+            'expenses' => $expenses,
+            'refunds' => $refunds,
+        ];
+    }
+
+    private function mergeTdExtractionResults(
+        array $primary,
+        array $secondary
+    ): array {
+        $result = array_values($primary);
+
+        /*
+        * Count occurrences rather than simply deduplicating.
+        *
+        * Two identical purchases on the same date/vendor/amount can
+        * legitimately exist, so ordinary deduplication is unsafe.
+        */
+        $existingCounts = [];
+
+        foreach ($result as $expense) {
+            $key = $this->tdExpenseKey($expense);
+
+            $existingCounts[$key] =
+                ($existingCounts[$key] ?? 0) + 1;
+        }
+
+        $secondarySeen = [];
+
+        foreach ($secondary as $expense) {
+            $key = $this->tdExpenseKey($expense);
+
+            $secondarySeen[$key] =
+                ($secondarySeen[$key] ?? 0) + 1;
+
+            /*
+            * Only add the row if the secondary parser found more occurrences
+            * of this transaction than the primary parser did.
+            */
+            if (
+                $secondarySeen[$key]
+                > ($existingCounts[$key] ?? 0)
+            ) {
+                $result[] = $expense;
+
+                $existingCounts[$key] =
+                    ($existingCounts[$key] ?? 0) + 1;
+            }
+        }
+
+        return array_values($result);
+    }
+
+    private function tdExpenseKey(array $expense): string
+    {
+        return implode('|', [
+            $expense['transaction_date'] ?? '',
+            $this->normalizeVendorKey(
+                $expense['vendor_name'] ?? ''
+            ),
+            number_format(
+                (float) ($expense['expense_amount'] ?? 0),
+                2,
+                '.',
+                ''
+            ),
+        ]);
+    }
+
     private function extractTdPurchasesTotal(string $text): ?float
     {
+        /*
+        * OCR frequently inserts newlines / multiple spaces between words.
+        * Normalize the entire document to one searchable line.
+        */
+        $normalized = strtoupper($text);
+
+        $normalized = str_replace(
+            ["\r", "\n", "\t"],
+            ' ',
+            $normalized
+        );
+
+        $normalized = preg_replace(
+            '/\s+/',
+            ' ',
+            $normalized
+        );
+
+        /*
+        * Standard TD summary:
+        * PURCHASES & OTHER CHARGES $1,436.96
+        */
         $patterns = [
-            '/Purchases\s*&\s*Other\s*Charges\s+\$?\s*([\d,]+\.\d{2})/i',
-            '/Purchases\s*&\s*Other\s*Charges[^\d$]*\$?\s*([\d,]+\.\d{2})/i',
+            '/PURCHASES\s*&\s*OTHER\s*CHARGES\s*\$?\s*([\d,]+\.\d{2})/i',
+
+            '/PURCHASES\s*(?:&|AND)\s*OTHER\s*CHARGES\s*\$?\s*([\d,]+\.\d{2})/i',
+
+            '/PURCHASES\s*&\s*OTHER\s*CHARGES[^0-9]{0,30}([\d,]+\.\d{2})/i',
         ];
 
         foreach ($patterns as $pattern) {
-            if (preg_match($pattern, $text, $m)) {
-                return (float) str_replace(',', '', $m[1]);
+            if (preg_match($pattern, $normalized, $matches)) {
+                $amount = (float) str_replace(
+                    ',',
+                    '',
+                    $matches[1]
+                );
+
+                Log::info('[TD RECONCILIATION] Purchases total detected', [
+                    'amount' => $amount,
+                ]);
+
+                return $amount;
             }
         }
+
+        Log::warning(
+            '[TD RECONCILIATION] Could not detect Purchases & Other Charges total'
+        );
 
         return null;
     }
@@ -1427,6 +1686,70 @@ class BankStatementExtractor
 
     private function parseTdBusinessTravelVisa(string $text, ?int $statementYear): array
     {
+
+        /*
+        * PASS 1:
+        * Parse normal TD transaction rows directly.
+        */
+        $directResult = $this->parseTdCompleteTransactionRows(
+            $text,
+            $statementYear
+        );
+
+        $directExpenses = $directResult['expenses'] ?? [];
+        $directRefunds = $directResult['refunds'] ?? [];
+
+        $directTotal = $this->calculateExpenseTotal(
+            $directExpenses
+        );
+
+        $expectedTotal = $this->extractTdPurchasesTotal(
+            $text
+        );
+
+        Log::info('[TD DIRECT PARSER] Result', [
+            'count' => count($directExpenses),
+            'total' => $directTotal,
+            'expected_total' => $expectedTotal,
+        ]);
+
+        /*
+        * If direct parsing reconciles with TD's printed purchases total,
+        * we already know extraction is complete.
+        */
+        if (
+            $expectedTotal !== null
+            && abs($directTotal - $expectedTotal) <= 0.02
+        ) {
+            Log::info(
+                '[TD DIRECT PARSER] Successfully reconciled statement'
+            );
+
+          return [
+                'expenses' => $directExpenses,
+                'refunds' => $directRefunds,
+                'count' => count($directExpenses),
+                'paired' => 0,
+                'account_number' => $this->extractTdAccountNumber($text),
+
+                'expected_total' => number_format(
+                    $expectedTotal,
+                    2,
+                    '.',
+                    ''
+                ),
+
+                'extracted_total' => number_format(
+                    $directTotal,
+                    2,
+                    '.',
+                    ''
+                ),
+
+                'reconciled' => true,
+            ];
+        }
+
         $expenses = [];
         $refunds = [];
 
@@ -1625,12 +1948,64 @@ class BankStatementExtractor
             'refund_total' => $this->calculateExpenseTotal($refunds),
         ]);
 
+        /*
+        * Combine the cell-stream parser with the direct parser.
+        *
+        * The two extraction techniques fail differently, so combining their
+        * non-overlapping transactions gives us much better coverage.
+        */
+        $mergedExpenses = $this->mergeTdExtractionResults(
+            $expenses,
+            $directExpenses
+        );
+
+        $mergedRefunds = $this->mergeTdExtractionResults(
+            $refunds,
+            $directRefunds
+        );
+
+        $mergedTotal = $this->calculateExpenseTotal(
+            $mergedExpenses
+        );
+
+        Log::info('[TD FINAL RECONCILIATION]', [
+            'cell_count' => count($expenses),
+            'cell_total' => $this->calculateExpenseTotal($expenses),
+
+            'direct_count' => count($directExpenses),
+            'direct_total' => $directTotal,
+
+            'merged_count' => count($mergedExpenses),
+            'merged_total' => $mergedTotal,
+
+            'expected_total' => $expectedTotal,
+
+            'difference' => $expectedTotal !== null
+                ? round($expectedTotal - $mergedTotal, 2)
+                : null,
+        ]);
+
         return [
-            'expenses' => $expenses,
-            'refunds' => $refunds,
-            'count' => count($expenses),
+            'expenses' => $mergedExpenses,
+            'refunds' => $mergedRefunds,
+            'count' => count($mergedExpenses),
             'paired' => 0,
             'account_number' => $this->extractTdAccountNumber($text),
+
+            'expected_total' => $expectedTotal !== null
+                ? number_format($expectedTotal, 2, '.', '')
+                : null,
+
+            'extracted_total' => number_format(
+                $mergedTotal,
+                2,
+                '.',
+                ''
+            ),
+
+            'reconciled' => $expectedTotal !== null
+                ? abs($expectedTotal - $mergedTotal) <= 0.02
+                : null,
         ];
     }
 
@@ -1736,6 +2111,24 @@ class BankStatementExtractor
         array &$expenses,
         array &$refunds
     ): void {
+        /*
+        * Credit-card bill payments are neither expenses nor refunds.
+        */
+        if (preg_match(
+            '/PREAUTHORIZED\s+PAYMENT|PAYMENT[\s-]*THANK\s+YOU|PAYMENT\s+RECEIVED/i',
+            $row['vendor']
+        )) {
+            Log::debug('[TD PARSER] Credit-card payment ignored', [
+                'vendor' => $row['vendor'],
+                'amount' => $row['amount'],
+            ]);
+
+            return;
+        }
+
+        /*
+        * Actual refund / reversal / credit.
+        */
         if (
             $this->isCreditCardPaymentOrCreditRow(
                 $row['vendor'],
@@ -1747,6 +2140,7 @@ class BankStatementExtractor
                 $row['vendor'],
                 $row['amount']
             );
+
             return;
         }
 
