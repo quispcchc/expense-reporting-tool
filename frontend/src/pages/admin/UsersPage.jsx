@@ -1,10 +1,9 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import ContentHeader from '../../components/common/layout/ContentHeader.jsx'
 import AddNewUser from '../../components/feature/user/AddNewUser.jsx'
 import { DataTable } from 'primereact/datatable'
 import { Column } from 'primereact/column'
 import { useUser, useUserDispatch } from '../../contexts/UserContext.jsx'
-import { Dropdown } from 'primereact/dropdown'
 import { MultiSelect } from 'primereact/multiselect'
 import { Button } from 'primereact/button'
 import { useLookups } from '../../contexts/LookupContext.jsx'
@@ -17,12 +16,13 @@ import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog'
 import { useIsMobile } from '../../hooks/useIsMobile.js'
 import { useDataTableFilter } from '../../hooks/useDataTableFilter.js'
 import { useMobileEditDialog } from '../../hooks/useMobileEditDialog.js'
-import { textInputEditor } from '../../utils/dataTableEditors.jsx'
 import DataTableSearchHeader from '../../components/common/ui/DataTableSearchHeader.jsx'
 import MobileEditDialog from '../../components/common/ui/MobileEditDialog.jsx'
 import { showToast, TOAST_LIFE } from '../../utils/helpers.js'
-import { validateForm } from '../../utils/validation/validator.js'
 import { validationSchemas } from '../../utils/validation/schemas.js'
+
+import { InputSwitch } from 'primereact/inputswitch'
+import { ROLE_LEVEL } from '../../config/constants.js'
 
 function UsersPage() {
     const { t } = useTranslation()
@@ -33,33 +33,6 @@ function UsersPage() {
     const { deleteUser, updateUser, refresh } = useUserDispatch()
 
     const { editDialog, editData, editErrors, openDialog, closeDialog, updateField, validate, setEditData } = useMobileEditDialog({ validationSchema: validationSchemas.editUser })
-
-    // Controlled row editing state (preserves edit mode across re-renders)
-    const [editingRows, setEditingRows] = useState({})
-    // Tracks department changes per editing row: { [userId]: departmentId }
-    // Both state (to trigger re-renders) and refs (to avoid stale closures in PrimeReact's memoized callbacks)
-    const [, setEditingDepartmentMap] = useState({})
-    const editingDepartmentMapRef = useRef({})
-    // Tracks teams per editing row so we can clear them when department changes: { [userId]: [teamId, ...] }
-    const [, setEditingTeamsMap] = useState({})
-    const editingTeamsMapRef = useRef({})
-
-    // Keep refs in sync with state
-    const updateDepartmentMap = useCallback((updater) => {
-        setEditingDepartmentMap(prev => {
-            const next = typeof updater === 'function' ? updater(prev) : updater
-            editingDepartmentMapRef.current = next
-            return next
-        })
-    }, [])
-
-    const updateTeamsMap = useCallback((updater) => {
-        setEditingTeamsMap(prev => {
-            const next = typeof updater === 'function' ? updater(prev) : updater
-            editingTeamsMapRef.current = next
-            return next
-        })
-    }, [])
 
     // Delete user with confirmation dialog
     const handleDeleteUser = (rowData) => {
@@ -141,197 +114,16 @@ function UsersPage() {
         )
     }
 
-    // Dropdown editor for teams field (multi-select)
-    // Reads from refs to avoid stale closures when PrimeReact memoizes BodyCell
-    const teamsEditor = useCallback((editorOptions) => {
-        const rowKey = editorOptions.rowData?.user_id;
-        const deptMap = editingDepartmentMapRef.current;
-        const teamsMap = editingTeamsMapRef.current;
-
-        // Use editingDepartmentMap if available (user changed department during this edit session)
-        const departmentId = rowKey != null && deptMap[rowKey] !== undefined
-            ? deptMap[rowKey]
-            : editorOptions.rowData?.department_id || null;
-        const filteredTeams = departmentId
-            ? lookups.teams.filter(team => team.department_id === departmentId)
-            : [];
-
-        // Use editingTeamsMap as the source of truth; initialize from row data on first render
-        let value;
-        if (rowKey != null && teamsMap[rowKey] !== undefined) {
-            value = teamsMap[rowKey];
-        } else {
-            // First time entering edit — initialize from row data
-            value = editorOptions.value;
-            if (!value && Array.isArray(editorOptions.rowData?.teams)) {
-                value = editorOptions.rowData.teams.map(t => t.team_id || t.value || t);
-            } else if (Array.isArray(value)) {
-                value = value.map(t => (typeof t === 'object' && t !== null ? t.team_id || t.value : t));
-            } else {
-                value = [];
-            }
-        }
-
-        return (
-            <MultiSelect
-                value={value}
-                onChange={(e) => {
-                    const newTeams = e.target.value;
-                    editorOptions.editorCallback(newTeams);
-                    if (rowKey != null) {
-                        updateTeamsMap(prev => ({ ...prev, [rowKey]: newTeams }));
-                    }
-                }}
-                options={filteredTeams.map(option => ({ label: option.team_name, value: option.team_id }))}
-                optionLabel="label"
-                optionValue="value"
-                maxSelectedLabels={2}
-                placeholder={departmentId ? t('users.selectTeam', 'Select team') : t('users.selectDepartmentFirst', 'Select department first')}
-                disabled={!departmentId}
-                className="w-full"
-                filter
-            />
-        );
-    }, [lookups.teams, t, updateTeamsMap])
-
-    // Dropdown editor for roles field
-    const roleEditor = useCallback((editorOptions) => (
-        <Dropdown
-            value={editorOptions.value}
-            onChange={(e) => editorOptions.editorCallback(e.target.value)}
-            options={roleOptions}
-            optionLabel="label"
-            optionValue="value"
-            filter
-            filterInputAutoFocus
-        />
-    ), [roleOptions])
-
-    // Dropdown editor for department field
-    const departmentEditor = useCallback((editorOptions) => (
-        <Dropdown
-            value={editorOptions.value}
-            onChange={(e) => {
-                const newDeptId = e.target.value;
-                editorOptions.editorCallback(newDeptId);
-                // Track department change and clear teams so teamsEditor reacts in realtime
-                const rowKey = editorOptions.rowData?.user_id;
-                if (rowKey != null) {
-                    updateDepartmentMap(prev => ({ ...prev, [rowKey]: newDeptId }));
-                    updateTeamsMap(prev => ({ ...prev, [rowKey]: [] }));
-                    // Force PrimeReact BodyCell re-render by changing rowData (which is in its memo comparison list)
-                    setUsers(prev => prev.map(u =>
-                        u.user_id === rowKey ? { ...u, department_id: newDeptId, teams: [] } : u
-                    ));
-                }
-            }}
-            options={departmentOptions}
-            optionLabel="label"
-            optionValue="value"
-            filter
-            filterInputAutoFocus
-        />
-    ), [departmentOptions, updateDepartmentMap, updateTeamsMap])
-
-    // Dropdown editor for status field
-    const statusEditor = (editorOptions) => (
-        <Dropdown
-            value={editorOptions.value}
-            onChange={(e) => editorOptions.editorCallback(e.target.value)}
-            options={statusOptions}
-            filter
-            filterInputAutoFocus
-        />
-    )
-
-    // Controlled editing rows change handler
-    const onRowEditChange = useCallback((e) => {
-        setEditingRows(e.data)
-    }, [])
-
-    // Called when a row is edited and saved
-    const onRowEditComplete = useCallback((e) => {
-        let _users = [...users]
-        let { newData, index } = e
-
-        const { isValid, errors: validationErrors } = validateForm(newData, validationSchemas.editUser)
-        if (!isValid) {
-            const messages = Object.values(validationErrors).map(key => t(key)).join(', ')
-            showToast(toastRef, { severity: 'error', summary: t('common.error'), detail: messages, life: TOAST_LIFE.ERROR })
-            return
-        }
-
-        // Read from refs to avoid stale closures (PrimeReact memoizes BodyCell)
-        const rowKey = newData.user_id;
-        const teamsMap = editingTeamsMapRef.current;
-        const teamIds = teamsMap[rowKey] !== undefined
-            ? teamsMap[rowKey]
-            : (Array.isArray(newData.teams)
-                ? newData.teams.map(t => t.team_id || t.value || t)
-                : []);
-
-        // Clean up editing tracking for this row (update both state and refs)
-        updateDepartmentMap(prev => {
-            const next = { ...prev };
-            delete next[rowKey];
-            return next;
-        });
-        updateTeamsMap(prev => {
-            const next = { ...prev };
-            delete next[rowKey];
-            return next;
-        });
-
-        _users[index] = newData
-        setUsers(_users)
-            ; (async () => {
-                const updatePayload = {
-                    user_id: newData.user_id,
-                    first_name: newData.first_name,
-                    last_name: newData.last_name,
-                    email: newData.email,
-                    department_id: newData.department_id,
-                    role_id: newData.role_id,
-                    active_status_id: newData.active_status_id,
-                    team_ids: teamIds,
-                }
-                Object.keys(updatePayload).forEach(key =>
-                    updatePayload[key] === undefined && delete updatePayload[key]
-                )
-
-                const result = await updateUser(updatePayload)
-                if (result?.success) {
-                    await refresh()
-                    showToast(toastRef, { severity: 'success', summary: t('common.success'), detail: t('users.updateSuccess', 'User updated successfully'), life: TOAST_LIFE.SUCCESS })
-                } else {
-                    showToast(toastRef, { severity: 'error', summary: t('common.error'), detail: result?.error || t('users.updateError', 'Failed to update user'), life: TOAST_LIFE.ERROR })
-                    setUsers(users)
-                }
-            })()
-    }, [users, updateUser, refresh, t, updateDepartmentMap, updateTeamsMap])
-
-    // Called when row edit is cancelled
-    const onRowEditCancel = useCallback((e) => {
-        const rowKey = e.data?.user_id;
-        if (rowKey != null) {
-            updateDepartmentMap(prev => {
-                const next = { ...prev };
-                delete next[rowKey];
-                return next;
-            });
-            updateTeamsMap(prev => {
-                const next = { ...prev };
-                delete next[rowKey];
-                return next;
-            });
-        }
-    }, [updateDepartmentMap, updateTeamsMap])
-
     // Mobile edit dialog save
     const handleMobileEditSave = async () => {
         if (!editData) return
         const { isValid } = validate()
         if (!isValid) return
+
+        // Check if selected role is admin-level for self-approve
+        const selectedRole = lookups.roles.find(r => r.role_id === editData.role_id)
+        const isAdminRole = selectedRole && selectedRole.role_level <= ROLE_LEVEL.DEPARTMENT_MANAGER
+
         const updatePayload = {
             user_id: editData.user_id,
             first_name: editData.first_name,
@@ -340,6 +132,7 @@ function UsersPage() {
             department_id: editData.department_id,
             role_id: editData.role_id,
             active_status_id: editData.active_status_id,
+            can_self_approve: isAdminRole ? !!editData.can_self_approve : false,
             team_ids: Array.isArray(editData.teams)
                 ? editData.teams.map(t => t.team_id || t.value || t)
                 : [],
@@ -449,6 +242,21 @@ function UsersPage() {
         </div>
     )
 
+    // Render edit button for desktop
+    const renderEditButton = (rowData) => (
+        <Button
+            icon="pi pi-pencil"
+            className="p-button-rounded p-button-text"
+            title={t('common.edit')}
+            onClick={() => {
+                openDialog({
+                    ...rowData,
+                    teams: rowData.teams?.map(t => t.team_id || t.value || t) || []
+                })
+            }}
+        />
+    )
+
     // Desktop table view
     const desktopTableView = (
         <div className="bg-white rounded-xl p-6 mt-5">
@@ -466,11 +274,6 @@ function UsersPage() {
                 ]}
                 header={<DataTableSearchHeader value={globalFilterValue} onChange={onGlobalFilterChange} />}
                 emptyMessage={t('common.noResults')}
-                editMode="row"
-                editingRows={editingRows}
-                onRowEditChange={onRowEditChange}
-                onRowEditComplete={onRowEditComplete}
-                onRowEditCancel={onRowEditCancel}
                 dataKey="user_id"
                 sortMode="multiple"
                 removableSort
@@ -478,14 +281,14 @@ function UsersPage() {
                 tableStyle={{ minWidth: '60rem' }}
             >
                 <Column field="user_id" header={t('users.userId', 'User #')} sortable />
-                <Column field="first_name" header={t('users.firstName')} sortable editor={textInputEditor} />
-                <Column field="last_name" header={t('users.lastName')} sortable editor={textInputEditor} />
-                <Column field="department_id" header={t('users.department')} body={renderDepartment} sortable editor={departmentEditor} />
-                <Column field="teams" header={t('users.teams', 'Teams')} body={renderTeams} editor={teamsEditor} sortable />
-                <Column field="email" header={t('users.email', "Email")} sortable editor={textInputEditor} />
-                <Column field="role_id" header={t('users.role')} body={renderRole} sortable editor={roleEditor} />
-                <Column field="active_status_id" header={t('common.status')} body={renderStatus} sortable editor={statusEditor} />
-                <Column rowEditor header={t('common.actions')} />
+                <Column field="first_name" header={t('users.firstName')} sortable />
+                <Column field="last_name" header={t('users.lastName')} sortable />
+                <Column field="department_id" header={t('users.department')} body={renderDepartment} sortable />
+                <Column field="teams" header={t('users.teams', 'Teams')} body={renderTeams} sortable />
+                <Column field="email" header={t('users.email', "Email")} sortable />
+                <Column field="role_id" header={t('users.role')} body={renderRole} sortable />
+                <Column field="active_status_id" header={t('common.status')} body={renderStatus} sortable />
+                <Column body={renderEditButton} header={t('common.actions')} style={{ width: '6rem', textAlign: 'center' }} />
                 <Column body={renderDeleteButton} header={t('common.delete', 'Delete')} style={{ width: '6rem', textAlign: 'center' }} />
             </DataTable>
         </div>
@@ -501,7 +304,7 @@ function UsersPage() {
 
             {isMobile ? mobileCardView : desktopTableView}
 
-            {/* Mobile Edit Dialog */}
+            {/* User Edit Modal */}
             <MobileEditDialog visible={editDialog} header={t('users.editUser', 'Edit User')} onHide={closeDialog} onSave={handleMobileEditSave}>
                 {editData && (
                     <div className="flex flex-col gap-4">
@@ -532,6 +335,25 @@ function UsersPage() {
                         </div>
                         <Select name="role_id" label={t('users.role')} value={editData.role_id} options={roleOptions} optionValue="value" errors={editErrors}
                             onChange={(e) => updateField('role_id', e.value)} />
+
+                        {/* Self-approve toggle — only for admin-level roles */}
+                        {(() => {
+                            const selectedRole = lookups.roles.find(r => r.role_id === editData.role_id)
+                            const isAdminRole = selectedRole && selectedRole.role_level <= ROLE_LEVEL.DEPARTMENT_MANAGER
+                            return isAdminRole ? (
+                                <div className="flex items-center gap-2 py-2">
+                                    <InputSwitch
+                                        inputId="can_self_approve"
+                                        checked={!!editData.can_self_approve}
+                                        onChange={(e) => updateField('can_self_approve', e.value)}
+                                    />
+                                    <label htmlFor="can_self_approve" className="text-sm cursor-pointer">
+                                        {t('users.canSelfApprove', 'Can self-approve corporate card claims')}
+                                    </label>
+                                </div>
+                            ) : null
+                        })()}
+
                         <Select name="active_status_id" label={t('common.status')} value={editData.active_status_id} options={statusOptions} optionValue="value" errors={editErrors}
                             onChange={(e) => updateField('active_status_id', e.value)} />
                     </div>
