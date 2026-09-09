@@ -69,18 +69,123 @@ class BankStatementExtractor
     }
 
     private function extractPdfRobustly(
-    string $filePath,
-    int $claimTypeId
+        string $filePath,
+        int $claimTypeId
     ): array {
-        $parser = new Parser();
-        $pdf = $parser->parseFile($filePath);
+        $embeddedText = '';
+        $pdf = null;
+        $pageCount = 1;
 
-        $embeddedText = trim($pdf->getText());
+        /*
+        * STEP 1:
+        * Try embedded PDF text with Smalot.
+        *
+        * Some bank PDFs are marked "secured" even though a user can open
+        * them normally. Smalot may refuse to parse those PDFs.
+        */
+        try {
+            $parser = new Parser();
+            $pdf = $parser->parseFile($filePath);
 
+            $embeddedText = trim($pdf->getText());
+            $pageCount = max(1, count($pdf->getPages()));
+
+            Log::info('[Extractor] Embedded PDF extraction succeeded', [
+                'text_length' => strlen($embeddedText),
+                'page_count' => $pageCount,
+            ]);
+
+        } catch (Throwable $e) {
+            Log::warning(
+                '[Extractor] Embedded PDF extraction failed; falling back to Vision',
+                [
+                    'error' => $e->getMessage(),
+                ]
+            );
+
+            /*
+            * IMPORTANT:
+            * Smalot failing must NOT fail the whole request.
+            * Google Vision becomes our fallback.
+            */
+            try {
+                $visionText = $this->extractFromFileViaVision(
+                    $filePath,
+                    'application/pdf'
+                );
+
+                $visionResult = $this->parseText(
+                    $visionText,
+                    $claimTypeId
+                );
+
+                $expectedPurchases = $this->extractTdPurchasesTotal(
+                    $visionText
+                );
+
+                if ($expectedPurchases !== null) {
+                    $visionTotal = $this->calculateExpenseTotal(
+                        $visionResult['expenses'] ?? []
+                    );
+
+                    $visionResult['expected_total'] = number_format(
+                        $expectedPurchases,
+                        2,
+                        '.',
+                        ''
+                    );
+
+                    $visionResult['extracted_total'] = number_format(
+                        $visionTotal,
+                        2,
+                        '.',
+                        ''
+                    );
+
+                    $visionResult['reconciled'] =
+                        abs($expectedPurchases - $visionTotal) <= 0.02;
+
+                    Log::info('[TD RECONCILIATION] Vision-only result', [
+                        'expected_total' => $expectedPurchases,
+                        'extracted_total' => $visionTotal,
+                        'count' => count(
+                            $visionResult['expenses'] ?? []
+                        ),
+                        'reconciled' => $visionResult['reconciled'],
+                    ]);
+                }
+
+                return $visionResult;
+
+            } catch (Throwable $visionException) {
+                Log::error(
+                    '[Extractor] Vision fallback also failed',
+                    [
+                        'smalot_error' => $e->getMessage(),
+                        'vision_error' => $visionException->getMessage(),
+                    ]
+                );
+
+                throw new Exception(
+                    'Unable to read this PDF using either embedded text extraction or Google Vision.',
+                    0,
+                    $visionException
+                );
+            }
+        }
+
+        /*
+        * STEP 2:
+        * Smalot worked but returned no useful text.
+        */
         if ($embeddedText === '') {
-            $visionText = $this->extractFromFileViaVision(
+            Log::warning(
+                '[Extractor] Embedded PDF contained no readable text; using Vision'
+            );
+
+            $visionText = $this->extractPdfPagesViaVisionInChunks(
                 $filePath,
-                'application/pdf'
+                $pageCount
             );
 
             return $this->parseText(
@@ -90,7 +195,8 @@ class BankStatementExtractor
         }
 
         /*
-        * First candidate: embedded PDF text.
+        * STEP 3:
+        * Parse embedded text first.
         */
         $embeddedResult = $this->parseText(
             $embeddedText,
@@ -98,8 +204,8 @@ class BankStatementExtractor
         );
 
         /*
-        * For TD Business Travel Visa statements, reconcile against the
-        * "Purchases & Other Charges" total printed on the statement.
+        * STEP 4:
+        * TD-specific reconciliation.
         */
         if (preg_match(
             '/TD\s+BUSINESS\s+TRAVEL\s+VISA\s+CARD/i',
@@ -115,8 +221,8 @@ class BankStatementExtractor
                 );
 
                 Log::info('[TD RECONCILIATION] Embedded PDF result', [
-                    'expected' => $expectedPurchases,
-                    'actual' => $embeddedTotal,
+                    'expected_total' => $expectedPurchases,
+                    'extracted_total' => $embeddedTotal,
                     'difference' => round(
                         $expectedPurchases - $embeddedTotal,
                         2
@@ -127,12 +233,8 @@ class BankStatementExtractor
                 ]);
 
                 /*
-                * Exact/near exact match: no reason to OCR.
+                * Embedded result is complete.
                 */
-                // if (abs($expectedPurchases - $embeddedTotal) <= 0.02) {
-                //     return $embeddedResult;
-                // }
-
                 if (abs($expectedPurchases - $embeddedTotal) <= 0.02) {
                     $embeddedResult['expected_total'] = number_format(
                         $expectedPurchases,
@@ -150,27 +252,15 @@ class BankStatementExtractor
 
                     $embeddedResult['reconciled'] = true;
 
-                    Log::info('[TD RECONCILIATION] Statement successfully reconciled', [
-                        'expected_total' => $expectedPurchases,
-                        'extracted_total' => $embeddedTotal,
-                        'count' => count(
-                            $embeddedResult['expenses'] ?? []
-                        ),
-                    ]);
-
                     return $embeddedResult;
                 }
 
                 /*
-                * Embedded parsing did not reconcile. Try Vision as a
-                * completely independent extraction source.
+                * STEP 5:
+                * Embedded parsing is incomplete.
+                * Retry the PDF through Vision.
                 */
                 try {
-                    $pageCount = max(
-                        1,
-                        count($pdf->getPages())
-                    );
-
                     $visionText = $this->extractPdfPagesViaVisionInChunks(
                         $filePath,
                         $pageCount
@@ -186,8 +276,8 @@ class BankStatementExtractor
                     );
 
                     Log::info('[TD RECONCILIATION] Vision result', [
-                        'expected' => $expectedPurchases,
-                        'actual' => $visionTotal,
+                        'expected_total' => $expectedPurchases,
+                        'extracted_total' => $visionTotal,
                         'difference' => round(
                             $expectedPurchases - $visionTotal,
                             2
@@ -197,11 +287,6 @@ class BankStatementExtractor
                         ),
                     ]);
 
-                    // return $this->chooseBestExtractionResult(
-                    //     $embeddedResult,
-                    //     $visionResult,
-                    //     $expectedPurchases
-                    // );
                     $bestResult = $this->chooseBestExtractionResult(
                         $embeddedResult,
                         $visionResult,
@@ -230,17 +315,43 @@ class BankStatementExtractor
                         abs($expectedPurchases - $bestTotal) <= 0.02;
 
                     return $bestResult;
+
                 } catch (Throwable $e) {
+                    /*
+                    * Vision failed, but embedded extraction did return something.
+                    * Return it with reconciled=false rather than crashing.
+                    */
                     Log::warning(
                         '[TD RECONCILIATION] Vision retry failed',
                         [
                             'error' => $e->getMessage(),
                         ]
                     );
+
+                    $embeddedResult['expected_total'] = number_format(
+                        $expectedPurchases,
+                        2,
+                        '.',
+                        ''
+                    );
+
+                    $embeddedResult['extracted_total'] = number_format(
+                        $embeddedTotal,
+                        2,
+                        '.',
+                        ''
+                    );
+
+                    $embeddedResult['reconciled'] = false;
+
+                    return $embeddedResult;
                 }
             }
         }
 
+        /*
+        * Non-TD PDF or no reconciliation total available.
+        */
         return $embeddedResult;
     }
 
