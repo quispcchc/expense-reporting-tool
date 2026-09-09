@@ -6,9 +6,9 @@ import { TagProvider } from '../../contexts/TagContext.jsx'
 function Layout() {
     return (
         <TagProvider>
-            <div className="flex flex-col h-screen">
+            <div className="flex flex-col h-dvh">
                 <Header />
-                <main className="grow px-4 md:px-10 lg:px-40 py-4 md:py-8 bg-bg-secondary overflow-y-auto">
+                <main className="grow px-4 md:px-10 lg:px-40 py-4 md:py-8 bg-bg-secondary overflow-y-auto overflow-x-hidden">
                     <Outlet />
                 </main>
 

@@ -19,11 +19,11 @@ function Layout() {
                         <TeamProvider>
                             <CostCentreProvider>
                                 <AccountNumberProvider>
-                                    <div className="flex h-screen">
+                                    <div className="flex h-dvh">
                                         <SideBar />
                                         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
                                             <Header />
-                                            <main className="flex-1 py-4 md:py-8 bg-[var(--color-bg-secondary)] overflow-auto">
+                                            <main className="flex-1 py-4 md:py-8 bg-[var(--color-bg-secondary)] overflow-y-auto overflow-x-hidden">
                                                 <div className="page-container px-3 sm:px-4 md:px-6 lg:px-10">
                                                     <Outlet />
                                                 </div>

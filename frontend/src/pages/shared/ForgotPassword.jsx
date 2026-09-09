@@ -90,7 +90,7 @@ function ForgotPassword() {
                 <LanguageSwitcher />
             </div>
             
-            <div className="flex justify-center items-center min-h-screen bg-gradient-to-b from-blue-50 to-white p-4">
+            <div className="flex justify-center items-center min-h-dvh bg-gradient-to-b from-blue-50 to-white p-4">
                 <div className="w-full max-w-md">
                     {!isLinkSent ? (
                         // Forgot Password Form

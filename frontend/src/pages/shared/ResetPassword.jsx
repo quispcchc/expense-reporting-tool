@@ -117,7 +117,7 @@ function ResetPassword() {
                 <LanguageSwitcher />
             </div>
 
-            <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-4">
+            <div className="flex justify-center items-center min-h-dvh bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-4">
                 <div className="w-full max-w-lg">
                     {/* Reset Password Form */}
                     <form

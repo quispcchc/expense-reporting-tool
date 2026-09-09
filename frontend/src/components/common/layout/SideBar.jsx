@@ -72,19 +72,6 @@ function SideBar() {
         }
     }, [location.pathname, isMobile])
 
-    // Body scroll lock when mobile menu is open
-    useEffect(() => {
-        if (isMobile && showMobileMenu) {
-            document.body.style.overflow = 'hidden'
-        } else {
-            document.body.style.overflow = 'unset'
-        }
-
-        return () => {
-            document.body.style.overflow = 'unset'
-        }
-    }, [isMobile, showMobileMenu])
-
     useEffect(() => {
         const handleEscape = (e) => {
             if (e.key === 'Escape' && showMobileMenu) {
@@ -143,7 +130,7 @@ function SideBar() {
 
             <aside
                 className={`
-                    h-screen bg-white border-gray-200
+                    h-dvh bg-white border-gray-200
                     flex flex-col
                     transition-all duration-300 ease-in-out
                     ${isMobile

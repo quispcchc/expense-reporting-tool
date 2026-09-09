@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 function Unauthorized({ requiredRoles = [], userRole = '', onGoBack }) {
   const { t } = useTranslation()
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50">
+    <div className="flex items-center justify-center min-h-dvh bg-gray-50">
       <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-8 text-center">
         <div className="mb-6">
           <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">

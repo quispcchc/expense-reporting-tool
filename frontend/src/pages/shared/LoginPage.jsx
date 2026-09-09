@@ -12,7 +12,7 @@ import Loader from '../../components/common/ui/Loader.jsx'
 function Login() {
     const { isLoading } = useAuth()
     return (
-        <div className="min-h-screen flex">
+        <div className="min-h-dvh flex">
             {/* Left side - Form */}
             <div className="w-full lg:w-1/2 flex items-center justify-center bg-[var(--color-bg-primary)] p-4 relative">
                 {/* Theme and Language Switchers in top right */}
