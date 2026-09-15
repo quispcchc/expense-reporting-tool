@@ -2000,6 +2000,7 @@ class BankStatementExtractor
             // Merchant text belongs to the currently open two-date row.
             if (count($currentDates) === 2 && $this->isTdMerchantCell($line)) {
                 $currentVendorParts[] = $line;
+
                 if ($deferredAmountLine !== null) {
                     $amountLine = $deferredAmountLine;
                     $deferredAmountLine = null;
