@@ -19,37 +19,19 @@ class DepartmentPolicy
 
     /**
      * Determine whether the user can update the model.
-     * Super admin can update any department.
-     * Admin (department_manager) can only update their own department.
+     * Only super admin can update departments.
      */
     public function update(User $user, Department $department): bool
     {
-        if ($user->role->role_level === RoleLevel::SUPER_ADMIN) {
-            return true;
-        }
-
-        if ($user->role->role_level === RoleLevel::DEPARTMENT_MANAGER) {
-            return $department->department_id === $user->department_id;
-        }
-
-        return false;
+        return $user->role->role_level === RoleLevel::SUPER_ADMIN;
     }
 
     /**
      * Determine whether the user can delete the model.
-     * Super admin can delete any department.
-     * Admin (department_manager) can only delete their own department.
+     * Only super admin can delete departments.
      */
     public function delete(User $user, Department $department): bool
     {
-        if ($user->role->role_level === RoleLevel::SUPER_ADMIN) {
-            return true;
-        }
-
-        if ($user->role->role_level === RoleLevel::DEPARTMENT_MANAGER) {
-            return $department->department_id === $user->department_id;
-        }
-
-        return false;
+        return $user->role->role_level === RoleLevel::SUPER_ADMIN;
     }
 }

@@ -59,7 +59,7 @@ const router = createBrowserRouter(
         {
             path: '/user',
             element: (
-                <ProtectedRoute allowedRoles={[ROLE_NAME.USER, ROLE_NAME.SUPER_ADMIN, ROLE_NAME.ADMIN, ROLE_NAME.APPROVER]}>
+                <ProtectedRoute allowedRoles={[ROLE_NAME.USER, ROLE_NAME.SUPER_ADMIN, ROLE_NAME.ADMIN, ROLE_NAME.APPROVER, ROLE_NAME.FINANCE_USER]}>
                     <UserLayout />
                 </ProtectedRoute>
             ),
@@ -81,6 +81,10 @@ const router = createBrowserRouter(
                     element: <ViewClaimPage />,
                 },
                 {
+                    path: 'dashboard',
+                    element: <DashboardPage />
+                },
+                {
                     path: '*',
                     element: <NotFound />,
                 },
@@ -89,7 +93,7 @@ const router = createBrowserRouter(
         {
             path: '/admin',
             element: (
-                <ProtectedRoute allowedRoles={[ROLE_NAME.SUPER_ADMIN, ROLE_NAME.ADMIN, ROLE_NAME.APPROVER]}>
+                <ProtectedRoute allowedRoles={[ROLE_NAME.SUPER_ADMIN, ROLE_NAME.ADMIN, ROLE_NAME.APPROVER, ROLE_NAME.FINANCE_USER]}>
                     <AdminLayout />
                 </ProtectedRoute>
             ),

@@ -23,6 +23,8 @@ import { validateForm } from '../../utils/validation/validator.js'
 import { validationSchemas } from '../../utils/validation/schemas.js'
 import Input from '../../components/common/ui/Input.jsx'
 import Select from '../../components/common/ui/Select.jsx'
+import { useAuth } from '../../contexts/AuthContext.jsx'
+import { ROLE_NAME } from '../../config/constants.js'
 
 // Module-level cache: persists across mount/unmount cycles
 // Key: departmentId, Value: { department, teams }
@@ -30,9 +32,12 @@ const deptTeamsCache = {}
 
 function DepartmentTeamsPage() {
     const { t } = useTranslation()
+    const { authUser } = useAuth()
     const { departmentId } = useParams()
     const navigate = useNavigate()
     const isMobile = useIsMobile()
+
+    const canEdit = authUser?.role_name === ROLE_NAME.SUPER_ADMIN
 
     // Initialize from cache if available
     const cached = deptTeamsCache[departmentId]
@@ -240,19 +245,23 @@ function DepartmentTeamsPage() {
                                     <StatusTab status={statusName} />
                                 </div>
                                 <div className="admin-card-actions">
-                                    <Button
-                                        icon="pi pi-pencil"
-                                        size="small"
-                                        text
-                                        onClick={() => openDialog(team)}
-                                    />
-                                    <Button
-                                        icon="pi pi-trash"
-                                        size="small"
-                                        text
-                                        severity="danger"
-                                        onClick={() => handleDeleteTeam(team)}
-                                    />
+                                    {canEdit && (
+                                        <>
+                                            <Button
+                                                icon="pi pi-pencil"
+                                                size="small"
+                                                text
+                                                onClick={() => openDialog(team)}
+                                            />
+                                            <Button
+                                                icon="pi pi-trash"
+                                                size="small"
+                                                text
+                                                severity="danger"
+                                                onClick={() => handleDeleteTeam(team)}
+                                            />
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         )
@@ -293,10 +302,10 @@ function DepartmentTeamsPage() {
                 <Column field="team_abbreviation" header={t('teams.code')} sortable editor={textInputEditor}></Column>
                 <Column field="team_name" header={t('teams.name')} sortable editor={textInputEditor}></Column>
                 <Column field="active_status_id" header={t('common.status')} body={renderStatus} sortable editor={statusEditor}></Column>
-                <Column rowEditor={true} header={t('common.edit')} headerStyle={{ width: '4rem' }} bodyStyle={{ textAlign: 'center' }}></Column>
-                <Column header={t('common.delete')} body={(rowData) => (
+                {canEdit && <Column rowEditor={true} header={t('common.edit')} headerStyle={{ width: '4rem' }} bodyStyle={{ textAlign: 'center' }}></Column>}
+                {canEdit && <Column header={t('common.delete')} body={(rowData) => (
                     <Button icon="pi pi-trash" rounded text severity="danger" tooltip={t('common.delete')} tooltipOptions={{ position: 'top' }} onClick={() => handleDeleteTeam(rowData)} />
-                )} headerStyle={{ width: '4rem' }} bodyStyle={{ textAlign: 'center' }}></Column>
+                )} headerStyle={{ width: '4rem' }} bodyStyle={{ textAlign: 'center' }}></Column>}
             </DataTable>
         </div>
     )
@@ -313,7 +322,7 @@ function DepartmentTeamsPage() {
                 breadcrumbItems={breadcrumbItems}
             />
 
-            <AddNewTeam toastRef={toast} departmentId={departmentId} onCreated={() => fetchData(true)} />
+            {canEdit && <AddNewTeam toastRef={toast} departmentId={departmentId} onCreated={() => fetchData(true)} />}
 
             {/* Teams list */}
             {isMobile ? mobileCardView : desktopTableView}

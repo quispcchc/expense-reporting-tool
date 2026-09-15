@@ -6,13 +6,18 @@ import { Toast } from 'primereact/toast'
 import { useTranslation } from 'react-i18next'
 import { showToast, TOAST_LIFE } from '../../utils/helpers.js'
 import api from '../../api/api.js'
+import { useAuth } from '../../contexts/AuthContext.jsx'
+import { ROLE_NAME } from '../../config/constants.js'
 
 function SettingsPage() {
     const { t } = useTranslation()
+    const { authUser } = useAuth()
     const toast = useRef(null)
     const [rate, setRate] = useState('')
     const [loading, setLoading] = useState(false)
     const isFetching = useRef(false)
+    
+    const canEdit = authUser?.role_name === ROLE_NAME.SUPER_ADMIN
 
     useEffect(() => {
         if (!isFetching.current) {
@@ -35,6 +40,7 @@ function SettingsPage() {
     }
 
     const handleRateSubmit = async () => {
+        if (!canEdit) return
         setLoading(true)
         try {
             await api.put('settings', { mileage_rate: rate })
@@ -51,7 +57,7 @@ function SettingsPage() {
             <Toast ref={toast} />
             <div className='flex justify-between flex-wrap items-center gap-2'>
                 <ContentHeader title={t('sidebar.settings')} homePath="/admin" iconKey="sidebar.settings" />
-                <Button label={t('common.save')} onClick={handleRateSubmit} loading={loading} />
+                {canEdit && <Button label={t('common.save')} onClick={handleRateSubmit} loading={loading} />}
             </div>
 
             <form className="bg-white rounded-xl p-6">
@@ -60,6 +66,7 @@ function SettingsPage() {
                     type="number"
                     value={rate}
                     onChange={(e) => setRate(e.target.value)}
+                    disabled={!canEdit}
                 />
             </form>
         </>

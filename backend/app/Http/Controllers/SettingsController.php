@@ -19,8 +19,8 @@ class SettingsController extends Controller
     {
         $user = $request->user();
 
-        if ($user->role?->role_level > RoleLevel::DEPARTMENT_MANAGER) {
-            return $this->errorResponse('Unauthorized. Only super admin and admin can update settings.', 403);
+        if ($user->role?->role_level !== RoleLevel::SUPER_ADMIN) {
+            return $this->errorResponse('Unauthorized. Only super admin can update settings.', 403);
         }
 
         $validated = $request->validate([

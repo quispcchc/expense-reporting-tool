@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Enums\RoleLevel;
+use App\Enums\RoleName;
 use App\Models\Tag;
 use App\Models\User;
 
@@ -14,7 +15,8 @@ class TagPolicy
      */
     public function create(User $user): bool
     {
-        return $user->role->role_level <= RoleLevel::DEPARTMENT_MANAGER;
+        return $user->role->role_name === RoleName::SUPER_ADMIN || 
+               $user->role->role_name === RoleName::ADMIN;
     }
 
     /**
@@ -23,7 +25,8 @@ class TagPolicy
      */
     public function update(User $user, Tag $tag): bool
     {
-        return $user->role->role_level <= RoleLevel::DEPARTMENT_MANAGER;
+        return $user->role->role_name === RoleName::SUPER_ADMIN || 
+               $user->role->role_name === RoleName::ADMIN;
     }
 
     /**
@@ -32,6 +35,7 @@ class TagPolicy
      */
     public function delete(User $user, Tag $tag): bool
     {
-        return $user->role?->role_level <= RoleLevel::DEPARTMENT_MANAGER;
+        return $user->role->role_name === RoleName::SUPER_ADMIN || 
+               $user->role->role_name === RoleName::ADMIN;
     }
 }

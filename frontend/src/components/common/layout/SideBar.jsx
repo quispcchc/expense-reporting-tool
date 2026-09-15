@@ -24,17 +24,30 @@ function SideBar() {
     const [showMobileMenu, setShowMobileMenu] = useState(false)
 
     const sidebarData = useMemo(() => {
-        const data = [
-            {
-                title: t('sidebar.claims'),
-                items: [
-                    { icon: IoDocumentTextOutline, label: t('sidebar.allClaims'), path: '/admin/claims' },
-                    { icon: IoDocumentTextOutline, label: t('sidebar.myClaims', 'My Claims'), path: '/admin/my-claims' },
-                    { icon: IoCreateOutline, label: t('sidebar.newClaim'), path: '/admin/claims/create-claim' },
-                ],
-            },
-        ];
-        if (authUser && (authUser.role_name === ROLE_NAME.SUPER_ADMIN || authUser.role_name === ROLE_NAME.ADMIN)) {
+        const data = [];
+        
+        // Claims Section
+        const claimItems = [];
+        
+        // All roles except regular user can see All Claims
+        if (authUser && authUser.role_name !== ROLE_NAME.USER) {
+            claimItems.push({ icon: IoDocumentTextOutline, label: t('sidebar.allClaims'), path: '/admin/claims' });
+        }
+        
+        // Everyone can see My Claims and New Claim
+        const claimsPath = authUser?.role_name === ROLE_NAME.USER ? '/user/claims' : '/admin/my-claims';
+        const newClaimPath = authUser?.role_name === ROLE_NAME.USER ? '/user/claims/create-claim' : '/admin/claims/create-claim';
+        
+        claimItems.push({ icon: IoDocumentTextOutline, label: t('sidebar.myClaims', 'My Claims'), path: claimsPath });
+        claimItems.push({ icon: IoCreateOutline, label: t('sidebar.newClaim'), path: newClaimPath });
+        
+        data.push({
+            title: t('sidebar.claims'),
+            items: claimItems,
+        });
+
+        // General Section (Management)
+        if (authUser && authUser.role_name !== ROLE_NAME.USER) {
             data.push({
                 title: t('sidebar.general'),
                 items: [
@@ -47,7 +60,16 @@ function SideBar() {
                     { icon: MdOutlineDashboard, label: t('sidebar.dashboard'), path: '/admin/dashboard' },
                 ],
             });
+        } else if (authUser && authUser.role_name === ROLE_NAME.USER) {
+            // Regular user sees Dashboard
+            data.push({
+                title: t('sidebar.general'),
+                items: [
+                    { icon: MdOutlineDashboard, label: t('sidebar.dashboard'), path: '/user/dashboard' },
+                ],
+            });
         }
+        
         return data;
     }, [t, authUser]);
 

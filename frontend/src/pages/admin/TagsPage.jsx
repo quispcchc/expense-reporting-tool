@@ -19,13 +19,18 @@ import { Dropdown } from 'primereact/dropdown'
 import { useIsMobile } from '../../hooks/useIsMobile.js'
 import { validateForm } from '../../utils/validation/validator.js'
 import { validationSchemas } from '../../utils/validation/schemas.js'
+import { useAuth } from '../../contexts/AuthContext.jsx'
+import { ROLE_NAME } from '../../config/constants.js'
 
 function TagsPage() {
     const { t } = useTranslation()
+    const { authUser } = useAuth()
     const toast = useRef(null)
     const isMobile = useIsMobile()
     const { tags, loading: tagsLoading, fetchTags, createTag, updateTag, deleteTag } = useTags()
     const { lookups, loading: lookupsLoading } = useLookups()
+
+    const canEdit = authUser?.role_name === ROLE_NAME.SUPER_ADMIN || authUser?.role_name === ROLE_NAME.ADMIN
 
     const [projectLoading, setProjectLoading] = useState(false)
     const [search, setSearch] = useState({ tag: '', project: '' })
@@ -235,10 +240,12 @@ function TagsPage() {
                     <div key={tag.tag_id} className="admin-card">
                         <div className="admin-card-header">
                             <div className="admin-card-title">{tag.tag_name}</div>
-                            <div className="flex gap-1">
-                                <Button icon="pi pi-pencil" size="small" text onClick={() => { setEditTagData({ ...tag }); setEditTagDialog(true) }} />
-                                <Button icon="pi pi-trash" size="small" text severity="danger" onClick={() => handleDeleteTag(tag)} />
-                            </div>
+                                {canEdit && (
+                                    <div className="flex gap-1">
+                                        <Button icon="pi pi-pencil" size="small" text onClick={() => { setEditTagData({ ...tag }); setEditTagDialog(true) }} />
+                                        <Button icon="pi pi-trash" size="small" text severity="danger" onClick={() => handleDeleteTag(tag)} />
+                                    </div>
+                                )}
                         </div>
                     </div>
                 ))
@@ -269,10 +276,12 @@ function TagsPage() {
                                     <span className="admin-card-value">{dept?.label || '—'}</span>
                                 </div>
                             </div>
-                            <div className="admin-card-actions">
-                                <Button icon="pi pi-pencil" size="small" text onClick={() => { setEditProjectData({ ...project }); setEditProjectDialog(true) }} />
-                                <Button icon="pi pi-trash" size="small" text severity="danger" onClick={() => handleDeleteProject(project)} />
-                            </div>
+                            {canEdit && (
+                                <div className="admin-card-actions">
+                                    <Button icon="pi pi-pencil" size="small" text onClick={() => { setEditProjectData({ ...project }); setEditProjectDialog(true) }} />
+                                    <Button icon="pi pi-trash" size="small" text severity="danger" onClick={() => handleDeleteProject(project)} />
+                                </div>
+                            )}
                         </div>
                     )
                 })
@@ -309,14 +318,16 @@ function TagsPage() {
                         style={{ willChange: 'max-height, opacity' }}
                     >
                         <div className='m-2 md:m-4'>
-                            <div className="mb-4 mt-2 p-3 md:p-4 border border-gray-200 rounded bg-gray-50">
-                                <AddTag
-                                    onSave={handleAddNewTag}
-                                    onCancel={() => { }}
-                                    initialTag={null}
-                                />
-                                {newTagError && <div className="text-red-600 mt-2">{newTagError}</div>}
-                            </div>
+                            {canEdit && (
+                                <div className="mb-4 mt-2 p-3 md:p-4 border border-gray-200 rounded bg-gray-50">
+                                    <AddTag
+                                        onSave={handleAddNewTag}
+                                        onCancel={() => { }}
+                                        initialTag={null}
+                                    />
+                                    {newTagError && <div className="text-red-600 mt-2">{newTagError}</div>}
+                                </div>
+                            )}
                             <div className="flex items-center gap-2 mb-4 flex-wrap">
                                 <input
                                     type="text"
@@ -338,10 +349,10 @@ function TagsPage() {
                                         scrollable
                                         tableStyle={{ minWidth: '30rem' }}>
                                         <Column field="tag_name" header={t('tags.name')} editor={textInputEditor} />
-                                        <Column rowEditor={true} header={t('common.edit')} />
-                                        <Column header={t('common.delete')} body={rowData => (
+                                        {canEdit && <Column rowEditor={true} header={t('common.edit')} />}
+                                        {canEdit && <Column header={t('common.delete')} body={rowData => (
                                             <Button icon="pi pi-trash" className="p-button-text p-button-danger" onClick={() => handleDeleteTag(rowData)} />
-                                        )} />
+                                        )} />}
                                     </DataTable>
                                 </div>
                             )}
@@ -370,20 +381,22 @@ function TagsPage() {
                         className={`transition-all duration-300 ease-in-out ${isProjectsOpen ? 'max-h-none opacity-100' : 'max-h-0 opacity-0 overflow-hidden pointer-events-none'}`}
                         style={{ willChange: 'max-height, opacity' }}
                     >
-                        <div className="mb-4 mt-2 p-3 md:p-4 border border-gray-200 rounded bg-gray-50">
-                            <AddProject
-                                onSave={handleAddNewProject}
-                                onCancel={() => { }}
-                                initialProject={{
-                                    project_name: '',
-                                    project_desc: '',
-                                    department_id: '',
-                                }}
-                                departments={departmentOptions}
-                                statuses={statusOptions}
-                            />
-                            {newProjectError && <div className="text-red-600 mt-2">{newProjectError}</div>}
-                        </div>
+                        {canEdit && (
+                            <div className="mb-4 mt-2 p-3 md:p-4 border border-gray-200 rounded bg-gray-50">
+                                <AddProject
+                                    onSave={handleAddNewProject}
+                                    onCancel={() => { }}
+                                    initialProject={{
+                                        project_name: '',
+                                        project_desc: '',
+                                        department_id: '',
+                                    }}
+                                    departments={departmentOptions}
+                                    statuses={statusOptions}
+                                />
+                                {newProjectError && <div className="text-red-600 mt-2">{newProjectError}</div>}
+                            </div>
+                        )}
 
                         <div className="m-2">
                             <div className="flex items-center gap-2 mb-4 flex-wrap">
@@ -437,10 +450,10 @@ function TagsPage() {
                                             }}
                                         />
                                         <Column field="active_status_id" header={t('projects.status')} editor={statusEditor} body={renderStatus} />
-                                        <Column rowEditor={true} header={t('common.edit')} />
-                                        <Column header={t('common.delete')} body={rowData => (
+                                        {canEdit && <Column rowEditor={true} header={t('common.edit')} />}
+                                        {canEdit && <Column header={t('common.delete')} body={rowData => (
                                             <Button icon="pi pi-trash" className="p-button-text p-button-danger" onClick={() => handleDeleteProject(rowData)} />
-                                        )} />
+                                        )} />}
                                     </DataTable>
                                 </div>
                             )}

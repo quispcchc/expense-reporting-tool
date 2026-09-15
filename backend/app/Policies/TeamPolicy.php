@@ -10,55 +10,28 @@ class TeamPolicy
 {
     /**
      * Determine whether the user can create teams.
-     * Super admin can create any team.
-     * Admin can only create teams in their own department.
+     * Only super admin can create teams.
      */
     public function create(User $user, Team $team): bool
     {
-        if ($user->role->role_level === RoleLevel::SUPER_ADMIN) {
-            return true;
-        }
-
-        if ($user->role->role_level === RoleLevel::DEPARTMENT_MANAGER) {
-            return $team->department_id === $user->department_id;
-        }
-
-        return false;
+        return $user->role->role_level === RoleLevel::SUPER_ADMIN;
     }
 
     /**
      * Determine whether the user can update the team.
-     * Super admin can update any team.
-     * Admin can only update teams in their own department.
+     * Only super admin can update teams.
      */
     public function update(User $user, Team $team): bool
     {
-        if ($user->role->role_level === RoleLevel::SUPER_ADMIN) {
-            return true;
-        }
-
-        if ($user->role->role_level === RoleLevel::DEPARTMENT_MANAGER) {
-            return $team->department_id === $user->department_id;
-        }
-
-        return false;
+        return $user->role->role_level === RoleLevel::SUPER_ADMIN;
     }
 
     /**
      * Determine whether the user can delete the team.
-     * Super admin can delete any team.
-     * Admin can only delete teams in their own department.
+     * Only super admin can delete teams.
      */
     public function delete(User $user, Team $team): bool
     {
-        if ($user->role->role_level === RoleLevel::SUPER_ADMIN) {
-            return true;
-        }
-
-        if ($user->role->role_level === RoleLevel::DEPARTMENT_MANAGER) {
-            return $team->department_id === $user->department_id;
-        }
-
-        return false;
+        return $user->role->role_level === RoleLevel::SUPER_ADMIN;
     }
 }

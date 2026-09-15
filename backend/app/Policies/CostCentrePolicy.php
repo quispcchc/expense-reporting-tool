@@ -29,17 +29,7 @@ class CostCentrePolicy
      */
     public function create(User $user, CostCentre $costCentre): bool
     {
-        // Super admin can create anything
-        if ($user->role->role_level === RoleLevel::SUPER_ADMIN) {
-            return true;
-        }
-
-        // Admin can only create their department's cost centres
-        if ($user->role->role_level === RoleLevel::DEPARTMENT_MANAGER) {
-            return $costCentre->department_id === $user->department_id;
-        }
-
-        return false;
+        return $user->role->role_level === RoleLevel::SUPER_ADMIN;
     }
 
     /**
@@ -47,17 +37,7 @@ class CostCentrePolicy
      */
     public function update(User $user, CostCentre $costCentre): bool
     {
-        // Super admin can update anything
-        if ($user->role->role_level === RoleLevel::SUPER_ADMIN) {
-            return true;
-        }
-
-        // Admin can only update their department's cost centres
-        if ($user->role->role_level === RoleLevel::DEPARTMENT_MANAGER) {
-            return $costCentre->department_id === $user->department_id;
-        }
-
-        return false;
+        return $user->role->role_level === RoleLevel::SUPER_ADMIN;
     }
 
     /**
@@ -65,17 +45,7 @@ class CostCentrePolicy
      */
     public function delete(User $user, CostCentre $costCentre): bool
     {
-        // Super admin can delete anything
-        if ($user->role?->role_level === RoleLevel::SUPER_ADMIN) {
-            return true;
-        }
-
-        // Admin can only delete their team's cost centres
-        if ($user->role?->role_level === RoleLevel::DEPARTMENT_MANAGER) {
-            return $costCentre->department_id === $user->department_id;
-        }
-
-        return false;
+        return $user->role?->role_level === RoleLevel::SUPER_ADMIN;
     }
 
     /**

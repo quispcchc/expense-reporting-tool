@@ -19,11 +19,16 @@ import { showToast, TOAST_LIFE } from '../../utils/helpers.js'
 import { validateForm } from '../../utils/validation/validator.js'
 import { validationSchemas } from '../../utils/validation/schemas.js'
 import Input from '../../components/common/ui/Input.jsx'
+import { useAuth } from '../../contexts/AuthContext.jsx'
+import { ROLE_NAME } from '../../config/constants.js'
 
 function AccountNumbersPage() {
     const { t } = useTranslation()
+    const { authUser } = useAuth()
     const { refreshLookups } = useLookups()
     const isMobile = useIsMobile()
+
+    const canEdit = authUser?.role_name === ROLE_NAME.SUPER_ADMIN
 
     const {
         state: { accountNumbers, loading, error },
@@ -155,19 +160,23 @@ function AccountNumbersPage() {
                                 </div>
                             </div>
                             <div className="admin-card-actions">
-                                <Button
-                                    icon="pi pi-pencil"
-                                    size="small"
-                                    text
-                                    onClick={() => openDialog(an)}
-                                />
-                                <Button
-                                    icon="pi pi-trash"
-                                    size="small"
-                                    text
-                                    severity="danger"
-                                    onClick={() => onDelete(an.account_number_id)}
-                                />
+                                {canEdit && (
+                                    <>
+                                        <Button
+                                            icon="pi pi-pencil"
+                                            size="small"
+                                            text
+                                            onClick={() => openDialog(an)}
+                                        />
+                                        <Button
+                                            icon="pi pi-trash"
+                                            size="small"
+                                            text
+                                            severity="danger"
+                                            onClick={() => onDelete(an.account_number_id)}
+                                        />
+                                    </>
+                                )}
                             </div>
                         </div>
                     ))
@@ -194,14 +203,14 @@ function AccountNumbersPage() {
                 tableStyle={{ minWidth: '50rem' }}>
                 <Column field="account_number" header={t('accountNumbers.accountNumber', 'Account Number')} sortable editor={textInputEditor}></Column>
                 <Column field="description" header={t('accountNumbers.description', 'Description')} sortable editor={textInputEditor}></Column>
-                <Column
+                {canEdit && <Column
                     rowEditor={true}
                     header={t('common.edit')}
-                />
-                <Column
+                />}
+                {canEdit && <Column
                     header={t('common.delete')}
                     body={renderDeleteButton}
-                />
+                />}
             </DataTable>
         </div>
     )
@@ -211,7 +220,7 @@ function AccountNumbersPage() {
             <Toast ref={toast} />
             <ConfirmDialog />
             <ContentHeader title={t('accountNumbers.title', 'Account Numbers')} homePath="/admin" iconKey="sidebar.accountNumbers" />
-            <AddNewAccountNumber createdToast={toasts.created} />
+            {canEdit && <AddNewAccountNumber createdToast={toasts.created} />}
 
             {isMobile ? mobileCardView : desktopTableView}
 

@@ -26,29 +26,29 @@ class AccountNumberPolicy
 
     /**
      * Determine whether the user can create models.
-     * Account Numbers are organization-wide, Super Admin and Department Manager can create.
+     * Account Numbers are organization-wide, only Super Admin can create.
      */
     public function create(User $user): bool
     {
-        return $user->role->role_level <= RoleLevel::DEPARTMENT_MANAGER; // Super Admin and Department Manager
+        return $user->role->role_level === RoleLevel::SUPER_ADMIN;
     }
 
     /**
      * Determine whether the user can update the model.
-     * Account Numbers are organization-wide, Super Admin and Department Manager can update.
+     * Account Numbers are organization-wide, only Super Admin can update.
      */
     public function update(User $user, AccountNumber $accountNumber): bool
     {
-        return $user->role->role_level <= RoleLevel::DEPARTMENT_MANAGER; // Super Admin and Department Manager
+        return $user->role->role_level === RoleLevel::SUPER_ADMIN;
     }
 
     /**
      * Determine whether the user can delete the model.
-     * Account Numbers are organization-wide, Super Admin and Department Manager can delete.
+     * Account Numbers are organization-wide, only Super Admin can delete.
      */
     public function delete(User $user, AccountNumber $accountNumber): bool
     {
-        return $user->role?->role_level <= RoleLevel::DEPARTMENT_MANAGER; // Super Admin and Department Manager
+        return $user->role?->role_level === RoleLevel::SUPER_ADMIN;
     }
 
     /**

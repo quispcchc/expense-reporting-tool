@@ -23,11 +23,16 @@ import { validateForm } from '../../utils/validation/validator.js'
 import { validationSchemas } from '../../utils/validation/schemas.js'
 import Input from '../../components/common/ui/Input.jsx'
 import Select from '../../components/common/ui/Select.jsx'
+import { useAuth } from '../../contexts/AuthContext.jsx'
+import { ROLE_NAME } from '../../config/constants.js'
 
 function DepartmentsPage() {
     const { t } = useTranslation()
+    const { authUser } = useAuth()
     const navigate = useNavigate()
     const isMobile = useIsMobile()
+
+    const canEdit = authUser?.role_name === ROLE_NAME.SUPER_ADMIN
 
     // Access global department state and actions from context
     const { state: { departments, loading }, actions: { updateDepartment, deleteDepartment } } = useDepartment()
@@ -124,15 +129,17 @@ function DepartmentsPage() {
     const combinedActionsTemplate = (rowData) => {
         return (
             <div className="flex gap-0 justify-center">
-                <Button
-                    icon="pi pi-trash"
-                    rounded
-                    text
-                    severity="danger"
-                    tooltip={t('common.delete')}
-                    tooltipOptions={{ position: 'top' }}
-                    onClick={() => handleDelete(rowData)}
-                />
+                {canEdit && (
+                    <Button
+                        icon="pi pi-trash"
+                        rounded
+                        text
+                        severity="danger"
+                        tooltip={t('common.delete')}
+                        tooltipOptions={{ position: 'top' }}
+                        onClick={() => handleDelete(rowData)}
+                    />
+                )}
                 <Button
                     icon="pi pi-users"
                     rounded
@@ -189,19 +196,23 @@ function DepartmentsPage() {
                                         text
                                         onClick={() => handleManageTeams(dept)}
                                     />
-                                    <Button
-                                        icon="pi pi-pencil"
-                                        size="small"
-                                        text
-                                        onClick={() => openDialog(dept)}
-                                    />
-                                    <Button
-                                        icon="pi pi-trash"
-                                        size="small"
-                                        text
-                                        severity="danger"
-                                        onClick={() => handleDelete(dept)}
-                                    />
+                                    {canEdit && (
+                                        <>
+                                            <Button
+                                                icon="pi pi-pencil"
+                                                size="small"
+                                                text
+                                                onClick={() => openDialog(dept)}
+                                            />
+                                            <Button
+                                                icon="pi pi-trash"
+                                                size="small"
+                                                text
+                                                severity="danger"
+                                                onClick={() => handleDelete(dept)}
+                                            />
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         )
@@ -243,7 +254,7 @@ function DepartmentsPage() {
                     </span>
                 )}></Column>
                 <Column field="active_status_id" header={t('common.status')} body={renderStatus} sortable editor={statusEditor}></Column>
-                <Column rowEditor={true} header={t('common.edit')} headerStyle={{ width: '4rem', minWidth: '4rem' }} bodyStyle={{ textAlign: 'center' }}></Column>
+                {canEdit && <Column rowEditor={true} header={t('common.edit')} headerStyle={{ width: '4rem', minWidth: '4rem' }} bodyStyle={{ textAlign: 'center' }}></Column>}
                 <Column header={t('common.actions')} body={combinedActionsTemplate} headerStyle={{ width: '5rem', minWidth: '5rem' }} bodyStyle={{ textAlign: 'center' }}></Column>
             </DataTable>
         </div>
@@ -256,7 +267,7 @@ function DepartmentsPage() {
             {/* Page title and navigation */}
             <ContentHeader title={t('departments.title')} homePath="/admin" iconKey="sidebar.teams" />
             {/* Add new department form component */}
-            <AddNewDepartment toastRef={toast} />
+            {canEdit && <AddNewDepartment toastRef={toast} />}
 
             {isMobile ? mobileCardView : desktopTableView}
 

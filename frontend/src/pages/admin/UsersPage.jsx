@@ -22,12 +22,18 @@ import { showToast, TOAST_LIFE } from '../../utils/helpers.js'
 import { validationSchemas } from '../../utils/validation/schemas.js'
 
 import { InputSwitch } from 'primereact/inputswitch'
-import { ROLE_LEVEL } from '../../config/constants.js'
+import { ROLE_LEVEL, ROLE_NAME } from '../../config/constants.js'
+import { useAuth } from '../../contexts/AuthContext.jsx'
 
 function UsersPage() {
     const { t } = useTranslation()
+    const { authUser } = useAuth()
     const toastRef = useRef(null)
     const isMobile = useIsMobile()
+
+    const canEdit = authUser?.role_name === ROLE_NAME.SUPER_ADMIN || 
+                   authUser?.role_name === ROLE_NAME.ADMIN || 
+                   authUser?.role_name === ROLE_NAME.FINANCE_USER
 
     const usersState = useUser()
     const { deleteUser, updateUser, refresh } = useUserDispatch()
@@ -215,24 +221,28 @@ function UsersPage() {
                                     </div>
                                 </div>
                                 <div className="admin-card-actions">
-                                    <Button
-                                        icon="pi pi-pencil"
-                                        size="small"
-                                        text
-                                        onClick={() => {
-                                            openDialog({
-                                                ...user,
-                                                teams: user.teams?.map(t => t.team_id || t.value || t) || []
-                                            })
-                                        }}
-                                    />
-                                    <Button
-                                        icon="pi pi-trash"
-                                        size="small"
-                                        text
-                                        severity="danger"
-                                        onClick={() => handleDeleteUser(user)}
-                                    />
+                                    {canEdit && (
+                                        <>
+                                            <Button
+                                                icon="pi pi-pencil"
+                                                size="small"
+                                                text
+                                                onClick={() => {
+                                                    openDialog({
+                                                        ...user,
+                                                        teams: user.teams?.map(t => t.team_id || t.value || t) || []
+                                                    })
+                                                }}
+                                            />
+                                            <Button
+                                                icon="pi pi-trash"
+                                                size="small"
+                                                text
+                                                severity="danger"
+                                                onClick={() => handleDeleteUser(user)}
+                                            />
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         )
@@ -288,8 +298,8 @@ function UsersPage() {
                 <Column field="email" header={t('users.email', "Email")} sortable />
                 <Column field="role_id" header={t('users.role')} body={renderRole} sortable />
                 <Column field="active_status_id" header={t('common.status')} body={renderStatus} sortable />
-                <Column body={renderEditButton} header={t('common.actions')} style={{ width: '6rem', textAlign: 'center' }} />
-                <Column body={renderDeleteButton} header={t('common.delete', 'Delete')} style={{ width: '6rem', textAlign: 'center' }} />
+                {canEdit && <Column body={renderEditButton} header={t('common.actions')} style={{ width: '6rem', textAlign: 'center' }} />}
+                {canEdit && <Column body={renderDeleteButton} header={t('common.delete', 'Delete')} style={{ width: '6rem', textAlign: 'center' }} />}
             </DataTable>
         </div>
     )
@@ -300,7 +310,7 @@ function UsersPage() {
             <ConfirmDialog />
 
             <ContentHeader title={t('users.title')} homePath="/admin" iconKey="sidebar.users" />
-            <AddNewUser />
+            {canEdit && <AddNewUser />}
 
             {isMobile ? mobileCardView : desktopTableView}
 
