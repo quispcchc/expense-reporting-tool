@@ -1083,7 +1083,10 @@ class BankStatementExtractor
         // "Payment Due Date", marketing copy, and foreign-currency note lines are not
         // treated as vendors.
         if (preg_match('/TD\s+BUSINESS\s+TRAVEL\s+VISA\s+CARD/i', $text)) {
-            return $this->parseTdBusinessTravelVisa($text, $statementYear);
+             return $this->parseTdBusinessTravelVisa(
+                $this->normalizeTdMonthTokens($text),
+                $statementYear
+            );
         }
 
         $isCorporateCard = ($claimTypeId === ClaimType::CORPORATE_CARD);
@@ -2113,6 +2116,26 @@ class BankStatementExtractor
                 ? abs($expectedTotal - $mergedTotal) <= 0.02
                 : null,
         ];
+    }
+
+    /**
+     * Google Vision sometimes OCRs the TD month token "OCT" with visually identical
+     * Cyrillic letters (О U+041E, С U+0421, Т U+0422), e.g. "ОСТ 10". Every TD date
+     * pattern in this class is ASCII-only, so such rows are never recognised.
+     *
+     * Only whole, standalone month tokens that are followed by a day number or that
+     * form an entire Vision cell are rewritten. Merchant names are left untouched.
+     */
+    private function normalizeTdMonthTokens(string $text): string
+    {
+        $normalized = preg_replace(
+            '/(?<![\p{L}\d])[O\x{041E}][C\x{0421}][T\x{0422}](?![\p{L}\d])(?=\s*\d{1,2}(?!\d)|\s*$)/mu',
+            'OCT',
+            $text
+        );
+
+        // preg_replace() returns null on invalid UTF-8; keep the original text in that case.
+        return $normalized ?? $text;
     }
 
     /**
