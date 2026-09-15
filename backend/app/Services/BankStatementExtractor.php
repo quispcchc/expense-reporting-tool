@@ -23,7 +23,8 @@ class BankStatementExtractor
     private $runningBalance = null;
     private $isCreditCardStyle = false; // True if balance increases on spend (Credit Card), False if balance decreases (Bank Account)
     
-    private const DATE_REGEX = '/\b(\d{1,2}\s*[\/\-\.]\s*\d{1,2}(?:\s*[\/\-\.]\s*\d{2,4})?(?!\d)|\d{4}\s*[\/\-]\s*\d{2}\s*[\/\-]\s*\d{2}|\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*(?:\s+\d{4})?|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s*\d{1,2}(?:\s*[,.]?\s*\d{4})?)(?=\b|\s|$)/i';
+    //private const DATE_REGEX = '/\b(\d{1,2}\s*[\/\-\.]\s*\d{1,2}(?:\s*[\/\-\.]\s*\d{2,4})?(?!\d)|\d{4}\s*[\/\-]\s*\d{2}\s*[\/\-]\s*\d{2}|\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*(?:\s+\d{4})?|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s*\d{1,2}(?:\s*[,.]?\s*\d{4})?)(?=\b|\s|$)/i';
+    private const DATE_REGEX = '/\b(\d{1,2}\s*[\/\-\.]\s*\d{1,2}(?:\s*[\/\-\.]\s*\d{2,4})?(?!\d)|\d{4}\s*[\/\-]\s*\d{2}\s*[\/\-]\s*\d{2}|\d{1,2}\s+(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|June?|July?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\.?(?:\s+\d{4})?|(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|June?|July?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\.?\s*\d{1,2}(?:\s*[,.]?\s*\d{4})?)(?=\b|\s|$)/i';
     private const FALLBACK_DATE_REGEX = '/^(?:\s*)(\d{3,4})(?:\s*)$/'; // Only match if it's the entire line or clearly isolated
     private const AMOUNT_REGEX = '/(?<![0-9,.\/])([+-]?\s*\$?\s*\d{1,3}(?:,\d{3})*\.\d{2}|[+-]?\s*\$?\s*\d+\.\d{2}|\$[+-]?\s*\d{1,6}(?:,\d{3})?)\s*(DR|CR)?(?![0-9,.\/])/i';
     private const YEAR_REGEX = '/\b(20\d{2})\b/';
@@ -1123,6 +1124,7 @@ class BankStatementExtractor
             // For credit card statements, parse only the transaction table.
             // This prevents footer/account/payment-summary lines like "MR 4520" or "TOSTM21000" from becoming fake expenses.
             if ($this->isTransactionTableHeader($upperLine)) {
+                $insideTransactionTable = true;
                 $transactionTableModeDetected = true;
                 $lastDate = null;
                 $lastVendor = null;
@@ -1246,7 +1248,7 @@ class BankStatementExtractor
             }
             
             // Clean noise words that often appear in footers or headers but contain numbers
-            if (!$insideTransactionTable && preg_match('/(?:Call|Phone|www\.|http|Fax|Tel|Address|Member|FDIC|Equal Housing|P\.O\.\s*BOX|Service|Inquiries|TTY|Points|Reward|Earned|Bonus|Number)/i', $line)) {
+             if (!$insideTransactionTable && preg_match('/(?:www\.|http|Equal Housing|P\.O\.\s*BOX|\b(?:Call|Phone|Fax|Tel|Address|Member|FDIC|Service|Inquiries|TTY|Points|Rewards?|Earned|Bonus|Number)\b)/i', $line)) {
                 Log::debug("[Extractor] Skipping noise line: $line");
                 continue;
             }
@@ -1561,7 +1563,7 @@ class BankStatementExtractor
                                 'account_number_id' => null,
                             ];
                             
-                            $lastDate = null;
+                            $lastDate = $dateToUse;
                             $lastVendor = null;
                             continue;
                         }
