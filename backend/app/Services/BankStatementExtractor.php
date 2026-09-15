@@ -402,7 +402,7 @@ class BankStatementExtractor
         $pattern =
             '/(' . $date . ')\s+'
             . '(' . $date . ')\s+'
-            . '(.{2,180}?)\s+'
+            . '((?:(?!' . $date . '|' . $amount . ').){2,180}?)\s+'
             . '(' . $amount . ')'
             . '(?=\s+(?:' . $date . '|TOTAL\s+NEW\s+BALANCE|FOREIGN\s+CURRENCY|@?\s*EXCHANGE\s+RATE)|$)/i';
 
@@ -1823,14 +1823,18 @@ class BankStatementExtractor
         $currentDates = [];
         $currentVendorParts = [];
         $lastCompletedExpenseIndex = null;
+        $deferredAmountLine = null;
         $insideTransactions = false;
 
         $queueCurrentRow = function () use (
             &$currentDates,
             &$currentVendorParts,
             &$pendingRows,
+            &$deferredAmountLine,
             $statementYear
         ): void {
+            $deferredAmountLine = null;
+
             if (count($currentDates) !== 2 || empty($currentVendorParts)) {
                 $currentDates = [];
                 $currentVendorParts = [];
@@ -1896,6 +1900,21 @@ class BankStatementExtractor
                 break;
             }
 
+            // The layout builder joins right-hand side-panel text (Payment Due Date,
+            // Cash Advances, Available Credit, Interest, ...) onto a transaction row that
+            // sits at the same height. Keep only the transaction part of such a line.
+            if (preg_match(
+                '/^(.+?\S)\s+(?:MINIMUM PAYMENT|PAYMENT DUE DATE|PAYMENT INFORMATION|CREDIT LIMIT|AVAILABLE CREDIT|ANNUAL INTEREST RATE|CASH ADVANCES|CALCULATING YOUR BALANCE|PREVIOUS BALANCE|PAYMENTS & CREDITS|PURCHASES & OTHER CHARGES|INTEREST|FEES|SUB-TOTAL|NEW BALANCE|PROMOTIONS & ADJUSTMENTS|TOTAL TD REWARDS|PREVIOUS TD REWARDS|EARNED THIS STATEMENT|TD REWARDS POINTS)\b.*$/i',
+                $line,
+                $sidePanelMatch
+            )
+                && preg_match('/-?\$?\s*\d{1,3}(?:,\d{3})*\.\d{2}/', $sidePanelMatch[1])
+                && ($this->tdLineStartsWithDate($sidePanelMatch[1]) || $this->isCcAmountOnlyLine($sidePanelMatch[1]))
+            ) {
+                $line = trim($sidePanelMatch[1]);
+                $upperLine = strtoupper($line);
+            }
+
             // Ignore statement side-panel and explanatory cells. Do not clear the
             // FIFO queue because delayed transaction amounts may follow these cells.
             if ($this->isTdTransactionNoiseLine($upperLine)
@@ -1913,6 +1932,19 @@ class BankStatementExtractor
                     $completeRow['vendor'],
                     $completeRow['raw_amount']
                 ) ? null : array_key_last($expenses);
+                continue;
+            }
+
+            // Two dates and an amount with the merchant printed on the next line.
+            if (preg_match(
+                '/^((?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC)\s*\d{1,2})\s+((?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC)\s*\d{1,2})\s+(-?\$?\s*\d{1,3}(?:,\d{3})*\.\d{2})$/i',
+                $line,
+                $headlessRow
+            )) {
+                $queueCurrentRow();
+                $currentDates = [$headlessRow[1], $headlessRow[2]];
+                $deferredAmountLine = $headlessRow[3];
+                $lastCompletedExpenseIndex = null;
                 continue;
             }
 
@@ -1968,6 +2000,20 @@ class BankStatementExtractor
             // Merchant text belongs to the currently open two-date row.
             if (count($currentDates) === 2 && $this->isTdMerchantCell($line)) {
                 $currentVendorParts[] = $line;
+                if ($deferredAmountLine !== null) {
+                    $amountLine = $deferredAmountLine;
+                    $deferredAmountLine = null;
+                    $queueCurrentRow();
+                    $pending = array_pop($pendingRows);
+                    $amount = $this->parseAmount($amountLine, str_contains($amountLine, '$'));
+                    if ($pending !== null && $amount !== null && $amount > 0.01) {
+                        $pending['amount'] = $amount;
+                        $pending['raw_amount'] = $amountLine;
+                        $this->appendTdParsedRow($pending, $expenses, $refunds);
+                        $lastCompletedExpenseIndex = $this->isCreditCardPaymentOrCreditRow($pending['vendor'], $amountLine)
+                            ? null : array_key_last($expenses);
+                    }
+                }
                 continue;
             }
 
