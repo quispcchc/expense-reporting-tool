@@ -9,6 +9,7 @@ import { InputText } from 'primereact/inputtext'
 import { IconField } from 'primereact/iconfield'
 import { InputIcon } from 'primereact/inputicon'
 import { Button } from 'primereact/button'
+import { SplitButton } from 'primereact/splitbutton'
 import { BUTTON_STYLE, STATUS_STYLES } from '../../../utils/customizeStyle.js'
 import { showToast } from '../../../utils/helpers.js'
 import { useLookups } from '../../../contexts/LookupContext.jsx'
@@ -236,6 +237,60 @@ function ClaimListDataTable({ user, path, toastRef }) {
         }
     }
 
+    async function handleExportCsv() {
+        if (!selectedClaims || selectedClaims.length === 0) {
+            showToast(toastRef, {
+                severity: 'warn',
+                summary: t('toast.warning'),
+                detail: t('claims.exportSelectWarning')
+            })
+            return
+        }
+
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort()
+        }
+        abortControllerRef.current = new AbortController()
+        const signal = abortControllerRef.current.signal
+
+        setIsExporting(true)
+
+        try {
+            const claimIds = selectedClaims.map(claim => claim.claim_id)
+            const response = await api.post('/claims/export-csv',
+                { claim_ids: claimIds },
+                { responseType: 'blob', signal }
+            )
+
+            const url = window.URL.createObjectURL(new Blob([response.data]))
+            const link = document.createElement('a')
+            link.href = url
+            link.setAttribute('download', `claims_export_${new Date().toISOString().split('T')[0]}.csv`)
+            document.body.appendChild(link)
+            link.click()
+            link.remove()
+            window.URL.revokeObjectURL(url)
+
+            showToast(toastRef, {
+                severity: 'success',
+                summary: t('common.success'),
+                detail: t('claims.exportCsvSuccess', 'Claims exported as CSV successfully')
+            })
+        } catch (error) {
+            if (error?.name === 'AbortError' || error?.name === 'CanceledError') {
+                return
+            }
+            showToast(toastRef, {
+                severity: 'error',
+                summary: t('common.error'),
+                detail: error.message || 'Failed to export CSV'
+            })
+        } finally {
+            setIsExporting(false)
+            abortControllerRef.current = null
+        }
+    }
+
     // ============================================
     // MOBILE HELPERS
     // ============================================
@@ -247,6 +302,19 @@ function ClaimListDataTable({ user, path, toastRef }) {
             setSelectedClaims([...selectedClaims, claim])
         }
     }
+
+    const exportItems = [
+        {
+            label: 'PDF',
+            icon: 'pi pi-file-pdf',
+            command: handleExportPdf
+        },
+        {
+            label: 'CSV',
+            icon: 'pi pi-file-excel',
+            command: handleExportCsv
+        }
+    ]
 
     // ============================================
     // DESKTOP HEADER TEMPLATES
@@ -289,14 +357,15 @@ function ClaimListDataTable({ user, path, toastRef }) {
                         onClick={() => executeBulkAction('approve')} disabled={isDisabled || isExporting || isProcessing} loading={isProcessing} />
                     <Button label={t('claims.reject', 'Reject')} outlined className={BUTTON_STYLE.danger} icon="pi pi-times" iconPos="right"
                         onClick={() => executeBulkAction('reject')} disabled={isDisabled || isExporting || isProcessing} loading={isProcessing} />
-                    <Button
+                    <SplitButton
                         label={t('claims.export', 'Export')}
-                        outlined
                         icon="pi pi-file-export"
-                        iconPos="right"
+                        model={exportItems}
                         onClick={handleExportPdf}
                         disabled={isDisabled || isExporting}
                         loading={isExporting}
+                        outlined
+                        iconPos="right"
                     />
                     <Link to={`${path}/claims/create-claim`}>
                         <Button label={t('claims.newClaim', 'New Claim')} icon="pi pi-plus" iconPos="right" />
@@ -337,6 +406,16 @@ function ClaimListDataTable({ user, path, toastRef }) {
             </div>
 
             <div className="flex gap-2">
+                <SplitButton
+                    label={t('claims.export', 'Export')}
+                    icon="pi pi-file-export"
+                    model={exportItems}
+                    onClick={handleExportPdf}
+                    disabled={isDisabled || isExporting}
+                    loading={isExporting}
+                    outlined
+                    iconPos="right"
+                />
                 <Link to={`${path}/claims/create-claim`}>
                     <Button label={t('claims.newClaim', 'New Claim')} icon="pi pi-plus" iconPos="right" />
                 </Link>
@@ -439,6 +518,7 @@ function ClaimListDataTable({ user, path, toastRef }) {
                 onBulkApprove={() => executeBulkAction('approve')}
                 onBulkReject={() => executeBulkAction('reject')}
                 onExportPdf={handleExportPdf}
+                onExportCsv={handleExportCsv}
             />
 
             <div className="mobile-claims-list">

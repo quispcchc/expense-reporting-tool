@@ -94,7 +94,11 @@ class ClaimService
             'claimApprovals.approvedByUser',
         ]);
 
-        $query->when($filters['date_from'] ?? null, fn($q, $v) => $q->where('claim_submitted', '>=', $v))
+        $query->when($filters['claim_ids'] ?? null, function ($q, $v) {
+                $ids = is_array($v) ? $v : explode(',', $v);
+                $q->whereIn('claim_id', $ids);
+            })
+            ->when($filters['date_from'] ?? null, fn($q, $v) => $q->where('claim_submitted', '>=', $v))
             ->when($filters['date_to'] ?? null, fn($q, $v) => $q->where('claim_submitted', '<=', $v . ' 23:59:59'))
             ->when($filters['claim_type_id'] ?? null, fn($q, $v) => $q->where('claim_type_id', $v))
             ->when($filters['claim_status_id'] ?? null, fn($q, $v) => $q->where('claim_status_id', $v))

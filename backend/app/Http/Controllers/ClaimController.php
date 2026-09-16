@@ -229,6 +229,7 @@ class ClaimController extends Controller
     {
         try {
             $filters = $request->only([
+                'claim_ids',
                 'date_from', 'date_to',
                 'claim_type_id', 'claim_status_id',
                 'department_id', 'team_id',

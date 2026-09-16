@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Button } from 'primereact/button'
+import { SplitButton } from 'primereact/splitbutton'
 import { Checkbox } from 'primereact/checkbox'
 import { useTranslation } from 'react-i18next'
 import { USER_TYPE } from '../../../config/constants.js'
@@ -18,9 +19,15 @@ function MobileClaimListHeader({
     onBulkApprove,
     onBulkReject,
     onExportPdf,
+    onExportCsv,
 }) {
     const { t } = useTranslation()
     const allSelected = filteredClaims.length > 0 && selectedClaims.length === filteredClaims.length
+
+    const exportOptions = [
+        { label: 'PDF', icon: 'pi pi-file-pdf', command: onExportPdf },
+        { label: 'CSV', icon: 'pi pi-file-excel', command: onExportCsv }
+    ]
 
     return (
         <div className="mobile-claims-header">
@@ -88,10 +95,11 @@ function MobileClaimListHeader({
                     </span>
                 </div>
                 {user === USER_TYPE.ADMIN && selectedClaims.length > 0 && (
-                    <Button
+                    <SplitButton
                         label={isExporting ? "..." : t('claims.export', 'Export')}
                         size="small"
                         outlined
+                        model={exportOptions}
                         onClick={onExportPdf}
                         disabled={isExporting}
                         loading={isExporting}
