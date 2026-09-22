@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Button } from 'primereact/button'
-import { SplitButton } from 'primereact/splitbutton'
+import { Dropdown } from 'primereact/dropdown'
 import { Checkbox } from 'primereact/checkbox'
 import { useTranslation } from 'react-i18next'
 import { USER_TYPE } from '../../../config/constants.js'
@@ -24,10 +24,16 @@ function MobileClaimListHeader({
     const { t } = useTranslation()
     const allSelected = filteredClaims.length > 0 && selectedClaims.length === filteredClaims.length
 
-    const exportOptions = [
-        { label: 'PDF', icon: 'pi pi-file-pdf', command: onExportPdf },
-        { label: 'CSV', icon: 'pi pi-file-excel', command: onExportCsv }
+    const exportItems = [
+        { label: 'PDF', value: 'pdf', icon: 'pi pi-file-pdf' },
+        { label: 'CSV', value: 'csv', icon: 'pi pi-file-excel' }
     ]
+
+    const handleExportChange = (e) => {
+        if (!e.value) return
+        if (e.value === 'pdf') onExportPdf()
+        if (e.value === 'csv') onExportCsv()
+    }
 
     return (
         <div className="mobile-claims-header">
@@ -95,14 +101,25 @@ function MobileClaimListHeader({
                     </span>
                 </div>
                 {user === USER_TYPE.ADMIN && selectedClaims.length > 0 && (
-                    <SplitButton
-                        label={isExporting ? "..." : t('claims.export', 'Export')}
-                        size="small"
-                        outlined
-                        model={exportOptions}
-                        onClick={onExportPdf}
+                    <Dropdown
+                        value={null}
+                        options={exportItems}
+                        onChange={handleExportChange}
+                        placeholder={isExporting ? "..." : t('claims.export', 'Export')}
                         disabled={isExporting}
-                        loading={isExporting}
+                        className="w-32"
+                        itemTemplate={(option) => (
+                            <div className="flex items-center gap-2">
+                                <i className={option.icon}></i>
+                                <span>{option.label}</span>
+                            </div>
+                        )}
+                        valueTemplate={(option, props) => (
+                            <div className="flex items-center gap-2">
+                                <i className="pi pi-file-export"></i>
+                                <span>{props.placeholder}</span>
+                            </div>
+                        )}
                     />
                 )}
             </div>

@@ -9,7 +9,7 @@ import { InputText } from 'primereact/inputtext'
 import { IconField } from 'primereact/iconfield'
 import { InputIcon } from 'primereact/inputicon'
 import { Button } from 'primereact/button'
-import { SplitButton } from 'primereact/splitbutton'
+import { Dropdown } from 'primereact/dropdown'
 import { BUTTON_STYLE, STATUS_STYLES } from '../../../utils/customizeStyle.js'
 import { showToast } from '../../../utils/helpers.js'
 import { useLookups } from '../../../contexts/LookupContext.jsx'
@@ -303,18 +303,16 @@ function ClaimListDataTable({ user, path, toastRef }) {
         }
     }
 
-    const exportItems = [
-        {
-            label: 'PDF',
-            icon: 'pi pi-file-pdf',
-            command: handleExportPdf
-        },
-        {
-            label: 'CSV',
-            icon: 'pi pi-file-excel',
-            command: handleExportCsv
-        }
+    const exportOptions = [
+        { label: 'PDF', value: 'pdf', icon: 'pi pi-file-pdf' },
+        { label: 'CSV', value: 'csv', icon: 'pi pi-file-excel' }
     ]
+
+    const handleExportChange = (e) => {
+        if (!e.value) return
+        if (e.value === 'pdf') handleExportPdf()
+        if (e.value === 'csv') handleExportCsv()
+    }
 
     // ============================================
     // DESKTOP HEADER TEMPLATES
@@ -357,15 +355,25 @@ function ClaimListDataTable({ user, path, toastRef }) {
                         onClick={() => executeBulkAction('approve')} disabled={isDisabled || isExporting || isProcessing} loading={isProcessing} />
                     <Button label={t('claims.reject', 'Reject')} outlined className={BUTTON_STYLE.danger} icon="pi pi-times" iconPos="right"
                         onClick={() => executeBulkAction('reject')} disabled={isDisabled || isExporting || isProcessing} loading={isProcessing} />
-                    <SplitButton
-                        label={t('claims.export', 'Export')}
-                        icon="pi pi-file-export"
-                        model={exportItems}
-                        onClick={handleExportPdf}
+                    <Dropdown
+                        value={null}
+                        options={exportOptions}
+                        onChange={handleExportChange}
+                        placeholder={t('claims.export', 'Export')}
                         disabled={isDisabled || isExporting}
-                        loading={isExporting}
-                        outlined
-                        iconPos="right"
+                        className="w-32 md:w-40"
+                        itemTemplate={(option) => (
+                            <div className="flex items-center gap-2">
+                                <i className={option.icon}></i>
+                                <span>{option.label}</span>
+                            </div>
+                        )}
+                        valueTemplate={(option, props) => (
+                            <div className="flex items-center gap-2">
+                                <i className="pi pi-file-export"></i>
+                                <span>{props.placeholder}</span>
+                            </div>
+                        )}
                     />
                     <Link to={`${path}/claims/create-claim`}>
                         <Button label={t('claims.newClaim', 'New Claim')} icon="pi pi-plus" iconPos="right" />
@@ -406,15 +414,25 @@ function ClaimListDataTable({ user, path, toastRef }) {
             </div>
 
             <div className="flex gap-2">
-                <SplitButton
-                    label={t('claims.export', 'Export')}
-                    icon="pi pi-file-export"
-                    model={exportItems}
-                    onClick={handleExportPdf}
+                <Dropdown
+                    value={null}
+                    options={exportOptions}
+                    onChange={handleExportChange}
+                    placeholder={t('claims.export', 'Export')}
                     disabled={isDisabled || isExporting}
-                    loading={isExporting}
-                    outlined
-                    iconPos="right"
+                    className="w-32 md:w-40"
+                    itemTemplate={(option) => (
+                        <div className="flex items-center gap-2">
+                            <i className={option.icon}></i>
+                            <span>{option.label}</span>
+                        </div>
+                    )}
+                    valueTemplate={(option, props) => (
+                        <div className="flex items-center gap-2">
+                            <i className="pi pi-file-export"></i>
+                            <span>{props.placeholder}</span>
+                        </div>
+                    )}
                 />
                 <Link to={`${path}/claims/create-claim`}>
                     <Button label={t('claims.newClaim', 'New Claim')} icon="pi pi-plus" iconPos="right" />
