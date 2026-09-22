@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\ActiveStatus;
 use App\Enums\RoleLevel;
+use App\Enums\RoleName;
 use App\Models\Position;
 use App\Models\Role;
 use App\Models\User;
@@ -19,10 +20,10 @@ class CreateUserController extends Controller
         // Get the authenticated user
         $authUser = $request->user();
 
-        // Check if user is admin or super_admin
-        if (! $authUser || $authUser->role?->role_level > RoleLevel::DEPARTMENT_MANAGER) {
+        // Check if user is admin, finance user, or super_admin
+        if (! $authUser || ($authUser->role?->role_level > RoleLevel::DEPARTMENT_MANAGER && $authUser->role?->role_name !== RoleName::FINANCE_USER)) {
             return response()->json([
-                'message' => 'Unauthorized. Only admin and super admin can create users.',
+                'message' => 'Unauthorized. Only admin, finance, and super admin can create users.',
             ], 403);
         }
 
@@ -50,8 +51,8 @@ class CreateUserController extends Controller
             }
         }
 
-        // If auth user is admin (not super_admin), they can only create users in their own department
-        if ($authUser->role?->role_level === RoleLevel::DEPARTMENT_MANAGER) {
+        // If auth user is admin or finance user (not super_admin), they can only create users in their own department
+        if ($authUser->role?->role_level === RoleLevel::DEPARTMENT_MANAGER || $authUser->role?->role_name === RoleName::FINANCE_USER) {
             if ($request->filled('department_id') && $request->department_id !== $authUser->department_id) {
                 return response()->json([
                     'message' => 'Unauthorized. You can only create users in your own department.',

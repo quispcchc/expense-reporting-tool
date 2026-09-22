@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\RoleLevel;
+use App\Enums\RoleName;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -43,8 +44,8 @@ class UserController extends Controller
         if ($authError) {
             return $authError;
         }
-        // If admin is updating, prevent promoting to admin or super_admin
-        if ($authUser->role?->role_level === RoleLevel::DEPARTMENT_MANAGER && $request->filled('role_id')) {
+        // If admin or finance user is updating, prevent promoting to admin or super_admin
+        if (($authUser->role?->role_level === RoleLevel::DEPARTMENT_MANAGER || $authUser->role?->role_name === RoleName::FINANCE_USER) && $request->filled('role_id')) {
             $newRole = \App\Models\Role::find($request->role_id);
             if ($newRole && $newRole->role_level <= RoleLevel::DEPARTMENT_MANAGER) {
                 return response()->json([
@@ -109,10 +110,11 @@ class UserController extends Controller
     private function applyRoleBasedFiltering($query, $authUser)
     {
         $roleLevel = $authUser->role?->role_level;
+        $roleName = $authUser->role?->role_name;
 
         return match (true) {
             $roleLevel === RoleLevel::SUPER_ADMIN => $query, // Super admin sees all
-            $roleLevel === RoleLevel::DEPARTMENT_MANAGER => $query->where('department_id', $authUser->department_id), // Admin sees own dept
+            $roleLevel === RoleLevel::DEPARTMENT_MANAGER || $roleName === RoleName::FINANCE_USER => $query->where('department_id', $authUser->department_id), // Admin and Finance see own dept
             $roleLevel === RoleLevel::TEAM_LEAD => $query->whereHas('teams', function ($q) use ($authUser) {
                 if (method_exists($authUser, 'teams')) {
                     $q->whereIn('teams.team_id', $authUser->teams->pluck('team_id'));
@@ -162,6 +164,7 @@ class UserController extends Controller
         }
 
         $authRoleLevel = $authUser->role?->role_level;
+        $authRoleName = $authUser->role?->role_name;
         $userRoleLevel = $user->role?->role_level;
 
         // Super admin can edit anyone, including themselves
@@ -169,8 +172,8 @@ class UserController extends Controller
             return null; // Authorized
         }
 
-        // Admin (department_manager) can only edit regular users in their department
-        if ($authRoleLevel === RoleLevel::DEPARTMENT_MANAGER) {
+        // Admin (department_manager) or Finance User can only edit regular users in their department
+        if ($authRoleLevel === RoleLevel::DEPARTMENT_MANAGER || $authRoleName === RoleName::FINANCE_USER) {
             // Admin cannot edit themselves
             if ($authUser->user_id === $user->user_id) {
                 return response()->json([
@@ -197,7 +200,7 @@ class UserController extends Controller
 
         // Other roles cannot edit users
         return response()->json([
-            'message' => 'Unauthorized. Only super admin and admin can edit users.',
+            'message' => 'Unauthorized. Only super admin, admin, and finance users can edit users.',
         ], 403);
     }
 
@@ -214,6 +217,7 @@ class UserController extends Controller
         }
 
         $authRoleLevel = $authUser->role?->role_level;
+        $authRoleName = $authUser->role?->role_name;
         $userRoleLevel = $user->role?->role_level;
 
         // Super admin can delete anyone (except themselves)
@@ -227,8 +231,8 @@ class UserController extends Controller
             return null;
         }
 
-        // Admin can delete users in their department (not self, not admins/super_admins)
-        if ($authRoleLevel === RoleLevel::DEPARTMENT_MANAGER) {
+        // Admin or Finance User can delete users in their department (not self, not admins/super_admins)
+        if ($authRoleLevel === RoleLevel::DEPARTMENT_MANAGER || $authRoleName === RoleName::FINANCE_USER) {
             if ($authUser->user_id === $user->user_id) {
                 return response()->json([
                     'message' => 'You cannot delete yourself.',
@@ -251,7 +255,7 @@ class UserController extends Controller
         }
 
         return response()->json([
-            'message' => 'Unauthorized. Only super admin and admin can delete users.',
+            'message' => 'Unauthorized. Only super admin, admin, and finance users can delete users.',
         ], 403);
     }
 
