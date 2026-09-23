@@ -16,9 +16,13 @@ function StatusTab({ status }) {
             break;
         case APPROVAL_STATUS.APPROVED:
         case 'Approved':
-        case 'Paid':
-            label = status === 'Paid' ? t('status.paid', 'Paid') : t('status.approved', 'Approved');
+            label = t('status.approved', 'Approved');
             color = 'bg-status-success text-status-success';
+            break;
+        case APPROVAL_STATUS.PAID:
+        case 'Paid':
+            label = t('status.paid', 'Paid');
+            color = 'bg-status-info text-status-info';
             break;
         case APPROVAL_STATUS.REJECTED:
         case 'Rejected':

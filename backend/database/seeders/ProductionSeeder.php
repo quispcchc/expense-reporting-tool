@@ -214,6 +214,7 @@ class ProductionSeeder extends Seeder
             ['approval_status_id' => 1, 'approval_status_name' => 'Pending', 'approval_status_desc' => 'Awaiting approval'],
             ['approval_status_id' => 2, 'approval_status_name' => 'Approved', 'approval_status_desc' => 'Approved by manager'],
             ['approval_status_id' => 3, 'approval_status_name' => 'Rejected', 'approval_status_desc' => 'Rejected by manager'],
+            ['approval_status_id' => 4, 'approval_status_name' => 'Paid', 'approval_status_desc' => 'Claim has been paid'],
         ];
 
         foreach ($approvalStatuses as $status) {

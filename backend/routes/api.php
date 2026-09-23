@@ -99,6 +99,7 @@ Route::post('notes', [ClaimNotesController::class, 'store'])->middleware('auth:s
 // Approve and Reject
 Route::post('claims/bulk-approve', [ClaimController::class, 'bulkApproveClaim'])->middleware('auth:sanctum');
 Route::post('claims/bulk-reject', [ClaimController::class, 'bulkRejectClaim'])->middleware('auth:sanctum');
+Route::post('claims/bulk-mark-paid', [ClaimController::class, 'bulkMarkPaid'])->middleware('auth:sanctum');
 
 // Mark Approved claim as Paid (finance_user or super_admin)
 Route::post('claims/{claimId}/mark-paid', [ClaimController::class, 'markPaid'])->middleware('auth:sanctum')->where(['claimId' => '[0-9]+']);

@@ -499,8 +499,11 @@ function EditableExpansionTable({
     const [isClaimApproving, setIsClaimApproving] = useState(false)
 
     const isPending = curClaim?.claim_status_id === APPROVAL_STATUS.PENDING
+    const isApproved = curClaim?.claim_status_id === APPROVAL_STATUS.APPROVED
     const isAdminOrApprover = authUser?.role_name === ROLE_NAME.SUPER_ADMIN || authUser?.role_name === ROLE_NAME.ADMIN || authUser?.role_name === ROLE_NAME.APPROVER
+    const isFinanceUser = authUser?.role_name === ROLE_NAME.FINANCE_USER || authUser?.role_name === ROLE_NAME.SUPER_ADMIN
     const showClaimApprovalButtons = (mode === VIEW_MODE.EDIT || mode === VIEW_MODE.VIEW) && isPending && isAdminOrApprover
+    const showMarkPaidButton = (mode === VIEW_MODE.EDIT || mode === VIEW_MODE.VIEW) && isApproved && isFinanceUser
 
     const handleApproveClaim = () => {
         confirmDialog({
@@ -539,6 +542,29 @@ function EditableExpansionTable({
                     setExpenseItems(prev => prev.map(item => ({ ...item, status: APPROVAL_STATUS.REJECTED })))
                     if (onClaimUpdated) onClaimUpdated()
                     showToast(toastRef, { severity: 'success', summary: t('toast.success', 'Success'), detail: t('claims.claimRejected', 'Claim rejected successfully') })
+                } catch (error) {
+                    showToast(toastRef, { severity: 'error', summary: t('toast.error', 'Error'), detail: error.message })
+                } finally {
+                    setIsClaimApproving(false)
+                }
+            },
+        })
+    }
+
+    const handleMarkPaidClaim = () => {
+        confirmDialog({
+            message: t('claims.markPaidClaimMessage', 'Are you sure you want to mark this claim as paid?'),
+            header: t('claims.markPaidClaimHeader', 'Mark Claim as Paid'),
+            icon: 'pi pi-dollar',
+            defaultFocus: 'reject',
+            acceptClassName: 'p-button-info',
+            accept: async () => {
+                setIsClaimApproving(true)
+                try {
+                    await api.post(`claims/${curClaim.claim_id}/mark-paid`)
+                    setExpenseItems(prev => prev.map(item => ({ ...item, status: APPROVAL_STATUS.PAID })))
+                    if (onClaimUpdated) onClaimUpdated()
+                    showToast(toastRef, { severity: 'success', summary: t('toast.success', 'Success'), detail: t('claims.claimPaidSuccess', 'Claim marked as paid successfully') })
                 } catch (error) {
                     showToast(toastRef, { severity: 'error', summary: t('toast.error', 'Error'), detail: error.message })
                 } finally {
@@ -676,6 +702,19 @@ function EditableExpansionTable({
                 </div>
 
                 <div className="flex items-center gap-3 flex-wrap">
+                    {showMarkPaidButton && (
+                        <Button
+                            label={t('claims.markPaid', 'Mark Paid')}
+                            icon="pi pi-dollar"
+                            iconPos="right"
+                            outlined
+                            className={BUTTON_STYLE.info}
+                            onClick={handleMarkPaidClaim}
+                            loading={isClaimApproving}
+                            disabled={isClaimApproving}
+                            type="button"
+                        />
+                    )}
                     {showClaimApprovalButtons && (
                         <>
                             <Button

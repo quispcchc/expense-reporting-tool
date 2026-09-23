@@ -19,19 +19,23 @@ import { confirmDialog } from 'primereact/confirmdialog'
 import { useIsMobile } from '../../../hooks/useIsMobile.js'
 import { useTranslation } from 'react-i18next'
 import { formatDate } from '../../../utils/formatters.js'
-import { USER_TYPE, APPROVAL_STATUS } from '../../../config/constants.js'
+import { USER_TYPE, APPROVAL_STATUS, ROLE_NAME } from '../../../config/constants.js'
 import { useClaimListFilters } from '../../../hooks/useClaimListFilters.js'
 import ClaimListFilterPanel from './ClaimListFilterPanel.jsx'
 import MobileClaimCard from './MobileClaimCard.jsx'
 import MobileClaimListHeader from './MobileClaimListHeader.jsx'
+import { useAuth } from '../../../contexts/AuthContext.jsx'
 
 function ClaimListDataTable({ user, path, toastRef }) {
     const { t } = useTranslation()
     const navigate = useNavigate()
+    const { authUser } = useAuth()
     const { claims: allClaims, myClaims, fetchClaims, fetchMyClaims } = useClaims()
     const claims = user === USER_TYPE.ADMIN ? allClaims : myClaims
     const isMobile = useIsMobile()
     const { lookups: { claimStatus, claimTypes } } = useLookups()
+    
+    const isFinanceUser = authUser?.role_name === ROLE_NAME.FINANCE_USER || authUser?.role_name === ROLE_NAME.SUPER_ADMIN
 
     const [isLoading, setIsLoading] = useState(true)
     const [isProcessing, setIsProcessing] = useState(false)
@@ -105,21 +109,34 @@ function ClaimListDataTable({ user, path, toastRef }) {
 
     function executeBulkAction(action) {
         // Validation: Only pending claims can be approved/rejected
-        const nonPendingClaims = selectedClaims.filter(claim => claim.claim_status_id !== APPROVAL_STATUS.PENDING)
-        if (nonPendingClaims.length > 0) {
-            showToast(toastRef, {
-                severity: 'warn',
-                summary: t('toast.warning', 'Warning'),
-                detail: action === 'approve' ? t('claims.onlyPendingApprove') : t('claims.onlyPendingReject')
-            })
-            return
+        // ONLY approved claims can be marked paid
+        if (action === 'mark-paid') {
+            const nonApprovedClaims = selectedClaims.filter(claim => claim.claim_status_id !== APPROVAL_STATUS.APPROVED)
+            if (nonApprovedClaims.length > 0) {
+                showToast(toastRef, {
+                    severity: 'warn',
+                    summary: t('toast.warning', 'Warning'),
+                    detail: t('claims.onlyApprovedMarkPaid')
+                })
+                return
+            }
+        } else {
+            const nonPendingClaims = selectedClaims.filter(claim => claim.claim_status_id !== APPROVAL_STATUS.PENDING)
+            if (nonPendingClaims.length > 0) {
+                showToast(toastRef, {
+                    severity: 'warn',
+                    summary: t('toast.warning', 'Warning'),
+                    detail: action === 'approve' ? t('claims.onlyPendingApprove') : t('claims.onlyPendingReject')
+                })
+                return
+            }
         }
 
         const claimIds = selectedClaims.map(claim => claim.claim_id)
 
         confirmDialog({
-            message: t(`claims.bulk${capitalize(action)}Message`, `Do you want to ${action} all selected claims?`),
-            header: t(`claims.bulk${capitalize(action)}Header`, `Bulk ${capitalize(action)} Confirmation`),
+            message: t(`claims.bulk${capitalize(action.replace('-', ''))}Message`, `Do you want to ${action} all selected claims?`),
+            header: t(`claims.bulk${capitalize(action.replace('-', ''))}Header`, `Bulk ${capitalize(action)} Confirmation`),
             icon: 'pi pi-info-circle',
             defaultFocus: 'reject',
             acceptClassName: 'p-button-info',
@@ -132,7 +149,7 @@ function ClaimListDataTable({ user, path, toastRef }) {
                     } else {
                         await fetchMyClaims()
                     }
-                    showToast(toastRef, { severity: 'success', summary: t('toast.success', 'Success'), detail: t(`claims.bulk${capitalize(action)}Success`) })
+                    showToast(toastRef, { severity: 'success', summary: t('toast.success', 'Success'), detail: t(`claims.bulk${capitalize(action.replace('-', ''))}Success`) })
                 } catch (error) {
                     showToast(toastRef, { severity: 'error', summary: t('toast.error', 'Error'), detail: error.message })
                 } finally {
@@ -142,7 +159,7 @@ function ClaimListDataTable({ user, path, toastRef }) {
             },
             reject: () => {
                 setSelectedClaims([])
-                showToast(toastRef, { severity: 'info', summary: t('toast.cancel', 'Cancel'), detail: t(`claims.bulk${capitalize(action)}Cancelled`) })
+                showToast(toastRef, { severity: 'info', summary: t('toast.cancel', 'Cancel'), detail: t(`claims.bulk${capitalize(action.replace('-', ''))}Cancelled`) })
             },
         })
     }
@@ -351,6 +368,10 @@ function ClaimListDataTable({ user, path, toastRef }) {
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">
+                    {isFinanceUser && (
+                        <Button label={t('claims.markPaid', 'Mark Paid')} outlined className={BUTTON_STYLE.info} icon="pi pi-dollar" iconPos="right"
+                            onClick={() => executeBulkAction('mark-paid')} disabled={isDisabled || isExporting || isProcessing} loading={isProcessing} />
+                    )}
                     <Button label={t('claims.approve', 'Approve')} outlined className={BUTTON_STYLE.success} icon="pi pi-check" iconPos="right"
                         onClick={() => executeBulkAction('approve')} disabled={isDisabled || isExporting || isProcessing} loading={isProcessing} />
                     <Button label={t('claims.reject', 'Reject')} outlined className={BUTTON_STYLE.danger} icon="pi pi-times" iconPos="right"

@@ -52,6 +52,8 @@ button:disabled,
     --color-status-success-text: #04910C;
     --color-status-danger-bg: #FFDCDC;
     --color-status-danger-text: #FF0000;
+    --color-status-info-bg: #D9EDFF;
+    --color-status-info-text: #05589B;
 }
 
 /* Dark Theme */
@@ -99,6 +101,10 @@ button:disabled,
     /* red-950 */
     --color-status-danger-text: #f87171;
     /* red-400 */
+    --color-status-info-bg: #1e3a8a;
+    /* blue-900 */
+    --color-status-info-text: #93c5fd;
+    /* blue-300 */
 }
 
 /* Apply theme to body */
@@ -156,6 +162,14 @@ body {
 
 .text-status-danger {
     color: var(--color-status-danger-text);
+}
+
+.bg-status-info {
+    background-color: var(--color-status-info-bg);
+}
+
+.text-status-info {
+    color: var(--color-status-info-text);
 }
 
 /* ============================================

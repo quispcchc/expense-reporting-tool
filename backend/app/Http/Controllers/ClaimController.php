@@ -196,6 +196,30 @@ class ClaimController extends Controller
         }
     }
 
+    public function bulkMarkPaid(Request $request)
+    {
+        try {
+            $user = $request->user();
+            $claimIds = $request->claimIds;
+
+            $claims = Claim::whereIn('claim_id', $claimIds)->get();
+
+            foreach ($claims as $claim) {
+                if ($user->cannot('markPaid', $claim)) {
+                    return $this->errorResponse(trans('messages.not_authorized_mark_paid', ['id' => $claim->claim_id]), 403);
+                }
+            }
+
+            $this->claimService->bulkMarkPaid($claimIds, $user);
+
+            return $this->successResponse(['message' => trans('messages.claims_marked_paid')]);
+        } catch (Throwable $e) {
+            Log::error('Bulk Mark Paid Error: '.$e->getMessage());
+
+            return $this->errorResponse($e->getMessage(), 400);
+        }
+    }
+
     /**
      * Mark an approved claim as Paid. Authorized via the markPaid claim policy
      * (finance_user within own department, or super_admin).

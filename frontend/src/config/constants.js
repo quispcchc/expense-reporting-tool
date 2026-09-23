@@ -3,6 +3,7 @@ export const APPROVAL_STATUS = {
     PENDING: 1,
     APPROVED: 2,
     REJECTED: 3,
+    PAID: 4,
 }
 
 // Active status IDs (used for departments, teams, cost centres, users)

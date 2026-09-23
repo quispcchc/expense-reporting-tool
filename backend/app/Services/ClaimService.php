@@ -420,6 +420,13 @@ class ClaimService
         }
     }
 
+    public function bulkMarkPaid(array $claimIds, User $actor): void
+    {
+        foreach ($claimIds as $claimId) {
+            $this->markClaimPaid((int) $claimId, $actor);
+        }
+    }
+
     /**
      * Shared logic for approving/rejecting with error handling
      */
