@@ -1,8 +1,7 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -12,7 +11,7 @@ return new class extends Migration
     public function up(): void
     {
         // Add Paid status to approval_statuses if missing
-        \Illuminate\Support\Facades\DB::table('approval_statuses')->updateOrInsert(
+        DB::table('approval_status')->updateOrInsert(
             ['approval_status_id' => 4],
             [
                 'approval_status_name' => 'Paid',
@@ -21,7 +20,7 @@ return new class extends Migration
         );
 
         // Ensure Paid status is also in claim_statuses (it should be there, but for safety)
-        \Illuminate\Support\Facades\DB::table('claim_statuses')->updateOrInsert(
+        DB::table('claim_status')->updateOrInsert(
             ['claim_status_id' => 4],
             [
                 'claim_status_name' => 'Paid',
