@@ -13,13 +13,15 @@ class ClaimCreatedNotification extends Notification implements ShouldQueue
     use Queueable;
 
     protected Claim $claim;
+    protected ?string $recipientName;
 
     /**
      * Create a new notification instance.
      */
-    public function __construct(Claim $claim)
+    public function __construct(Claim $claim, ?string $recipientName = null)
     {
         $this->claim = $claim;
+        $this->recipientName = $recipientName;
     }
 
     /**
@@ -38,8 +40,11 @@ class ClaimCreatedNotification extends Notification implements ShouldQueue
         $frontendUrl = config('app.frontend_url', 'http://localhost:3000');
         $url = $frontendUrl . "/user/claims/{$this->claim->claim_id}/view-claim";
 
+        $greeting = $this->recipientName ? "Hello {$this->recipientName}," : "Hello,";
+
         return (new MailMessage)
             ->subject("New Claim #{$this->claim->claim_id} Submitted")
+            ->greeting($greeting)
             ->line("A new claim has been submitted and is pending review.")
             ->line("Claimant: {$this->claim->user->full_name}")
             ->line("Total Amount: {$this->claim->total_amount}")

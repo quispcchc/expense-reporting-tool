@@ -19,6 +19,7 @@ use App\Models\Project;
 use App\Models\Receipt;
 use App\Models\Tag;
 use App\Models\User;
+use App\Notifications\ClaimCreatedNotification;
 use App\Notifications\ClaimUpdatedNotification;
 use Exception;
 use Illuminate\Support\Facades\DB;
@@ -149,7 +150,7 @@ class ClaimService
             throw new Exception('Your account is inactive. You cannot create claims.', 403);
         }
 
-        return DB::transaction(function () use ($data, $user) {
+        $claim = DB::transaction(function () use ($data, $user) {
 
             // Store the bank statement PDF if provided (corporate card claims)
             $bankStatementPath = null;
@@ -180,8 +181,36 @@ class ClaimService
                 $this->addExpenses($claim, $data['expenses']);
             }
 
-            return $claim->load(['expenses.receipts', 'expenses.mileage.transactions.receipts', 'claimType', 'department', 'team', 'status']);
+            return $claim->load(['expenses.receipts', 'expenses.mileage.transactions.receipts', 'claimType', 'department', 'team', 'status', 'user']);
         });
+
+        // Send notifications to Department Super Admin and Department Approvers
+        try {
+            $recipients = User::where('department_id', $claim->department_id)
+                ->whereHas('role', function ($query) {
+                    $query->whereIn('role_level', [RoleLevel::SUPER_ADMIN, RoleLevel::DEPARTMENT_MANAGER]);
+                })
+                ->get();
+
+            foreach ($recipients as $recipient) {
+                try {
+                    $recipient->notify(new ClaimCreatedNotification($claim, $recipient->full_name));
+                } catch (\Throwable $notifyError) {
+                    Log::error('Failed to notify admin/manager of new claim', [
+                        'claim_id' => $claim->claim_id,
+                        'recipient_id' => $recipient->user_id,
+                        'error' => $notifyError->getMessage(),
+                    ]);
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::error('Notification dispatch failed for new claim', [
+                'claim_id' => $claim->claim_id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return $claim;
     }
 
     protected function addNote(Claim $claim, $user, string $noteText)
